@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 export type Brand = { id: string; name: string; legal_name?: string; country?: string; website?: string; kind?: string; status: string; notes?: string };
 export type Kit = { id: string; brand: string; name: string; category: string; scale?: string; drive?: string; power?: string; notes?: string };
-export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string };
+export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
 export type Release = { id: string; kit: string; brand: string; number?: string; name: string; year: number; kind: string; status: string; edition?: string; documents?: string[]; contains?: Contains[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Part = { id: string; brand: string; number: string; name: string; pack_qty?: number; former_names?: string[]; material?: string; strength_class?: string; finish?: string; thread_type?: string; equivalent_to?: EquivalentTo[] };
