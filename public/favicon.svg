@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>Hobbydex</title>
+  <rect width="128" height="128" rx="28" fill="#0969da"/>
+  <path d="M-24 -28V28M24 -28V28M-24 0H24" transform="translate(64 64) rotate(-56) scale(1.2400)" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" opacity="0.1"/>
+  <path d="M-24 -28V28M24 -28V28M-24 0H24" transform="translate(64 64) rotate(-42) scale(1.1800)" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" opacity="0.2"/>
+  <path d="M-24 -28V28M24 -28V28M-24 0H24" transform="translate(64 64) rotate(-28) scale(1.1200)" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" opacity="0.32"/>
+  <path d="M-24 -28V28M24 -28V28M-24 0H24" transform="translate(64 64) rotate(-14) scale(1.0600)" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" opacity="0.5"/>
+  <path d="M-24 -28V28M24 -28V28M-24 0H24" transform="translate(64 64) rotate(0) scale(1.0000)" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" opacity="1"/>
+</svg>
