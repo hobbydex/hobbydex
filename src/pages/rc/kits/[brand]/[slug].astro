@@ -7,6 +7,7 @@ export function getStaticPaths() {
 const { kit } = Astro.props;
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort((a, b) => a.year - b.year || a.name.localeCompare(b.name));
 const count = (r: (typeof releases)[number], role: string) => (r.contains ?? []).filter((c) => c.role === role).length;
+const fits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => a.part.number.localeCompare(b.part.number));
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="kit" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
@@ -26,4 +27,10 @@ const count = (r: (typeof releases)[number], role: string) => (r.contains ?? [])
       <td class="num">{count(r, 'kit') || ''}</td><td class="num">{count(r, 'option') || ''}</td><td class="num">{count(r, 'listed') || ''}</td>
     </tr>)}
   </table>
+  {fits.length > 0 && <>
+    <h2>Option parts listed as fitting <span class="muted">({fits.length})</span></h2>
+    <table>
+      <tr><th class="num">Number</th><th>Name</th><th>Brand</th><th>Fit</th></tr>
+      {fits.map(({ part, fit }) => <tr><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td>{brandName(part.brand)}</td><td>{fit.type}{fit.notes && <span class="muted"> · {fit.notes}</span>}</td></tr>)}
+    </table></>}
 </Base>
