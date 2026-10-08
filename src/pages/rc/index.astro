@@ -1,0 +1,27 @@
+---
+import Base from '../../layouts/Base.astro';
+import { db, url } from '../../lib/data';
+---
+<Base title="RC cars" description="RC car brands, kits and parts in Hobbydex.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / RC cars</div>
+  <h1>RC cars</h1>
+  <h2>Brands</h2>
+  <ul class="cards">
+    {db.brands.map((b) => (
+      <li><a href={url.brand(b.id)}><b>{b.name}</b></a><br />
+        <span class="muted">{db.kitsByBrand.get(b.id)?.length ?? 0} kits · {db.partsByBrand.get(b.id)?.length ?? 0} parts</span></li>
+    ))}
+  </ul>
+  <h2>Kits</h2>
+  <table>
+    <tr><th>Brand</th><th>Kit</th><th>Category</th><th>Scale</th><th>Drive</th><th>Releases</th></tr>
+    {db.kits.map((k) => (
+      <tr>
+        <td><a href={url.brand(k.brand)}>{db.brand.get(k.brand)?.name}</a></td>
+        <td><a href={url.kit(k.id)}>{k.name}</a></td>
+        <td>{k.category}</td><td>{k.scale}</td><td>{k.drive}</td>
+        <td>{(db.releasesByKit.get(k.id) ?? []).map((r, i) => <>{i > 0 && ', '}<a href={url.release(r.id)}>{r.name}</a></>)}</td>
+      </tr>
+    ))}
+  </table>
+</Base>

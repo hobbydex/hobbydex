@@ -1,0 +1,35 @@
+---
+import '../styles/global.css';
+interface Props { title: string; description?: string; jsonld?: unknown; kind?: string; sub?: string }
+const { title, description, jsonld, kind, sub } = Astro.props;
+---
+<!doctype html>
+<html lang="en" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · Hobbydex</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    {jsonld && <script type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
+  </head>
+  <body>
+    <header class="site" data-pagefind-ignore>
+      <a class="logo" href="/">Hobbydex</a>
+      <nav>
+        <a href="/rc/">RC cars</a>
+        <a href="/search/">Search</a>
+        <a href="https://github.com/hobbydex">GitHub</a>
+      </nav>
+    </header>
+    <main data-pagefind-body>
+      {kind && <span hidden data-pagefind-meta={`type:${kind}`} data-pagefind-filter={`type:${kind}`} />}
+      {sub && <span hidden data-pagefind-meta={`sub:${sub}`} />}
+      <slot />
+    </main>
+    <footer class="site" data-pagefind-ignore>
+      Open hobby parts database. Facts only: part numbers, names and fitment with their source; no prices, stock or images.
+      Data and corrections: <a href="https://github.com/hobbydex/hobbydex-rc">hobbydex/hobbydex-rc</a>.
+    </footer>
+  </body>
+</html>

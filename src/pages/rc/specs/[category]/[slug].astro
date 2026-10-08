@@ -1,0 +1,36 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import { db, key, url, brandName } from '../../../../lib/data';
+export function getStaticPaths() {
+  return db.specs.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } }));
+}
+const { spec } = Astro.props;
+const skip = new Set(['id', 'category', 'name', 'standards']);
+const attrs = Object.entries(spec).filter(([k, v]) => !skip.has(k) && (typeof v === 'string' || typeof v === 'number'));
+const linked = db.partsBySpec.get(spec.id) ?? [];
+const uses = linked.flatMap(({ part, link }) => (db.usesByPart.get(part.id) ?? []).map((u) => ({ part, link, ...u })))
+  .sort((a, b) => a.release.year - b.release.year || a.release.name.localeCompare(b.release.name));
+const title = spec.name ?? key(spec.id)[1];
+---
+<Base title={title} description={`${title}: generic ${spec.category} spec, and which branded parts and kits match it.`} kind="spec" sub={spec.category}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / specs / {spec.category} / {key(spec.id)[1]}</div>
+  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{title}</h1>
+  <dl class="facts">
+    <dt>Category</dt><dd>{spec.category}</dd>
+    {attrs.map(([k, v]) => <><dt>{k.replace(/_/g, ' ')}</dt><dd>{String(v)}</dd></>)}
+    {spec.standards && <><dt>Standards</dt><dd>{spec.standards.join(', ')}</dd></>}
+  </dl>
+  <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>
+  {linked.length === 0 ? <p class="muted">None linked yet.</p> :
+  <table>
+    <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Material</th><th>Match</th></tr>
+    {linked.map(({ part, link }) => <tr><td>{brandName(part.brand)}</td><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td class="num">{part.pack_qty ?? ''}</td><td>{part.material ?? ''}</td><td>{link.match}</td></tr>)}
+  </table>}
+  <h2>Used in <span class="muted">(via those parts)</span></h2>
+  {uses.length === 0 ? <p class="muted">No release lists a matching part yet.</p> :
+  <table>
+    <tr><th class="num">Year</th><th>Release</th><th>As part</th><th>Role</th></tr>
+    {uses.map((u) => <tr><td class="num">{u.release.year}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><a href={url.part(u.part.id)}>{u.part.number}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
+  </table>}
+  <p class="muted">Derived by walking release, part and equivalence links; the material is a property of each branded part, not of the spec.</p>
+</Base>

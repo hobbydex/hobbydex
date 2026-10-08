@@ -1,0 +1,29 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import { db, key, url, brandName } from '../../../../lib/data';
+export function getStaticPaths() {
+  return db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } }));
+}
+const { kit } = Astro.props;
+const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort((a, b) => a.year - b.year || a.name.localeCompare(b.name));
+const count = (r: (typeof releases)[number], role: string) => (r.contains ?? []).filter((c) => c.role === role).length;
+---
+<Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="kit" sub={brandName(kit.brand)}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
+  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(kit.brand)} {kit.name}</h1>
+  <dl class="facts">
+    <dt>Category</dt><dd>{kit.category}</dd>
+    {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
+    {kit.drive && <><dt>Drive</dt><dd>{kit.drive}</dd></>}
+    {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
+  </dl>
+  {kit.notes && <p class="muted">{kit.notes}</p>}
+  <h2>Releases</h2>
+  <table>
+    <tr><th class="num">Year</th><th>Release</th><th class="num">Item no.</th><th>Edition</th><th class="num">Kit parts</th><th class="num">Options</th><th class="num">Listed</th></tr>
+    {releases.map((r) => <tr>
+      <td class="num">{r.year}</td><td><a href={url.release(r.id)}>{r.name}</a></td><td class="num">{r.number ?? ''}</td><td>{r.edition ?? ''}</td>
+      <td class="num">{count(r, 'kit') || ''}</td><td class="num">{count(r, 'option') || ''}</td><td class="num">{count(r, 'listed') || ''}</td>
+    </tr>)}
+  </table>
+</Base>
