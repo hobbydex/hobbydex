@@ -7,7 +7,8 @@ export type Kit = { id: string; brand: string; name: string; category: string; s
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
 export type Release = { id: string; kit: string; brand: string; number?: string; name: string; year: number; kind: string; status: string; edition?: string; documents?: string[]; contains?: Contains[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
-export type Part = { id: string; brand: string; number: string; name: string; pack_qty?: number; former_names?: string[]; material?: string; strength_class?: string; finish?: string; thread_type?: string; equivalent_to?: EquivalentTo[] };
+export type Fits = { kit: string; type: 'direct' | 'replaces' | 'modification'; source?: string; notes?: string };
+export type Part = { id: string; brand: string; number: string; name: string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; thread_type?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[] };
 export type Spec = { id: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
 export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; releases?: string[] };
 export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[] };
@@ -39,8 +40,15 @@ for (const p of raw.parts) for (const e of p.equivalent_to ?? []) {
   partsBySpec.get(e.spec)!.push({ part: p, link: e });
 }
 
+const fitsByKit = new Map<string, { part: Part; fit: Fits }[]>();
+for (const p of raw.parts) for (const f of p.fits ?? []) {
+  if (!fitsByKit.has(f.kit)) fitsByKit.set(f.kit, []);
+  fitsByKit.get(f.kit)!.push({ part: p, fit: f });
+}
+
 export const db = {
   ...raw,
+  fitsByKit,
   specs: raw.specs ?? [],
   spec: byId(raw.specs ?? []),
   partsBySpec,

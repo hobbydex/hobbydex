@@ -19,7 +19,16 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.former_names && part.former_names.length > 0 && <><dt>Formerly listed as</dt><dd>{part.former_names.join('; ')}</dd></>}
     {part.material && <><dt>Material</dt><dd>{part.material}{part.strength_class && ` ${part.strength_class}`}{part.finish && `, ${part.finish}`}</dd></>}
     {part.thread_type && <><dt>Thread</dt><dd>{part.thread_type}</dd></>}
+    {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
+  {part.fits && part.fits.length > 0 && <>
+    <h2>Fits <span class="muted">({part.fits.length} chassis)</span></h2>
+    <table>
+      <tr><th>Kit</th><th>Fit</th><th>Source</th></tr>
+      {part.fits.map((f) => { const k = db.kit.get(f.kit); const d = f.source ? db.doc.get(f.source) : undefined; return <tr>
+        <td><a href={url.kit(f.kit)}>{k ? `${brandName(k.brand)} ${k.name}` : f.kit}</a></td><td>{f.type}{f.notes && <span class="muted"> · {f.notes}</span>}</td><td class="muted">{d?.title ?? f.source ?? ''}</td>
+      </tr>; })}
+    </table></>}
   {part.equivalent_to && part.equivalent_to.length > 0 && <>
     <h2>Equivalent to</h2>
     <table>
