@@ -1,0 +1,33 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import { db, key, url, brandName } from '../../../../lib/data';
+export function getStaticPaths() {
+  return db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } }));
+}
+const { release } = Astro.props;
+const kit = db.kit.get(release.kit)!;
+const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d !== undefined);
+const rows = (release.contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
+const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b) => a.p.number.localeCompare(b.p.number));
+const hasSplit = rows.some((c) => c.role !== 'listed');
+const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
+---
+<Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name} (${release.year}): parts list and options.`} kind="release" sub={`${brandName(release.brand)} · ${release.year}`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a> / <a href={url.kit(kit.id)}>{kit.name}</a> / {release.name}</div>
+  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(release.brand)} {release.name}</h1>
+  <dl class="facts">
+    {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
+    <dt>Year</dt><dd>{release.year}</dd>
+    {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
+    <dt>Kind</dt><dd>{release.kind}</dd>
+    <dt>Status</dt><dd>{release.status}</dd>
+  </dl>
+  {docs.length > 0 && <><h2>Sources</h2><ul>{docs.map((d) => <li>{d.url ? <a href={d.url} rel="nofollow">{d.title}</a> : d.title}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></>}
+  {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
+  {sections.map(([role, label]) => { const s = section(role); return s.length > 0 && <>
+    <h2>{label} <span class="muted">({s.length})</span></h2>
+    <table>
+      <tr><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Brand</th></tr>
+      {s.map((c) => <tr><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td>{c.p.name}</td><td class="num">{c.p.pack_qty ?? ''}</td><td>{brandName(c.p.brand)}</td></tr>)}
+    </table></>; })}
+</Base>

@@ -1,0 +1,38 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import { db, key, url, brandName } from '../../../../lib/data';
+export function getStaticPaths() {
+  return db.parts.map((p) => ({ params: { brand: key(p.id)[0], number: key(p.id)[1] }, props: { part: p } }));
+}
+const { part } = Astro.props;
+const brand = db.brand.get(part.brand);
+const uses = [...(db.usesByPart.get(part.id) ?? [])].sort((a, b) => a.release.year - b.release.year || a.release.name.localeCompare(b.release.name));
+const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
+---
+<Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a> / {part.number}</div>
+  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number} <span class="muted">·</span> {part.name}</h1>
+  <dl class="facts">
+    <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
+    <dt>Part number</dt><dd>{part.number}</dd>
+    {part.pack_qty && <><dt>Pack</dt><dd>{part.pack_qty} pcs</dd></>}
+    {part.former_names && part.former_names.length > 0 && <><dt>Formerly listed as</dt><dd>{part.former_names.join('; ')}</dd></>}
+    {part.material && <><dt>Material</dt><dd>{part.material}{part.strength_class && ` ${part.strength_class}`}{part.finish && `, ${part.finish}`}</dd></>}
+    {part.thread_type && <><dt>Thread</dt><dd>{part.thread_type}</dd></>}
+  </dl>
+  {part.equivalent_to && part.equivalent_to.length > 0 && <>
+    <h2>Equivalent to</h2>
+    <table>
+      <tr><th>Generic spec</th><th>Match</th><th>Standards</th><th>Source</th></tr>
+      {part.equivalent_to.map((e) => { const sp = db.spec.get(e.spec); const d = e.source ? db.doc.get(e.source) : undefined; return <tr>
+        <td><a href={url.spec(e.spec)}>{sp?.name ?? e.spec}</a></td><td>{e.match}</td><td>{sp?.standards?.join(', ')}</td><td class="muted">{d?.title ?? e.source ?? ''}{e.notes && <><br />{e.notes}</>}</td>
+      </tr>; })}
+    </table></>}
+  <h2>Used in</h2>
+  {uses.length === 0 ? <p class="muted">No release lists this part yet.</p> :
+  <table>
+    <tr><th class="num">Year</th><th>Release</th><th>Role</th></tr>
+    {uses.map((u) => <tr><td class="num">{u.release.year}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
+  </table>}
+  <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p>
+</Base>

@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import { db } from '../lib/data';
+---
+<Base title="Open hobby parts database" description="Hobbydex: which parts are in my RC car, what fits it, and what is it equivalent to. Open data, no prices, no images.">
+  <h1>Hobbydex</h1>
+  <p>Which parts are in my car, what fits it, and what is it equivalent to? An open, cross-brand parts database, starting with RC cars.</p>
+  <div class="stats">
+    <div><b>{db.brands.length}</b> brands</div>
+    <div><b>{db.kits.length}</b> kits</div>
+    <div><b>{db.releases.length}</b> releases</div>
+    <div><b>{db.parts.length}</b> parts</div>
+  </div>
+  <p><a href="/rc/">Browse RC cars</a> · <a href="/search/">Search part numbers and names</a></p>
+  <p class="muted">Dataset {db.dataset}, export generated {db.generated}. Early draft: data and schema are still growing.</p>
+</Base>

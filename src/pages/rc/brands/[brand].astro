@@ -1,0 +1,28 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { db, key, url } from '../../../lib/data';
+export function getStaticPaths() {
+  return db.brands.map((b) => ({ params: { brand: key(b.id)[0] }, props: { brand: b } }));
+}
+const { brand } = Astro.props;
+const kits = db.kitsByBrand.get(brand.id) ?? [];
+const parts = db.partsByBrand.get(brand.id) ?? [];
+---
+<Base title={brand.name} description={`${brand.name}: kits and parts in Hobbydex.`} kind="brand">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / {brand.name}</div>
+  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brand.name}</h1>
+  <dl class="facts">
+    {brand.legal_name && <><dt>Legal name</dt><dd>{brand.legal_name}</dd></>}
+    {brand.country && <><dt>Country</dt><dd>{brand.country}</dd></>}
+    {brand.website && <><dt>Website</dt><dd><a href={brand.website} rel="nofollow">{brand.website}</a></dd></>}
+    <dt>Status</dt><dd>{brand.status}</dd>
+  </dl>
+  {brand.notes && <p class="muted">{brand.notes}</p>}
+  {kits.length > 0 && <><h2>Kits</h2>
+  <ul class="cards">{kits.map((k) => <li><a href={url.kit(k.id)}><b>{k.name}</b></a><br /><span class="muted">{k.scale} {k.drive} {k.category}</span></li>)}</ul></>}
+  <h2>Parts <span class="muted">({parts.length})</span></h2>
+  <table data-pagefind-ignore>
+    <tr><th class="num">Number</th><th>Name</th><th class="num">Pack</th></tr>
+    {parts.map((p) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td>{p.name}</td><td class="num">{p.pack_qty ?? ''}</td></tr>)}
+  </table>
+</Base>

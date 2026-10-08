@@ -1,0 +1,83 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Search">
+  <h1>Search</h1>
+  <input class="search-box" id="q" type="search" placeholder="Part number, part name, kit or brand" autocomplete="off" autofocus />
+  <div class="search-filters" id="filters" role="group" aria-label="Result type">
+    <button data-type="" aria-pressed="true">All</button>
+    <button data-type="part" aria-pressed="false">Parts</button>
+    <button data-type="spec" aria-pressed="false">Specs</button>
+    <button data-type="release" aria-pressed="false">Releases</button>
+    <button data-type="kit" aria-pressed="false">Kits</button>
+    <button data-type="brand" aria-pressed="false">Brands</button>
+  </div>
+  <div class="search-status" id="status"></div>
+  <ul class="search-results" id="results"></ul>
+  <div class="search-more" id="more" hidden><button id="more-btn">Show more</button></div>
+  <script is:inline>
+    (async () => {
+      const q = document.getElementById('q'), results = document.getElementById('results'), status = document.getElementById('status');
+      const more = document.getElementById('more'), moreBtn = document.getElementById('more-btn'), filters = document.getElementById('filters');
+      let pagefind;
+      try {
+        pagefind = await import('/pagefind/pagefind.js');
+        await pagefind.options({ ranking: { termSimilarity: 9, termFrequency: 0.2, termSaturation: 1.2, pageLength: 0.5 } });
+        await pagefind.init();
+      } catch (e) {
+        status.textContent = 'Search index failed to load: ' + (e && e.message ? e.message : e);
+        return;
+      }
+      let type = '', hits = [], shown = 0, seq = 0;
+      const PAGE = 20;
+      const labels = { part: 'part', spec: 'spec', release: 'release', kit: 'kit', brand: 'brand' };
+      const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const mark = (text, terms) => {
+        let out = esc(text);
+        for (const t of terms) if (t.length > 1) out = out.replace(new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>');
+        return out;
+      };
+      async function render() {
+        const terms = q.value.trim().split(/\s+/).filter(Boolean);
+        const batch = hits.slice(shown, shown + PAGE);
+        const data = await Promise.all(batch.map((h) => h.data()));
+        for (const d of data) {
+          const li = document.createElement('li');
+          const t = d.meta.type || '';
+          li.innerHTML = `<span class="badge">${esc(labels[t] || t)}</span><a href="${esc(d.url)}">${mark(d.meta.title || d.url, terms)}</a>` + (d.meta.sub ? `<span class="sub">${esc(d.meta.sub)}</span>` : '');
+          results.appendChild(li);
+        }
+        shown += batch.length;
+        more.hidden = shown >= hits.length;
+      }
+      async function search() {
+        const my = ++seq, text = q.value.trim();
+        results.innerHTML = ''; shown = 0; more.hidden = true;
+        history.replaceState(null, '', text ? `?q=${encodeURIComponent(text)}${type ? '&type=' + type : ''}` : location.pathname);
+        if (!text && !type) { status.textContent = ''; hits = []; return; }
+        let r;
+        try {
+          // empty query with a type selected: list every page of that type, by title
+          r = text ? await pagefind.search(text, type ? { filters: { type } } : {})
+                   : await pagefind.search(null, { filters: { type }, sort: { title: 'asc' } });
+        }
+        catch (e) { status.textContent = 'Search failed: ' + (e && e.message ? e.message : e); return; }
+        if (my !== seq) return;
+        hits = r.results;
+        status.textContent = hits.length ? `${hits.length} ${text ? 'result' : labels[type] || 'page'}${hits.length === 1 ? '' : 's'}` : 'No results';
+        await render();
+      }
+      let timer; q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(search, 120); });
+      moreBtn.addEventListener('click', render);
+      filters.addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b) return;
+        type = b.dataset.type;
+        for (const x of filters.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+        search();
+      });
+      const params = new URLSearchParams(location.search);
+      if (params.get('type')) { type = params.get('type'); for (const x of filters.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x.dataset.type === type)); }
+      if (params.get('q')) { q.value = params.get('q'); search(); }
+    })();
+  </script>
+</Base>
