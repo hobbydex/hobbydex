@@ -20,13 +20,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check out the RC dataset
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: hobbydex/hobbydex-rc
           path: data-repo
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Validate and export the dataset
@@ -34,7 +34,7 @@ jobs:
         run: |
           python3 -I tools/validate.py
           python3 -I tools/export.py ../data/hobbydex-rc.json
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -42,7 +42,7 @@ jobs:
       - run: npm run build
         env:
           HOBBYDEX_DATA: data/hobbydex-rc.json
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
   deploy:
@@ -53,4 +53,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
