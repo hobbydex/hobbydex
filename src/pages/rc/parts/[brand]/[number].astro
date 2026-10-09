@@ -19,6 +19,8 @@ for (const f of part.fits ?? []) {
   k.fit = f.type; kitMap.set(f.kit, k);
 }
 const kitsOf = [...kitMap.entries()].map(([id, v]) => ({ id, kit: db.kit.get(id), ...v })).sort((a, b) => (a.kit?.name ?? a.id).localeCompare(b.kit?.name ?? b.id));
+const replacedBy = db.parts.filter((p) => p.supersedes === part.id);
+const replaces = part.supersedes ? db.part.get(part.supersedes) : undefined;
 const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
 ---
 <Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
@@ -35,6 +37,8 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     <dt>Part number</dt><dd>{part.number}</dd>
     {part.category && <><dt>Category</dt><dd>{catName(part.category)}</dd></>}
     {part.released && <><dt>Released</dt><dd>{part.released}</dd></>}
+    {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{replaces.number}</a> {replaces.name}</dd></>}
+    {replacedBy.length > 0 && <><dt>Replaced by</dt><dd>{replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>}
     {part.pack_qty && <><dt>Pack</dt><dd>{part.pack_qty} pcs</dd></>}
     {part.former_names && part.former_names.length > 0 && <><dt>Formerly listed as</dt><dd>{part.former_names.join('; ')}</dd></>}
     {part.material && <><dt>Material</dt><dd>{part.material}{part.strength_class && ` ${part.strength_class}`}{part.finish && `, ${part.finish}`}</dd></>}
