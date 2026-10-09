@@ -26,7 +26,14 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
-  {docs.length > 0 && <><h2>Sources</h2><ul>{docs.map((d) => <li>{d.url ? <a href={d.url} rel="nofollow">{d.title}</a> : d.title}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></>}
+  {docs.length > 0 && <><h2>Sources</h2>
+    {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
+      ? <ul>{docs.map((d) => <li>{d.url ? <a href={d.url} rel="nofollow">{d.title}</a> : d.title}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
+      : <ul>{[...new Set(docs.map((d) => d.url ?? ''))].map((u) => { const ds = docs.filter((d) => (d.url ?? '') === u); return <li>
+          {u ? <a href={u} rel="nofollow">{new URL(u).hostname}{new URL(u).pathname.length > 1 ? new URL(u).pathname : ''}</a> : 'Documents'} <span class="muted">· {ds.length} documents</span>
+          <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
+        </li>; })}</ul>}
+    <p><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p></>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
   {cats.length > 1 && <p data-pagefind-ignore><label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label></p>}
