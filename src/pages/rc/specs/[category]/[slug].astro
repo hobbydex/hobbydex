@@ -23,8 +23,8 @@ const title = spec.name ?? key(spec.id)[1];
   <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>
   {linked.length === 0 ? <p class="muted">None linked yet.</p> :
   <table>
-    <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Material</th>{spec.category === 'bearing' && <th>Seal</th>}<th>Match</th></tr>
-    {linked.map(({ part, link }) => <tr><td>{brandName(part.brand)}</td><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td class="num">{part.pack_qty ?? ''}</td><td>{part.material ?? ''}</td>{spec.category === 'bearing' && <td>{part.seal ?? ''}</td>}<td>{link.match}</td></tr>)}
+    <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Material</th>{spec.category === 'bearing' && <th>Seal</th>}{spec.category === 'pinion' && <th class="num">Bore mm</th>}<th>Match</th></tr>
+    {linked.map(({ part, link }) => <tr><td>{brandName(part.brand)}</td><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td class="num">{part.pack_qty ?? ''}</td><td>{part.material ?? ''}</td>{spec.category === 'bearing' && <td>{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num">{part.bore_mm ?? ''}</td>}<td>{link.match}</td></tr>)}
   </table>}
   <h2>Used in <span class="muted">(via those parts)</span></h2>
   {uses.length === 0 ? <p class="muted">No release lists a matching part yet.</p> :
