@@ -11,6 +11,10 @@ const linked = db.partsBySpec.get(spec.id) ?? [];
 const uses = linked.flatMap(({ part, link }) => (db.usesByPart.get(part.id) ?? []).map((u) => ({ part, link, ...u })))
   .sort((a, b) => a.release.year - b.release.year || a.release.name.localeCompare(b.release.name));
 const title = spec.name ?? key(spec.id)[1];
+// servos: every servo of the same size class, whatever its spline, closest case first
+const sameSize = spec.category !== 'servo' ? [] : db.specs.filter((o) => o.category === 'servo' && o.size_class === spec.size_class)
+  .flatMap((o) => (db.partsBySpec.get(o.id) ?? []).map(({ part }) => ({ part, spline: o.spline_teeth as number | undefined })))
+  .sort((a, b) => (a.part.dimensions_mm?.[0] ?? 999) - (b.part.dimensions_mm?.[0] ?? 999) || (a.part.dimensions_mm?.[2] ?? 999) - (b.part.dimensions_mm?.[2] ?? 999));
 const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c is string => !!c))].sort();
 ---
 <Base title={title} description={`${title}: generic ${spec.category} spec, and which branded parts and kits match it.`} kind="spec" sub={spec.category}>
@@ -33,6 +37,14 @@ const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c
     <table>
       <tr><th>Brand</th><th class="num">Number</th><th>Set</th><th class="num">Qty</th><th>Notes</th></tr>
       {db.setsBySpec.get(spec.id)!.map((x) => <tr><td>{brandName(x.part.brand)}</td><td class="num"><a href={url.part(x.part.id)}>{x.part.number}</a></td><td>{x.part.name}</td><td class="num">{x.qty ?? ''}</td><td class="muted">{x.notes ?? ''}</td></tr>)}
+    </table></>}
+  {sameSize.length > 0 && <>
+    <h2>All {String(spec.size_class).replace('-', ' ')} servos <span class="muted">({sameSize.length}, by case length then height)</span></h2>
+    <p class="muted">Check the case size and the mounting holes before swapping: two servos of one size class do not always fit the same mount.</p>
+    <table>
+      <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th>Case mm (LxWxH)</th><th class="num">Spline</th><th class="num">kg/cm</th><th class="num">s/60°</th><th class="num">V</th><th class="num">g</th></tr>
+      {sameSize.map(({ part, spline }) => <tr><td>{brandName(part.brand)}</td><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td>
+        <td>{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num">{spline ? `${spline}T` : ''}</td><td class="num">{part.torque_kgcm ?? ''}</td><td class="num">{part.speed_s ?? ''}</td><td class="num">{part.voltage ?? ''}</td><td class="num">{part.weight_g ?? ''}</td></tr>)}
     </table></>}
   <h2>Used in <span class="muted">(via those parts)</span></h2>
   {uses.length === 0 ? <p class="muted">No release lists a matching part yet.</p> :
