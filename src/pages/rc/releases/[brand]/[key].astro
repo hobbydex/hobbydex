@@ -1,6 +1,7 @@
 ---
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName } from '../../../../lib/data';
+import { catName } from '../../../../lib/categories';
 export function getStaticPaths() {
   return db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } }));
 }
@@ -12,6 +13,7 @@ const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b
 const hasSplit = rows.some((c) => c.role !== 'listed');
 const hasQty = rows.some((c) => c.qty !== undefined);
 const hasStep = rows.some((c) => c.step !== undefined);
+const cats = [...new Set(rows.map((c) => c.p.category).filter((c): c is string => !!c))].sort((a, b) => catName(a).localeCompare(catName(b)));
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name} (${release.year}): parts list and options.`} kind="release" sub={`${brandName(release.brand)} · ${release.year}`}>
@@ -27,10 +29,17 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
   {docs.length > 0 && <><h2>Sources</h2><ul>{docs.map((d) => <li>{d.url ? <a href={d.url} rel="nofollow">{d.title}</a> : d.title}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
+  {cats.length > 1 && <p data-pagefind-ignore><label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label></p>}
   {sections.map(([role, label]) => { const s = section(role); return s.length > 0 && <>
     <h2>{label} <span class="muted">({s.length})</span></h2>
     <table>
-      <tr><th class="num">Number</th><th>Name</th>{hasQty && <th class="num">Qty</th>}<th class="num">Pack</th><th>Brand</th>{hasStep && <th>Step</th>}</tr>
-      {s.map((c) => <tr><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td>{c.p.name}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td>{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
+      <tr><th class="num">Number</th><th>Name</th><th>Category</th>{hasQty && <th class="num">Qty</th>}<th class="num">Pack</th><th>Brand</th>{hasStep && <th>Step</th>}</tr>
+      {s.map((c) => <tr data-cat={c.p.category ?? ''}><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td>{c.p.name}</td><td class="muted">{catName(c.p.category)}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td>{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
     </table></>; })}
+  <script>
+    const sel = document.getElementById('catfilter') as HTMLSelectElement | null;
+    sel?.addEventListener('change', () => {
+      for (const tr of document.querySelectorAll<HTMLTableRowElement>('tr[data-cat]')) tr.hidden = !!sel.value && tr.dataset.cat !== sel.value;
+    });
+  </script>
 </Base>
