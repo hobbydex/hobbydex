@@ -7,6 +7,8 @@ export function getStaticPaths() {
 const { kit } = Astro.props;
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort((a, b) => a.year - b.year || a.name.localeCompare(b.name));
 const count = (r: (typeof releases)[number], role: string) => (r.contains ?? []).filter((c) => c.role === role).length;
+const show = { number: releases.some((r) => r.number), edition: releases.some((r) => r.edition), kit: releases.some((r) => count(r, 'kit')),
+  option: releases.some((r) => count(r, 'option')), listed: releases.some((r) => count(r, 'listed')) };
 const fits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => a.part.number.localeCompare(b.part.number));
 const relations = db.kitRelations.get(kit.id) ?? [];
 // parts of interchangeable rebrands, for kits whose own releases list none
@@ -36,12 +38,13 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
     </ul></>}
   <h2>Releases</h2>
   <table>
-    <tr><th class="num">Year</th><th>Release</th><th class="num">Item no.</th><th>Edition</th><th class="num">Kit parts</th><th class="num">Options</th><th class="num">Listed</th></tr>
+    <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.kit && <th class="num">In the box</th>}{show.option && <th class="num">Options</th>}{show.listed && <th class="num">Listed</th>}</tr>
     {releases.map((r) => <tr>
-      <td class="num">{r.year}</td><td><a href={url.release(r.id)}>{r.name}</a></td><td class="num">{r.number ?? ''}</td><td>{r.edition ?? ''}</td>
-      <td class="num">{count(r, 'kit') || ''}</td><td class="num">{count(r, 'option') || ''}</td><td class="num">{count(r, 'listed') || ''}</td>
+      <td class="num">{r.year}</td><td><a href={url.release(r.id)}>{r.name}</a></td>{show.number && <td class="num">{r.number ?? ''}</td>}{show.edition && <td>{r.edition ?? ''}</td>}
+      {show.kit && <td class="num">{count(r, 'kit') || ''}</td>}{show.option && <td class="num">{count(r, 'option') || ''}</td>}{show.listed && <td class="num">{count(r, 'listed') || ''}</td>}
     </tr>)}
   </table>
+  {releases.length > 1 && <p><a href={`/rc/compare/?a=${encodeURIComponent(releases[releases.length - 2].id)}&b=${encodeURIComponent(releases[releases.length - 1].id)}`}>Compare the last two releases</a> <span class="muted">or any two releases on the compare page</span></p>}
   {borrowedUnique.length > 0 && <>
     <h2>Parts, from the interchangeable rebrand <span class="muted">({borrowedUnique.length})</span></h2>
     <p class="muted">No parts list for this kit itself; these come from the rebrand above, whose parts interchange.</p>

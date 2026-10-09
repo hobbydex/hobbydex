@@ -8,6 +8,17 @@ export function getStaticPaths() {
 const { part } = Astro.props;
 const brand = db.brand.get(part.brand);
 const uses = [...(db.usesByPart.get(part.id) ?? [])].sort((a, b) => a.release.year - b.release.year || a.release.name.localeCompare(b.release.name));
+// every kit this part belongs to: through a release's contents or the brand's fitment lists
+const kitMap = new Map<string, { roles: Set<string>; releases: number; fit?: string }>();
+for (const u of uses) {
+  const k = kitMap.get(u.release.kit) ?? { roles: new Set<string>(), releases: 0 };
+  k.roles.add(u.role === 'kit' ? 'in the box' : u.role); k.releases++; kitMap.set(u.release.kit, k);
+}
+for (const f of part.fits ?? []) {
+  const k = kitMap.get(f.kit) ?? { roles: new Set<string>(), releases: 0 };
+  k.fit = f.type; kitMap.set(f.kit, k);
+}
+const kitsOf = [...kitMap.entries()].map(([id, v]) => ({ id, kit: db.kit.get(id), ...v })).sort((a, b) => (a.kit?.name ?? a.id).localeCompare(b.kit?.name ?? b.id));
 const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
 ---
 <Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
@@ -48,6 +59,13 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
         <td>{i.part ? <a href={url.part(i.part)}>{p ? `${p.number} ${p.name}` : i.part}</a> : (i.notes ?? sp?.name ?? i.spec)}</td>
         <td>{sp ? <a href={url.spec(sp.id)}>{sp.name}</a> : ''}</td><td class="muted">{i.part ? (i.notes ?? '') : ''}</td><td class="muted">{d?.title ?? i.source ?? ''}</td>
       </tr>; })}
+    </table></>}
+  {kitsOf.length > 1 && <>
+    <h2>Fits these kits <span class="muted">({kitsOf.length})</span></h2>
+    <table>
+      <tr><th>Kit</th><th>How</th></tr>
+      {kitsOf.map((k) => <tr><td><a href={url.kit(k.id)}>{k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : k.id}</a></td>
+        <td class="muted">{[...k.roles].join(', ')}{k.releases > 0 && ` (${k.releases} release${k.releases > 1 ? 's' : ''})`}{k.fit && `${k.releases > 0 ? '; ' : ''}fitment list: ${k.fit}`}</td></tr>)}
     </table></>}
   {part.fits && part.fits.length > 0 && <>
     <h2>Fits <span class="muted">({part.fits.length} chassis)</span></h2>

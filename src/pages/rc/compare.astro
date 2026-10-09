@@ -1,0 +1,47 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Compare releases" description="Compare the parts of any two RC releases: what is only in one, only in the other, and what both share.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Compare</div>
+  <h1>Compare releases</h1>
+  <p class="muted">Pick two releases, of the same kit or of different kits and brands. Shared parts show where a part number is used in both.</p>
+  <form id="cmp" class="websearch" data-pagefind-ignore>
+    <label>A <select id="a" required></select></label>
+    <label>B <select id="b" required></select></label>
+    <label><input type="checkbox" id="boxonly" /> In the box only</label>
+  </form>
+  <div id="out"><p class="muted">Loading releases...</p></div>
+  <script>
+    type Data = { parts: [string, string, string, string][]; releases: { id: string; label: string; kit: string; url: string; rows: [number, string][] }[] };
+    const ROLE: Record<string, string> = { k: 'in the box', o: 'option', l: 'listed' };
+    const $ = (id: string) => document.getElementById(id)!;
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    fetch('/rc/compare.json').then((r) => r.json()).then((d: Data) => {
+      const a = $('a') as HTMLSelectElement, b = $('b') as HTMLSelectElement, box = $('boxonly') as HTMLInputElement;
+      const opts = '<option value="">choose a release</option>' + d.releases.map((r, i) => `<option value="${i}">${esc(r.label)}</option>`).join('');
+      a.innerHTML = opts; b.innerHTML = opts;
+      const q = new URLSearchParams(location.search);
+      const find = (id: string | null) => d.releases.findIndex((r) => r.id === id);
+      if (find(q.get('a')) >= 0) a.value = String(find(q.get('a')));
+      if (find(q.get('b')) >= 0) b.value = String(find(q.get('b')));
+      const table = (title: string, rows: string[]) => rows.length === 0 ? '' :
+        `<h2>${title} <span class="muted">(${rows.length})</span></h2><table><tr><th class="num">Number</th><th>Name</th><th>Category</th><th>Role</th></tr>${rows.join('')}</table>`;
+      const row = (i: number, role: string) => { const p = d.parts[i]; return `<tr><td class="num"><a href="${p[2]}">${esc(p[0])}</a></td><td>${esc(p[1])}</td><td class="muted">${esc(p[3])}</td><td>${role}</td></tr>`; };
+      const render = () => {
+        if (a.value === '' || b.value === '') { $('out').innerHTML = '<p class="muted">Choose two releases.</p>'; return; }
+        const A = d.releases[+a.value], B = d.releases[+b.value];
+        history.replaceState(null, '', `?a=${encodeURIComponent(A.id)}&b=${encodeURIComponent(B.id)}`);
+        const keep = (rows: [number, string][]) => new Map(rows.filter(([, r]) => !box.checked || r === 'k'));
+        const ma = keep(A.rows), mb = keep(B.rows);
+        const byNum = (x: number, y: number) => d.parts[x][0].localeCompare(d.parts[y][0]);
+        const onlyA = [...ma.keys()].filter((i) => !mb.has(i)).sort(byNum).map((i) => row(i, ROLE[ma.get(i)!]));
+        const onlyB = [...mb.keys()].filter((i) => !ma.has(i)).sort(byNum).map((i) => row(i, ROLE[mb.get(i)!]));
+        const both = [...ma.keys()].filter((i) => mb.has(i)).sort(byNum).map((i) => row(i, ma.get(i) === mb.get(i) ? ROLE[ma.get(i)!] : `${ROLE[ma.get(i)!]} / ${ROLE[mb.get(i)!]}`));
+        $('out').innerHTML = `<p><a href="${A.url}">${esc(A.label)}</a> and <a href="${B.url}">${esc(B.label)}</a>: ${both.length} shared, ${onlyA.length} only in A, ${onlyB.length} only in B.</p>`
+          + table(`Only in ${esc(A.label)}`, onlyA) + table(`Only in ${esc(B.label)}`, onlyB) + table('In both', both);
+      };
+      a.addEventListener('change', render); b.addEventListener('change', render); box.addEventListener('change', render);
+      render();
+    });
+  </script>
+</Base>
