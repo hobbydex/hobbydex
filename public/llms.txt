@@ -1,0 +1,21 @@
+# Hobbydex
+
+> Open, cross-brand database of radio-controlled (RC) car parts: part numbers, names, which kits and releases contain them, fitment, and generic specs (screws, bearings, oils, pinions, batteries, servos) that let you find equivalent parts across brands. Facts only, each with its source document; no prices, stock or images. Data is CC0.
+
+Prefer the JSON export over crawling the HTML: it holds everything the site shows.
+
+## Data
+
+- [Full export (JSON)](https://hobbydex.com/data/rc.json): brands, kits, releases, parts, documents, specs; rebuilt daily. Top-level keys: schema_version, dataset, generated, brands, kits, releases, parts, documents, specs, shops. Ids look like `part/<brand>/<number>`.
+- [Source data and schema](https://github.com/hobbydex/hobbydex-rc): one TOML file per entity; field reference in docs/schema.md. Corrections go there as pull requests.
+
+## URL scheme
+
+- `/rc/brands/<brand>/`: a brand with its kits and releases
+- `/rc/kits/<brand>/<kit>/`: a kit (car platform) with its releases
+- `/rc/releases/<brand>/<release>/`: what is in the box, options and other listed parts, with sources
+- `/rc/parts/<brand>/<number>/`: a part, the releases using it, fitment, equivalent specs
+- `/rc/specs/<category>/<spec>/`: a generic spec (for example `/rc/specs/screw/m3x10-countersunk-hex/`) and every part that matches it
+- `/rc/kits/by-date/`: kits by release date
+- `/search/`: full-text search (needs JavaScript; use the JSON export instead)
+- `/sitemap-index.xml`: every page
