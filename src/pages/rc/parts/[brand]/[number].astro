@@ -19,8 +19,23 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.former_names && part.former_names.length > 0 && <><dt>Formerly listed as</dt><dd>{part.former_names.join('; ')}</dd></>}
     {part.material && <><dt>Material</dt><dd>{part.material}{part.strength_class && ` ${part.strength_class}`}{part.finish && `, ${part.finish}`}</dd></>}
     {part.thread_type && <><dt>Thread</dt><dd>{part.thread_type}</dd></>}
+    {part.seal && <><dt>Seal</dt><dd>{({ open: 'open', metal: 'metal shields (ZZ)', rubber: 'rubber seals (2RS)', 'rubber-metal': 'rubber and metal' } as Record<string, string>)[part.seal] ?? part.seal}</dd></>}
+    {part.lubricant && <><dt>Lubricant</dt><dd>{part.lubricant}</dd></>}
+    {part.viscosity_wt && <><dt>Viscosity</dt><dd>{part.viscosity_wt} wt <span class="muted">(the brand's own scale)</span></dd></>}
+    {part.volume_ml && <><dt>Volume</dt><dd>{part.volume_ml} ml</dd></>}
+    {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
+  {part.includes && part.includes.length > 0 && <>
+    <h2>Includes <span class="muted">({part.includes.reduce((n, i) => n + (i.qty ?? 1), 0)} pcs)</span></h2>
+    <table>
+      <tr><th class="num">Qty</th><th>Item</th><th>Size</th><th>Source</th></tr>
+      {part.includes.map((i) => { const p = i.part ? db.part.get(i.part) : undefined; const sp = db.spec.get(i.spec ?? p?.equivalent_to?.[0]?.spec ?? ''); const d = i.source ? db.doc.get(i.source) : undefined; return <tr>
+        <td class="num">{i.qty ?? ''}</td>
+        <td>{i.part ? <a href={url.part(i.part)}>{p ? `${p.number} ${p.name}` : i.part}</a> : <a href={url.spec(i.spec!)}>{sp?.name ?? i.spec}</a>}</td>
+        <td>{sp ? <a href={url.spec(sp.id)}>{sp.name}</a> : ''}</td><td class="muted">{d?.title ?? i.source ?? ''}</td>
+      </tr>; })}
+    </table></>}
   {part.fits && part.fits.length > 0 && <>
     <h2>Fits <span class="muted">({part.fits.length} chassis)</span></h2>
     <table>
