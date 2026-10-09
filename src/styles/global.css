@@ -55,3 +55,5 @@ ul.search-results .sub { color: var(--muted); font-size: 0.8rem; margin-left: au
 ul.search-results mark { background: var(--mark); color: inherit; border-radius: 2px; }
 .search-more { margin-top: 0.75rem; }
 .search-more button { font: inherit; font-size: 0.85rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.9rem; cursor: pointer; }
+.stats a.stat { color: var(--fg); }
+.stats a.stat:hover { text-decoration: none; } .stats a.stat:hover b { color: var(--accent); }
