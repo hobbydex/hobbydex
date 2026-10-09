@@ -13,6 +13,11 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
 <Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a> / {part.number}</div>
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number} <span class="muted">·</span> {part.name}</h1>
+  <p class="websearch" data-pagefind-ignore data-number={part.number} data-brand={brand?.name ?? ''}>
+    <a class="btn" href={`https://www.google.com/search?q=${encodeURIComponent(`"${part.number}" ${brand?.name ?? ''}`)}`} rel="nofollow noopener" target="_blank">Search the web</a>
+    <select aria-label="Search engine"><option value="google">Google</option><option value="ddg">DuckDuckGo</option><option value="bing">Bing</option><option value="ecosia">Ecosia</option></select>
+    <button type="button" class="btn copy">Copy number</button>
+  </p>
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
     <dt>Part number</dt><dd>{part.number}</dd>
@@ -61,5 +66,22 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     <tr><th class="num">Year</th><th>Release</th><th>Role</th></tr>
     {uses.map((u) => <tr><td class="num">{u.release.year}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
   </table>}
+  <script>
+    const ENGINES: Record<string, string> = {
+      google: 'https://www.google.com/search?q=', ddg: 'https://duckduckgo.com/?q=', bing: 'https://www.bing.com/search?q=', ecosia: 'https://www.ecosia.org/search?q=',
+    };
+    for (const box of document.querySelectorAll<HTMLElement>('.websearch')) {
+      const a = box.querySelector('a')!, sel = box.querySelector('select')!, copy = box.querySelector<HTMLButtonElement>('.copy')!;
+      const number = box.dataset.number ?? '';
+      const q = `"${number}" ${box.dataset.brand ?? ''}`.trim();
+      const set = () => { a.href = (ENGINES[sel.value] ?? ENGINES.google) + encodeURIComponent(q); };
+      try { const saved = localStorage.getItem('hobbydex-engine'); if (saved && ENGINES[saved]) sel.value = saved; } catch {}
+      set();
+      sel.addEventListener('change', () => { set(); try { localStorage.setItem('hobbydex-engine', sel.value); } catch {} });
+      copy.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(number); copy.textContent = 'Copied'; setTimeout(() => (copy.textContent = 'Copy number'), 1500); } catch {}
+      });
+    }
+  </script>
   <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p>
 </Base>

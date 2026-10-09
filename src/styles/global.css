@@ -57,3 +57,6 @@ ul.search-results mark { background: var(--mark); color: inherit; border-radius:
 .search-more button { font: inherit; font-size: 0.85rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.9rem; cursor: pointer; }
 .stats a.stat { color: var(--fg); }
 .stats a.stat:hover { text-decoration: none; } .stats a.stat:hover b { color: var(--accent); }
+.websearch { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin: 0.25rem 0 1rem; }
+.websearch .btn, .websearch select { font: inherit; font-size: 0.85rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 0.8rem; cursor: pointer; text-decoration: none; }
+.websearch .btn:hover { background: var(--surface-2); }
