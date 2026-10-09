@@ -4,7 +4,7 @@ import { db, url, brandName } from '../../../lib/data';
 const label: Record<string, string> = {
   buggy: 'Buggies', truggy: 'Truggies', 'stadium-truck': 'Stadium trucks', 'short-course': 'Short course', monster: 'Monster trucks',
   'desert-truck': 'Desert trucks', truck: 'Trucks', crawler: 'Crawlers', touring: 'Touring cars', 'mini-touring': 'Mini touring', formula: 'Formula',
-  'pan-car': 'Pan cars', rally: 'Rally', 'mini-buggy': 'Mini buggies', mini: 'Mini-Z and mini', 'street-basher': 'Street bashers', 'speed-run': 'Speed run', car: 'Other cars',
+  'pan-car': 'Pan cars', rally: 'Rally', 'mini-buggy': 'Mini buggies', mini: 'Mini-Z and mini', 'street-basher': 'Street bashers', drift: 'Drift cars', 'speed-run': 'Speed run', car: 'Other cars',
 };
 const order = Object.keys(label);
 const scaleKey = (s?: string) => (s ? Number(s.split('/')[1]) : 999);
