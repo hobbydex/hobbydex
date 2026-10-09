@@ -47,6 +47,8 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.dimensions_mm && <><dt>Size</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
     {part.weight_g && <><dt>Weight</dt><dd>{part.weight_g} g</dd></>}
     {part.connector && <><dt>Plug</dt><dd>{part.connector}</dd></>}
+    {part.channels && <><dt>Channels</dt><dd>{part.channels}</dd></>}
+    {part.protocol && <><dt>Protocol</dt><dd>{part.protocol}</dd></>}
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
