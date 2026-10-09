@@ -50,6 +50,9 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
+  {part.documents && part.documents.length > 0 && <>
+    <h2>Documents</h2>
+    <ul>{part.documents.map((id) => { const d = db.doc.get(id); return <li>{d?.url ? <a href={d.url} rel="nofollow">{d.title}</a> : (d?.title ?? id)}{d?.date && <span class="muted"> · {d.date}</span>}</li>; })}</ul></>}
   {part.includes && part.includes.length > 0 && <>
     <h2>Includes <span class="muted">({part.includes.reduce((n, i) => n + (i.qty ?? 1), 0)} pcs)</span></h2>
     <table>
