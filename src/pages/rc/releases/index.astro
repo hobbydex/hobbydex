@@ -1,0 +1,16 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { db, url, brandName } from '../../../lib/data';
+const releases = [...db.releases].sort((a, b) => b.year - a.year || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
+---
+<Base title="Releases" description="Every kit and RTR release in Hobbydex, newest first.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Releases</div>
+  <h1>Releases</h1>
+  <table>
+    <tr><th class="num">Year</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Kind</th><th class="num">Parts</th></tr>
+    {releases.map((r) => <tr>
+      <td class="num">{r.year}</td><td><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td>
+      <td class="num">{r.number ?? ''}</td><td>{r.kind}</td><td class="num">{r.contains?.length ?? 0}</td>
+    </tr>)}
+  </table>
+</Base>

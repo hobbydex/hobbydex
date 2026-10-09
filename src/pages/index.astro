@@ -6,10 +6,10 @@ import { db } from '../lib/data';
   <h1>Hobbydex</h1>
   <p>Which parts are in my car, what fits it, and what is it equivalent to? An open, cross-brand parts database, starting with RC cars.</p>
   <div class="stats">
-    <div><b>{db.brands.length}</b> brands</div>
-    <div><b>{db.kits.length}</b> kits</div>
-    <div><b>{db.releases.length}</b> releases</div>
-    <div><b>{db.parts.length}</b> parts</div>
+    <a class="stat" href="/rc/brands/"><b>{db.brands.length}</b> brands</a>
+    <a class="stat" href="/rc/kits/"><b>{db.kits.length}</b> kits</a>
+    <a class="stat" href="/rc/releases/"><b>{db.releases.length}</b> releases</a>
+    <a class="stat" href="/search/?type=part"><b>{db.parts.length}</b> parts</a>
   </div>
   <p><a href="/rc/">Browse RC cars</a> · <a href="/search/">Search part numbers and names</a></p>
   <p class="muted">Dataset {db.dataset}, export generated {db.generated}. Early draft: data and schema are still growing.</p>
