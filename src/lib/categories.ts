@@ -1,5 +1,5 @@
 export const categoryLabel: Record<string, string> = {
-  'ball-end': 'Ball ends and links', bearing: 'Bearings and bushings', body: 'Body and covers', 'bumper-guard': 'Bumpers and guards',
+  'ball-end': 'Ball ends and links', battery: 'Batteries', bearing: 'Bearings and bushings', body: 'Body and covers', 'bumper-guard': 'Bumpers and guards',
   chassis: 'Chassis and mounts', decal: 'Decals', differential: 'Differential', drivetrain: 'Drivetrain', electronics: 'Electronics',
   'engine-fuel': 'Engine and fuel', gear: 'Gears and transmission', motor: 'Motors', nut: 'Nuts', 'o-ring-seal': 'O-rings and seals',
   'oil-grease': 'Oils and greases', 'pin-clip': 'Pins and clips', pinion: 'Pinions', screw: 'Screws', shock: 'Shocks',

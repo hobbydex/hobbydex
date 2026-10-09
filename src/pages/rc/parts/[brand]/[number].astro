@@ -31,6 +31,10 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.viscosity_wt && <><dt>Viscosity</dt><dd>{part.viscosity_wt} wt <span class="muted">(the brand's own scale)</span></dd></>}
     {part.volume_ml && <><dt>Volume</dt><dd>{part.pack_qty && part.pack_qty > 1 ? `${part.pack_qty} x ${part.volume_ml} ml` : `${part.volume_ml} ml`}</dd></>}
     {part.bore_mm && <><dt>Bore</dt><dd>{part.bore_mm} mm</dd></>}
+    {part.capacity_mah && <><dt>Battery</dt><dd>{part.chemistry?.toUpperCase()} {part.cells}S {part.capacity_mah} mAh{part.c_rating && ` ${part.c_rating}C`}{part.case && `, ${part.case} case`}</dd></>}
+    {part.dimensions_mm && <><dt>Size</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
+    {part.weight_g && <><dt>Weight</dt><dd>{part.weight_g} g</dd></>}
+    {part.connector && <><dt>Plug</dt><dd>{part.connector}</dd></>}
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
