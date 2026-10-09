@@ -8,6 +8,13 @@ const { kit } = Astro.props;
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort((a, b) => a.year - b.year || a.name.localeCompare(b.name));
 const count = (r: (typeof releases)[number], role: string) => (r.contains ?? []).filter((c) => c.role === role).length;
 const fits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => a.part.number.localeCompare(b.part.number));
+const relations = db.kitRelations.get(kit.id) ?? [];
+// parts of interchangeable rebrands, for kits whose own releases list none
+const ownParts = releases.reduce((n, r) => n + (r.contains?.length ?? 0), 0);
+const borrowed = ownParts > 0 ? [] : relations.filter((r) => r.link.parts === 'interchangeable').flatMap((r) =>
+  (db.releasesByKit.get(r.other) ?? []).flatMap((rel) => (rel.contains ?? []).map((c) => ({ c, rel, p: db.part.get(c.part)! })))).filter((x) => x.p);
+const seen = new Set<string>();
+const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => a.p.number.localeCompare(b.p.number));
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="kit" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
@@ -19,6 +26,14 @@ const fits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => a.part.number.
     {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
   </dl>
   {kit.notes && <p class="muted">{kit.notes}</p>}
+  {relations.length > 0 && <>
+    <h2>Same car or platform</h2>
+    <ul>
+      {relations.map((r) => { const o = db.kit.get(r.other); const label = r.relation === 'rebrand' ? (r.reverse ? 'Also sold as' : 'Rebrand of') : 'Shares its platform with'; return <li>
+        {label} <a href={url.kit(r.other)}>{o ? `${brandName(o.brand)} ${o.name}` : r.other}</a>
+        {r.link.parts && <span class="muted"> · parts {r.link.parts}</span>}{r.link.notes && <span class="muted"> · {r.link.notes}</span>}
+      </li>; })}
+    </ul></>}
   <h2>Releases</h2>
   <table>
     <tr><th class="num">Year</th><th>Release</th><th class="num">Item no.</th><th>Edition</th><th class="num">Kit parts</th><th class="num">Options</th><th class="num">Listed</th></tr>
@@ -27,6 +42,13 @@ const fits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => a.part.number.
       <td class="num">{count(r, 'kit') || ''}</td><td class="num">{count(r, 'option') || ''}</td><td class="num">{count(r, 'listed') || ''}</td>
     </tr>)}
   </table>
+  {borrowedUnique.length > 0 && <>
+    <h2>Parts, from the interchangeable rebrand <span class="muted">({borrowedUnique.length})</span></h2>
+    <p class="muted">No parts list for this kit itself; these come from the rebrand above, whose parts interchange.</p>
+    <table>
+      <tr><th class="num">Number</th><th>Name</th><th>Brand</th><th>From</th></tr>
+      {borrowedUnique.map(({ c, rel, p }) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td>{p.name}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
+    </table></>}
   {fits.length > 0 && <>
     <h2>Option parts listed as fitting <span class="muted">({fits.length})</span></h2>
     <table>
