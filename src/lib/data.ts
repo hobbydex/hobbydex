@@ -10,7 +10,7 @@ export type Release = { id: string; kit: string; brand: string; number?: string;
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; type: 'direct' | 'replaces' | 'modification'; source?: string; notes?: string };
 export type Part = { id: string; brand: string; number: string; name: string; category?: string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[] };
-export type Includes = { part?: string; spec?: string; qty?: number; source?: string };
+export type Includes = { part?: string; spec?: string; qty?: number; source?: string; notes?: string };
 export type Spec = { id: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
 export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; releases?: string[] };
 export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[] };
@@ -36,6 +36,11 @@ for (const r of raw.releases) for (const c of r.contains ?? []) {
   usesByPart.get(c.part)!.push({ release: r, role: c.role });
 }
 
+const setsBySpec = new Map<string, { part: Part; qty?: number; notes?: string }[]>();
+for (const p of raw.parts) for (const i of p.includes ?? []) if (i.spec) {
+  if (!setsBySpec.has(i.spec)) setsBySpec.set(i.spec, []);
+  setsBySpec.get(i.spec)!.push({ part: p, qty: i.qty, notes: i.notes });
+}
 const partsBySpec = new Map<string, { part: Part; link: EquivalentTo }[]>();
 for (const p of raw.parts) for (const e of p.equivalent_to ?? []) {
   if (!partsBySpec.has(e.spec)) partsBySpec.set(e.spec, []);
@@ -70,6 +75,7 @@ export const db = {
   kit: byId(raw.kits),
   release: byId(raw.releases),
   part: byId(raw.parts),
+  setsBySpec,
   doc: byId(raw.documents),
   kitsByBrand: group(raw.kits, (k) => k.brand),
   releasesByKit: group(raw.releases, (r) => r.kit),

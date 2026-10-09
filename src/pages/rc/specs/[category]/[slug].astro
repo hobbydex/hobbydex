@@ -26,6 +26,12 @@ const title = spec.name ?? key(spec.id)[1];
     <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Material</th>{spec.category === 'bearing' && <th>Seal</th>}{spec.category === 'pinion' && <th class="num">Bore mm</th>}<th>Match</th></tr>
     {linked.map(({ part, link }) => <tr><td>{brandName(part.brand)}</td><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td class="num">{part.pack_qty ?? ''}</td><td>{part.material ?? ''}</td>{spec.category === 'bearing' && <td>{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num">{part.bore_mm ?? ''}</td>}<td>{link.match}</td></tr>)}
   </table>}
+  {(db.setsBySpec.get(spec.id) ?? []).length > 0 && <>
+    <h2>In sets</h2>
+    <table>
+      <tr><th>Brand</th><th class="num">Number</th><th>Set</th><th class="num">Qty</th><th>Notes</th></tr>
+      {db.setsBySpec.get(spec.id)!.map((x) => <tr><td>{brandName(x.part.brand)}</td><td class="num"><a href={url.part(x.part.id)}>{x.part.number}</a></td><td>{x.part.name}</td><td class="num">{x.qty ?? ''}</td><td class="muted">{x.notes ?? ''}</td></tr>)}
+    </table></>}
   <h2>Used in <span class="muted">(via those parts)</span></h2>
   {uses.length === 0 ? <p class="muted">No release lists a matching part yet.</p> :
   <table>
