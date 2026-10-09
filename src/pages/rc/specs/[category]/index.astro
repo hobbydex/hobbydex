@@ -12,6 +12,7 @@ const cols: Record<string, [string, string][]> = {
   screw: [['thread', 'Thread'], ['length_mm', 'Length mm'], ['head', 'Head'], ['drive', 'Drive']],
   bearing: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['width_mm', 'Width mm'], ['designation', 'Designation'], ['type', 'Type']],
   oil: [['viscosity_cst', 'cSt'], ['base', 'Base']],
+  pinion: [['teeth', 'Teeth'], ['pitch_dp', 'Pitch'], ['module', 'Module']],
 };
 const show = cols[category!] ?? [];
 ---
