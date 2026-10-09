@@ -1,4 +1,5 @@
 ---
+import WebSearch from '../../../../components/WebSearch.astro';
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
@@ -19,13 +20,13 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name} (${release.year}): parts list and options.`} kind="release" sub={`${brandName(release.brand)} · ${release.year}`}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a> / <a href={url.kit(kit.id)}>{kit.name}</a> / {release.name}</div>
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(release.brand)} {release.name}</h1>
+  <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
   <dl class="facts">
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
     <dt>Year</dt><dd>{release.year}</dd>
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
-    {release.links && release.links.length > 0 && <><dt>Elsewhere</dt><dd>{release.links.map((l, i) => <>{i > 0 && ', '}<a href={l.url} rel="noopener" target="_blank">{l.site}</a></>)}</dd></>}
   </dl>
   {docs.length > 0 && <><h2>Sources</h2>
     {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length

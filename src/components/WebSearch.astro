@@ -1,0 +1,28 @@
+---
+// Web search button with engine choice, an optional copy button and outbound reference links.
+import type { Link } from '../lib/data';
+interface Props { query: string; copy?: string; copyLabel?: string; links?: Link[] }
+const { query, copy, copyLabel = 'Copy number', links = [] } = Astro.props;
+---
+<p class="websearch" data-pagefind-ignore data-q={query} data-copy={copy ?? ''}>
+  <a class="btn" href={`https://www.google.com/search?q=${encodeURIComponent(query)}`} rel="nofollow noopener" target="_blank">Search the web</a>
+  <select aria-label="Search engine"><option value="google">Google</option><option value="ddg">DuckDuckGo</option><option value="bing">Bing</option><option value="ecosia">Ecosia</option></select>
+  {copy && <button type="button" class="btn copy" data-label={copyLabel}>{copyLabel}</button>}
+  {links.map((l) => <a class="btn" href={l.url} rel="noopener" target="_blank">{l.site}</a>)}
+</p>
+<script>
+  const ENGINES: Record<string, string> = {
+    google: 'https://www.google.com/search?q=', ddg: 'https://duckduckgo.com/?q=', bing: 'https://www.bing.com/search?q=', ecosia: 'https://www.ecosia.org/search?q=',
+  };
+  for (const box of document.querySelectorAll<HTMLElement>('.websearch[data-q]')) {
+    const a = box.querySelector('a')!, sel = box.querySelector('select')!, copy = box.querySelector<HTMLButtonElement>('.copy');
+    const q = box.dataset.q ?? '';
+    const set = () => { a.href = (ENGINES[sel.value] ?? ENGINES.google) + encodeURIComponent(q); };
+    try { const saved = localStorage.getItem('hobbydex-engine'); if (saved && ENGINES[saved]) sel.value = saved; } catch {}
+    set();
+    sel.addEventListener('change', () => { set(); try { localStorage.setItem('hobbydex-engine', sel.value); } catch {} });
+    copy?.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(box.dataset.copy ?? ''); copy.textContent = 'Copied'; setTimeout(() => (copy.textContent = copy.dataset.label ?? ''), 1500); } catch {}
+    });
+  }
+</script>
