@@ -11,6 +11,7 @@ import Base from '../layouts/Base.astro';
     <button data-type="release" aria-pressed="false">Releases</button>
     <button data-type="kit" aria-pressed="false">Kits</button>
     <button data-type="brand" aria-pressed="false">Brands</button>
+    <select id="cat" aria-label="Part category"><option value="">any category</option></select>
   </div>
   <div class="search-status" id="status"></div>
   <ul class="search-results" id="results"></ul>
@@ -28,7 +29,15 @@ import Base from '../layouts/Base.astro';
         status.textContent = 'Search index failed to load: ' + (e && e.message ? e.message : e);
         return;
       }
-      let type = '', hits = [], shown = 0, seq = 0;
+      let type = '', cat = '', hits = [], shown = 0, seq = 0;
+      const catSel = document.getElementById('cat');
+      try {
+        const f = await pagefind.filters();
+        for (const [name, n] of Object.entries(f.category || {}).sort((a, b) => a[0].localeCompare(b[0]))) {
+          const o = document.createElement('option'); o.value = name; o.textContent = `${name} (${n})`; catSel.appendChild(o);
+        }
+      } catch (e) {}
+      const filt = () => { const f = {}; if (type) f.type = type; if (cat) { f.category = cat; f.type = 'part'; } return f; };
       const PAGE = 20;
       const labels = { part: 'part', spec: 'spec', release: 'release', kit: 'kit', brand: 'brand' };
       const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -53,13 +62,14 @@ import Base from '../layouts/Base.astro';
       async function search() {
         const my = ++seq, text = q.value.trim();
         results.innerHTML = ''; shown = 0; more.hidden = true;
-        history.replaceState(null, '', text ? `?q=${encodeURIComponent(text)}${type ? '&type=' + type : ''}` : location.pathname);
-        if (!text && !type) { status.textContent = ''; hits = []; return; }
+        const qs = new URLSearchParams(); if (text) qs.set('q', text); if (type) qs.set('type', type); if (cat) qs.set('category', cat);
+        history.replaceState(null, '', qs.toString() ? `?${qs}` : location.pathname);
+        if (!text && !type && !cat) { status.textContent = ''; hits = []; return; }
         let r;
         try {
           // empty query with a type selected: list every page of that type, by title
-          r = text ? await pagefind.search(text, type ? { filters: { type } } : {})
-                   : await pagefind.search(null, { filters: { type }, sort: { title: 'asc' } });
+          r = text ? await pagefind.search(text, { filters: filt() })
+                   : await pagefind.search(null, { filters: filt(), sort: { title: 'asc' } });
         }
         catch (e) { status.textContent = 'Search failed: ' + (e && e.message ? e.message : e); return; }
         if (my !== seq) return;
@@ -75,9 +85,12 @@ import Base from '../layouts/Base.astro';
         for (const x of filters.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
         search();
       });
+      catSel.addEventListener('change', () => { cat = catSel.value; search(); });
       const params = new URLSearchParams(location.search);
+      if (params.get('category')) { cat = params.get('category'); catSel.value = cat; }
       if (params.get('type')) { type = params.get('type'); for (const x of filters.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x.dataset.type === type)); }
-      if (params.get('q')) { q.value = params.get('q'); search(); }
+      if (params.get('q')) q.value = params.get('q');
+      if (params.get('q') || cat) search();
     })();
   </script>
 </Base>
