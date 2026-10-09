@@ -22,6 +22,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
     <dt>Part number</dt><dd>{part.number}</dd>
     {part.category && <><dt>Category</dt><dd>{catName(part.category)}</dd></>}
+    {part.released && <><dt>Released</dt><dd>{part.released}</dd></>}
     {part.pack_qty && <><dt>Pack</dt><dd>{part.pack_qty} pcs</dd></>}
     {part.former_names && part.former_names.length > 0 && <><dt>Formerly listed as</dt><dd>{part.former_names.join('; ')}</dd></>}
     {part.material && <><dt>Material</dt><dd>{part.material}{part.strength_class && ` ${part.strength_class}`}{part.finish && `, ${part.finish}`}</dd></>}
