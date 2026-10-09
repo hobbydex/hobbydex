@@ -10,11 +10,6 @@ const cats = top(byCat, 12);
 const byBrand = new Map<string, number>();
 for (const p of db.parts) byBrand.set(p.brand, (byBrand.get(p.brand) ?? 0) + 1);
 const brands = top(byBrand, 12);
-// specs that the most brands link to: the generic parts that cross brands
-const shared = db.specs.map((s) => {
-  const ps = db.partsBySpec.get(s.id) ?? [];
-  return { s, parts: ps.length, brands: new Set(ps.map((x) => x.part.brand)).size };
-}).filter((x) => x.brands > 1).sort((a, b) => b.brands - a.brands || b.parts - a.parts).slice(0, 8);
 // one row per kit, by its newest release that is not discontinued
 const newest = new Map<string, (typeof db.releases)[number]>();
 for (const r of db.releases) if (r.status !== 'discontinued') {
@@ -56,14 +51,7 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
     </section>
   </div>
 
-  <h2>Generic parts shared across brands</h2>
-  <p class="muted">The same screw, bearing or oil sold by different brands under their own numbers.</p>
-  <table>
-    <tr><th>Spec</th><th class="num">Brands</th><th class="num">Branded parts</th></tr>
-    {shared.map((x) => <tr><td><a href={url.spec(x.s.id)}>{x.s.name ?? x.s.id}</a></td><td class="num">{x.brands}</td><td class="num">{x.parts}</td></tr>)}
-  </table>
-
-  <h2>Latest kits</h2>
+  <h2>Latest kits <span class="muted">· <a href="/rc/kits/by-date/">all kits by date</a></span></h2>
   <table>
     <tr><th class="num">Year</th><th>Kit</th><th>Newest release</th><th>Status</th></tr>
     {latest.map((r) => { const k = db.kit.get(r.kit); return <tr><td class="num">{r.year}</td><td><a href={url.kit(r.kit)}>{brandName(r.brand)} {k?.name ?? ''}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td><td class="muted">{r.status}</td></tr>; })}

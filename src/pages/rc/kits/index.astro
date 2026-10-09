@@ -19,7 +19,7 @@ const cats = [...byCat.keys()].sort((a, b) => (order.indexOf(a) + 1 || 99) - (or
 <Base title="Kits by type" description="Every RC kit in Hobbydex, grouped by type and scale.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Kits</div>
   <h1>Kits by type</h1>
-  <p class="muted">{db.kits.length} kits. Jump to: {cats.map((c, i) => <>{i > 0 && ' · '}<a href={`#${c}`}>{label[c] ?? c}</a></>)}</p>
+  <p class="muted">{db.kits.length} kits · <a href="/rc/kits/by-date/">by date</a>. Jump to: {cats.map((c, i) => <>{i > 0 && ' · '}<a href={`#${c}`}>{label[c] ?? c}</a></>)}</p>
   {cats.map((c) => {
     const kits = [...byCat.get(c)!].sort((a, b) => scaleKey(a.scale) - scaleKey(b.scale) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
     return <>
