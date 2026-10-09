@@ -23,6 +23,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
 ---
 <Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a> / {part.number}</div>
+  {part.category && <span hidden data-pagefind-filter={`category:${catName(part.category)}`} />}
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number} <span class="muted">·</span> {part.name}</h1>
   <p class="websearch" data-pagefind-ignore data-number={part.number} data-brand={brand?.name ?? ''}>
     <a class="btn" href={`https://www.google.com/search?q=${encodeURIComponent(`"${part.number}" ${brand?.name ?? ''}`)}`} rel="nofollow noopener" target="_blank">Search the web</a>
