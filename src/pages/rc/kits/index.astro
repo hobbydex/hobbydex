@@ -1,0 +1,36 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { db, url, brandName } from '../../../lib/data';
+const label: Record<string, string> = {
+  buggy: 'Buggies', truggy: 'Truggies', 'stadium-truck': 'Stadium trucks', 'short-course': 'Short course', monster: 'Monster trucks',
+  'desert-truck': 'Desert trucks', truck: 'Trucks', crawler: 'Crawlers', touring: 'Touring cars', 'mini-touring': 'Mini touring', formula: 'Formula',
+  'pan-car': 'Pan cars', rally: 'Rally', 'mini-buggy': 'Mini buggies', mini: 'Mini-Z and mini', 'street-basher': 'Street bashers', drift: 'Drift cars', 'speed-run': 'Speed run', car: 'Other cars',
+};
+const order = Object.keys(label);
+const scaleKey = (s?: string) => (s ? Number(s.split('/')[1]) : 999);
+const byCat = new Map<string, typeof db.kits>();
+for (const k of db.kits) {
+  const c = k.category || 'car';
+  if (!byCat.has(c)) byCat.set(c, []);
+  byCat.get(c)!.push(k);
+}
+const cats = [...byCat.keys()].sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+---
+<Base title="Kits by type" description="Every RC kit in Hobbydex, grouped by type and scale.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Kits</div>
+  <h1>Kits by type</h1>
+  <p class="muted">{db.kits.length} kits. Jump to: {cats.map((c, i) => <>{i > 0 && ' · '}<a href={`#${c}`}>{label[c] ?? c}</a></>)}</p>
+  {cats.map((c) => {
+    const kits = [...byCat.get(c)!].sort((a, b) => scaleKey(a.scale) - scaleKey(b.scale) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
+    return <>
+      <h2 id={c}>{label[c] ?? c} <span class="muted">({kits.length})</span></h2>
+      <table>
+        <tr><th>Scale</th><th>Brand</th><th>Kit</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
+        {kits.map((k) => <tr>
+          <td>{k.scale ?? ''}</td><td><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td><td><a href={url.kit(k.id)}>{k.name}</a></td>
+          <td>{k.drive ?? ''}</td><td>{k.power ?? ''}</td><td class="num">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
+        </tr>)}
+      </table>
+    </>;
+  })}
+</Base>
