@@ -1,0 +1,17 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { db } from '../../../lib/data';
+import { specLabel, specsByCategory } from '../../../lib/specs';
+const cats = [...specsByCategory.keys()].sort();
+---
+<Base title="Generic specs" description="Brand-independent specifications (screws, bearings, silicone oils) and the branded parts that match them.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Specs</div>
+  <h1>Generic specs</h1>
+  <p>A spec is the brand-independent version of a part: an M3x10 countersunk hex screw, a 5x10x4 bearing, a 350 cSt silicone oil. Branded parts link to the spec they are equivalent to, so you can find the same part from another brand, or every kit that uses it.</p>
+  <table>
+    <tr><th>Category</th><th class="num">Specs</th><th class="num">Linked parts</th></tr>
+    {cats.map((c) => { const ss = specsByCategory.get(c)!; const n = ss.reduce((t, s) => t + (db.partsBySpec.get(s.id)?.length ?? 0), 0); return <tr>
+      <td><a href={`/rc/specs/${c}/`}>{specLabel[c] ?? c}</a></td><td class="num">{ss.length}</td><td class="num">{n}</td>
+    </tr>; })}
+  </table>
+</Base>
