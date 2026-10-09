@@ -24,21 +24,22 @@ import Base from '../../layouts/Base.astro';
       const find = (id: string | null) => d.releases.findIndex((r) => r.id === id);
       if (find(q.get('a')) >= 0) a.value = String(find(q.get('a')));
       if (find(q.get('b')) >= 0) b.value = String(find(q.get('b')));
-      const table = (title: string, rows: string[]) => rows.length === 0 ? '' :
-        `<h2>${title} <span class="muted">(${rows.length})</span></h2><table><tr><th class="num">Number</th><th>Name</th><th>Category</th><th>Role</th></tr>${rows.join('')}</table>`;
+      const table = (id: string, title: string, rows: string[]) => rows.length === 0 ? '' :
+        `<h2 id="${id}">${title} <span class="muted">(${rows.length})</span></h2><table><tr><th class="num">Number</th><th>Name</th><th>Category</th><th>Role</th></tr>${rows.join('')}</table>`;
       const row = (i: number, role: string) => { const p = d.parts[i]; return `<tr><td class="num"><a href="${p[2]}">${esc(p[0])}</a></td><td>${esc(p[1])}</td><td class="muted">${esc(p[3])}</td><td>${role}</td></tr>`; };
       const render = () => {
         if (a.value === '' || b.value === '') { $('out').innerHTML = '<p class="muted">Choose two releases.</p>'; return; }
         const A = d.releases[+a.value], B = d.releases[+b.value];
-        history.replaceState(null, '', `?a=${encodeURIComponent(A.id)}&b=${encodeURIComponent(B.id)}`);
+        history.replaceState(null, '', `?a=${encodeURIComponent(A.id)}&b=${encodeURIComponent(B.id)}${location.hash}`);
         const keep = (rows: [number, string][]) => new Map(rows.filter(([, r]) => !box.checked || r === 'k'));
         const ma = keep(A.rows), mb = keep(B.rows);
         const byNum = (x: number, y: number) => d.parts[x][0].localeCompare(d.parts[y][0]);
         const onlyA = [...ma.keys()].filter((i) => !mb.has(i)).sort(byNum).map((i) => row(i, ROLE[ma.get(i)!]));
         const onlyB = [...mb.keys()].filter((i) => !ma.has(i)).sort(byNum).map((i) => row(i, ROLE[mb.get(i)!]));
         const both = [...ma.keys()].filter((i) => mb.has(i)).sort(byNum).map((i) => row(i, ma.get(i) === mb.get(i) ? ROLE[ma.get(i)!] : `${ROLE[ma.get(i)!]} / ${ROLE[mb.get(i)!]}`));
-        $('out').innerHTML = `<p><a href="${A.url}">${esc(A.label)}</a> and <a href="${B.url}">${esc(B.label)}</a>: ${both.length} shared, ${onlyA.length} only in A, ${onlyB.length} only in B.</p>`
-          + table(`Only in ${esc(A.label)}`, onlyA) + table(`Only in ${esc(B.label)}`, onlyB) + table('In both', both);
+        const jump = (id: string, n: number, label: string) => n ? `<a href="#${id}">${n} ${label}</a>` : `0 ${label}`;
+        $('out').innerHTML = `<p><a href="${A.url}">${esc(A.label)}</a> and <a href="${B.url}">${esc(B.label)}</a>: ${jump('both', both.length, 'shared')}, ${jump('only-a', onlyA.length, 'only in A')}, ${jump('only-b', onlyB.length, 'only in B')}.</p>`
+          + table('only-a', `Only in ${esc(A.label)}`, onlyA) + table('only-b', `Only in ${esc(B.label)}`, onlyB) + table('both', 'In both', both);
       };
       a.addEventListener('change', render); b.addEventListener('change', render); box.addEventListener('change', render);
       render();
