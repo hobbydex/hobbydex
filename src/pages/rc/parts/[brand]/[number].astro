@@ -47,6 +47,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.dimensions_mm && <><dt>Size</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
     {part.weight_g && <><dt>Weight</dt><dd>{part.weight_g} g</dd></>}
     {part.connector && <><dt>Plug</dt><dd>{part.connector}</dd></>}
+    {part.torque_kgcm && <><dt>Servo</dt><dd>{part.torque_kgcm} kg/cm{part.speed_s && `, ${part.speed_s} s/60°`}{part.voltage && ` at ${part.voltage} V`}{part.motor && `, ${part.motor}`}{part.gear_material && `, ${part.gear_material} gears`}</dd></>}
     {part.channels && <><dt>Channels</dt><dd>{part.channels}</dd></>}
     {part.protocol && <><dt>Protocol</dt><dd>{part.protocol}</dd></>}
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
