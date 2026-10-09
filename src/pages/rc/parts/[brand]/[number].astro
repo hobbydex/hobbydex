@@ -19,7 +19,7 @@ for (const f of part.fits ?? []) {
   k.fit = f.type; kitMap.set(f.kit, k);
 }
 const kitsOf = [...kitMap.entries()].map(([id, v]) => ({ id, kit: db.kit.get(id), ...v })).sort((a, b) => (a.kit?.name ?? a.id).localeCompare(b.kit?.name ?? b.id));
-const replacedBy = db.parts.filter((p) => p.supersedes === part.id);
+const replacedBy = db.replacedBy.get(part.id) ?? [];
 const replaces = part.supersedes ? db.part.get(part.supersedes) : undefined;
 const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
 ---
