@@ -61,3 +61,13 @@ ul.search-results mark { background: var(--mark); color: inherit; border-radius:
 .websearch .btn, .websearch select { font: inherit; font-size: 0.85rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 0.8rem; cursor: pointer; text-decoration: none; }
 .websearch .btn:hover { background: var(--surface-2); }
 .search-filters select { font: inherit; font-size: 0.8rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.1rem 0.6rem; }
+.home-search { display: flex; gap: 0.5rem; margin: 1rem 0; max-width: 40rem; }
+.home-search input { flex: 1; font: inherit; font-size: 1rem; padding: 0.5rem 0.75rem; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+.home-search button { font: inherit; padding: 0.5rem 1rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+.home-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 0 2rem; }
+.hbars { list-style: none; padding: 0; margin: 0; }
+.hbars li { display: grid; grid-template-columns: 9rem 1fr 3.5rem; align-items: center; gap: 0.5rem; padding: 0.15rem 0; }
+.hbars li a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hbars .bar { display: block; height: 0.6rem; min-width: 2px; background: var(--accent); border-radius: 0 4px 4px 0; opacity: 0.85; }
+.hbars li:hover .bar { opacity: 1; }
+.hbars .v { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
