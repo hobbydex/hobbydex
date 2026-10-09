@@ -12,7 +12,7 @@ import { db, url } from '../../lib/data';
         <span class="muted">{db.kitsByBrand.get(b.id)?.length ?? 0} kits · {db.partsByBrand.get(b.id)?.length ?? 0} parts</span></li>
     ))}
   </ul>
-  <h2>Kits</h2>
+  <h2>Kits <span class="muted">· <a href="/rc/kits/">by type</a></span></h2>
   <table>
     <tr><th>Brand</th><th>Kit</th><th>Category</th><th>Scale</th><th>Drive</th><th>Releases</th></tr>
     {db.kits.map((k) => (
