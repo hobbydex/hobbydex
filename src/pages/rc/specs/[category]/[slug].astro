@@ -11,6 +11,7 @@ const linked = db.partsBySpec.get(spec.id) ?? [];
 const uses = linked.flatMap(({ part, link }) => (db.usesByPart.get(part.id) ?? []).map((u) => ({ part, link, ...u })))
   .sort((a, b) => a.release.year - b.release.year || a.release.name.localeCompare(b.release.name));
 const title = spec.name ?? key(spec.id)[1];
+const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c is string => !!c))].sort();
 ---
 <Base title={title} description={`${title}: generic ${spec.category} spec, and which branded parts and kits match it.`} kind="spec" sub={spec.category}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">specs</a> / <a href={`/rc/specs/${spec.category}/`}>{spec.category}</a> / {key(spec.id)[1]}</div>
@@ -21,10 +22,11 @@ const title = spec.name ?? key(spec.id)[1];
     {spec.standards && <><dt>Standards</dt><dd>{spec.standards.join(', ')}</dd></>}
   </dl>
   <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>
+  {spec.category === 'battery' && plugs.length > 1 && <p data-pagefind-ignore><label>Plug <select id="plugfilter"><option value="">any (plugs can be changed)</option>{plugs.map((c) => <option value={c}>{c}</option>)}</select></label></p>}
   {linked.length === 0 ? <p class="muted">None linked yet.</p> :
   <table>
-    <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Material</th>{spec.category === 'bearing' && <th>Seal</th>}{spec.category === 'pinion' && <th class="num">Bore mm</th>}<th>Match</th></tr>
-    {linked.map(({ part, link }) => <tr><td>{brandName(part.brand)}</td><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td class="num">{part.pack_qty ?? ''}</td><td>{part.material ?? ''}</td>{spec.category === 'bearing' && <td>{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num">{part.bore_mm ?? ''}</td>}<td>{link.match}</td></tr>)}
+    <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Material</th>{spec.category === 'bearing' && <th>Seal</th>}{spec.category === 'pinion' && <th class="num">Bore mm</th>}{spec.category === 'battery' && <><th class="num">C</th><th>Case</th><th>Size mm</th><th class="num">g</th><th>Plug</th></>}<th>Match</th></tr>
+    {linked.map(({ part, link }) => <tr data-plug={part.connector ?? ''}><td>{brandName(part.brand)}</td><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td class="num">{part.pack_qty ?? ''}</td><td>{part.material ?? ''}</td>{spec.category === 'bearing' && <td>{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num">{part.bore_mm ?? ''}</td>}{spec.category === 'battery' && <><td class="num">{part.c_rating ?? ''}</td><td>{part.case ?? ''}</td><td>{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num">{part.weight_g ?? ''}</td><td>{part.connector ?? ''}</td></>}<td>{link.match}</td></tr>)}
   </table>}
   {(db.setsBySpec.get(spec.id) ?? []).length > 0 && <>
     <h2>In sets</h2>
@@ -38,5 +40,11 @@ const title = spec.name ?? key(spec.id)[1];
     <tr><th class="num">Year</th><th>Release</th><th>As part</th><th>Role</th></tr>
     {uses.map((u) => <tr><td class="num">{u.release.year}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><a href={url.part(u.part.id)}>{u.part.number}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
   </table>}
+  <script>
+    const sel = document.getElementById('plugfilter') as HTMLSelectElement | null;
+    sel?.addEventListener('change', () => {
+      for (const tr of document.querySelectorAll<HTMLTableRowElement>('tr[data-plug]')) tr.hidden = !!sel.value && tr.dataset.plug !== sel.value;
+    });
+  </script>
   <p class="muted">Derived by walking release, part and equivalence links; the material is a property of each branded part, not of the spec.</p>
 </Base>
