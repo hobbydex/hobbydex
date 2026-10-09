@@ -31,6 +31,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     <a class="btn" href={`https://www.google.com/search?q=${encodeURIComponent(`"${part.number}" ${brand?.name ?? ''}`)}`} rel="nofollow noopener" target="_blank">Search the web</a>
     <select aria-label="Search engine"><option value="google">Google</option><option value="ddg">DuckDuckGo</option><option value="bing">Bing</option><option value="ecosia">Ecosia</option></select>
     <button type="button" class="btn copy">Copy number</button>
+    {(part.links ?? []).map((l) => <a class="btn" href={l.url} rel="noopener" target="_blank">{l.site}</a>)}
   </p>
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>

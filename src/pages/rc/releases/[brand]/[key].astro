@@ -25,6 +25,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
+    {release.links && release.links.length > 0 && <><dt>Elsewhere</dt><dd>{release.links.map((l, i) => <>{i > 0 && ', '}<a href={l.url} rel="noopener" target="_blank">{l.site}</a></>)}</dd></>}
   </dl>
   {docs.length > 0 && <><h2>Sources</h2>
     {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
