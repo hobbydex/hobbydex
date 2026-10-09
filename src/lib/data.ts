@@ -41,6 +41,11 @@ for (const p of raw.parts) for (const i of p.includes ?? []) if (i.spec) {
   if (!setsBySpec.has(i.spec)) setsBySpec.set(i.spec, []);
   setsBySpec.get(i.spec)!.push({ part: p, qty: i.qty, notes: i.notes });
 }
+const replacedBy = new Map<string, Part[]>();
+for (const p of raw.parts) if (p.supersedes) {
+  if (!replacedBy.has(p.supersedes)) replacedBy.set(p.supersedes, []);
+  replacedBy.get(p.supersedes)!.push(p);
+}
 const partsBySpec = new Map<string, { part: Part; link: EquivalentTo }[]>();
 for (const p of raw.parts) for (const e of p.equivalent_to ?? []) {
   if (!partsBySpec.has(e.spec)) partsBySpec.set(e.spec, []);
@@ -75,6 +80,7 @@ export const db = {
   kit: byId(raw.kits),
   release: byId(raw.releases),
   part: byId(raw.parts),
+  replacedBy,
   setsBySpec,
   doc: byId(raw.documents),
   kitsByBrand: group(raw.kits, (k) => k.brand),
