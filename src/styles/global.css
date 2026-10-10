@@ -81,3 +81,6 @@ ul.typegrid a { display: flex; flex-direction: column; align-items: center; gap:
 ul.typegrid a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
 ul.cards li.kitcard { display: flex; gap: 0.75rem; align-items: center; }
 ul.cards li.kitcard > a { color: var(--muted); } ul.cards li.kitcard > a:hover { color: var(--accent); }
+.brandsearch .status { margin: 0.5rem 0; }
+.brandsearch table.results td:last-child { white-space: nowrap; }
+p.bycat a { white-space: nowrap; }
