@@ -1,0 +1,17 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { db, url } from '../../../lib/data';
+const count = (code: string) => db.specs.filter((s) => s.standards?.includes(code)).length;
+const current = db.standards.filter((s) => !s.replaced_by).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+const withdrawn = db.standards.filter((s) => s.replaced_by).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+---
+<Base title="Standards" description="The ISO and DIN standards that the generic screw specs follow, with the sizes listed for each.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">Specs</a> / Standards</div>
+  <h1>Standards</h1>
+  <p>The published standards the generic specs follow. A part that matches a spec follows its standard for the dimensions that matter (thread, length, head); the standard itself is sold by its publisher, the linked page gives its title, scope and current edition.</p>
+  <table>
+    <tr><th>Standard</th><th>Title</th><th>Replaces</th><th class="num">Specs</th></tr>
+    {current.map((s) => <tr><td><a href={url.standard(s.id)}>{s.code}</a></td><td>{s.title}</td>
+      <td>{withdrawn.filter((w) => w.replaced_by === s.id).map((w, i) => <>{i > 0 && ', '}<a href={url.standard(w.id)}>{w.code}</a></>)}</td><td class="num">{count(s.code)}</td></tr>)}
+  </table>
+</Base>

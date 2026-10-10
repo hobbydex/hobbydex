@@ -15,8 +15,9 @@ export type Includes = { part?: string; spec?: string; qty?: number; source?: st
 export type Spec = { id: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
 export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; releases?: string[] };
 export type KeyField = { field: string; label: string; from: 'part' | 'spec'; unit?: string; format?: string; compare_only?: boolean };
+export type Standard = { id: string; code: string; title: string; url?: string; replaced_by?: string; notes?: string };
 export type Category = { id: string; name: string; description?: string; spec_type?: string; key_fields?: KeyField[] };
-export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[] };
+export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[] };
 
 const path = process.env.HOBBYDEX_DATA ?? 'data/hobbydex-rc.json';
 const raw: Dataset = JSON.parse(readFileSync(path, 'utf8'));
@@ -89,6 +90,9 @@ export const db = {
   kitRelations,
   fitsByKit,
   categories: raw.categories ?? [],
+  standards: raw.standards ?? [],
+  standardByCode: new Map((raw.standards ?? []).map((s) => [s.code, s])),
+  standard: byId(raw.standards ?? []),
   specs: raw.specs ?? [],
   spec: byId(raw.specs ?? []),
   partsBySpec,
@@ -115,6 +119,7 @@ export const url = {
   release: (id: string) => `/rc/releases/${key(id).join('/')}/`,
   part: (id: string) => `/rc/parts/${key(id).join('/')}/`,
   spec: (id: string) => `/rc/specs/${key(id).join('/')}/`,
+  standard: (id: string) => `/rc/standards/${key(id)[0]}/`,
 };
 // Releases with an unknown year sort as oldest and show as 'unknown'.
 export const yearOf = (r: { year?: number }) => r.year ?? 0;

@@ -1,4 +1,5 @@
 ---
+import Standards from '../../../../components/Standards.astro';
 import WebSearch from '../../../../components/WebSearch.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
@@ -101,7 +102,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     <table>
       <tr><th>Generic spec</th><th>Match</th><th>Standards</th><th>Source</th></tr>
       {part.equivalent_to.map((e) => { const sp = db.spec.get(e.spec); const d = e.source ? db.doc.get(e.source) : undefined; return <tr>
-        <td><a href={url.spec(e.spec)}>{sp?.name ?? e.spec}</a></td><td>{e.match}</td><td>{sp?.standards?.join(', ')}</td><td class="muted">{d?.title ?? e.source ?? ''}{e.notes && <><br />{e.notes}</>}</td>
+        <td><a href={url.spec(e.spec)}>{sp?.name ?? e.spec}</a></td><td>{e.match}</td><td><Standards codes={sp?.standards} /></td><td class="muted">{d?.title ?? e.source ?? ''}{e.notes && <><br />{e.notes}</>}</td>
       </tr>; })}
     </table></>}
   {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
