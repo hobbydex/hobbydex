@@ -20,6 +20,7 @@ const choices = firstText < 0 ? [] : [...new Set(rows.map((r) => r.vals[firstTex
     {choices.length > 1 && <select class="pick" data-col={firstText} aria-label={cols[firstText].label}><option value="">every {cols[firstText].label.toLowerCase()}</option>{choices.map((c) => <option>{c}</option>)}</select>}
     {cols.length > 0 && <label><input type="checkbox" class="known" /> only with specs</label>}
     <button type="button" class="btn cmp" disabled>Compare ticked</button>
+    <button type="button" class="btn clear" hidden>Clear ticks</button>
     <span class="muted count"></span>
   </p>
   <div class="side"></div>
@@ -27,7 +28,7 @@ const choices = firstText < 0 ? [] : [...new Set(rows.map((r) => r.vals[firstTex
     <thead><tr><th></th><th data-k="text">Part</th>{cols.map((c) => <th data-k={c.num ? 'num' : 'text'} class={c.num ? 'num' : ''}>{c.label}</th>)}</tr></thead>
     <tbody>
       {rows.map(({ p, vals }) => <tr data-brand={p.brand} data-known={vals.some((v) => v !== undefined) ? '1' : ''}>
-        <td><input type="checkbox" aria-label={`Compare ${p.number}`} /></td>
+        <td><input type="checkbox" autocomplete="off" aria-label={`Compare ${p.number}`} /></td>
         <td><a href={url.part(p.id)}>{showBrand && `${brandName(p.brand)} `}{p.number}</a>{short(p) && <span class="muted"> {short(p)}</span>}</td>
         {vals.map((v, i) => <td class={cols[i].num ? 'num' : ''}>{v ?? ''}</td>)}
       </tr>)}
@@ -39,7 +40,7 @@ const choices = firstText < 0 ? [] : [...new Set(rows.map((r) => r.vals[firstTex
     const table = box.querySelector('table')!, body = table.tBodies[0];
     const q = box.querySelector<HTMLInputElement>('.q')!, brand = box.querySelector<HTMLSelectElement>('.brand');
     const pick = box.querySelector<HTMLSelectElement>('.pick'), known = box.querySelector<HTMLInputElement>('.known');
-    const cmp = box.querySelector<HTMLButtonElement>('.cmp')!, side = box.querySelector<HTMLElement>('.side')!, count = box.querySelector<HTMLElement>('.count')!;
+    const cmp = box.querySelector<HTMLButtonElement>('.cmp')!, clear = box.querySelector<HTMLButtonElement>('.clear')!, side = box.querySelector<HTMLElement>('.side')!, count = box.querySelector<HTMLElement>('.count')!;
     const filter = () => {
       const text = q.value.trim().toLowerCase(); let shown = 0;
       for (const tr of body.rows) {
@@ -64,7 +65,13 @@ const choices = firstText < 0 ? [] : [...new Set(rows.map((r) => r.vals[firstTex
       });
     });
     const ticked = () => [...body.querySelectorAll<HTMLInputElement>('input:checked')].map((c) => c.closest('tr')!);
-    body.addEventListener('change', () => { const k = ticked().length; cmp.disabled = k < 2; cmp.textContent = k ? `Compare ${k} ticked` : 'Compare ticked'; });
+    const update = () => { const k = ticked().length; cmp.disabled = k < 2; cmp.textContent = k ? `Compare ${k} ticked` : 'Compare ticked'; clear.hidden = !k; };
+    body.addEventListener('change', update);
+    update();
+    clear.addEventListener('click', () => {
+      for (const c of body.querySelectorAll<HTMLInputElement>('input:checked')) c.checked = false;
+      side.replaceChildren(); update();
+    });
     cmp.addEventListener('click', () => {
       const trs = ticked(), heads = [...table.tHead!.rows[0].cells].slice(1).map((c) => c.textContent);
       const tb = document.createElement('table');
