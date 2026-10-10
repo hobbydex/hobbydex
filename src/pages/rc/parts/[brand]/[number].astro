@@ -29,6 +29,9 @@ const upgrades = db.upgradesFor.get(part.id) ?? [];
 const rebrandOf = (part.rebrand_of ?? []).map((r) => db.part.get(r.part)).filter((x): x is NonNullable<typeof x> => !!x);
 const soldAs = db.rebrandsOf.get(part.id) ?? [];
 const similar = part.category === 'servo' ? similarServos(part.id) : [];
+// the other versions of a range (winds, kV), lowest first
+const rating = (o: typeof part) => o.turns ?? (o.kv ? -o.kv : 0);
+const range = part.range ? (db.partsByRange.get(part.range) ?? []).filter((o) => o.id !== part.id).sort((a, b) => rating(b) - rating(a)) : [];
 const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
 ---
 <Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
@@ -105,6 +108,8 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
         <td><a href={url.spec(e.spec)}>{sp?.name ?? e.spec}</a></td><td>{e.match}</td><td><Standards codes={sp?.standards} /></td><td class="muted">{d?.title ?? e.source ?? ''}{e.notes && <><br />{e.notes}</>}</td>
       </tr>; })}
     </table></>}
+  {range.length > 0 && <><h2>Other versions <span class="muted">· same range</span></h2>
+    <ul>{range.map((o) => <li><a href={url.part(o.id)}>{o.number}</a> {o.name}<span class="muted">{o.turns && ` · ${o.turns}T`}{o.kv && ` · ${o.kv} kV`}</span></li>)}</ul></>}
   {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
     <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {o.number}</a> {shortName(o)}<span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
   <h2>Used in</h2>
