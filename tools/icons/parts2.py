@@ -38,9 +38,6 @@ teeth = unary_union([box(3.2, 3.5 + 2.4 * i, 4.6, 4.7 + 2.4 * i) for i in range(
 S["differential"] = unary_union([case, ring, teeth, box(0.5, 10.4, 4.6, 13.6), box(18.4, 10.4, 23.5, 13.6)])
 # pinion: a small cog with its bore and a short boss
 S["pinion"] = unary_union([cog(12, 11, 12, 9.5, 7.6, 0.55).difference(Point(12, 11).buffer(2.4, 32)), box(10.8, 19.4, 13.2, 21.0)])
-# shock spring: a coil seen from the side
-pts = [(6, 3)] + [(18 if i % 2 else 6, 3 + 2.5 * (i + 1)) for i in range(7)]
-S["shock-spring"] = unary_union([LineString(pts).buffer(1.25, cap_style=2, join_style=2), box(6, 2, 18, 3.4), box(6, 20.6, 18, 22)])
 # tyre: a solid ring with tread blocks on the outside, no holes in the rubber
 # tyre: smooth round rubber with the tread cut in as slanted grooves, a rim and a hub
 tyre = Point(12, 12).buffer(10.4, 64).difference(Point(12, 12).buffer(6.0, 64))
