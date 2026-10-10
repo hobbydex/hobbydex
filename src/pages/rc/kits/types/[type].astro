@@ -1,0 +1,25 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import Icon from '../../../../components/Icon.astro';
+import { db, url, brandName } from '../../../../lib/data';
+import { kitTypeLabel, kitTypeIcon } from '../../../../lib/kitTypes';
+export function getStaticPaths() {
+  return [...new Set(db.kits.map((k) => k.category || 'car'))].map((type) => ({ params: { type } }));
+}
+const { type } = Astro.params;
+const label = kitTypeLabel[type] ?? type;
+const scaleKey = (s?: string) => (s ? Number(s.split('/')[1]) : 999);
+const kits = db.kits.filter((k) => (k.category || 'car') === type)
+  .sort((a, b) => scaleKey(a.scale) - scaleKey(b.scale) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
+---
+<Base title={label} description={`${label}: ${kits.length} RC kits in Hobbydex, by scale and brand.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/kits/">Kits</a> / {label}</div>
+  <h1><Icon name={kitTypeIcon(type)} size="1.4em" /> {label} <span class="muted">({kits.length})</span></h1>
+  <table>
+    <tr><th>Scale</th><th>Brand</th><th>Kit</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
+    {kits.map((k) => <tr>
+      <td>{k.scale ?? ''}</td><td><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td><td><a href={url.kit(k.id)}>{k.name}</a></td>
+      <td>{k.drive ?? ''}</td><td>{k.power ?? ''}</td><td class="num">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
+    </tr>)}
+  </table>
+</Base>

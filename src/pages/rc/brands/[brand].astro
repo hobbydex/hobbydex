@@ -2,6 +2,8 @@
 import Base from '../../../layouts/Base.astro';
 import { db, key, url } from '../../../lib/data';
 import { catName } from '../../../lib/categories';
+import Icon from '../../../components/Icon.astro';
+import { kitTypeIcon, kitTypeOne } from '../../../lib/kitTypes';
 import { byCategory, categories } from '../../../lib/categoryIndex';
 export function getStaticPaths() {
   return db.brands.map((b) => ({ params: { brand: key(b.id)[0] }, props: { brand: b } }));
@@ -22,7 +24,7 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   </dl>
   {brand.notes && <p class="muted">{brand.notes}</p>}
   {kits.length > 0 && <><h2>Kits</h2>
-  <ul class="cards">{kits.map((k) => <li><a href={url.kit(k.id)}><b>{k.name}</b></a><br /><span class="muted">{k.scale} {k.drive} {k.category}</span></li>)}</ul></>}
+  <ul class="cards">{kits.map((k) => <li class="kitcard"><a href={`/rc/kits/types/${k.category || 'car'}/`} title={kitTypeOne[k.category ?? 'car'] ?? k.category}><Icon name={kitTypeIcon(k.category)} size="2rem" /></a><span><a href={url.kit(k.id)}><b>{k.name}</b></a><br /><span class="muted">{[k.scale, kitTypeOne[k.category ?? 'car'] ?? k.category, k.drive, k.power].filter(Boolean).join(' · ')}</span></span></li>)}</ul></>}
   <h2>Parts <span class="muted">({parts.length})</span></h2>
   {cats.length > 0 && <p data-pagefind-ignore>By category: {cats.map(([c, n], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${c}/${key(brand.id)[0]}/`}>{catName(c)}</a> <span class="muted">{n}</span></>)}</p>}
   {parts.length > 0 && <div class="brandsearch" data-pagefind-ignore data-src={`/rc/brands/${key(brand.id)[0]}/parts.json`} data-base={`/rc/parts/${key(brand.id)[0]}/`}>

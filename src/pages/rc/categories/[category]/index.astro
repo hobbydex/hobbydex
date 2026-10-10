@@ -3,6 +3,7 @@ import Base from '../../../../layouts/Base.astro';
 import PartTable from '../../../../components/PartTable.astro';
 import { brandName, key } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
+import Icon from '../../../../components/Icon.astro';
 import { byCategory, categories, countOf, specFor } from '../../../../lib/categoryIndex';
 import { columns } from '../../../../lib/categoryColumns';
 export function getStaticPaths() {
@@ -15,7 +16,7 @@ const table = !!columns[category];
 ---
 <Base title={catName(category)} description={`${catName(category)}: ${countOf(category)} RC parts from ${brands.length} brands${table ? ', with their key specs' : ''}.`}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/categories/">Categories</a> / {catName(category)}</div>
-  <h1>{catName(category)}</h1>
+  <h1><Icon name={category} size="1.4em" /> {catName(category)}</h1>
   <p class="muted">{countOf(category)} parts from {brands.length} brands.
     {specFor[category] && <> Brand-independent sizes: <a href={`/rc/specs/${specFor[category]}/`}>generic specs</a>.</>}
     {' '}<a href={`/search/?category=${encodeURIComponent(catName(category))}`}>Search in this category</a></p>
