@@ -42,9 +42,13 @@ S["pinion"] = unary_union([cog(12, 11, 12, 9.5, 7.6, 0.55).difference(Point(12, 
 pts = [(6, 3)] + [(18 if i % 2 else 6, 3 + 2.5 * (i + 1)) for i in range(7)]
 S["shock-spring"] = unary_union([LineString(pts).buffer(1.25, cap_style=2, join_style=2), box(6, 2, 18, 3.4), box(6, 20.6, 18, 22)])
 # tyre: a solid ring with tread blocks on the outside, no holes in the rubber
-tyre = Point(12, 12).buffer(9.6, 64).difference(Point(12, 12).buffer(5.6, 64))
-blocks = [affinity.rotate(box(11.3, 1.4, 12.7, 2.6), i * 18, origin=(12, 12)) for i in range(20)]
-S["tire"] = unary_union([tyre, *blocks, Point(12, 12).buffer(4.2, 64).difference(Point(12, 12).buffer(1.6, 32))])
+# tyre: smooth round rubber with the tread cut in as slanted grooves, a rim and a hub
+tyre = Point(12, 12).buffer(10.4, 64).difference(Point(12, 12).buffer(6.0, 64))
+grooves = unary_union([affinity.rotate(affinity.rotate(box(11.35, 2.9, 12.65, 5.0), 30, origin=(12, 3.95)), i * 24, origin=(12, 12)) for i in range(15)])
+S["tire"] = unary_union([tyre.difference(grooves), Point(12, 12).buffer(4.6, 64).difference(Point(12, 12).buffer(1.8, 32))])
+# spur gear: fine teeth, and a hex in the middle like a slipper hub
+hexhole = Polygon([(12 + 3.6 * math.cos(i * math.pi / 3), 12 + 3.6 * math.sin(i * math.pi / 3)) for i in range(6)])
+S["spur-gear"] = cog(12, 12, 24, 11.2, 9.6, 0.5).difference(hexhole)
 # steering wheel: rim, three spokes and hub as one shape
 rim = Point(12, 12).buffer(10, 64).difference(Point(12, 12).buffer(7.6, 64))
 spokes = [LineString([(12, 12), (12 + 8.5 * math.cos(math.radians(a)), 12 + 8.5 * math.sin(math.radians(a)))]).buffer(1.3, cap_style=2) for a in (90, 200, 340)]
