@@ -92,3 +92,5 @@ figure.drawing svg { width: 100%; height: auto; display: block; }
 .screwdrawing .solid { fill: currentColor; stroke: none; }
 .screwdrawing text { fill: currentColor; stroke: none; font: 12px system-ui, sans-serif; }
 figure.drawing figcaption { font-size: 0.8rem; }
+.screwdrawing .dash { stroke-dasharray: 3 3; }
+.screwdrawing text.std { opacity: 0.7; font-size: 11px; }
