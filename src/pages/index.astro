@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { db, url, brandName, yearOf, yearText } from '../lib/data';
+import { db, url, brandName, yearOf, yearText, dateKey, dateText } from '../lib/data';
 import { catName } from '../lib/categories';
 
 const top = <T,>(m: Map<T, number>, n: number) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
@@ -14,9 +14,9 @@ const brands = top(byBrand, 12);
 const newest = new Map<string, (typeof db.releases)[number]>();
 for (const r of db.releases) if (r.status !== 'discontinued') {
   const cur = newest.get(r.kit);
-  if (r.year && (!cur || r.year > (cur.year ?? 0))) newest.set(r.kit, r);
+  if (r.year && (!cur || dateKey(r) > dateKey(cur))) newest.set(r.kit, r);
 }
-const latest = [...newest.values()].sort((a, b) => yearOf(b) - yearOf(a) || (a.status === 'announced' ? -1 : 1)).slice(0, 8);
+const latest = [...newest.values()].sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || (a.status === 'announced' ? -1 : 1)).slice(0, 8);
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 ---
 <Base title="Open hobby parts database" description="Hobbydex: which parts are in my RC car, what fits it, and what is it equivalent to. Open data, no prices, no images.">
@@ -54,7 +54,7 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
   <h2>Latest kits <span class="muted">· <a href="/rc/kits/by-date/">all kits by date</a></span></h2>
   <table>
     <tr><th class="num">Year</th><th>Kit</th><th>Newest release</th><th>Status</th></tr>
-    {latest.map((r) => { const k = db.kit.get(r.kit); return <tr><td class="num">{r.year}</td><td><a href={url.kit(r.kit)}>{brandName(r.brand)} {k?.name ?? ''}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td><td class="muted">{r.status}</td></tr>; })}
+    {latest.map((r) => { const k = db.kit.get(r.kit); return <tr><td class="num">{dateText(r)}</td><td><a href={url.kit(r.kit)}>{brandName(r.brand)} {k?.name ?? ''}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td><td class="muted">{r.status}</td></tr>; })}
   </table>
 
   <p><a href="/rc/">Browse RC cars</a> · <a href="/rc/compare/">Compare two releases</a> · <a href="/rc/specs/">Generic specs</a></p>

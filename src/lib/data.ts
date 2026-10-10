@@ -7,7 +7,7 @@ export type Link = { site: string; url: string };
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
 export type Kit = { id: string; brand: string; name: string; category: string; scale?: string; drive?: string; power?: string; notes?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[] };
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
-export type Release = { id: string; kit: string; brand: string; number?: string; name: string; year?: number; kind: string; status: string; edition?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; links?: Link[] };
+export type Release = { id: string; kit: string; brand: string; number?: string; name: string; year?: number; released?: string; kind: string; status: string; edition?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };
 export type Part = { id: string; brand: string; number: string; name: string; category?: string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string };
@@ -115,5 +115,13 @@ export const url = {
 };
 // Releases with an unknown year sort as oldest and show as 'unknown'.
 export const yearOf = (r: { year?: number }) => r.year ?? 0;
+// Sort key and label for a release date: '2025-03-22' > '2025-03' > '2025'.
+export const dateKey = (r: { year?: number; released?: string }) => r.released ?? (r.year ? String(r.year) : '');
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export const dateText = (r: { year?: number; released?: string }) => {
+  const m = r.released?.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/);
+  if (!m) return r.year ? String(r.year) : 'unknown';
+  return [m[3] && String(Number(m[3])), m[2] && MONTHS[Number(m[2]) - 1], m[1]].filter(Boolean).join(' ');
+};
 export const yearText = (r: { year?: number }) => (r.year ? String(r.year) : 'unknown');
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
