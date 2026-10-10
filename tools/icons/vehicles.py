@@ -11,11 +11,12 @@ def tyre(cx, r, offroad=True, cy=None, gap=2.2, hub=False):
     if hub: t = unary_union([t, Point(cx, cy).buffer(r * 0.3, 32)])
     return t, Point(cx, cy).buffer(r + gap, 64)
 
-def vehicle(body_parts, wheels, window=None):
+def vehicle(body_parts, wheels, window=None, uncut=()):
     body = unary_union([Polygon(p) if isinstance(p, list) else p for p in body_parts])
     pass  # no window cut-outs: cab pillars turn into hairlines at small sizes
     shapes, cuts = zip(*wheels)
     body = body.difference(unary_union(cuts))
+    if uncut: body = unary_union([body, *(Polygon(u) if isinstance(u, list) else u for u in uncut)])   # links and shocks reach the hubs: added after the wheel gaps
     return unary_union([body, *shapes])
 
 def path(g):
@@ -62,11 +63,31 @@ V["desert-truck"] = vehicle([
 V["truck"] = vehicle([
     [(1.5, 18.4), (1.5, 13), (4, 11.7), (14, 11.1), (16, 6.9), (24.6, 6.5), (27.6, 11.1), (46.5, 11.3), (46.5, 18.4)]],
     [tyre(10, 4.9, False), tyre(37.5, 4.9, False)])
-V["crawler"] = vehicle([
-    # F-150 pickup body high above smaller tyres, a deeper belly in the middle, and links from the belly to each axle
-    [(3, 9.6), (3, 6.4), (5, 5.6), (13.5, 5.2), (16, 1.8), (24, 1.8), (26, 5.2), (44.5, 5.4), (45, 9.6), (32.5, 9.6), (29.5, 13.2), (18, 13.2), (15, 9.6)],
-    link(19.5, 12.6, 10.5, 17.6, 2.6), link(28, 12.6, 37.5, 17.6, 2.6)],
-    [tyre(10.5, 5.6), tyre(37.5, 5.6)])
+def _crawler():
+    # traced by hand over a rock crawler climbing (Inkscape, mm): wheel centres and radii, cage, links
+    def rel(d):   # Inkscape relative path "m x,y dx,dy ... z" -> absolute points
+        nums = [tuple(map(float, q.split(","))) for q in d.replace("m", "").replace("z", "").split()]
+        pts = [nums[0]]
+        for dx, dy in nums[1:]: pts.append((pts[-1][0] + dx, pts[-1][1] + dy))
+        return Polygon(pts)
+    body = [rel(d) for d in (
+        "m 80.029938,114.11676 -16.302394,-6.52095 15.116767,-6.22455 20.452096,6.52095 16.302393,-8.002989 21.34132,8.595809 13.93114,19.26646 8.5958,3.55689 -1.77844,9.18863 -19.56287,-6.22456 -24.89821,2.07485 -25.194607,-8.89221 z",
+        "m 69.952094,126.26946 29.64072,1.48203 -1.18563,4.14971 -28.751498,-0.59282 z",
+        "m 68.173652,121.23054 18.970059,-6.52096 3.260479,6.22455 -22.823353,4.44611 z",
+        "m 131.60479,149.98203 -8.89222,-20.15568 4.44611,-1.18563 8.59581,19.85928 z",
+        "m 128.93712,155.02096 -19.85928,-20.74851 3.8533,-2.37125 15.70958,17.48802 z")]
+    wheels = [((58.095806, 126.86227), 16.598803), ((141.97903, 159.17065), 17.191616)]
+    nuts = [Point(c).buffer(r * 0.3, 48) for c, r in wheels]               # the wheel nut hole, as on the other icons
+    g = unary_union([*body, *(Point(c).buffer(r, 96) for c, r in wheels)])
+    (fx, fy), fr = wheels[0]
+    ground = wheels[1][0][1] + wheels[1][1]                                 # the rear wheel stands on the ground
+    rock = Polygon([(fx - fr - 12, ground), (fx - fr - 4, fy + fr + 3.0), (fx - 6, fy + fr + 6.0), (fx + 5, fy + fr + 6.8), (fx + fr + 16, ground)])
+    g = unary_union([g, rock.difference(Point(fx, fy).buffer(fr + 5.0, 96))]).difference(unary_union(nuts))
+    minx, miny, maxx, maxy = g.bounds
+    k = min(46 / (maxx - minx), 22.4 / (maxy - miny))
+    g = affinity.scale(g, k, k, origin=(minx, miny))
+    return affinity.translate(g, (48 - (maxx - minx) * k) / 2 - minx, 0.8 - miny)
+V["crawler"] = _crawler()
 V["touring"] = vehicle([
     [(1, 20.2), (1, 17.2), (3, 15.8), (12, 14.6), (17, 10.6), (28, 10.2), (33.5, 14), (44, 14.6), (46.8, 16), (46.8, 20.2)],
     [(40, 12.2), (46.6, 11.6), (46.6, 13.4), (40, 13.8)]],
