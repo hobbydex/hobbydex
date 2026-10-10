@@ -42,7 +42,7 @@ S["pinion"] = unary_union([cog(12, 11, 12, 9.5, 7.6, 0.55).difference(Point(12, 
 # tyre: smooth round rubber with the tread cut in as slanted grooves, a rim and a hub
 tyre = Point(12, 12).buffer(10.4, 64).difference(Point(12, 12).buffer(6.0, 64))
 grooves = unary_union([affinity.rotate(affinity.rotate(box(11.35, 2.9, 12.65, 5.0), 30, origin=(12, 3.95)), i * 24, origin=(12, 12)) for i in range(15)])
-S["tire"] = unary_union([tyre.difference(grooves), Point(12, 12).buffer(4.6, 64).difference(Point(12, 12).buffer(1.8, 32))])
+S["tire"] = tyre.difference(grooves)   # empty inside: the rubber only
 # spur gear: fine teeth, and a hex in the middle like a slipper hub
 hexhole = Polygon([(12 + 3.6 * math.cos(i * math.pi / 3), 12 + 3.6 * math.sin(i * math.pi / 3)) for i in range(6)])
 S["spur-gear"] = cog(12, 12, 24, 11.2, 9.6, 0.5).difference(hexhole)
@@ -50,6 +50,19 @@ S["spur-gear"] = cog(12, 12, 24, 11.2, 9.6, 0.5).difference(hexhole)
 rim = Point(12, 12).buffer(10, 64).difference(Point(12, 12).buffer(7.6, 64))
 spokes = [LineString([(12, 12), (12 + 8.5 * math.cos(math.radians(a)), 12 + 8.5 * math.sin(math.radians(a)))]).buffer(1.3, cap_style=2) for a in (90, 200, 340)]
 S["steering"] = unary_union([rim, *spokes, Point(12, 12).buffer(3.0, 32)])
+
+# servo: case with its mounting tabs, the output spline and the horn, merged into one shape (no gaps at overlaps)
+case = box(3.5, 9.0, 20.5, 19.0).buffer(1.2).buffer(-1.2)
+tabs = box(1.0, 11.0, 23.0, 13.0)
+spline = Point(8.5, 8.5).buffer(2.8, 32)
+horn = LineString([(8.5, 8.5), (18.5, 5.0)]).buffer(1.15, cap_style=1)
+S["servo"] = unary_union([case, tabs, spline, horn]).difference(Point(8.5, 8.5).buffer(0.9, 16))
+
+# tool: an open-end wrench at 45 degrees, its hole centred on the handle's axis
+head = Point(16.8, 7.2).buffer(5.2, 64)
+jaw = affinity.rotate(box(15.4, 0.0, 18.2, 7.4), 45, origin=(16.8, 7.2))
+handle = LineString([(4.6, 19.4), (14.0, 10.0)]).buffer(2.3, cap_style=1)
+S["tool"] = unary_union([head.difference(jaw), handle]).difference(Point(5.4, 18.6).buffer(1.0, 32))
 
 out = "\n".join(f'<symbol id="{k}" viewBox="0 0 24 24"><path d="{path(g)}"/></symbol>' for k, g in S.items())
 open("parts2.svgpart", "w").write(out)
