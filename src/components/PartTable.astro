@@ -1,0 +1,79 @@
+---
+// A filterable, sortable table of parts with their category's key spec columns.
+// Ticked rows can be shown side by side.
+import { url, brandName, type Part } from '../lib/data';
+import { columns, specOf } from '../lib/categoryColumns';
+interface Props { category: string; parts: Part[]; showBrand?: boolean }
+const { category, parts, showBrand = true } = Astro.props;
+const cols = columns[category] ?? [];
+const short = (p: Part) => (p.name.startsWith(p.number) ? p.name.slice(p.number.length).trim() : p.name === p.number ? '' : p.name);
+const rows = parts.map((p) => { const s = specOf(p); return { p, vals: cols.map((c) => c.get(p, s)) }; })
+  .sort((a, b) => a.vals.filter((v) => v === undefined).length - b.vals.filter((v) => v === undefined).length || a.p.number.localeCompare(b.p.number, undefined, { numeric: true }));
+const brands = [...new Set(parts.map((p) => p.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));
+const firstText = cols.findIndex((c) => !c.num);
+const choices = firstText < 0 ? [] : [...new Set(rows.map((r) => r.vals[firstText]).filter((v) => v !== undefined))].sort() as string[];
+---
+<div class="parttable" data-pagefind-ignore>
+  <p class="websearch">
+    <input type="search" class="q" placeholder="Filter by number or name" aria-label="Filter" />
+    {showBrand && brands.length > 1 && <select class="brand" aria-label="Brand"><option value="">every brand</option>{brands.map((b) => <option value={b}>{brandName(b)}</option>)}</select>}
+    {choices.length > 1 && <select class="pick" data-col={firstText} aria-label={cols[firstText].label}><option value="">every {cols[firstText].label.toLowerCase()}</option>{choices.map((c) => <option>{c}</option>)}</select>}
+    {cols.length > 0 && <label><input type="checkbox" class="known" /> only with specs</label>}
+    <button type="button" class="btn cmp" disabled>Compare ticked</button>
+    <span class="muted count"></span>
+  </p>
+  <div class="side"></div>
+  <table>
+    <thead><tr><th></th><th data-k="text">Part</th>{cols.map((c) => <th data-k={c.num ? 'num' : 'text'} class={c.num ? 'num' : ''}>{c.label}</th>)}</tr></thead>
+    <tbody>
+      {rows.map(({ p, vals }) => <tr data-brand={p.brand} data-known={vals.some((v) => v !== undefined) ? '1' : ''}>
+        <td><input type="checkbox" aria-label={`Compare ${p.number}`} /></td>
+        <td><a href={url.part(p.id)}>{showBrand && `${brandName(p.brand)} `}{p.number}</a>{short(p) && <span class="muted"> {short(p)}</span>}</td>
+        {vals.map((v, i) => <td class={cols[i].num ? 'num' : ''}>{v ?? ''}</td>)}
+      </tr>)}
+    </tbody>
+  </table>
+</div>
+<script>
+  for (const box of document.querySelectorAll<HTMLElement>('.parttable')) {
+    const table = box.querySelector('table')!, body = table.tBodies[0];
+    const q = box.querySelector<HTMLInputElement>('.q')!, brand = box.querySelector<HTMLSelectElement>('.brand');
+    const pick = box.querySelector<HTMLSelectElement>('.pick'), known = box.querySelector<HTMLInputElement>('.known');
+    const cmp = box.querySelector<HTMLButtonElement>('.cmp')!, side = box.querySelector<HTMLElement>('.side')!, count = box.querySelector<HTMLElement>('.count')!;
+    const filter = () => {
+      const text = q.value.trim().toLowerCase(); let shown = 0;
+      for (const tr of body.rows) {
+        const hide = (!!text && !tr.cells[1].textContent!.toLowerCase().includes(text)) || (!!brand?.value && tr.dataset.brand !== brand.value)
+          || (!!pick?.value && tr.cells[Number(pick.dataset.col) + 2].textContent !== pick.value) || (!!known?.checked && !tr.dataset.known);
+        tr.hidden = hide; if (!hide) shown++;
+      }
+      count.textContent = `${shown} of ${body.rows.length}`;
+    };
+    for (const el of [q, brand, pick, known]) el?.addEventListener(el === q ? 'input' : 'change', filter);
+    filter();
+    table.tHead!.querySelectorAll<HTMLTableCellElement>('th[data-k]').forEach((th) => {
+      let dir = -1; th.style.cursor = 'pointer';
+      th.addEventListener('click', () => {
+        dir = -dir; const i = th.cellIndex, num = th.dataset.k === 'num';
+        const val = (tr: HTMLTableRowElement) => tr.cells[i].textContent!.trim();
+        [...body.rows].sort((a, b) => {
+          const x = val(a), y = val(b);
+          if (!x) return 1; if (!y) return -1;
+          return (num ? Number(x) - Number(y) : x.localeCompare(y, undefined, { numeric: true })) * dir;
+        }).forEach((tr) => body.appendChild(tr));
+      });
+    });
+    const ticked = () => [...body.querySelectorAll<HTMLInputElement>('input:checked')].map((c) => c.closest('tr')!);
+    body.addEventListener('change', () => { const k = ticked().length; cmp.disabled = k < 2; cmp.textContent = k ? `Compare ${k} ticked` : 'Compare ticked'; });
+    cmp.addEventListener('click', () => {
+      const trs = ticked(), heads = [...table.tHead!.rows[0].cells].slice(1).map((c) => c.textContent);
+      const tb = document.createElement('table');
+      heads.forEach((h, i) => {
+        const r = tb.insertRow(); const th = document.createElement('th'); th.textContent = h; r.appendChild(th);
+        for (const tr of trs) { const td = r.insertCell(); td.innerHTML = tr.cells[i + 1].innerHTML; }
+      });
+      side.replaceChildren(Object.assign(document.createElement('h2'), { textContent: 'Side by side' }), tb);
+      side.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+</script>

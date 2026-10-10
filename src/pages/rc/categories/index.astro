@@ -1,19 +1,18 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import { brandName } from '../../../lib/data';
+import { db } from '../../../lib/data';
 import { catName } from '../../../lib/categories';
-import { byCategory, categories, countOf } from '../../../lib/categoryIndex';
+import { categories, countOf } from '../../../lib/categoryIndex';
+import { columns } from '../../../lib/categoryColumns';
+const desc = new Map(db.categories.map((c) => [c.id.split('/')[1], c.description ?? '']));
 const total = categories.reduce((n, c) => n + countOf(c), 0);
 ---
-<Base title="Part categories" description="Every RC part category in Hobbydex, with the brands that make parts in it.">
+<Base title="Part categories" description="Every RC part category in Hobbydex: what it holds and how many parts it has.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Categories</div>
   <h1>Part categories</h1>
   <p class="muted">{total} parts in {categories.length} categories. Categories are assigned from part names; parts that fit no rule are left out.</p>
   <ul class="cards">
-    {categories.map((c) => {
-      const brands = [...byCategory.get(c)!.entries()].sort((a, b) => b[1].length - a[1].length);
-      return <li><a href={`/rc/categories/${c}/`}><b>{catName(c)}</b></a> <span class="muted">· {countOf(c)} parts</span><br />
-        <span class="muted">{brands.slice(0, 4).map(([b, ps]) => `${brandName(b)} ${ps.length}`).join(', ')}{brands.length > 4 && `, ${brands.length - 4} more brands`}</span></li>;
-    })}
+    {categories.map((c) => <li><a href={`/rc/categories/${c}/`}><b>{catName(c)}</b></a> <span class="muted">· {countOf(c)} parts{columns[c] && ' · with specs'}</span><br />
+      <span class="muted">{desc.get(c)}</span></li>)}
   </ul>
 </Base>

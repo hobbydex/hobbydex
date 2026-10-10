@@ -6,4 +6,7 @@ export const categoryLabel: Record<string, string> = {
   'shock-spring': 'Shock springs', 'spur-gear': 'Spur gears', steering: 'Steering', suspension: 'Suspension', tire: 'Tires',
   tool: 'Tools', 'washer-shim': 'Washers, shims and spacers', wheel: 'Wheels', wing: 'Wings',
 };
+import { db } from './data';
+// labels from the category definitions in the data, with the built-in list as fallback
+for (const c of db.categories) categoryLabel[c.id.split('/')[1]] = c.name;
 export const catName = (c?: string) => (c ? categoryLabel[c] ?? c : '');
