@@ -3,6 +3,8 @@ import WebSearch from '../../../../components/WebSearch.astro';
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText, dateText } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
+import Icon from '../../../../components/Icon.astro';
+import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 export function getStaticPaths() {
   return db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } }));
 }
@@ -20,7 +22,10 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name} (${release.year}): parts list and options.`} kind="release" sub={`${brandName(release.brand)} · ${release.year}`}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a> / <a href={url.kit(kit.id)}>{kit.name}</a> / {release.name}</div>
-  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(release.brand)} {release.name}</h1>
+  <div class="kithead">
+    <a href={`/rc/kits/types/${kit.category || 'car'}/`} title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}><Icon name={kitTypeIcon(kit.category)} size="3rem" /></a>
+    <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(release.brand)} {release.name}</h1>
+  </div>
   <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
   <dl class="facts">
     <dt>Kit</dt><dd><a href={url.kit(kit.id)}>{kit.name}</a></dd>
