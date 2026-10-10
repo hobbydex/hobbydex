@@ -11,7 +11,7 @@ const releaseCount = (id: string) => (db.kitsByBrand.get(id) ?? []).reduce((n, k
     <tr><th>Brand</th><th>Country</th><th class="num">Kits</th><th class="num">Releases</th><th class="num">Parts</th></tr>
     {brands.map((b) => <tr>
       <td><a href={url.brand(b.id)}>{b.name}</a></td><td>{b.country ?? ''}</td>
-      <td class="num">{db.kitsByBrand.get(b.id)?.length ?? 0}</td><td class="num">{releaseCount(b.id)}</td><td class="num">{db.partsByBrand.get(b.id)?.length ?? 0}</td>
+      <td class="num">{db.kitsByBrand.get(b.id)?.length || ''}</td><td class="num">{releaseCount(b.id) || ''}</td><td class="num">{db.partsByBrand.get(b.id)?.length || ''}</td>
     </tr>)}
   </table>
 </Base>
