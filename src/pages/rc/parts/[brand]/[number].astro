@@ -59,6 +59,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.lubricant && <><dt>Lubricant</dt><dd>{part.lubricant}</dd></>}
     {part.viscosity_wt && <><dt>Viscosity</dt><dd>{part.viscosity_wt} wt <span class="muted">(the brand's own scale)</span></dd></>}
     {part.volume_ml && <><dt>Volume</dt><dd>{part.pack_qty && part.pack_qty > 1 ? `${part.pack_qty} x ${part.volume_ml} ml` : `${part.volume_ml} ml`}</dd></>}
+    {part.teeth && part.category === 'spur-gear' && <><dt>Gear</dt><dd>{part.teeth}T{part.pitch_dp ? `, ${part.pitch_dp} pitch` : part.module ? `, module ${part.module}` : ''}</dd></>}
     {part.bore_mm && <><dt>Bore</dt><dd>{part.bore_mm} mm</dd></>}
     {part.capacity_mah && <><dt>Battery</dt><dd>{part.chemistry?.toUpperCase()} {part.cells}S {part.capacity_mah} mAh{part.c_rating && ` ${part.c_rating}C`}{part.case && `, ${part.case} case`}</dd></>}
     {part.dimensions_mm && <><dt>Size</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
