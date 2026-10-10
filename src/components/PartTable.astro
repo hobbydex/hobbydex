@@ -10,14 +10,15 @@ const short = (p: Part) => (p.name.startsWith(p.number) ? p.name.slice(p.number.
 const rows = parts.map((p) => { const s = specOf(p); return { p, vals: cols.map((c) => c.get(p, s)) }; })
   .sort((a, b) => a.vals.filter((v) => v === undefined).length - b.vals.filter((v) => v === undefined).length || a.p.number.localeCompare(b.p.number, undefined, { numeric: true }));
 const brands = [...new Set(parts.map((p) => p.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));
-const firstText = cols.findIndex((c) => !c.num);
-const choices = firstText < 0 ? [] : [...new Set(rows.map((r) => r.vals[firstText]).filter((v) => v !== undefined))].sort() as string[];
+// a dropdown for each text column with a short list of values (mounting, rim size, vehicle, ...)
+const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only ? [] : [...new Set(rows.map((r) => r.vals[i]).filter((v) => v !== undefined))].sort() as string[] }))
+  .filter((x) => x.choices.length > 1 && x.choices.length <= 60);
 ---
 <div class="parttable" data-pagefind-ignore>
   <p class="websearch">
     <input type="search" class="q" placeholder="Filter by number or name" aria-label="Filter" />
     {showBrand && brands.length > 1 && <select class="brand" aria-label="Brand"><option value="">every brand</option>{brands.map((b) => <option value={b}>{brandName(b)}</option>)}</select>}
-    {choices.length > 1 && <select class="pick" data-col={firstText} aria-label={cols[firstText].label}><option value="">every {cols[firstText].label.toLowerCase()}</option>{choices.map((c) => <option>{c}</option>)}</select>}
+    {picks.map(({ c, i, choices }) => <select class="pick" data-col={i} aria-label={c.label}><option value="">every {c.label.toLowerCase()}</option>{choices.map((v) => <option>{v}</option>)}</select>)}
     {cols.length > 0 && <label><input type="checkbox" class="known" /> only with specs</label>}
     <button type="button" class="btn cmp" disabled>Compare ticked</button>
     <button type="button" class="btn clear" hidden>Clear ticks</button>
@@ -39,18 +40,18 @@ const choices = firstText < 0 ? [] : [...new Set(rows.map((r) => r.vals[firstTex
   for (const box of document.querySelectorAll<HTMLElement>('.parttable')) {
     const table = box.querySelector('table')!, body = table.tBodies[0];
     const q = box.querySelector<HTMLInputElement>('.q')!, brand = box.querySelector<HTMLSelectElement>('.brand');
-    const pick = box.querySelector<HTMLSelectElement>('.pick'), known = box.querySelector<HTMLInputElement>('.known');
+    const picks = [...box.querySelectorAll<HTMLSelectElement>('.pick')], known = box.querySelector<HTMLInputElement>('.known');
     const cmp = box.querySelector<HTMLButtonElement>('.cmp')!, clear = box.querySelector<HTMLButtonElement>('.clear')!, side = box.querySelector<HTMLElement>('.side')!, count = box.querySelector<HTMLElement>('.count')!;
     const filter = () => {
       const text = q.value.trim().toLowerCase(); let shown = 0;
       for (const tr of body.rows) {
         const hide = (!!text && !tr.cells[1].textContent!.toLowerCase().includes(text)) || (!!brand?.value && tr.dataset.brand !== brand.value)
-          || (!!pick?.value && tr.cells[Number(pick.dataset.col) + 2].textContent !== pick.value) || (!!known?.checked && !tr.dataset.known);
+          || picks.some((pk) => !!pk.value && tr.cells[Number(pk.dataset.col) + 2].textContent !== pk.value) || (!!known?.checked && !tr.dataset.known);
         tr.hidden = hide; if (!hide) shown++;
       }
       count.textContent = `${shown} of ${body.rows.length}`;
     };
-    for (const el of [q, brand, pick, known]) el?.addEventListener(el === q ? 'input' : 'change', filter);
+    for (const el of [q, brand, ...picks, known]) el?.addEventListener(el === q ? 'input' : 'change', filter);
     filter();
     table.tHead!.querySelectorAll<HTMLTableCellElement>('th[data-k]').forEach((th) => {
       let dir = -1; th.style.cursor = 'pointer';
