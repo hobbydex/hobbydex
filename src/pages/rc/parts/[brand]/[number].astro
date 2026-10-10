@@ -36,7 +36,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
     <dt>Part number</dt><dd>{part.number}</dd>
-    {part.category && <><dt>Category</dt><dd>{catName(part.category)}</dd></>}
+    {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span></dd></>}
     {part.released && <><dt>Released</dt><dd>{part.released}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{replaces.number}</a> {replaces.name}</dd></>}
     {rebrandOf.length > 0 && <><dt>Rebrand of</dt><dd>{rebrandOf.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {r.number}</a> {r.name}</>)}</dd></>}
