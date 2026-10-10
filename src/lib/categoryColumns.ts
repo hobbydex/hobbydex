@@ -16,7 +16,7 @@ function format(v: unknown, f: KeyField): string | number | undefined {
 export const columns: Record<string, Column[]> = Object.fromEntries([...cat.entries()].filter(([, c]) => c.key_fields?.length).map(([slug, c]) => [slug,
   c.key_fields!.map((f) => ({
     label: f.unit ? `${f.label} ${f.unit}` : f.label,
-    num: f.format !== 'cells' && !['size_class', 'motor_type', 'can', 'thread', 'head', 'drive', 'type', 'seal', 'material', 'chemistry', 'case', 'connector'].includes(f.field),
+    num: f.format !== 'cells' && !['size_class', 'shock_part', 'motor_type', 'can', 'thread', 'head', 'drive', 'type', 'seal', 'material', 'chemistry', 'case', 'connector'].includes(f.field),
     field: f,
     get: (p: Part, s?: Spec) => format(f.from === 'spec' ? s?.[f.field] : (p as unknown as Record<string, unknown>)[f.field], f),
   }))]));
