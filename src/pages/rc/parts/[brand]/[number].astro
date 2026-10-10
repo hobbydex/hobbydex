@@ -24,6 +24,8 @@ const replacedBy = db.replacedBy.get(part.id) ?? [];
 const replaces = part.supersedes ? db.part.get(part.supersedes) : undefined;
 const upgradeFor = [...new Set((part.fits ?? []).map((f) => f.replaces).filter((x): x is string => !!x))].map((id) => db.part.get(id)).filter((x): x is NonNullable<typeof x> => !!x);
 const upgrades = db.upgradesFor.get(part.id) ?? [];
+const rebrandOf = (part.rebrand_of ?? []).map((r) => db.part.get(r.part)).filter((x): x is NonNullable<typeof x> => !!x);
+const soldAs = db.rebrandsOf.get(part.id) ?? [];
 const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
 ---
 <Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
@@ -37,6 +39,8 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.category && <><dt>Category</dt><dd>{catName(part.category)}</dd></>}
     {part.released && <><dt>Released</dt><dd>{part.released}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{replaces.number}</a> {replaces.name}</dd></>}
+    {rebrandOf.length > 0 && <><dt>Rebrand of</dt><dd>{rebrandOf.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {r.number}</a> {r.name}</>)}</dd></>}
+    {soldAs.length > 0 && <><dt>Also sold as</dt><dd>{soldAs.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {r.number}</a> {r.name}</>)}</dd></>}
     {upgradeFor.length > 0 && <><dt>Upgrade for</dt><dd>{upgradeFor.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>}
     {upgrades.length > 0 && <><dt>Upgrades</dt><dd>{upgrades.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>}
     {replacedBy.length > 0 && <><dt>Replaced by</dt><dd>{replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>}

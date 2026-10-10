@@ -10,7 +10,7 @@ export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source
 export type Release = { id: string; kit: string; brand: string; number?: string; name: string; year: number; kind: string; status: string; edition?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };
-export type Part = { id: string; brand: string; number: string; name: string; category?: string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string };
+export type Part = { id: string; brand: string; number: string; name: string; category?: string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; rebrand_of?: { part: string; source?: string; notes?: string }[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string };
 export type Includes = { part?: string; spec?: string; qty?: number; source?: string; notes?: string };
 export type Spec = { id: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
 export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; releases?: string[] };
@@ -53,6 +53,12 @@ for (const p of raw.parts) for (const r of new Set((p.fits ?? []).map((f) => f.r
   if (!upgradesFor.has(r)) upgradesFor.set(r, []);
   upgradesFor.get(r)!.push(p);
 }
+// Parts sold under another brand: rebranded part -> original, and original -> rebrands.
+const rebrandsOf = new Map<string, Part[]>();
+for (const p of raw.parts) for (const r of p.rebrand_of ?? []) {
+  if (!rebrandsOf.has(r.part)) rebrandsOf.set(r.part, []);
+  rebrandsOf.get(r.part)!.push(p);
+}
 const partsBySpec = new Map<string, { part: Part; link: EquivalentTo }[]>();
 for (const p of raw.parts) for (const e of p.equivalent_to ?? []) {
   if (!partsBySpec.has(e.spec)) partsBySpec.set(e.spec, []);
@@ -89,6 +95,7 @@ export const db = {
   part: byId(raw.parts),
   replacedBy,
   upgradesFor,
+  rebrandsOf,
   setsBySpec,
   doc: byId(raw.documents),
   kitsByBrand: group(raw.kits, (k) => k.brand),
