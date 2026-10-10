@@ -1,6 +1,6 @@
 import { db, type Spec } from './data';
 
-export const specLabel: Record<string, string> = { screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos' };
+export const specLabel: Record<string, string> = { screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors' };
 
 const num = (v: unknown) => (typeof v === 'number' ? v : Number(String(v ?? '').replace(/^M/, '')) || 0);
 
@@ -11,6 +11,7 @@ export function specSort(a: Spec, b: Spec) {
   if (a.category === 'oil') return num(a.viscosity_cst) - num(b.viscosity_cst);
   if (a.category === 'battery') return String(a.chemistry).localeCompare(String(b.chemistry)) || num(a.cells) - num(b.cells) || num(a.capacity_mah) - num(b.capacity_mah);
   if (a.category === 'servo') { const o = ['micro', 'mini', 'midi', 'low-profile', 'standard', 'jumbo', 'wing']; return o.indexOf(String(a.size_class)) - o.indexOf(String(b.size_class)) || num(a.spline_teeth) - num(b.spline_teeth); }
+  if (a.category === 'motor') return String(a.motor_type).localeCompare(String(b.motor_type)) || num(a.shaft_mm) - num(b.shaft_mm) || num(a.diameter_mm) - num(b.diameter_mm) || num(a.length_mm) - num(b.length_mm);
   if (a.category === 'pinion') return num(a.module) - num(b.module) || num(b.pitch_dp) - num(a.pitch_dp) || num(a.teeth) - num(b.teeth);
   return a.id.localeCompare(b.id);
 }
