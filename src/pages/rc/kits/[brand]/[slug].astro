@@ -1,11 +1,11 @@
 ---
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName } from '../../../../lib/data';
+import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 export function getStaticPaths() {
   return db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } }));
 }
 const { kit } = Astro.props;
-const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort((a, b) => a.year - b.year || a.name.localeCompare(b.name));
+const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort((a, b) => yearOf(a) - yearOf(b) || a.name.localeCompare(b.name));
 const count = (r: (typeof releases)[number], role: string) => (r.contains ?? []).filter((c) => c.role === role).length;
 const show = { number: releases.some((r) => r.number), edition: releases.some((r) => r.edition), kit: releases.some((r) => count(r, 'kit')),
   option: releases.some((r) => count(r, 'option')), listed: releases.some((r) => count(r, 'listed')) };
@@ -40,7 +40,7 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
   <table>
     <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.kit && <th class="num">In the box</th>}{show.option && <th class="num">Options</th>}{show.listed && <th class="num">Listed</th>}</tr>
     {releases.map((r) => <tr>
-      <td class="num">{r.year}</td><td><a href={url.release(r.id)}>{r.name}</a></td>{show.number && <td class="num">{r.number ?? ''}</td>}{show.edition && <td>{r.edition ?? ''}</td>}
+      <td class="num">{yearText(r)}</td><td><a href={url.release(r.id)}>{r.name}</a></td>{show.number && <td class="num">{r.number ?? ''}</td>}{show.edition && <td>{r.edition ?? ''}</td>}
       {show.kit && <td class="num">{count(r, 'kit') || ''}</td>}{show.option && <td class="num">{count(r, 'option') || ''}</td>}{show.listed && <td class="num">{count(r, 'listed') || ''}</td>}
     </tr>)}
   </table>

@@ -1,14 +1,14 @@
 ---
 import WebSearch from '../../../../components/WebSearch.astro';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName } from '../../../../lib/data';
+import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 export function getStaticPaths() {
   return db.parts.map((p) => ({ params: { brand: key(p.id)[0], number: key(p.id)[1] }, props: { part: p } }));
 }
 const { part } = Astro.props;
 const brand = db.brand.get(part.brand);
-const uses = [...(db.usesByPart.get(part.id) ?? [])].sort((a, b) => a.release.year - b.release.year || a.release.name.localeCompare(b.release.name));
+const uses = [...(db.usesByPart.get(part.id) ?? [])].sort((a, b) => yearOf(a.release) - yearOf(b.release) || a.release.name.localeCompare(b.release.name));
 // every kit this part belongs to: through a release's contents or the brand's fitment lists
 const kitMap = new Map<string, { roles: Set<string>; releases: number; fit?: string }>();
 for (const u of uses) {
@@ -103,7 +103,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
   {uses.length === 0 ? <p class="muted">No release lists this part yet.</p> :
   <table>
     <tr><th class="num">Year</th><th>Release</th><th>Role</th></tr>
-    {uses.map((u) => <tr><td class="num">{u.release.year}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
+    {uses.map((u) => <tr><td class="num">{yearText(u.release)}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
   </table>}
   <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p>
 </Base>

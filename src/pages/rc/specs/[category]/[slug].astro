@@ -1,6 +1,6 @@
 ---
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName } from '../../../../lib/data';
+import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 export function getStaticPaths() {
   return db.specs.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } }));
 }
@@ -9,7 +9,7 @@ const skip = new Set(['id', 'category', 'name', 'standards']);
 const attrs = Object.entries(spec).filter(([k, v]) => !skip.has(k) && (typeof v === 'string' || typeof v === 'number'));
 const linked = db.partsBySpec.get(spec.id) ?? [];
 const uses = linked.flatMap(({ part, link }) => (db.usesByPart.get(part.id) ?? []).map((u) => ({ part, link, ...u })))
-  .sort((a, b) => a.release.year - b.release.year || a.release.name.localeCompare(b.release.name));
+  .sort((a, b) => yearOf(a.release) - yearOf(b.release) || a.release.name.localeCompare(b.release.name));
 const title = spec.name ?? key(spec.id)[1];
 // servos: every servo of the same size class, whatever its spline, closest case first
 const sameSize = spec.category !== 'servo' ? [] : db.specs.filter((o) => o.category === 'servo' && o.size_class === spec.size_class)
@@ -50,7 +50,7 @@ const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c
   {uses.length === 0 ? <p class="muted">No release lists a matching part yet.</p> :
   <table>
     <tr><th class="num">Year</th><th>Release</th><th>As part</th><th>Role</th></tr>
-    {uses.map((u) => <tr><td class="num">{u.release.year}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><a href={url.part(u.part.id)}>{u.part.number}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
+    {uses.map((u) => <tr><td class="num">{yearText(u.release)}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><a href={url.part(u.part.id)}>{u.part.number}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
   </table>}
   <script>
     const sel = document.getElementById('plugfilter') as HTMLSelectElement | null;
