@@ -25,8 +25,37 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   <ul class="cards">{kits.map((k) => <li><a href={url.kit(k.id)}><b>{k.name}</b></a><br /><span class="muted">{k.scale} {k.drive} {k.category}</span></li>)}</ul></>}
   <h2>Parts <span class="muted">({parts.length})</span></h2>
   {cats.length > 0 && <p data-pagefind-ignore>By category: {cats.map(([c, n], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${c}/${key(brand.id)[0]}/`}>{catName(c)}</a> <span class="muted">{n}</span></>)}</p>}
-  <table data-pagefind-ignore>
-    <tr><th class="num">Number</th><th>Name</th><th class="num">Pack</th></tr>
-    {parts.map((p) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td>{p.name}</td><td class="num">{p.pack_qty ?? ''}</td></tr>)}
-  </table>
+  {parts.length > 0 && <div class="brandsearch" data-pagefind-ignore data-src={`/rc/brands/${key(brand.id)[0]}/parts.json`} data-base={`/rc/parts/${key(brand.id)[0]}/`}>
+    <input type="search" class="search-box" placeholder={`Find a ${brand.name} part by number or name`} aria-label="Find a part" autocomplete="off" />
+    <p class="muted status"></p>
+    <ul class="search-results"></ul>
+  </div>}
+  <script>
+    const MAX = 30;
+    for (const box of document.querySelectorAll<HTMLElement>('.brandsearch')) {
+      const input = box.querySelector('input')!, list = box.querySelector('ul')!, status = box.querySelector<HTMLElement>('.status')!;
+      let rows: [string, string, string][] | null = null, loading: Promise<void> | null = null;
+      const load = () => (loading ??= fetch(box.dataset.src!).then((r) => r.json()).then((d) => { rows = d; }));
+      const href = (n: string) => box.dataset.base + n.split('/').map(encodeURIComponent).join('/') + '/';
+      const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+      const show = async () => {
+        await load();
+        const terms = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        list.replaceChildren();
+        if (!terms.length) { status.textContent = `${rows!.length} parts: type a number or a few words of the name.`; return; }
+        // number prefix matches first, then everything else that has every term
+        const hits = rows!.filter(([n, name]) => { const t = `${n} ${name}`.toLowerCase(); return terms.every((w) => t.includes(w)); })
+          .sort((a, b) => Number(!a[0].toLowerCase().startsWith(terms[0])) - Number(!b[0].toLowerCase().startsWith(terms[0])) || a[0].localeCompare(b[0], undefined, { numeric: true }));
+        status.textContent = hits.length > MAX ? `${hits.length} matches, showing the first ${MAX}: keep typing to narrow down.` : `${hits.length} match${hits.length === 1 ? '' : 'es'}.`;
+        for (const [n, name, cat] of hits.slice(0, MAX)) {
+          const li = document.createElement('li');
+          li.innerHTML = `<a href="${esc(href(n))}">${esc(n)}</a> ${esc(name)}` + (cat ? ` <span class="sub">${esc(cat)}</span>` : '');
+          list.appendChild(li);
+        }
+      };
+      input.addEventListener('focus', () => { load().then(show); }, { once: true });
+      input.addEventListener('input', show);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const a = list.querySelector('a'); if (a) location.href = a.href; } });
+    }
+  </script>
 </Base>
