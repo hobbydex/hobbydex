@@ -2,6 +2,7 @@
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 import Icon from '../../../../components/Icon.astro';
+import { catName } from '../../../../lib/categories';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 export function getStaticPaths() {
   return db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } }));
@@ -54,13 +55,13 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
     <h2>Parts, from the interchangeable rebrand <span class="muted">({borrowedUnique.length})</span></h2>
     <p class="muted">No parts list for this kit itself; these come from the rebrand above, whose parts interchange.</p>
     <table>
-      <tr><th class="num">Number</th><th>Name</th><th>Brand</th><th>From</th></tr>
-      {borrowedUnique.map(({ c, rel, p }) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td>{p.name}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
+      <tr><th></th><th class="num">Number</th><th>Name</th><th>Brand</th><th>From</th></tr>
+      {borrowedUnique.map(({ c, rel, p }) => <tr><td class="caticon">{p.category && <a href={`/rc/categories/${p.category}/`} title={catName(p.category)}><Icon name={p.category} /></a>}</td><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td>{p.name}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
     </table></>}
   {fits.length > 0 && <>
     <h2>Option parts listed as fitting <span class="muted">({fits.length})</span></h2>
     <table>
-      <tr><th class="num">Number</th><th>Name</th><th>Brand</th><th>Fit</th></tr>
-      {fits.map(({ part, fit }) => <tr><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td>{brandName(part.brand)}</td><td>{fit.type}{fit.notes && <span class="muted"> · {fit.notes}</span>}</td></tr>)}
+      <tr><th></th><th class="num">Number</th><th>Name</th><th>Brand</th><th>Fit</th></tr>
+      {fits.map(({ part, fit }) => <tr><td class="caticon">{part.category && <a href={`/rc/categories/${part.category}/`} title={catName(part.category)}><Icon name={part.category} /></a>}</td><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td>{brandName(part.brand)}</td><td>{fit.type}{fit.notes && <span class="muted"> · {fit.notes}</span>}</td></tr>)}
     </table></>}
 </Base>

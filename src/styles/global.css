@@ -96,3 +96,4 @@ figure.drawing figcaption { font-size: 0.8rem; }
 .screwdrawing text.std { opacity: 0.7; font-size: 11px; }
 .factsrow { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
 .factsrow .typeicon { color: var(--muted); margin-left: auto; } .factsrow .typeicon:hover { color: var(--accent); }
+td.caticon { width: 1.6rem; padding-right: 0; } td.caticon a { color: var(--muted); } td.caticon a:hover { color: var(--accent); }
