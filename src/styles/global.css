@@ -95,4 +95,4 @@ figure.drawing figcaption { font-size: 0.8rem; }
 .screwdrawing .dash { stroke-dasharray: 3 3; }
 .screwdrawing text.std { opacity: 0.7; font-size: 11px; }
 .factsrow { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
-.factsrow .typeicon { color: var(--muted); } .factsrow .typeicon:hover { color: var(--accent); }
+.factsrow .typeicon { color: var(--muted); margin-left: auto; } .factsrow .typeicon:hover { color: var(--accent); }
