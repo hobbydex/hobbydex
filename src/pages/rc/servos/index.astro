@@ -1,0 +1,67 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { url, brandName } from '../../../lib/data';
+import { servos, shortName } from '../../../lib/servos';
+const SIZES = ['micro', 'mini', 'midi', 'low-profile', 'standard', 'jumbo', 'wing'];
+const rows = [...servos].sort((a, b) => SIZES.indexOf(a.size ?? '') - SIZES.indexOf(b.size ?? '') || (b.part.torque_kgcm ?? 0) - (a.part.torque_kgcm ?? 0));
+const sizes = SIZES.filter((s) => rows.some((r) => r.size === s));
+const n = (v?: number) => (v === undefined ? '' : String(v));
+---
+<Base title="Compare servos" description="RC car servos side by side: size class, spline, torque, speed, voltage, weight and throw, from the makers' specifications.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Servos</div>
+  <h1>Compare servos</h1>
+  <p class="muted">{rows.length} servos. Figures are the maker's, at the voltage given; click a heading to sort, tick servos to see them side by side. Size class and spline come from the <a href="/rc/specs/servo/">servo specs</a>; check the case and mounting holes before swapping.</p>
+  <p class="websearch" data-pagefind-ignore>
+    <select id="size" aria-label="Size class"><option value="">every size</option>{sizes.map((s) => <option value={s}>{s.replace('-', ' ')}</option>)}</select>
+    <label><input type="checkbox" id="rated" /> only with torque and speed</label>
+    <button type="button" class="btn" id="cmp" disabled>Compare ticked</button>
+  </p>
+  <div id="side"></div>
+  <table id="servos">
+    <thead><tr><th></th><th data-k="text">Servo</th><th data-k="text">Size</th><th data-k="num" class="num">Spline</th><th data-k="num" class="num">Torque kg·cm</th><th data-k="num" class="num">Speed s/60°</th><th data-k="num" class="num">at V</th><th data-k="num" class="num">Weight g</th><th data-k="num" class="num">Throw °</th></tr></thead>
+    <tbody>
+      {rows.map(({ part: p, size, spline }) => <tr data-size={size ?? ''} data-rated={p.torque_kgcm && p.speed_s ? '1' : ''}>
+        <td><input type="checkbox" value={p.id} aria-label={`Compare ${p.number}`} /></td>
+        <td><a href={url.part(p.id)}>{brandName(p.brand)} {p.number}</a>{shortName(p) && <span class="muted"> {shortName(p)}</span>}</td>
+        <td>{size?.replace('-', ' ') ?? ''}</td><td class="num">{n(spline)}</td><td class="num">{n(p.torque_kgcm)}</td><td class="num">{n(p.speed_s)}</td>
+        <td class="num">{n(p.voltage)}</td><td class="num">{n(p.weight_g)}</td><td class="num">{n(p.rotation_deg)}</td>
+      </tr>)}
+    </tbody>
+  </table>
+  <script>
+    const table = document.getElementById('servos') as HTMLTableElement;
+    const body = table.tBodies[0];
+    const size = document.getElementById('size') as HTMLSelectElement;
+    const rated = document.getElementById('rated') as HTMLInputElement;
+    const cmp = document.getElementById('cmp') as HTMLButtonElement;
+    const side = document.getElementById('side')!;
+    const filter = () => { for (const tr of body.rows) tr.hidden = (!!size.value && tr.dataset.size !== size.value) || (rated.checked && !tr.dataset.rated); };
+    size.addEventListener('change', filter); rated.addEventListener('change', filter);
+    table.tHead!.querySelectorAll<HTMLTableCellElement>('th[data-k]').forEach((th) => {
+      let dir = -1;
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', () => {
+        dir = -dir;
+        const i = th.cellIndex, num = th.dataset.k === 'num';
+        const val = (tr: HTMLTableRowElement) => tr.cells[i].textContent!.trim();
+        [...body.rows].sort((a, b) => {
+          const x = val(a), y = val(b);
+          if (num) { if (!x) return 1; if (!y) return -1; return (Number(x) - Number(y)) * dir; }
+          return x.localeCompare(y) * dir;
+        }).forEach((tr) => body.appendChild(tr));
+      });
+    });
+    const ticked = () => [...body.querySelectorAll<HTMLInputElement>('input:checked')].map((c) => c.closest('tr')!);
+    body.addEventListener('change', () => { const k = ticked().length; cmp.disabled = k < 2; cmp.textContent = k ? `Compare ${k} ticked` : 'Compare ticked'; });
+    cmp.addEventListener('click', () => {
+      const trs = ticked(), heads = [...table.tHead!.rows[0].cells].slice(1).map((c) => c.textContent);
+      const t = document.createElement('table');
+      heads.forEach((h, i) => {
+        const r = t.insertRow(); const th = document.createElement('th'); th.textContent = h; r.appendChild(th);
+        for (const tr of trs) { const td = r.insertCell(); td.innerHTML = tr.cells[i + 1].innerHTML; if (i > 1) td.className = 'num'; }
+      });
+      side.replaceChildren(Object.assign(document.createElement('h2'), { textContent: 'Side by side' }), t);
+      side.scrollIntoView({ behavior: 'smooth' });
+    });
+  </script>
+</Base>

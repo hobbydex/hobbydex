@@ -1,5 +1,6 @@
 ---
 import WebSearch from '../../../../components/WebSearch.astro';
+import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
@@ -26,6 +27,7 @@ const upgradeFor = [...new Set((part.fits ?? []).map((f) => f.replaces).filter((
 const upgrades = db.upgradesFor.get(part.id) ?? [];
 const rebrandOf = (part.rebrand_of ?? []).map((r) => db.part.get(r.part)).filter((x): x is NonNullable<typeof x> => !!x);
 const soldAs = db.rebrandsOf.get(part.id) ?? [];
+const similar = part.category === 'servo' ? similarServos(part.id) : [];
 const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
 ---
 <Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
@@ -102,6 +104,8 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
         <td><a href={url.spec(e.spec)}>{sp?.name ?? e.spec}</a></td><td>{e.match}</td><td>{sp?.standards?.join(', ')}</td><td class="muted">{d?.title ?? e.source ?? ''}{e.notes && <><br />{e.notes}</>}</td>
       </tr>; })}
     </table></>}
+  {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
+    <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {o.number}</a> {shortName(o)}<span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
   <h2>Used in</h2>
   {uses.length === 0 ? <p class="muted">No release lists this part yet.</p> :
   <table>
