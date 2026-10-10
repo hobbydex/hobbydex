@@ -5,7 +5,8 @@ import { screwDrawing, type ScrewDrawing } from './screwDrawing';
 
 const f = (v: number) => String(Math.round(v * 100) / 100);
 const svgWrap = (w: number, h: number, label: string, body: string) =>
-  `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}"><g class="s">${body}</g></svg>`;
+  `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="${label}"><g class="s">${body}${UNITS(w)}</g></svg>`;
+export const UNITS = (w: number) => `<text x="${w - 4}" y="12" text-anchor="end" class="std">dimensions in mm</text>`;
 function hdim(x1: number, x2: number, y: number, label: string) {
   return `<path class="thin" d="M${f(x1)} ${f(y)}H${f(x2)}M${f(x1 + 5)} ${f(y - 3)}L${f(x1)} ${f(y)}L${f(x1 + 5)} ${f(y + 3)}M${f(x2 - 5)} ${f(y - 3)}L${f(x2)} ${f(y)}L${f(x2 - 5)} ${f(y + 3)}"/>`
     + `<text x="${f((x1 + x2) / 2)}" y="${f(y - 5)}" text-anchor="middle">${label}</text>`;
@@ -80,7 +81,7 @@ function wheelHex(spec: Spec): ScrewDrawing | undefined {
   const hex = [0, 1, 2, 3, 4, 5].map((i) => `${f(cx + R * Math.cos((i * Math.PI) / 3))} ${f(cy + R * Math.sin((i * Math.PI) / 3))}`).join('L');
   const flat = (af / 2) * s;
   const o = [`<path d="M${hex}Z"/>`, `<circle class="thin" cx="${cx}" cy="${cy}" r="${f(flat * 0.42)}"/>`];
-  o.push(vdim(cx + R + 16, cy - flat, cy + flat, `${f(af)} mm`));
+  o.push(vdim(cx + R + 16, cy - flat, cy + flat, `${f(af)}`));
   o.push(`<path class="thin" d="M${f(cx + R * 0.5)} ${f(cy - flat)}H${f(cx + R + 20)}M${f(cx + R * 0.5)} ${f(cy + flat)}H${f(cx + R + 20)}"/>`);
   o.push(`<text x="${cx}" y="${f(cy + R + 22)}" text-anchor="middle" class="std">across the flats</text>`);
   return { svg: svgWrap(300, 180, `${f(af)} mm wheel hex`, o.join('')), standard: undefined, approximate: false };

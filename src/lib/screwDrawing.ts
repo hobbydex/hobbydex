@@ -85,7 +85,7 @@ export function screwDrawing(spec: Spec): ScrewDrawing | undefined {
     o.push(`<text x="${ex}" y="${cy + er + 16}" text-anchor="middle">${drive === 'jis' ? 'JIS cross' : 'Phillips'}</text>`);
   }
   const label = `${spec.thread}x${f(L)} ${head.replace('-', ' ')}${tapping ? ', self-tapping' : ''}`;
-  const svg = `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><g class="s">${o.join('')}</g></svg>`;
+  const svg = `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><g class="s">${o.join('')}<text x="${W - 4}" y="12" text-anchor="end" class="std">dimensions in mm</text></g></svg>`;
   return { svg, standard, approximate };
 }
 
