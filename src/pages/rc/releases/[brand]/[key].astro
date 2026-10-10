@@ -53,7 +53,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     <h2>{label} <span class="muted">({s.length})</span></h2>
     <table>
       <tr><th class="num">Number</th><th>Name</th><th>Category</th>{hasQty && <th class="num">Qty</th>}<th class="num">Pack</th><th>Brand</th>{hasStep && <th>Step</th>}</tr>
-      {s.map((c) => <tr data-cat={c.p.category ?? ''}><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td>{c.p.name}</td><td class="muted">{catName(c.p.category)}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td>{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
+      {s.map((c) => <tr data-cat={c.p.category ?? ''}><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td>{c.p.category && <a class="caticon" href={`/rc/categories/${c.p.category}/`} title={catName(c.p.category)}><Icon name={c.p.category} /></a>} {c.p.name}</td><td class="muted">{catName(c.p.category)}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td>{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
     </table></>; })}
   <script>
     const sel = document.getElementById('catfilter') as HTMLSelectElement | null;
