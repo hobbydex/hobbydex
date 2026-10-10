@@ -36,8 +36,27 @@ case = box(8.5, 6.5, 18.5, 17.5).buffer(1.2).buffer(-1.2)
 ring = box(4.5, 2.5, 8.0, 21.5)
 teeth = unary_union([box(3.2, 3.5 + 2.4 * i, 4.6, 4.7 + 2.4 * i) for i in range(8)])
 S["differential"] = unary_union([case, ring, teeth, box(0.5, 10.4, 4.6, 13.6), box(18.4, 10.4, 23.5, 13.6)])
-# pinion: a small cog with its bore and a short boss
-S["pinion"] = unary_union([cog(12, 11, 12, 9.5, 7.6, 0.55).difference(Point(12, 11).buffer(2.4, 32)), box(10.8, 19.4, 13.2, 21.0)])
+# pinion: involute stub teeth and a motor-shaft bore with its flat (D shape)
+def involute_gear(cx, cy, z, ra):
+    m = ra / (z / 2 + 0.8); rp = z * m / 2; rf = rp - 1.0 * m;   # stub teeth: bolder at icon size
+    rb = rp * math.cos(math.radians(20))
+    inv = lambda r: (lambda al: math.tan(al) - al)(math.acos(min(1, rb / r)))
+    half = math.pi / (2 * z) + inv(rp)
+    r0 = max(rf, rb); fl = [(r0 + (ra - r0) * j / 8) for j in range(9)]
+    flank = [(r, half - inv(r)) for r in fl]
+    at = lambda r, a: (cx + r * math.sin(a), cy - r * math.cos(a))
+    pts = []
+    for i in range(z):
+        c = 2 * math.pi * i / z; hr = half * rb / rf if rf < rb else flank[0][1]
+        pts.append(at(rf, c - hr))
+        pts += [at(r, c - a) for r, a in flank]
+        pts += [at(ra, c - flank[-1][1] + 2 * flank[-1][1] * j / 4) for j in range(1, 4)]
+        pts += [at(r, c + a) for r, a in reversed(flank)]
+        pts.append(at(rf, c + hr))
+        nx = c + 2 * math.pi / z
+        pts += [at(rf, c + hr + (nx - 2 * hr - c) * j / 4) for j in range(1, 4)]
+    return Polygon(pts)
+S["pinion"] = involute_gear(12, 12, 11, 10.8).difference(Point(12, 12).buffer(3.4, 48).difference(box(8, 14.2, 16, 16)))
 # tyre: a solid ring with tread blocks on the outside, no holes in the rubber
 # tyre: hollow rubber with the slanted sidewall pattern cut in, and shallow tread blocks on the outside
 tyre = Point(12, 12).buffer(9.6, 64).difference(Point(12, 12).buffer(5.2, 64))
