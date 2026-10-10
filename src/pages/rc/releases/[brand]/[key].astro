@@ -5,6 +5,7 @@ import { db, key, url, brandName, yearOf, yearText, dateText } from '../../../..
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
+import { bearingList } from '../../../../lib/bearingList';
 export function getStaticPaths() {
   return db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } }));
 }
@@ -18,6 +19,8 @@ const hasQty = rows.some((c) => c.qty !== undefined);
 const hasStep = rows.some((c) => c.step !== undefined);
 const cats = [...new Set(rows.map((c) => c.p.category).filter((c): c is string => !!c))].sort((a, b) => catName(a).localeCompare(catName(b)));
 const related = (db.kitRelations.get(kit.id) ?? []).map((r) => ({ ...r, k: db.kit.get(r.other) })).filter((r) => r.k);
+const bearings = bearingList(release);
+const copyText = bearings ? bearings.lines.map((l) => `${l.qty !== undefined ? `${l.qty}x ` : ''}${l.name}`).join('\n') : '';
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name} (${release.year}): parts list and options.`} kind="release" sub={`${brandName(release.brand)} · ${release.year}`}>
@@ -46,6 +49,20 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
           <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
         </li>; })}</ul>}
     <p><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p></>}
+  {bearings && <>
+    <h2>Bearings <span class="muted">({bearings.lines.length} {bearings.lines.length === 1 ? 'size' : 'sizes'})</span></h2>
+    <p class="muted">{bearings.counted ? 'Counts per car, from the build manual.' : 'Sizes of the bearings in the box; the count per car is not in our source for this release.'}{bearings.lines.some((l) => l.bushing) && ' A bushing is listed with the ball bearing that replaces it.'}</p>
+    <table>
+      <tr><th>Size</th>{bearings.counted && <th class="num">Qty</th>}<th>Parts</th></tr>
+      {bearings.lines.map((l) => <tr><td><a href={url.spec(l.spec)}>{l.name}</a></td>{bearings.counted && <td class="num">{l.qty}</td>}<td>{l.parts.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{p.number}</a></>)}{l.bushing && <span class="muted"> · bushing in the kit</span>}</td></tr>)}
+    </table>
+    {bearings.unsized.length > 0 && <p class="muted">Also {bearings.unsized.length} bearing {bearings.unsized.length === 1 ? 'part' : 'parts'} of unknown size: {bearings.unsized.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{p.number}</a></>)}.</p>}
+    <p><button type="button" class="copybtn" data-copy={copyText}>Copy bearing list</button></p>
+    <script>
+      for (const b of document.querySelectorAll<HTMLButtonElement>('button[data-copy]')) b.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(b.dataset.copy ?? ''); b.textContent = 'Copied'; setTimeout(() => (b.textContent = 'Copy bearing list'), 1500); } catch {}
+      });
+    </script></>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
   {cats.length > 1 && <p data-pagefind-ignore><label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label></p>}
