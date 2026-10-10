@@ -28,7 +28,7 @@ def thread(x0, x1, y, h, teeth):   # a threaded bar along x with teeth on both e
 S = {}
 # ball end (rod end): an eye with the ball sitting in it, and a threaded shank
 eye = Point(12, 8.5).buffer(7.2, 64).difference(Point(12, 8.5).buffer(4.9, 64))
-ball = Point(12, 8.5).buffer(3.6, 64).difference(Point(12, 8.5).buffer(1.2, 32))
+ball = Point(12, 8.5).buffer(3.6, 64).difference(box(12.9, 6.0, 14.3, 7.4))   # a solid ball with a small reflection
 shank = affinity.rotate(thread(14.5, 23, 12, 2.2, 3), 90, origin=(12, 12))
 S["ball-end"] = unary_union([eye, ball, box(9.6, 14.5, 14.4, 16.5), shank])
 # differential: case with the ring gear on one side and the two output shafts
