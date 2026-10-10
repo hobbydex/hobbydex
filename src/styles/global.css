@@ -84,3 +84,11 @@ ul.cards li.kitcard > a { color: var(--muted); } ul.cards li.kitcard > a:hover {
 .brandsearch .status { margin: 0.5rem 0; }
 .brandsearch table.results td:last-child { white-space: nowrap; }
 p.bycat a { white-space: nowrap; }
+/* screw spec drawings (lib/screwDrawing.ts): line art in the text colour */
+figure.drawing { margin: 0.5rem 0 1rem; max-width: 36rem; }
+figure.drawing svg { width: 100%; height: auto; display: block; }
+.screwdrawing .s { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.screwdrawing .thin { stroke-width: 0.8; }
+.screwdrawing .solid { fill: currentColor; stroke: none; }
+.screwdrawing text { fill: currentColor; stroke: none; font: 12px system-ui, sans-serif; }
+figure.drawing figcaption { font-size: 0.8rem; }
