@@ -71,3 +71,12 @@ ul.search-results mark { background: var(--mark); color: inherit; border-radius:
 .hbars .bar { display: block; height: 0.6rem; min-width: 2px; background: var(--accent); border-radius: 0 4px 4px 0; opacity: 0.85; }
 .hbars li:hover .bar { opacity: 1; }
 .hbars .v { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* icons (/icons.svg): line art in the text colour */
+.icon { width: 1.15em; height: 1.15em; vertical-align: -0.2em; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+header.site .theme { margin-left: auto; font: inherit; color: var(--fg); background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 0.25rem 0.4rem; cursor: pointer; line-height: 0; }
+header.site .theme:hover { background: var(--surface-2); }
+ul.typegrid { list-style: none; padding: 0; margin: 1rem 0; display: grid; gap: 0.5rem; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
+ul.typegrid a { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.75rem 0.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); text-align: center; }
+ul.typegrid a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+ul.cards li.kitcard { display: flex; gap: 0.75rem; align-items: center; }
+ul.cards li.kitcard > a { color: var(--muted); } ul.cards li.kitcard > a:hover { color: var(--accent); }

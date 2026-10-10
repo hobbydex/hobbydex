@@ -15,6 +15,10 @@ const { title, description, jsonld, kind, sub } = Astro.props;
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     <meta name="theme-color" content="#0969da" />
+    <script is:inline>
+      // the saved theme choice (auto, light, dark) applies before the page paints
+      try { const t = localStorage.getItem('hobbydex-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.colorMode = t; } catch (e) {}
+    </script>
     {jsonld && <script type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
   </head>
   <body>
@@ -26,6 +30,20 @@ const { title, description, jsonld, kind, sub } = Astro.props;
         <a href="/search/">Search</a>
         <a href="https://github.com/hobbydex">GitHub</a>
       </nav>
+      <button type="button" class="theme" aria-label="Theme: auto" title="Theme: auto (follows the system)"><svg class="icon"><use href="/icons.svg#theme-auto" /></svg></button>
+      <script is:inline>
+        (() => {
+          const b = document.querySelector('header.site .theme'), html = document.documentElement, modes = ['auto', 'light', 'dark'];
+          const label = { auto: 'auto (follows the system)', light: 'light', dark: 'dark' };
+          const show = (m) => { b.querySelector('use').setAttribute('href', `/icons.svg#theme-${m}`); b.title = `Theme: ${label[m]}`; b.setAttribute('aria-label', `Theme: ${m}`); };
+          show(html.dataset.colorMode || 'auto');
+          b.addEventListener('click', () => {
+            const m = modes[(modes.indexOf(html.dataset.colorMode || 'auto') + 1) % 3];
+            html.dataset.colorMode = m; show(m);
+            try { m === 'auto' ? localStorage.removeItem('hobbydex-theme') : localStorage.setItem('hobbydex-theme', m); } catch (e) {}
+          });
+        })();
+      </script>
     </header>
     <main data-pagefind-body>
       {kind && <span hidden data-pagefind-meta={`type:${kind}`} data-pagefind-filter={`type:${kind}`} />}

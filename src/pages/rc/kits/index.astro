@@ -1,12 +1,10 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import { db, url, brandName } from '../../../lib/data';
-const label: Record<string, string> = {
-  buggy: 'Buggies', truggy: 'Truggies', 'stadium-truck': 'Stadium trucks', 'short-course': 'Short course', monster: 'Monster trucks',
-  'desert-truck': 'Desert trucks', truck: 'Trucks', crawler: 'Crawlers', touring: 'Touring cars', 'mini-touring': 'Mini touring', formula: 'Formula',
-  'pan-car': 'Pan cars', rally: 'Rally', 'mini-buggy': 'Mini buggies', mini: 'Mini-Z and mini', 'street-basher': 'Street bashers', drift: 'Drift cars', 'speed-run': 'Speed run', car: 'Other cars',
-};
-const order = Object.keys(label);
+import Icon from '../../../components/Icon.astro';
+import { kitTypeLabel, kitTypeOrder, kitTypeIcon } from '../../../lib/kitTypes';
+const label = kitTypeLabel;
+const order = kitTypeOrder;
 const scaleKey = (s?: string) => (s ? Number(s.split('/')[1]) : 999);
 const byCat = new Map<string, typeof db.kits>();
 for (const k of db.kits) {
@@ -19,11 +17,12 @@ const cats = [...byCat.keys()].sort((a, b) => (order.indexOf(a) + 1 || 99) - (or
 <Base title="Kits by type" description="Every RC kit in Hobbydex, grouped by type and scale.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Kits</div>
   <h1>Kits by type</h1>
-  <p class="muted">{db.kits.length} kits · <a href="/rc/kits/by-date/">by date</a>. Jump to: {cats.map((c, i) => <>{i > 0 && ' · '}<a href={`#${c}`}>{label[c] ?? c}</a></>)}</p>
+  <p class="muted">{db.kits.length} kits · <a href="/rc/kits/by-date/">by date</a></p>
+  <ul class="typegrid">{cats.map((c) => <li><a href={`/rc/kits/types/${c}/`}><Icon name={kitTypeIcon(c)} size="2rem" /><b>{label[c] ?? c}</b><span class="muted">{byCat.get(c)!.length}</span></a></li>)}</ul>
   {cats.map((c) => {
     const kits = [...byCat.get(c)!].sort((a, b) => scaleKey(a.scale) - scaleKey(b.scale) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
     return <>
-      <h2 id={c}>{label[c] ?? c} <span class="muted">({kits.length})</span></h2>
+      <h2 id={c}><Icon name={kitTypeIcon(c)} /> <a href={`/rc/kits/types/${c}/`}>{label[c] ?? c}</a> <span class="muted">({kits.length})</span></h2>
       <table>
         <tr><th>Scale</th><th>Brand</th><th>Kit</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
         {kits.map((k) => <tr>

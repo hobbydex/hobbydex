@@ -2,6 +2,7 @@
 import Base from '../../../layouts/Base.astro';
 import { db } from '../../../lib/data';
 import { catName } from '../../../lib/categories';
+import Icon from '../../../components/Icon.astro';
 import { categories, countOf } from '../../../lib/categoryIndex';
 import { columns } from '../../../lib/categoryColumns';
 const desc = new Map(db.categories.map((c) => [c.id.split('/')[1], c.description ?? '']));
@@ -12,7 +13,7 @@ const total = categories.reduce((n, c) => n + countOf(c), 0);
   <h1>Part categories</h1>
   <p class="muted">{total} parts in {categories.length} categories. Categories are assigned from part names; parts that fit no rule are left out.</p>
   <ul class="cards">
-    {categories.map((c) => <li><a href={`/rc/categories/${c}/`}><b>{catName(c)}</b></a> <span class="muted">· {countOf(c)} parts{columns[c] && ' · with specs'}</span><br />
+    {categories.map((c) => <li><a href={`/rc/categories/${c}/`}><Icon name={c} /> <b>{catName(c)}</b></a> <span class="muted">· {countOf(c)} parts{columns[c] && ' · with specs'}</span><br />
       <span class="muted">{desc.get(c)}</span></li>)}
   </ul>
 </Base>

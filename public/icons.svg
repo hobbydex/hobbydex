@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+<!-- Hobbydex icons: 24x24, stroke only, drawn in currentColor so they follow the light and dark themes.
+     Used as <svg><use href="/icons.svg#id"/></svg>; the .icon class sets stroke width and size. -->
+
+<!-- vehicle types (side views) -->
+<symbol id="buggy" viewBox="0 0 24 24"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M3 14l4-3h6l3 2h5v2"/><path d="M15 7h6M18 7v4"/></symbol>
+<symbol id="truggy" viewBox="0 0 24 24"><circle cx="6" cy="16.5" r="3.5"/><circle cx="18" cy="16.5" r="3.5"/><path d="M2 12.5l4-3h7l3 2h6v2"/><path d="M15 5.5h6M18 5.5v4"/></symbol>
+<symbol id="monster" viewBox="0 0 24 24"><circle cx="6" cy="16.5" r="4.5"/><circle cx="18" cy="16.5" r="4.5"/><path d="M3 10h18l-1.5-3H13l-1.5-2.5H7L5 7.5"/><path d="M10.5 16.5h3"/></symbol>
+<symbol id="crawler" viewBox="0 0 24 24"><circle cx="6" cy="17" r="3.5"/><circle cx="18" cy="17" r="3.5"/><path d="M3 12V9h7l2-3.5h5L19 9h2v3"/><path d="M9.5 17h5M6 13.5V12M18 13.5V12"/></symbol>
+<symbol id="touring" viewBox="0 0 24 24"><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M2 16.5v-3l4-1.5 3.5-3.5h6l3 3.5 3.5 1v3.5"/><path d="M9 16.5h6"/></symbol>
+<symbol id="car" viewBox="0 0 24 24"><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M2 16.5V13l3-1 3-4h7l4 4 3 1v3.5"/><path d="M9 16.5h6M8 12h11"/></symbol>
+<symbol id="short-course" viewBox="0 0 24 24"><circle cx="6.5" cy="17" r="3"/><circle cx="17.5" cy="17" r="3"/><path d="M2 16v-5h8l2-3.5h5l2 3.5h3v5"/><path d="M3.5 16h0M9.5 16h5"/></symbol>
+<symbol id="rally" viewBox="0 0 24 24"><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="17.5" cy="16.5" r="2.5"/><path d="M2 16.5V13l5-1.5 3-3.5h6l3 3h1.5v5"/><path d="M19 8h3"/><path d="M9 16.5h6"/></symbol>
+<symbol id="truck" viewBox="0 0 24 24"><circle cx="6.5" cy="17" r="3"/><circle cx="17.5" cy="17" r="3"/><path d="M2 15v-4h10V6.5h5L20 11h2v4"/><path d="M9.5 17h5"/></symbol>
+<symbol id="desert-truck" viewBox="0 0 24 24"><circle cx="6" cy="17.5" r="3"/><circle cx="18" cy="17.5" r="3"/><path d="M2 12.5h9l2-4h4l3 4h2"/><path d="M6 14.5l2-2M18 14.5l-2-2M2 12.5v1.5"/></symbol>
+<symbol id="drift" viewBox="0 0 24 24"><circle cx="8.5" cy="16.5" r="2.5"/><circle cx="18.5" cy="16.5" r="2.5"/><path d="M5 16.5v-3l3.5-1.5 3-3h5.5l3 3 2.5 1v3.5"/><path d="M1 10h3M1.5 13.5H4M2 17h1"/></symbol>
+<symbol id="stadium-truck" viewBox="0 0 24 24"><circle cx="6" cy="16.5" r="3.5"/><circle cx="18" cy="16.5" r="3.5"/><path d="M2.5 13l3-3h4l2-2.5h4L17 10h4.5v3"/></symbol>
+<symbol id="formula" viewBox="0 0 24 24"><circle cx="5" cy="16" r="2.5"/><circle cx="19" cy="16" r="2.5"/><path d="M7.5 16h9M8 13.5h5l1.5-2.5h2.5l1 2.5"/><path d="M1 13h4M20 9.5h3M21.5 9.5v4"/></symbol>
+<symbol id="pan-car" viewBox="0 0 24 24"><circle cx="5.5" cy="16.5" r="2.5"/><circle cx="18.5" cy="16.5" r="2.5"/><path d="M1.5 15.5V14l4-2h4l2-2h4l3 2 4 1.5v2"/><path d="M8 16.5h8"/></symbol>
+<symbol id="mini" viewBox="0 0 24 24"><circle cx="8" cy="16" r="2"/><circle cx="16" cy="16" r="2"/><path d="M5 16v-2.5l2.5-1 2-2.5h5l2 2.5 2.5 1V16"/><path d="M10 16h4"/></symbol>
+<symbol id="boat" viewBox="0 0 24 24"><path d="M2 14h20l-3 5H5z"/><path d="M6 14l2-4h7l3 4"/><path d="M2 21c2 0 2-1 4-1s2 1 4 1 2-1 4-1 2 1 4 1 2-1 4-1"/></symbol>
+
+<!-- part categories -->
+<symbol id="screw" viewBox="0 0 24 24"><path d="M4.5 4.5l5 5"/><circle cx="6" cy="6" r="3.5"/><path d="M9.5 9.5l10 10"/><path d="M12 10l-2 2M14 12l-2 2M16 14l-2 2M18 16l-2 2"/></symbol>
+<symbol id="nut" viewBox="0 0 24 24"><path d="M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9z"/><circle cx="12" cy="12" r="3.5"/></symbol>
+<symbol id="washer-shim" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/></symbol>
+<symbol id="bearing" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="5.5" r="1.3"/><circle cx="18.5" cy="12" r="1.3"/><circle cx="12" cy="18.5" r="1.3"/><circle cx="5.5" cy="12" r="1.3"/></symbol>
+<symbol id="ball-end" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M9 11.5h6l-1 2h-4z"/><path d="M12 13.5V21M10 16h4M10 18.5h4"/></symbol>
+<symbol id="o-ring-seal" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="5"/></symbol>
+<symbol id="pin-clip" viewBox="0 0 24 24"><path d="M16.5 6.5A7 7 0 1 0 17 17"/><path d="M12 5v3M12 16v3M7.5 12h3"/><path d="M19 3l-3 9 3 9"/></symbol>
+<symbol id="gear" viewBox="0 0 24 24"><path d="M10.05 5.28L10.33 2.65L13.67 2.65L13.95 5.28L15.37 5.87L17.43 4.21L19.79 6.57L18.13 8.63L18.72 10.05L21.35 10.33L21.35 13.67L18.72 13.95L18.13 15.37L19.79 17.43L17.43 19.79L15.37 18.13L13.95 18.72L13.67 21.35L10.33 21.35L10.05 18.72L8.63 18.13L6.57 19.79L4.21 17.43L5.87 15.37L5.28 13.95L2.65 13.67L2.65 10.33L5.28 10.05L5.87 8.63L4.21 6.57L6.57 4.21L8.63 5.87Z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+<symbol id="spur-gear" viewBox="0 0 24 24"><path d="M10.70 3.80L11.02 2.05L12.98 2.05L13.30 3.80L13.94 3.93L14.90 2.43L16.71 3.18L16.34 4.92L16.88 5.29L18.34 4.27L19.73 5.66L18.71 7.12L19.08 7.66L20.82 7.29L21.57 9.10L20.07 10.06L20.20 10.70L21.95 11.02L21.95 12.98L20.20 13.30L20.07 13.94L21.57 14.90L20.82 16.71L19.08 16.34L18.71 16.88L19.73 18.34L18.34 19.73L16.88 18.71L16.34 19.08L16.71 20.82L14.90 21.57L13.94 20.07L13.30 20.20L12.98 21.95L11.02 21.95L10.70 20.20L10.06 20.07L9.10 21.57L7.29 20.82L7.66 19.08L7.12 18.71L5.66 19.73L4.27 18.34L5.29 16.88L4.92 16.34L3.18 16.71L2.43 14.90L3.93 13.94L3.80 13.30L2.05 12.98L2.05 11.02L3.80 10.70L3.93 10.06L2.43 9.10L3.18 7.29L4.92 7.66L5.29 7.12L4.27 5.66L5.66 4.27L7.12 5.29L7.66 4.92L7.29 3.18L9.10 2.43L10.06 3.93Z"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></symbol>
+<symbol id="pinion" viewBox="0 0 24 24"><path d="M9 5h6v2.5l2 1.5v6l-2 1.5V19H9v-2.5L7 15V9l2-1.5z"/><circle cx="12" cy="12" r="2"/><path d="M12 19v3"/></symbol>
+<symbol id="differential" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8 9l4-3 4 3M8 15l4 3 4-3"/><circle cx="12" cy="12" r="2"/><path d="M3.5 12h4M16.5 12h4"/></symbol>
+<symbol id="drivetrain" viewBox="0 0 24 24"><path d="M6.5 17.5l11-11"/><path d="M3 15l3 3-2.5 2.5-3-3zM18 3l3 3-2.5 2.5-3-3z" transform="translate(1 0)"/><circle cx="12" cy="12" r="1.5"/></symbol>
+<symbol id="suspension" viewBox="0 0 24 24"><path d="M3 6l15 6-15 6"/><circle cx="3" cy="6" r="1.5"/><circle cx="3" cy="18" r="1.5"/><circle cx="19.5" cy="12" r="2"/><path d="M7.5 7.8v8.4"/></symbol>
+<symbol id="steering" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M3.5 10.5l6.5 1M20.5 10.5l-6.5 1M12 14v7"/></symbol>
+<symbol id="shock" viewBox="0 0 24 24"><circle cx="12" cy="3.5" r="1.5"/><path d="M12 5v3"/><rect x="9.5" y="8" width="5" height="7" rx="1"/><path d="M12 15v4.5"/><circle cx="12" cy="21" r="1.5"/><path d="M8 10.5h8M8 13h8"/></symbol>
+<symbol id="shock-spring" viewBox="0 0 24 24"><path d="M7 3h10M7 21h10"/><path d="M8 3l9 3-10 3 10 3-10 3 10 3-9 3"/></symbol>
+<symbol id="chassis" viewBox="0 0 24 24"><path d="M3 9l3-3h12l3 3v6l-3 3H6l-3-3z"/><circle cx="7.5" cy="12" r="1"/><circle cx="16.5" cy="12" r="1"/><path d="M10.5 10h3v4h-3z"/></symbol>
+<symbol id="body" viewBox="0 0 24 24"><path d="M2 17v-3.5l4-1.5 3.5-4h6l3 4 3.5 1.5V17"/><path d="M5.5 17a2.5 2.5 0 0 1 5 0M13.5 17a2.5 2.5 0 0 1 5 0"/><path d="M10.5 17h3M2 17h1M21 17h1"/></symbol>
+<symbol id="wing" viewBox="0 0 24 24"><path d="M2 8c4-1.5 16-1.5 20 0v2.5C18 9 6 9 2 10.5z"/><path d="M7 10v6M17 10v6M5 16h4M15 16h4"/></symbol>
+<symbol id="bumper-guard" viewBox="0 0 24 24"><path d="M3 9c3 3 15 3 18 0v4c-3 3-15 3-18 0z"/><path d="M8 6.5v4M16 6.5v4"/></symbol>
+<symbol id="tire" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></symbol>
+<symbol id="wheel" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 10V3.5M13.9 11.4l6.1-2M13.2 13.6l3.8 5.3M10.8 13.6l-3.8 5.3M10.1 11.4l-6.1-2"/></symbol>
+<symbol id="motor" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 9.5h2v5h-2M18 12h4"/><path d="M6 6v12M3 10h3M3 14h3"/></symbol>
+<symbol id="servo" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="10" rx="1.5"/><path d="M2 10h2M20 10h2"/><circle cx="8.5" cy="8" r="2.5"/><path d="M8.5 5.5l9-1.5"/></symbol>
+<symbol id="electronics" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2.5V6M15 2.5V6M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5"/></symbol>
+<symbol id="battery" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="1.5"/><path d="M20 10h2v4h-2"/><path d="M7 12h4M9 10v4M14 12h3"/></symbol>
+<symbol id="charger" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M13 8l-3.5 4.5h4L10 17"/></symbol>
+<symbol id="engine-fuel" viewBox="0 0 24 24"><path d="M5 7.5V20h12V7.5L14 4.5H8z"/><path d="M8 4.5V2.5h4v2M17 9.5l2.5-2.5v8"/><path d="M8.5 11.5h5v4h-5z"/></symbol>
+<symbol id="oil-grease" viewBox="0 0 24 24"><path d="M12 3c3 4.5 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-6.5 6-11z"/><path d="M9.5 14a2.5 2.5 0 0 0 2.5 2.5"/></symbol>
+<symbol id="decal" viewBox="0 0 24 24"><path d="M4 4h16v10l-6 6H4z"/><path d="M20 14h-6v6"/><path d="M8 8.5h8M8 12h5"/></symbol>
+<symbol id="tool" viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 1 5-3l-2.5 2.5.5 2.5 2.5.5 2.5-2.5a4 4 0 0 1-5.5 4.5L8 19.5a2.1 2.1 0 0 1-3-3l8.5-8.5"/></symbol>
+
+<!-- interface -->
+<symbol id="theme-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor"/></symbol>
+<symbol id="theme-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></symbol>
+<symbol id="theme-dark" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></symbol>
+</svg>
