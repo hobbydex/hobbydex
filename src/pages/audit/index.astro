@@ -1,0 +1,63 @@
+---
+import Base from '../../layouts/Base.astro';
+import { db, brandName, url } from '../../lib/data';
+import { catName } from '../../lib/categories';
+import { columns, specOf } from '../../lib/categoryColumns';
+// Where the data is thinnest: computed from the export at build time.
+const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
+const parts = db.parts;
+const unnamed = parts.filter((p) => p.name === p.number || !p.name);
+const ocr = parts.filter((p) => /OCR/.test(p.notes ?? ''));
+const uncategorised = parts.filter((p) => !p.category);
+const empty = db.releases.filter((r) => !(r.contains ?? []).length);
+const noYear = db.releases.filter((r) => !r.year);
+const lonelyKits = db.kits.filter((k) => !(db.releasesByKit.get(k.id) ?? []).length);
+const overall = [
+  ['Parts named only by their number', unnamed.length, parts.length],
+  ['Part names read by OCR (may contain errors)', ocr.length, parts.length],
+  ['Parts without a category', uncategorised.length, parts.length],
+  ['Releases without contents', empty.length, db.releases.length],
+  ['Releases with an unknown year', noYear.length, db.releases.length],
+  ['Kits without a release', lonelyKits.length, db.kits.length],
+] as const;
+// key field coverage per category, overall and per brand
+const coverage = Object.entries(columns).map(([cat, cols]) => {
+  const ps = parts.filter((p) => p.category === cat);
+  const filled = (p: (typeof ps)[number]) => { const s = specOf(p); return cols.map((c) => c.get(p, s) !== undefined); };
+  const rows = ps.map(filled);
+  const fields = cols.map((c, i) => ({ label: c.label, n: rows.filter((r) => r[i]).length }));
+  const byBrand = new Map<string, { n: number; filled: number }>();
+  ps.forEach((p, i) => { const b = byBrand.get(p.brand) ?? { n: 0, filled: 0 }; b.n++; b.filled += rows[i].filter(Boolean).length; byBrand.set(p.brand, b); });
+  const brands = [...byBrand.entries()].map(([b, v]) => ({ b, n: v.n, share: pct(v.filled, v.n * cols.length) })).sort((a, b) => a.share - b.share || b.n - a.n);
+  return { cat, total: ps.length, fields, brands, share: pct(rows.flat().filter(Boolean).length, rows.length * cols.length) };
+}).sort((a, b) => a.share - b.share);
+// per brand
+const brandRows = db.brands.map((b) => {
+  const ps = db.partsByBrand.get(b.id) ?? [];
+  return { b: b.id, n: ps.length, named: pct(ps.filter((p) => p.name && p.name !== p.number).length, ps.length),
+    cat: pct(ps.filter((p) => p.category).length, ps.length), spec: pct(ps.filter((p) => (p.equivalent_to ?? []).length).length, ps.length) };
+}).filter((r) => r.n).sort((a, b) => a.named + a.cat - (b.named + b.cat) || b.n - a.n);
+---
+<Base title="Data audit" description="Where Hobbydex's data is thinnest: unnamed parts, missing categories and specs, releases without contents.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / Data audit</div>
+  <h1>Data audit</h1>
+  <p class="muted">Where the data is thinnest, computed from the export of {db.generated}. Corrections and sources are welcome on <a href="https://github.com/hobbydex/hobbydex-rc">hobbydex/hobbydex-rc</a>.</p>
+  <h2>Overall</h2>
+  <table>
+    <tr><th>Gap</th><th class="num">Count</th><th class="num">Share</th></tr>
+    {overall.map(([label, n, of]) => <tr><td>{label}</td><td class="num">{n} of {of}</td><td class="num">{pct(n, of)}%</td></tr>)}
+  </table>
+  <h2>Key specs per category <span class="muted">· least complete first</span></h2>
+  {coverage.map((c) => <>
+    <h3><a href={`/rc/categories/${c.cat}/`}>{catName(c.cat)}</a> <span class="muted">· {c.total} parts · {c.share}% of key fields known</span></h3>
+    <p>{c.fields.map((f, i) => <>{i > 0 && ' · '}{f.label} <b>{pct(f.n, c.total)}%</b></>)}</p>
+    <p class="muted">Least complete brands: {c.brands.slice(0, 6).map((b, i) => <>{i > 0 && ', '}<a href={`/rc/categories/${c.cat}/${b.b.split('/')[1]}/`}>{brandName(b.b)}</a> {b.share}% ({b.n})</>)}</p>
+  </>)}
+  <h2>Per brand <span class="muted">· least complete first</span></h2>
+  <table>
+    <tr><th>Brand</th><th class="num">Parts</th><th class="num">Named</th><th class="num">Categorised</th><th class="num">Linked to a spec</th></tr>
+    {brandRows.map((r) => <tr><td><a href={url.brand(r.b)}>{brandName(r.b)}</a></td><td class="num">{r.n}</td><td class="num">{r.named}%</td><td class="num">{r.cat}%</td><td class="num">{r.spec}%</td></tr>)}
+  </table>
+  <h2>Releases without contents <span class="muted">· {empty.length}</span></h2>
+  <p>{empty.slice(0, 80).map((r, i) => <>{i > 0 && ' · '}<a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a></>)}{empty.length > 80 && ` and ${empty.length - 80} more`}</p>
+</Base>
