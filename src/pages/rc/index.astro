@@ -9,7 +9,7 @@ import { db, url } from '../../lib/data';
   <ul class="cards">
     {db.brands.map((b) => (
       <li><a href={url.brand(b.id)}><b>{b.name}</b></a><br />
-        <span class="muted">{db.kitsByBrand.get(b.id)?.length ?? 0} kits · {db.partsByBrand.get(b.id)?.length ?? 0} parts</span></li>
+        <span class="muted">{[[db.kitsByBrand.get(b.id)?.length ?? 0, 'kits'], [db.partsByBrand.get(b.id)?.length ?? 0, 'parts']].filter(([n]) => n).map(([n, w]) => `${n} ${w}`).join(' · ')}</span></li>
     ))}
   </ul>
   <p><a href="/rc/servos/">Compare servos</a> <span class="muted">· torque, speed and size side by side</span></p>
