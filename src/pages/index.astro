@@ -1,4 +1,6 @@
 ---
+import Icon from '../components/Icon.astro';
+import { kitTypeIcon, kitTypeOne } from '../lib/kitTypes';
 import Base from '../layouts/Base.astro';
 import { db, url, brandName, yearOf, yearText, dateKey, dateText } from '../lib/data';
 import { catName } from '../lib/categories';
@@ -55,7 +57,7 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
   <h2>Latest kits <span class="muted">· <a href="/rc/kits/by-date/">all kits by date</a></span></h2>
   <table>
     <tr><th class="num">Released</th><th>Kit</th><th>Newest release</th><th>Status</th></tr>
-    {latest.map((r) => { const k = db.kit.get(r.kit); return <tr><td class="num">{dateText(r)}</td><td><a href={url.kit(r.kit)}>{brandName(r.brand)} {k?.name ?? ''}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td><td class="muted">{r.status}</td></tr>; })}
+    {latest.map((r) => { const k = db.kit.get(r.kit); return <tr><td class="num">{dateText(r)}</td><td><a href={url.kit(r.kit)}><span class="muted" title={kitTypeOne[k?.category ?? 'car']}><Icon name={kitTypeIcon(k?.category)} size="1em" /></span> {brandName(r.brand)} {k?.name ?? ''}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td><td class="muted">{r.status}</td></tr>; })}
   </table>
 
   <p><a href="/rc/">Browse RC cars</a> · <a href="/rc/compare/">Compare two releases</a> · <a href="/rc/categories/">Part categories</a> · <a href="/rc/specs/">Generic specs</a> · <a href="/rc/servos/">Compare servos</a></p>
