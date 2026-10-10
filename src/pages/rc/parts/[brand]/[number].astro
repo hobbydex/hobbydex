@@ -38,6 +38,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a> / {part.number}</div>
   {part.category && <span hidden data-pagefind-filter={`category:${catName(part.category)}`} />}
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number} <span class="muted">·</span> {part.name}</h1>
+  {(part as { name_source?: string }).name_source === 'ocr' && <p class="muted ocrname" data-pagefind-ignore>This name was read by OCR from a scanned manual and is not checked yet; it may contain reading errors.</p>}
   <WebSearch query={`"${part.number}" ${brand?.name ?? ''}`.trim()} copy={part.number} links={part.links} />
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
