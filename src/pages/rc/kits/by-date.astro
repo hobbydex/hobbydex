@@ -3,16 +3,16 @@ import Base from '../../../layouts/Base.astro';
 import { db, url, brandName } from '../../../lib/data';
 // every kit by its newest release, newest first; discontinued kits last within a year
 const rows = db.kits.map((k) => {
-  const rs = db.releasesByKit.get(k.id) ?? [];
-  const newest = [...rs].sort((a, b) => b.year - a.year)[0];
-  return { k, newest, first: rs.length ? Math.min(...rs.map((r) => r.year)) : undefined, count: rs.length };
-}).filter((x) => x.newest).sort((a, b) => b.newest!.year - a.newest!.year || a.k.name.localeCompare(b.k.name));
+  const rs = (db.releasesByKit.get(k.id) ?? []).filter((r) => r.year);   // unknown years cannot be placed
+  const newest = [...rs].sort((a, b) => b.year! - a.year!)[0];
+  return { k, newest, first: rs.length ? Math.min(...rs.map((r) => r.year!)) : undefined, count: rs.length };
+}).filter((x) => x.newest).sort((a, b) => b.newest!.year! - a.newest!.year! || a.k.name.localeCompare(b.k.name));
 const PAGE = 50;
 ---
 <Base title="Kits by date" description="Every RC kit in Hobbydex, newest first, by the year of its latest release.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/kits/">Kits</a> / by date</div>
   <h1>Kits by date</h1>
-  <p class="muted">{rows.length} kits, newest first by the year of their latest release. <a href="/rc/kits/">Kits by type</a></p>
+  <p class="muted">{rows.length} kits, newest first by the year of their latest release; kits whose release years are unknown are left out. <a href="/rc/kits/">Kits by type</a></p>
   <table id="kits">
     <tr><th class="num">Year</th><th>Kit</th><th>Type</th><th>Scale</th><th>Newest release</th><th class="num">Releases</th></tr>
     {rows.map(({ k, newest, first, count }, i) => <tr hidden={i >= PAGE}>

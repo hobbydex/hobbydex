@@ -1,7 +1,7 @@
 ---
 import WebSearch from '../../../../components/WebSearch.astro';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName } from '../../../../lib/data';
+import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 export function getStaticPaths() {
   return db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } }));
@@ -23,7 +23,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
   <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
   <dl class="facts">
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
-    <dt>Year</dt><dd>{release.year}</dd>
+    <dt>Year</dt><dd>{yearText(release)}</dd>
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>

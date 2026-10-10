@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import { db, url, brandName } from '../lib/data';
+import { db, url, brandName, yearOf, yearText } from '../lib/data';
 import { catName } from '../lib/categories';
 
 const top = <T,>(m: Map<T, number>, n: number) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
@@ -14,9 +14,9 @@ const brands = top(byBrand, 12);
 const newest = new Map<string, (typeof db.releases)[number]>();
 for (const r of db.releases) if (r.status !== 'discontinued') {
   const cur = newest.get(r.kit);
-  if (!cur || r.year > cur.year) newest.set(r.kit, r);
+  if (r.year && (!cur || r.year > (cur.year ?? 0))) newest.set(r.kit, r);
 }
-const latest = [...newest.values()].sort((a, b) => b.year - a.year || (a.status === 'announced' ? -1 : 1)).slice(0, 8);
+const latest = [...newest.values()].sort((a, b) => yearOf(b) - yearOf(a) || (a.status === 'announced' ? -1 : 1)).slice(0, 8);
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 ---
 <Base title="Open hobby parts database" description="Hobbydex: which parts are in my RC car, what fits it, and what is it equivalent to. Open data, no prices, no images.">
