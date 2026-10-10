@@ -15,6 +15,7 @@ const hasSplit = rows.some((c) => c.role !== 'listed');
 const hasQty = rows.some((c) => c.qty !== undefined);
 const hasStep = rows.some((c) => c.step !== undefined);
 const cats = [...new Set(rows.map((c) => c.p.category).filter((c): c is string => !!c))].sort((a, b) => catName(a).localeCompare(catName(b)));
+const related = (db.kitRelations.get(kit.id) ?? []).map((r) => ({ ...r, k: db.kit.get(r.other) })).filter((r) => r.k);
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name} (${release.year}): parts list and options.`} kind="release" sub={`${brandName(release.brand)} · ${release.year}`}>
@@ -25,6 +26,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     <dt>Kit</dt><dd><a href={url.kit(kit.id)}>{kit.name}</a></dd>
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
     {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{[kit.category, kit.drive, kit.power].filter(Boolean).join(' · ')}</dd></>}
+    {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && ' · '}<a href={url.kit(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
     {release.released ? <><dt>Released</dt><dd>{dateText(release)}</dd></> : <><dt>Year</dt><dd>{yearText(release)}</dd></>}
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
