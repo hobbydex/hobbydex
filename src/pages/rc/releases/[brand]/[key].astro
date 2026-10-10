@@ -23,6 +23,8 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
   <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
   <dl class="facts">
     <dt>Kit</dt><dd><a href={url.kit(kit.id)}>{kit.name}</a></dd>
+    {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
+    {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{[kit.category, kit.drive, kit.power].filter(Boolean).join(' · ')}</dd></>}
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
     {release.released ? <><dt>Released</dt><dd>{dateText(release)}</dd></> : <><dt>Year</dt><dd>{yearText(release)}</dd></>}
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
