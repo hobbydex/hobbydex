@@ -13,10 +13,18 @@ function format(v: unknown, f: KeyField): string | number | undefined {
   return String(v);
 }
 
+// a column is numeric when every value the data has for it is a number (sorting, alignment)
+function isNumeric(slug: string, f: KeyField) {
+  const vals = f.from === 'spec' ? db.specs.filter((s) => s.category === cat.get(slug)?.spec_type).map((s) => s[f.field])
+    : db.parts.filter((p) => p.category === slug).map((p) => (p as unknown as Record<string, unknown>)[f.field]);
+  const present = vals.filter((v) => v !== undefined && v !== null && v !== '');
+  return present.length > 0 && present.every((v) => typeof v === 'number');
+}
+
 export const columns: Record<string, Column[]> = Object.fromEntries([...cat.entries()].filter(([, c]) => c.key_fields?.length).map(([slug, c]) => [slug,
   c.key_fields!.map((f) => ({
     label: f.unit ? `${f.label} ${f.unit}` : f.label,
-    num: f.format !== 'cells' && !['size_class', 'shock_part', 'ball_type', 'motor_type', 'can', 'thread', 'head', 'drive', 'type', 'seal', 'material', 'chemistry', 'case', 'connector'].includes(f.field),
+    num: f.format !== 'cells' && isNumeric(slug, f),
     field: f,
     get: (p: Part, s?: Spec) => format(f.from === 'spec' ? s?.[f.field] : (p as unknown as Record<string, unknown>)[f.field], f),
   }))]));
