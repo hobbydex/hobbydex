@@ -26,16 +26,17 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   {kits.length > 0 && <><h2>Kits</h2>
   <ul class="cards">{kits.map((k) => <li class="kitcard"><a href={`/rc/kits/types/${k.category || 'car'}/`} title={kitTypeOne[k.category ?? 'car'] ?? k.category}><Icon name={kitTypeIcon(k.category)} size="2rem" /></a><span><a href={url.kit(k.id)}><b>{k.name}</b></a><br /><span class="muted">{[k.scale, kitTypeOne[k.category ?? 'car'] ?? k.category, k.drive, k.power].filter(Boolean).join(' · ')}</span></span></li>)}</ul></>}
   <h2>Parts <span class="muted">({parts.length})</span></h2>
-  {cats.length > 0 && <p data-pagefind-ignore>By category: {cats.map(([c, n], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${c}/${key(brand.id)[0]}/`}>{catName(c)}</a> <span class="muted">{n}</span></>)}</p>}
-  {parts.length > 0 && <div class="brandsearch" data-pagefind-ignore data-src={`/rc/brands/${key(brand.id)[0]}/parts.json`} data-base={`/rc/parts/${key(brand.id)[0]}/`}>
+  {cats.length > 0 && <p data-pagefind-ignore class="bycat">By category: {cats.map(([c, n], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${c}/${key(brand.id)[0]}/`}><Icon name={c} /> {catName(c)}</a> <span class="muted">{n}</span></>)}</p>}
+  {parts.length > 0 && <div class="brandsearch" data-pagefind-ignore data-src={`/rc/brands/${key(brand.id)[0]}/parts.json`} data-base={`/rc/parts/${key(brand.id)[0]}/`} data-cats={JSON.stringify(Object.fromEntries(cats.map(([c]) => [c, catName(c)])))}>
     <input type="search" class="search-box" placeholder={`Find a ${brand.name} part by number or name`} aria-label="Find a part" autocomplete="off" />
     <p class="muted status"></p>
-    <ul class="search-results"></ul>
+    <table class="results" hidden><thead><tr><th>Number</th><th>Name</th><th>Category</th></tr></thead><tbody></tbody></table>
   </div>}
   <script>
     const MAX = 30;
     for (const box of document.querySelectorAll<HTMLElement>('.brandsearch')) {
-      const input = box.querySelector('input')!, list = box.querySelector('ul')!, status = box.querySelector<HTMLElement>('.status')!;
+      const input = box.querySelector('input')!, table = box.querySelector('table')!, list = table.tBodies[0], status = box.querySelector<HTMLElement>('.status')!;
+      const cats: Record<string, string> = JSON.parse(box.dataset.cats ?? '{}');
       let rows: [string, string, string][] | null = null, loading: Promise<void> | null = null;
       const load = () => (loading ??= fetch(box.dataset.src!).then((r) => r.json()).then((d) => { rows = d; }));
       const href = (n: string) => box.dataset.base + n.split('/').map(encodeURIComponent).join('/') + '/';
@@ -43,17 +44,19 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
       const show = async () => {
         await load();
         const terms = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-        list.replaceChildren();
+        list.replaceChildren(); table.hidden = true;
         if (!terms.length) { status.textContent = `${rows!.length} parts: type a number or a few words of the name.`; return; }
         // number prefix matches first, then everything else that has every term
         const hits = rows!.filter(([n, name]) => { const t = `${n} ${name}`.toLowerCase(); return terms.every((w) => t.includes(w)); })
           .sort((a, b) => Number(!a[0].toLowerCase().startsWith(terms[0])) - Number(!b[0].toLowerCase().startsWith(terms[0])) || a[0].localeCompare(b[0], undefined, { numeric: true }));
         status.textContent = hits.length > MAX ? `${hits.length} matches, showing the first ${MAX}: keep typing to narrow down.` : `${hits.length} match${hits.length === 1 ? '' : 'es'}.`;
         for (const [n, name, cat] of hits.slice(0, MAX)) {
-          const li = document.createElement('li');
-          li.innerHTML = `<a href="${esc(href(n))}">${esc(n)}</a> ${esc(name)}` + (cat ? ` <span class="sub">${esc(cat)}</span>` : '');
-          list.appendChild(li);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="num"><a href="${esc(href(n))}">${esc(n)}</a></td><td>${esc(name)}</td><td class="muted">`
+            + (cat ? `<svg class="icon" aria-hidden="true"><use href="/icons.svg#${esc(cat)}"/></svg> ${esc(cats[cat] ?? cat)}` : '') + '</td>';
+          list.appendChild(tr);
         }
+        table.hidden = hits.length === 0;
       };
       input.addEventListener('focus', () => { load().then(show); }, { once: true });
       input.addEventListener('input', show);
