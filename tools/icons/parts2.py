@@ -60,7 +60,7 @@ S["servo"] = unary_union([case, tabs, spline, horn]).difference(Point(8.5, 8.5).
 
 # tool: an open-end wrench at 45 degrees, its hole centred on the handle's axis
 head = Point(16.8, 7.2).buffer(5.2, 64)
-jaw = affinity.rotate(box(15.4, 0.0, 18.2, 7.4), 45, origin=(16.8, 7.2))
+jaw = affinity.rotate(Polygon([(15.4, -1.0), (18.2, -1.0), (18.2, 6.0), (16.8, 7.6), (15.4, 6.0)]), 45, origin=(16.8, 7.2))   # the jaw ends in half a hex: 3 corners
 handle = LineString([(4.6, 19.4), (14.0, 10.0)]).buffer(2.3, cap_style=1)
 S["tool"] = unary_union([head.difference(jaw), handle]).difference(Point(5.4, 18.6).buffer(1.0, 32))
 
