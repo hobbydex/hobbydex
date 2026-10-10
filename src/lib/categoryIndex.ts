@@ -13,4 +13,4 @@ for (const p of db.parts) {
 export const categories = [...byCategory.keys()].sort((a, b) => (categoryLabel[a] ?? a).localeCompare(categoryLabel[b] ?? b));
 export const countOf = (c: string) => [...(byCategory.get(c)?.values() ?? [])].reduce((n, ps) => n + ps.length, 0);
 // generic spec pages that match a part category
-export const specFor: Record<string, string> = { screw: 'screw', bearing: 'bearing', pinion: 'pinion', battery: 'battery', servo: 'servo', 'oil-grease': 'oil', motor: 'motor' };
+export const specFor: Record<string, string> = { screw: 'screw', bearing: 'bearing', pinion: 'pinion', battery: 'battery', servo: 'servo', 'oil-grease': 'oil', motor: 'motor', wheel: 'wheel-hex' };
