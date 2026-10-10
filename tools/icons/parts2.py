@@ -65,6 +65,11 @@ jaw = affinity.rotate(Polygon([(15.4, -1.0), (18.2, -1.0), (18.2, 6.0), (16.8, 7
 handle = LineString([(4.6, 19.4), (14.0, 10.0)]).buffer(2.3, cap_style=1)
 S["tool"] = unary_union([head.difference(jaw), handle]).difference(Point(5.4, 18.6).buffer(1.0, 32))
 
+# wheel: rim, five star spokes and the hub as one shape, with the axle hole
+rim = Point(12, 12).buffer(10.2, 64).difference(Point(12, 12).buffer(7.9, 64))
+star = [LineString([(12, 12), (12 + 8.6 * math.sin(math.radians(a)), 12 - 8.6 * math.cos(math.radians(a)))]).buffer(1.25, cap_style=2) for a in range(0, 360, 72)]
+S["wheel"] = unary_union([rim, *star, Point(12, 12).buffer(3.0, 32)]).difference(Point(12, 12).buffer(1.2, 32))
+
 out = "\n".join(f'<symbol id="{k}" viewBox="0 0 24 24"><path d="{path(g)}"/></symbol>' for k, g in S.items())
 open("parts2.svgpart", "w").write(out)
 print(len(S))

@@ -18,6 +18,9 @@ def rebuild(d):
     ps = subpolys(d)
     # nesting depth: how many other subpaths fully contain this one; even = solid, odd = hole
     depth = [sum(1 for j, q in enumerate(ps) if j != i and q.contains(p)) for i, p in enumerate(ps)]
+    # a shape that crosses another one's edge (a spoke reaching past a rim's inner edge) is meant solid
+    crosses = [any(j != i and p.intersects(q) and not q.contains(p) and not p.contains(q) for j, q in enumerate(ps)) for i, p in enumerate(ps)]
+    depth = [0 if crosses[i] else depth[i] for i in range(len(ps))]
     parts = []
     for i, p in enumerate(ps):
         if depth[i] % 2: continue
