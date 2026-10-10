@@ -25,12 +25,12 @@ const choices = firstText < 0 ? [] : [...new Set(rows.map((r) => r.vals[firstTex
   </p>
   <div class="side"></div>
   <table>
-    <thead><tr><th></th><th data-k="text">Part</th>{cols.map((c) => <th data-k={c.num ? 'num' : 'text'} class={c.num ? 'num' : ''}>{c.label}</th>)}</tr></thead>
+    <thead><tr><th></th><th data-k="text">Part</th>{cols.map((c) => <th data-k={c.num ? 'num' : 'text'} class={`${c.num ? 'num' : ''}${c.field.compare_only ? ' conly' : ''}`}>{c.label}</th>)}</tr></thead>
     <tbody>
       {rows.map(({ p, vals }) => <tr data-brand={p.brand} data-known={vals.some((v) => v !== undefined) ? '1' : ''}>
         <td><input type="checkbox" autocomplete="off" aria-label={`Compare ${p.number}`} /></td>
         <td><a href={url.part(p.id)}>{showBrand && `${brandName(p.brand)} `}{p.number}</a>{short(p) && <span class="muted"> {short(p)}</span>}</td>
-        {vals.map((v, i) => <td class={cols[i].num ? 'num' : ''}>{v ?? ''}</td>)}
+        {vals.map((v, i) => <td class={`${cols[i].num ? 'num' : ''}${cols[i].field.compare_only ? ' conly' : ''}`}>{v ?? ''}</td>)}
       </tr>)}
     </tbody>
   </table>
@@ -84,3 +84,7 @@ const choices = firstText < 0 ? [] : [...new Set(rows.map((r) => r.vals[firstTex
     });
   }
 </script>
+<style>
+  /* compare_only fields: kept in the DOM for the side by side view */
+  .parttable table .conly { display: none; }
+</style>
