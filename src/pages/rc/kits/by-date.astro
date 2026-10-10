@@ -1,6 +1,8 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import { db, url, brandName, dateKey, dateText } from '../../../lib/data';
+import Icon from '../../../components/Icon.astro';
+import { kitTypeIcon, kitTypeOne } from '../../../lib/kitTypes';
 // every kit by its newest release, newest first; discontinued kits last within a year
 const rows = db.kits.map((k) => {
   const rs = (db.releasesByKit.get(k.id) ?? []).filter((r) => r.year);   // unknown years cannot be placed
@@ -16,7 +18,7 @@ const PAGE = 50;
   <table id="kits">
     <tr><th class="num">Released</th><th>Kit</th><th>Type</th><th>Scale</th><th>Newest release</th><th class="num">Releases</th></tr>
     {rows.map(({ k, newest, first, count }, i) => <tr hidden={i >= PAGE}>
-      <td class="num">{dateText(newest!)}</td><td><a href={url.kit(k.id)}>{brandName(k.brand)} {k.name}</a></td><td>{k.category}</td><td>{k.scale ?? ''}</td>
+      <td class="num">{dateText(newest!)}</td><td><a href={url.kit(k.id)}><span class="muted" title={kitTypeOne[k.category ?? 'car']}><Icon name={kitTypeIcon(k.category)} size="1em" /></span> {brandName(k.brand)} {k.name}</a></td><td><a href={`/rc/kits/types/${k.category || 'car'}/`}>{kitTypeOne[k.category ?? 'car'] ?? k.category}</a></td><td>{k.scale ?? ''}</td>
       <td><a href={url.release(newest!.id)}>{newest!.name}</a>{newest!.status !== 'released' && <span class="muted"> · {newest!.status}</span>}</td>
       <td class="num">{count}{first !== undefined && first !== newest!.year && <span class="muted"> since {first}</span>}</td>
     </tr>)}
