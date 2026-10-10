@@ -31,19 +31,20 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
     <a class="stat" href="/rc/kits/"><b>{db.kits.length}</b> kits</a>
     <a class="stat" href="/rc/releases/"><b>{db.releases.length}</b> releases</a>
     <a class="stat" href="/search/?type=part"><b>{db.parts.length}</b> parts</a>
+    <a class="stat" href="/rc/categories/"><b>{byCat.size}</b> part categories</a>
     <a class="stat" href="/rc/specs/"><b>{db.specs.length}</b> generic specs</a>
   </div>
 
   <div class="home-grid">
     <section>
-      <h2>Parts by category</h2>
+      <h2>Parts by category <span class="muted">· <a href="/rc/categories/">all {byCat.size} categories</a></span></h2>
       <ul class="hbars">
-        {cats.map(([c, n]) => <li><a href={`/search/?category=${encodeURIComponent(catName(c))}`}>{catName(c)}</a>
+        {cats.map(([c, n]) => <li><a href={`/rc/categories/${c}/`}>{catName(c)}</a>
           <span class="bar" style={`width:${(n / max(cats)) * 100}%`} title={`${catName(c)}: ${n} parts`}></span><span class="v">{n}</span></li>)}
       </ul>
     </section>
     <section>
-      <h2>Brands by parts</h2>
+      <h2>Brands by parts <span class="muted">· <a href="/rc/brands/">all brands</a></span></h2>
       <ul class="hbars">
         {brands.map(([b, n]) => <li><a href={url.brand(b)}>{brandName(b)}</a>
           <span class="bar" style={`width:${(n / max(brands)) * 100}%`} title={`${brandName(b)}: ${n} parts`}></span><span class="v">{n}</span></li>)}
@@ -53,10 +54,10 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 
   <h2>Latest kits <span class="muted">· <a href="/rc/kits/by-date/">all kits by date</a></span></h2>
   <table>
-    <tr><th class="num">Year</th><th>Kit</th><th>Newest release</th><th>Status</th></tr>
+    <tr><th class="num">Released</th><th>Kit</th><th>Newest release</th><th>Status</th></tr>
     {latest.map((r) => { const k = db.kit.get(r.kit); return <tr><td class="num">{dateText(r)}</td><td><a href={url.kit(r.kit)}>{brandName(r.brand)} {k?.name ?? ''}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td><td class="muted">{r.status}</td></tr>; })}
   </table>
 
-  <p><a href="/rc/">Browse RC cars</a> · <a href="/rc/compare/">Compare two releases</a> · <a href="/rc/specs/">Generic specs</a></p>
+  <p><a href="/rc/">Browse RC cars</a> · <a href="/rc/compare/">Compare two releases</a> · <a href="/rc/categories/">Part categories</a> · <a href="/rc/specs/">Generic specs</a> · <a href="/rc/servos/">Compare servos</a></p>
   <p class="muted">Dataset {db.dataset}, export generated {db.generated}. Early draft: data and schema are still growing.</p>
 </Base>
