@@ -74,6 +74,13 @@ import Base from '../layouts/Base.astro';
         catch (e) { status.textContent = 'Search failed: ' + (e && e.message ? e.message : e); return; }
         if (my !== seq) return;
         hits = r.results;
+        // without a type or category filter, kits come first: a kit name is usually what people look for
+        if (text && !type && !cat) {
+          const k = await pagefind.search(text, { filters: { type: 'kit' } });
+          if (my !== seq) return;
+          const ids = new Set(k.results.map((h) => h.id));
+          hits = [...k.results, ...hits.filter((h) => !ids.has(h.id))];
+        }
         status.textContent = hits.length ? `${hits.length} ${text ? 'result' : labels[type] || 'page'}${hits.length === 1 ? '' : 's'}` : 'No results';
         await render();
       }
