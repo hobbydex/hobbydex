@@ -13,7 +13,7 @@ const CAPKEY: Record<string, number> = { '1.6': 1.5, '2': 1.5, '2.5': 2, '3': 2.
 const SETKEY: Record<string, number> = { '2': 0.9, '2.5': 1.3, '3': 1.5, '4': 2, '5': 2.5, '6': 3 };   // ISO 4029
 const PITCH: Record<string, number> = { '1.4': 0.3, '1.6': 0.35, '1.7': 0.35, '2': 0.4, '2.2': 0.45, '2.3': 0.4, '2.5': 0.45, '2.6': 0.45, '3': 0.5, '3.5': 0.6, '4': 0.7, '5': 0.8, '6': 1 };
 
-export type ScrewDrawing = { svg: string; standard?: string; approximate: boolean };
+export type ScrewDrawing = { svg: string; standard?: string; approximate: boolean; note?: string };
 
 const f = (v: number) => String(Math.round(v * 100) / 100);
 
