@@ -73,14 +73,14 @@ function pinion(spec: Spec): ScrewDrawing | undefined {
   return { svg: svgWrap(380, 180, `${z}T pinion, ${pitch}`, o.join('')), standard: undefined, approximate: false };
 }
 
-// Wheel hex: the hex seen from the wheel side with its size across the flats, and the drive pin through the axle.
+// Wheel hex: the hex seen from the wheel side with its size across the flats. The axle is dashed: its size is not part of the spec.
 function wheelHex(spec: Spec): ScrewDrawing | undefined {
   const af = Number(spec.hex_mm);
   if (!af) return undefined;
   const s = 110 / (af / Math.cos(Math.PI / 6)), cx = 90, cy = 75, R = ((af / 2) / Math.cos(Math.PI / 6)) * s;
   const hex = [0, 1, 2, 3, 4, 5].map((i) => `${f(cx + R * Math.cos((i * Math.PI) / 3))} ${f(cy + R * Math.sin((i * Math.PI) / 3))}`).join('L');
   const flat = (af / 2) * s;
-  const o = [`<path d="M${hex}Z"/>`, `<circle class="thin" cx="${cx}" cy="${cy}" r="${f(flat * 0.42)}"/>`];
+  const o = [`<path d="M${hex}Z"/>`, `<circle class="thin dash" cx="${cx}" cy="${cy}" r="${f(flat * 0.42)}"/>`];
   o.push(vdim(cx + R + 16, cy - flat, cy + flat, `${f(af)}`));
   o.push(`<path class="thin" d="M${f(cx + R * 0.5)} ${f(cy - flat)}H${f(cx + R + 20)}M${f(cx + R * 0.5)} ${f(cy + flat)}H${f(cx + R + 20)}"/>`);
   o.push(`<text x="${cx}" y="${f(cy + R + 22)}" text-anchor="middle" class="std">across the flats</text>`);
