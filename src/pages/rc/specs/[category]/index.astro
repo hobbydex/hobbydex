@@ -15,6 +15,7 @@ const cols: Record<string, [string, string][]> = {
   battery: [['chemistry', 'Chemistry'], ['cells', 'Cells'], ['capacity_mah', 'mAh'], ['nominal_v', 'V']],
   servo: [['size_class', 'Size'], ['spline_teeth', 'Spline']],
   pinion: [['teeth', 'Teeth'], ['pitch_dp', 'Pitch'], ['module', 'Module']],
+  pin: [['diameter_mm', 'Diameter mm'], ['length_mm', 'Length mm']],
 };
 const show = cols[category!] ?? [];
 ---

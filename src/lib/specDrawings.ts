@@ -87,10 +87,23 @@ function wheelHex(spec: Spec): ScrewDrawing | undefined {
   return { svg: svgWrap(300, 180, `${f(af)} mm wheel hex`, o.join('')), standard: undefined, approximate: false };
 }
 
+// Parallel pin: side view to scale with its chamfered ends, the diameter and the length.
+function pin(spec: Spec): ScrewDrawing | undefined {
+  const d = Number(spec.diameter_mm), L = Number(spec.length_mm);
+  if (!d || !L) return undefined;
+  const s = Math.min(14, 220 / L, 60 / d), x0 = 50, cy = 60, w = L * s, r = (d / 2) * s, c = Math.min(r * 0.35, 4);
+  const o = [`<path d="M${f(x0 + c)} ${f(cy - r)}H${f(x0 + w - c)}L${f(x0 + w)} ${f(cy - r + c)}V${f(cy + r - c)}L${f(x0 + w - c)} ${f(cy + r)}H${f(x0 + c)}L${x0} ${f(cy + r - c)}V${f(cy - r + c)}Z"/>`];
+  o.push(hdim(x0, x0 + w, cy + r + 18, `${f(L)}`), `<path class="thin" d="M${x0} ${f(cy + r + 3)}V${f(cy + r + 22)}M${f(x0 + w)} ${f(cy + r + 3)}V${f(cy + r + 22)}"/>`);
+  o.push(vdim(x0 + w + 16, cy - r, cy + r, `⌀${f(d)}`));
+  const std = (spec.standards ?? []).join(' / ');
+  return { svg: svgWrap(Math.max(300, x0 + w + 70), Math.max(120, cy + r + 40), `${f(d)}x${f(L)} parallel pin`, o.join('')), standard: std || undefined, approximate: false };
+}
+
 export function specDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | undefined {
   if (spec.category === 'screw') return screwDrawing(spec);
   if (spec.category === 'bearing') return bearing(spec);
   if (spec.category === 'pinion') return pinion(spec);
   if (spec.category === 'wheel-hex') return wheelHex(spec);
+  if (spec.category === 'pin') return pin(spec);
   return undefined;
 }
