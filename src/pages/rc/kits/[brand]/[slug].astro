@@ -1,6 +1,8 @@
 ---
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
+import Icon from '../../../../components/Icon.astro';
+import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 export function getStaticPaths() {
   return db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } }));
 }
@@ -20,7 +22,10 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="kit" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
-  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(kit.brand)} {kit.name}</h1>
+  <div class="kithead">
+    <a href={`/rc/kits/types/${kit.category || 'car'}/`} title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}><Icon name={kitTypeIcon(kit.category)} size="3rem" /></a>
+    <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(kit.brand)} {kit.name}</h1>
+  </div>
   <dl class="facts">
     <dt>Category</dt><dd>{kit.category}</dd>
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
