@@ -1,0 +1,7 @@
+---
+// A spec's standard codes, each linked to its standard page when the data has it.
+import { db, url } from '../lib/data';
+interface Props { codes?: string[] }
+const { codes = [] } = Astro.props;
+---
+{codes.map((c, i) => { const s = db.standardByCode.get(c); return <>{i > 0 && ', '}{s ? <a href={url.standard(s.id)} title={s.title}>{c}</a> : c}</>; })}

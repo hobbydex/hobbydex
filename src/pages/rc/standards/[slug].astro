@@ -1,0 +1,29 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { db, key, url, type Standard } from '../../../lib/data';
+export function getStaticPaths() {
+  return db.standards.map((s) => ({ params: { slug: key(s.id)[0] }, props: { std: s } }));
+}
+const { std } = Astro.props as { std: Standard };
+const by = std.replaced_by ? db.standard.get(std.replaced_by) : undefined;
+const replaces = db.standards.filter((s) => s.replaced_by === std.id);
+const num = (v: unknown) => (typeof v === 'number' ? v : Number.POSITIVE_INFINITY);
+const specs = db.specs.filter((s) => s.standards?.includes(std.code))
+  .sort((a, b) => num(Number(String(a.thread ?? '').replace(/^M/, ''))) - num(Number(String(b.thread ?? '').replace(/^M/, ''))) || num(a.length_mm) - num(b.length_mm));
+---
+<Base title={`${std.code}: ${std.title}`} description={`${std.code}, ${std.title}: the screw sizes in Hobbydex that follow it and the branded parts that match.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">Specs</a> / <a href="/rc/standards/">Standards</a> / {std.code}</div>
+  <h1 data-pagefind-meta="title" data-pagefind-weight="10">{std.code}: {std.title}</h1>
+  {std.notes && <p>{std.notes}</p>}
+  <dl class="facts">
+    {std.url && <><dt>Publisher's page</dt><dd><a href={std.url} rel="external">{new URL(std.url).hostname}</a> <span class="muted">(title, scope, edition; the text is sold)</span></dd></>}
+    {by && <><dt>Replaced by</dt><dd><a href={url.standard(by.id)}>{by.code}</a> {by.title}</dd></>}
+    {replaces.length > 0 && <><dt>Replaces</dt><dd>{replaces.map((r, i) => <>{i > 0 && ', '}<a href={url.standard(r.id)}>{r.code}</a></>)}</dd></>}
+  </dl>
+  <h2>Sizes <span class="muted">({specs.length})</span></h2>
+  {specs.length === 0 ? <p class="muted">No spec cites it yet.</p> :
+  <table>
+    <tr><th>Spec</th><th>Thread</th><th class="num">Length mm</th><th>Head</th><th>Drive</th><th class="num">Matching parts</th></tr>
+    {specs.map((s) => <tr><td><a href={url.spec(s.id)}>{s.name ?? key(s.id)[1]}</a></td><td>{String(s.thread ?? '')}</td><td class="num">{String(s.length_mm ?? '')}</td><td>{String(s.head ?? '')}</td><td>{String(s.drive ?? '')}</td><td class="num">{db.partsBySpec.get(s.id)?.length ?? 0}</td></tr>)}
+  </table>}
+</Base>

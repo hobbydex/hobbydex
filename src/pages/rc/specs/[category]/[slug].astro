@@ -1,5 +1,6 @@
 ---
 import Base from '../../../../layouts/Base.astro';
+import Standards from '../../../../components/Standards.astro';
 import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 export function getStaticPaths() {
   return db.specs.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } }));
@@ -23,7 +24,7 @@ const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c
   <dl class="facts">
     <dt>Category</dt><dd>{spec.category}</dd>
     {attrs.map(([k, v]) => <><dt>{k.replace(/_/g, ' ')}</dt><dd>{String(v)}</dd></>)}
-    {spec.standards && <><dt>Standards</dt><dd>{spec.standards.join(', ')}</dd></>}
+    {spec.standards && <><dt>Standards</dt><dd><Standards codes={spec.standards} /></dd></>}
   </dl>
   <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>
   {spec.category === 'battery' && plugs.length > 1 && <p data-pagefind-ignore><label>Plug <select id="plugfilter"><option value="">any (plugs can be changed)</option>{plugs.map((c) => <option value={c}>{c}</option>)}</select></label></p>}
