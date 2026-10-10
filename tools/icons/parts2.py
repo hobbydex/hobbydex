@@ -39,10 +39,10 @@ S["differential"] = unary_union([case, ring, teeth, box(0.5, 10.4, 4.6, 13.6), b
 # pinion: a small cog with its bore and a short boss
 S["pinion"] = unary_union([cog(12, 11, 12, 9.5, 7.6, 0.55).difference(Point(12, 11).buffer(2.4, 32)), box(10.8, 19.4, 13.2, 21.0)])
 # tyre: a solid ring with tread blocks on the outside, no holes in the rubber
-# tyre: smooth round rubber with the tread cut in as slanted grooves, a rim and a hub
-tyre = Point(12, 12).buffer(10.4, 64).difference(Point(12, 12).buffer(6.0, 64))
-grooves = unary_union([affinity.rotate(affinity.rotate(box(11.35, 2.9, 12.65, 5.0), 30, origin=(12, 3.95)), i * 24, origin=(12, 12)) for i in range(15)])
-S["tire"] = tyre.difference(grooves)   # empty inside: the rubber only
+# tyre: thick rubber, empty inside, with big tread blocks on the outside
+tyre = Point(12, 12).buffer(9.0, 64).difference(Point(12, 12).buffer(5.4, 64))
+blocks = [affinity.rotate(box(10.4, 0.6, 13.6, 3.4), i * 36, origin=(12, 12)) for i in range(10)]
+S["tire"] = unary_union([tyre, *blocks]).difference(Point(12, 12).buffer(5.4, 64))
 # spur gear: fine teeth, and a hex in the middle like a slipper hub
 hexhole = Polygon([(12 + 3.6 * math.cos(i * math.pi / 3), 12 + 3.6 * math.sin(i * math.pi / 3)) for i in range(6)])
 S["spur-gear"] = cog(12, 12, 24, 11.2, 9.6, 0.5).difference(hexhole)
