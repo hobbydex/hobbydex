@@ -45,11 +45,25 @@ function pinion(spec: Spec): ScrewDrawing | undefined {
   if (!z || !m) return undefined;
   const Dp = z * m, Da = Dp + 2 * m, Df = Dp - 2.5 * m;
   const s = 120 / Da, cx = 90, cy = 75, ra = (Da / 2) * s, rf = (Df / 2) * s, rp = (Dp / 2) * s;
+  // involute teeth (20 degree pressure angle): curved flanks from the base circle to the tip, root arcs between
+  const rb = rp * Math.cos((20 * Math.PI) / 180);
+  const inv = (r: number) => { const al = Math.acos(Math.min(1, rb / r)); return Math.tan(al) - al; };
+  const half = Math.PI / (2 * z) + inv(rp);   // half tooth angle at the base circle, measured from the tooth centre
+  const flank: [number, number][] = [];      // [radius, angle from the tooth centre] from root to tip
+  const r0 = Math.max(rf, rb);
+  for (let j = 0; j <= 8; j++) { const r = r0 + ((ra - r0) * j) / 8; flank.push([r, half - inv(r)]); }
   const pts: string[] = [];
-  for (let i = 0; i < z; i++) {   // trapezoid teeth: root, flank up, tip, flank down
-    const a = (2 * Math.PI * i) / z, t = Math.PI / z;
-    for (const [ang, rr] of [[a - t * 0.95, rf], [a - t * 0.4, ra], [a + t * 0.4, ra], [a + t * 0.95, rf]] as [number, number][])
-      pts.push(`${f(cx + rr * Math.sin(ang))} ${f(cy - rr * Math.cos(ang))}`);
+  const at = (r: number, a: number) => `${f(cx + r * Math.sin(a))} ${f(cy - r * Math.cos(a))}`;
+  for (let i = 0; i < z; i++) {
+    const c = (2 * Math.PI * i) / z;
+    const hr = (half * rb) / rf;               // below the base circle the flank runs parallel: same width at the root
+    if (rf < rb) pts.push(at(rf, c - hr));
+    for (const [r, a] of flank) pts.push(at(r, c - a));
+    for (let j = 1; j <= 3; j++) pts.push(at(ra, c - flank[8][1] + (2 * flank[8][1] * j) / 4));   // tip land, a short arc
+    for (const [r, a] of [...flank].reverse()) pts.push(at(r, c + a));
+    if (rf < rb) pts.push(at(rf, c + hr));
+    const next = c + (2 * Math.PI) / z;        // root arc to the next tooth
+    for (let j = 1; j <= 3; j++) pts.push(at(rf, c + hr + ((next - hr - (c + hr)) * j) / 4));
   }
   const o = [`<path d="M${pts.join('L')}Z"/>`, `<circle class="thin dash" cx="${cx}" cy="${cy}" r="${f(rp)}"/>`, `<circle class="thin" cx="${cx}" cy="${cy}" r="2"/>`];
   o.push(hdim(cx - ra, cx + ra, cy + ra + 18, `⌀${f(Da)}`));
