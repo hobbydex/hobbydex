@@ -1,6 +1,7 @@
 ---
 import Base from '../../../../layouts/Base.astro';
 import Standards from '../../../../components/Standards.astro';
+import { screwDrawing } from '../../../../lib/screwDrawing';
 import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 export function getStaticPaths() {
   return db.specs.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } }));
@@ -12,6 +13,8 @@ const linked = db.partsBySpec.get(spec.id) ?? [];
 const uses = linked.flatMap(({ part, link }) => (db.usesByPart.get(part.id) ?? []).map((u) => ({ part, link, ...u })))
   .sort((a, b) => yearOf(a.release) - yearOf(b.release) || a.release.name.localeCompare(b.release.name));
 const title = spec.name ?? key(spec.id)[1];
+const drawing = spec.category === 'screw' ? screwDrawing(spec) : undefined;
+const drawStd = drawing?.standard ? db.standardByCode.get(drawing.standard) : undefined;
 // servos: every servo of the same size class, whatever its spline, closest case first
 const sameSize = spec.category !== 'servo' ? [] : db.specs.filter((o) => o.category === 'servo' && o.size_class === spec.size_class)
   .flatMap((o) => (db.partsBySpec.get(o.id) ?? []).map(({ part }) => ({ part, spline: o.spline_teeth as number | undefined })))
@@ -26,6 +29,10 @@ const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c
     {attrs.map(([k, v]) => <><dt>{k.replace(/_/g, ' ')}</dt><dd>{String(v)}</dd></>)}
     {spec.standards && <><dt>Standards</dt><dd><Standards codes={spec.standards} /></dd></>}
   </dl>
+  {drawing && <figure class="drawing" data-pagefind-ignore>
+    <Fragment set:html={drawing.svg} />
+    <figcaption class="muted">To scale. {drawStd ? <>Head and socket sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : drawing.standard ? <>Head and socket sizes from {drawing.standard}</> : <>Head proportions as usual for this type</>}{drawing.approximate && drawing.standard && '; this size is outside the standard\'s table, so the head is drawn with the usual proportions'}.</figcaption>
+  </figure>}
   <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>
   {spec.category === 'battery' && plugs.length > 1 && <p data-pagefind-ignore><label>Plug <select id="plugfilter"><option value="">any (plugs can be changed)</option>{plugs.map((c) => <option value={c}>{c}</option>)}</select></label></p>}
   {linked.length === 0 ? <p class="muted">None linked yet.</p> :
