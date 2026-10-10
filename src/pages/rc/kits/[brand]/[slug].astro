@@ -22,16 +22,16 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="kit" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
-  <div class="kithead">
-    <a href={`/rc/kits/types/${kit.category || 'car'}/`} title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}><Icon name={kitTypeIcon(kit.category)} size="3rem" /></a>
-    <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(kit.brand)} {kit.name}</h1>
-  </div>
+  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(kit.brand)} {kit.name}</h1>
+  <div class="factsrow">
   <dl class="facts">
     <dt>Category</dt><dd>{kit.category}</dd>
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
     {kit.drive && <><dt>Drive</dt><dd>{kit.drive}</dd></>}
     {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
   </dl>
+    <a class="typeicon" href={`/rc/kits/types/${kit.category || 'car'}/`} title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}><Icon name={kitTypeIcon(kit.category)} size="5rem" /></a>
+  </div>
   {kit.notes && <p class="muted">{kit.notes}</p>}
   {relations.length > 0 && <>
     <h2>Same car or platform</h2>
