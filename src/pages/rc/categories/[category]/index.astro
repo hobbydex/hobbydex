@@ -1,0 +1,22 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import { brandName, key } from '../../../../lib/data';
+import { catName } from '../../../../lib/categories';
+import { byCategory, categories, countOf, specFor } from '../../../../lib/categoryIndex';
+export function getStaticPaths() {
+  return categories.map((category) => ({ params: { category } }));
+}
+const { category } = Astro.params;
+const brands = [...byCategory.get(category)!.entries()].sort((a, b) => brandName(a[0]).localeCompare(brandName(b[0])));
+---
+<Base title={catName(category)} description={`${catName(category)}: ${countOf(category)} RC parts from ${brands.length} brands.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/categories/">Categories</a> / {catName(category)}</div>
+  <h1>{catName(category)}</h1>
+  <p class="muted">{countOf(category)} parts from {brands.length} brands.
+    {specFor[category] && <>Brand-independent sizes: <a href={`/rc/specs/${specFor[category]}/`}>{catName(category).toLowerCase()} specs</a>.</>}
+    <a href={`/search/?category=${encodeURIComponent(catName(category))}`}>Search in this category</a></p>
+  <table>
+    <tr><th>Brand</th><th class="num">Parts</th></tr>
+    {brands.map(([b, ps]) => <tr><td><a href={`/rc/categories/${category}/${key(b)[0]}/`}>{brandName(b)}</a></td><td class="num">{ps.length}</td></tr>)}
+  </table>
+</Base>
