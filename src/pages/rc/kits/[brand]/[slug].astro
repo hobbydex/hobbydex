@@ -22,6 +22,9 @@ const ownParts = releases.reduce((n, r) => n + (r.contains?.length ?? 0), 0);
 const borrowed = ownParts > 0 ? [] : relations.filter((r) => r.link.parts === 'interchangeable').flatMap((r) =>
   (db.releasesByKit.get(r.other) ?? []).flatMap((rel) => (rel.contains ?? []).map((c) => ({ c, rel, p: db.part.get(c.part)! })))).filter((x) => x.p);
 const seen = new Set<string>();
+// rows grouped by part category, named categories alphabetically, uncategorised last
+const byCat = <T,>(rows: T[], cat: (r: T) => string | undefined) => [...new Set(rows.map((r) => cat(r) ?? ''))]
+  .sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))).map((g) => ({ g, rows: rows.filter((r) => (cat(r) ?? '') === g) }));
 const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => a.p.number.localeCompare(b.p.number));
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="kit" sub={brandName(kit.brand)}>
@@ -57,14 +60,27 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
   {borrowedUnique.length > 0 && <>
     <h2>Parts, from the interchangeable rebrand <span class="muted">({borrowedUnique.length})</span></h2>
     <p class="muted">No parts list for this kit itself; these come from the rebrand above, whose parts interchange.</p>
-    <table>
-      <tr><th class="num">Number</th><th>Name</th><th>Brand</th><th>From</th></tr>
-      {borrowedUnique.map(({ c, rel, p }) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td>{p.category && <a class="caticon" href={`/rc/categories/${p.category}/`} title={catName(p.category)}><Icon name={p.category} /></a>} {p.name}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
-    </table></>}
+    {byCat(borrowedUnique, (x) => x.p.category).map(({ g, rows }) => <div class="catgroup">
+      <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
+      <table>
+        <tr><th class="num w-num">Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-from">From</th></tr>
+        {rows.map(({ rel, p }) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td>{p.name}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
+      </table></div>)}
+  </>}
   {fits.length > 0 && <>
     <h2>Option parts listed as fitting <span class="muted">({fits.length})</span></h2>
-    <table>
-      <tr><th class="num">Number</th><th>Name</th><th>Brand</th><th>Fit</th></tr>
-      {fits.map(({ part, fit }) => <tr><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.category && <a class="caticon" href={`/rc/categories/${part.category}/`} title={catName(part.category)}><Icon name={part.category} /></a>} {part.name}</td><td>{brandName(part.brand)}</td><td>{fit.type}{fit.notes && <span class="muted"> · {fit.notes}</span>}</td></tr>)}
-    </table></>}
+    {(() => { const groups = byCat(fits, (x) => x.part.category); return <>
+      {groups.length > 2 && <p class="muted" data-pagefind-ignore>{groups.map(({ g, rows }, i) => <>{i > 0 && ' · '}<a href={`#cat-${g || 'other'}`}>{g ? catName(g) : 'Other'}</a> ({rows.length})</>)}</p>}
+      {groups.map(({ g, rows }) => <div class="catgroup" id={`cat-${g || 'other'}`}>
+        <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
+        <table>
+          <tr><th class="num w-num">Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
+          {rows.map(({ part, fit }) => <tr><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td>{brandName(part.brand)}</td><td>{fit.type}{fit.notes && <span class="muted"> · {fit.notes}</span>}</td></tr>)}
+        </table></div>)}</>; })()}
+  </>}
+  <style>
+    .catgroup table { table-layout: fixed; width: 100%; }
+    .w-num { width: 10rem; } .w-brand { width: 9rem; } .w-from { width: 14rem; } .w-fit { width: 12rem; }
+    .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
+  </style>
 </Base>
