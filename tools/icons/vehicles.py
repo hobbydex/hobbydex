@@ -158,6 +158,13 @@ def _crawler():
     g = affinity.scale(g, k, k, origin=(minx, miny))
     return affinity.translate(g, (48 - (maxx - minx) * k) / 2 - minx, 0.8 - miny)
 V["crawler"] = _crawler()
+V["kart"] = vehicle([
+    # go-kart: small wheels, a low flat frame with nose and side pods, a big bucket seat leaning back, steering column and wheel, engine behind the seat
+    [(13.0, 20.2), (13.0, 17.4), (14.6, 15.0), (16.4, 16.6), (35.0, 16.6), (35.0, 20.2)],
+    [(23.5, 16.8), (24.2, 11.2), (27.8, 3.6), (32.6, 4.2), (31.0, 11.6), (34.0, 16.8)],
+    link(14.5, 15.6, 19.6, 9.8, 2.2), link(17.2, 8.2, 22.0, 11.6, 2.4),
+    box(35.0, 12.0, 41.0, 16.8)],
+    [tyre(9.0, 3.9, gap=1.4), tyre(39.0, 4.1, gap=1.4)])
 V["touring"] = vehicle([
     [(1, 20.2), (1, 17.2), (3, 15.8), (12, 14.6), (17, 10.6), (28, 10.2), (33.5, 14), (44, 14.6), (46.8, 16), (46.8, 20.2)],
     [(40, 12.2), (46.6, 11.6), (46.6, 13.4), (40, 13.8)]],
