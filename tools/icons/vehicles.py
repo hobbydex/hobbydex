@@ -78,11 +78,53 @@ def _short_course():
     g = affinity.scale(g, k, k, origin=(minx, miny))
     return affinity.translate(g, (48 - (maxx - minx) * k) / 2 - minx, 23.2 - (maxy - miny) * k - miny)
 V["short-course"] = _short_course()
-V["monster"] = vehicle([
-    # pickup body resting on top of two big wheels, one solid silhouette (no gap cut around the wheels)
-    [(1.5, 11.0), (1.5, 8.6), (3.5, 7.4), (12.5, 6.8), (15.5, 2.4), (24.5, 2.2), (26.5, 6.4), (46.5, 6.6), (47, 11.0)],
-    box(16, 10.8, 32, 16.0)],
-    [tyre(11, 7.0), tyre(37.5, 7.0)], window=[(16.6, 3.4), (23.4, 3.4), (24.8, 6.4), (14.2, 6.4)])
+def svgcurve(d, steps=12):
+    """An Inkscape path (m/l/h/v/c/s, relative or absolute, one closed ring) as a polygon; curves sampled."""
+    import re
+    toks = re.findall(r"[a-zA-Z]|-?\d*\.?\d+(?:e-?\d+)?", d)
+    pts, x, y, cmd, i, last_c2 = [], 0.0, 0.0, "m", 0, None
+    num = lambda: float(toks[i])
+    while i < len(toks):
+        if toks[i].isalpha():
+            cmd = toks[i]; i += 1
+            if cmd in "zZ": break
+            continue
+        rel = cmd.islower(); c = cmd.lower()
+        if c in "ml":
+            dx, dy = float(toks[i]), float(toks[i + 1]); i += 2
+            x, y = (x + dx, y + dy) if rel else (dx, dy); pts.append((x, y)); last_c2 = None
+            if cmd in "mM": cmd = "l" if rel else "L"
+        elif c in "hv":
+            v = float(toks[i]); i += 1
+            if c == "h": x = x + v if rel else v
+            else: y = y + v if rel else v
+            pts.append((x, y)); last_c2 = None
+        elif c in "cs":
+            n = 6 if c == "c" else 4
+            v = [float(t) for t in toks[i:i + n]]; i += n
+            ox, oy = (x, y) if rel else (0.0, 0.0)
+            if c == "c": c1 = (ox + v[0], oy + v[1]); c2 = (ox + v[2], oy + v[3]); e = (ox + v[4], oy + v[5])
+            else:
+                c1 = (2 * x - last_c2[0], 2 * y - last_c2[1]) if last_c2 else (x, y)
+                c2 = (ox + v[0], oy + v[1]); e = (ox + v[2], oy + v[3])
+            p0 = (x, y)
+            for k in range(1, steps + 1):
+                t = k / steps; u = 1 - t
+                pts.append((u**3 * p0[0] + 3*u*u*t * c1[0] + 3*u*t*t * c2[0] + t**3 * e[0],
+                            u**3 * p0[1] + 3*u*u*t * c1[1] + 3*u*t*t * c2[1] + t**3 * e[1]))
+            x, y = e; last_c2 = c2
+    return Polygon(pts).buffer(0)
+def _monster():
+    # drawn by the user (Inkscape, mm) over a Losi LMT: body outline and two wheels; wheel nut holes as on the other icons
+    body = svgcurve("m 126.68167,103.34873 c -12.46658,0.44987 -24.82372,1.96978 -37.16672,3.95066 -1.326879,0.21295 -3.853512,1.18546 -3.853512,1.18546 l -10.374044,16.59899 -15.116907,-0.29662 c 0,0 -21.530271,-0.0361 -31.122648,4.15013 -2.701504,1.17898 -6.817155,5.6317 -6.817155,5.6317 l 0.296106,5.33507 1.778703,5.03897 c 0,0 2.534545,-4.83531 4.742346,-6.22443 5.379461,-3.3847 12.322294,-4.08418 18.673796,-3.85351 6.157439,0.22362 12.730828,1.51406 17.784444,5.03897 4.408893,3.07522 9.484692,13.0421 9.484692,13.0421 l 10.374561,1.77819 4.67155,13.5165 -14.245762,-0.46565 -0.645541,3.47078 16.242641,0.2391 0.794267,2.20968 21.934063,-0.29662 0.46457,-1.94562 13.32516,-0.0989 -0.64033,-3.25238 -11.89682,0.0548 3.49074,-14.61719 9.48469,-1.18546 c 0,0 6.29142,-10.48699 10.96729,-14.22755 3.65886,-2.92699 9.91036,-4.22214 14.52418,-5.03897 4.58913,-0.81246 9.85174,0.47092 14.22756,2.07481 4.32438,1.58504 9.18858,6.22442 9.18858,6.22442 l 0.59273,-4.14962 -5.92832,-12.44936 -3.85299,-15.41302 c 0,0 -1.90662,-3.26015 -3.55689,-3.55689 -12.7817,-2.29831 -25.35799,-2.91845 -37.82457,-2.46858 z")
+    wheels = [((45.943111, 166.28442), 26.676645), ((157.39221, 166.28442), 27.269461)]
+    tyres = unary_union([Point(c).buffer(r, 96).difference(Point(c).buffer(r * 0.3, 48)) for c, r in wheels])
+    g = unary_union([body, tyres])
+    minx, miny, maxx, maxy = g.bounds
+    k = min(46 / (maxx - minx), 22.4 / (maxy - miny))
+    g = affinity.scale(g, k, k, origin=(minx, miny))
+    return affinity.translate(g, (48 - (maxx - minx) * k) / 2 - minx, 23.2 - (maxy - miny) * k - miny)
+V["monster"] = _monster()
 V["desert-truck"] = vehicle([
     # trophy truck (Traxxas UDR): tall cab, deep body down over the front wheel, bed with a cage, long rear trailing arm
     [(2, 16.6), (2, 10.6), (4.5, 9.4), (14, 8.8), (18, 3.6), (27, 3.4), (29, 8.0), (31.5, 8.2), (31.5, 14.4), (14, 14.4), (12.5, 16.6)],
