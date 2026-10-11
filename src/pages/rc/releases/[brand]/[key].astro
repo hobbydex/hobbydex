@@ -23,6 +23,16 @@ const hasStep = rows.some((c) => c.step !== undefined);
 const cats = [...new Set(rows.map((c) => c.p.category).filter((c): c is string => !!c))].sort((a, b) => catName(a).localeCompare(catName(b)));
 const related = (db.kitRelations.get(kit.id) ?? []).map((r) => ({ ...r, k: db.kit.get(r.other) })).filter((r) => r.k);
 const bearings = bearingList(release);
+// bearing kits sold for this car, checked against the sizes (and counts) in the box
+const bearingKits = (db.fitsByKit.get(kit.id) ?? []).map((x) => x.part).filter((p) => p.category === 'bearing' && (p.includes ?? []).some((i) => i.spec?.startsWith('spec/bearing/')))
+  .sort((a, b) => a.number.localeCompare(b.number)).map((p) => {
+    const inc = new Map((p.includes ?? []).filter((i) => i.spec).map((i) => [i.spec!, i.qty]));
+    const need = bearings?.lines ?? [];
+    const missing = need.filter((l) => !inc.has(l.spec));
+    const short = bearings?.counted ? need.filter((l) => inc.has(l.spec) && l.qty !== undefined && (inc.get(l.spec) ?? 0) < l.qty) : [];
+    const total = [...inc.values()].reduce((n: number, q) => n + (q ?? 0), 0);
+    return { p, missing, short, total };
+  });
 const copyText = bearings ? bearings.lines.map((l) => `${l.qty !== undefined ? `${l.qty}x ` : ''}${l.name}`).join('\n') : '';
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 ---
@@ -61,11 +71,22 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     </table>
     {bearings.unsized.length > 0 && <p class="muted">Also {bearings.unsized.length} bearing {bearings.unsized.length === 1 ? 'part' : 'parts'} of unknown size: {bearings.unsized.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{p.number}</a></>)}.</p>}
     <p><button type="button" class="copybtn" data-copy={copyText}>Copy bearing list</button></p>
+    {bearingKits.length > 0 && <>
+      <h3>Bearing kits for this car</h3>
+      <table>
+        <tr><th>Kit</th><th class="num">Bearings</th><th>Against the box</th></tr>
+        {bearingKits.map((b) => <tr><td><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {b.p.number}</a> <span class="muted">{b.p.name}</span></td><td class="num">{b.total || ''}</td>
+          <td>{b.missing.length === 0 && b.short.length === 0 ? (bearings.counted ? 'every size, enough of each' : 'every size') : <span class="muted">{b.missing.length > 0 && `misses ${b.missing.map((l) => l.name).join(', ')}`}{b.missing.length > 0 && b.short.length > 0 && '; '}{b.short.length > 0 && `too few ${b.short.map((l) => l.name).join(', ')}`}</span>}</td></tr>)}
+      </table></>}
     <script>
       for (const b of document.querySelectorAll<HTMLButtonElement>('button[data-copy]')) b.addEventListener('click', async () => {
         try { await navigator.clipboard.writeText(b.dataset.copy ?? ''); b.textContent = 'Copied'; setTimeout(() => (b.textContent = 'Copy bearing list'), 1500); } catch {}
       });
     </script></>}
+  {!bearings && bearingKits.length > 0 && <>
+    <h2>Bearing kits for this car <span class="muted">({bearingKits.length})</span></h2>
+    <p class="muted">The bearings in the box are not in our data for this release, so the kits are not checked against it.</p>
+    <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {b.p.number}</a> <span class="muted">{b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span></li>)}</ul></>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
   {cats.length > 1 && <p data-pagefind-ignore><label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label></p>}
