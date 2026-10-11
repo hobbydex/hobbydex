@@ -3,6 +3,7 @@
 // Ticked rows can be shown side by side.
 import { url, brandName, type Part } from '../lib/data';
 import { columns, specOf } from '../lib/categoryColumns';
+import { paintSwatch } from '../lib/paintSwatch';
 interface Props { category: string; parts: Part[]; showBrand?: boolean }
 const { category, parts, showBrand = true } = Astro.props;
 const cols = columns[category] ?? [];
@@ -31,7 +32,8 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
       {rows.map(({ p, vals }) => <tr data-brand={p.brand} data-known={vals.some((v) => v !== undefined) ? '1' : ''}>
         <td><input type="checkbox" autocomplete="off" aria-label={`Compare ${p.number}`} /></td>
         <td><a href={url.part(p.id)}>{showBrand && `${brandName(p.brand)} `}{p.number}</a>{short(p) && <span class="muted"> {short(p)}</span>}</td>
-        {vals.map((v, i) => <td class={`${cols[i].num ? 'num' : ''}${cols[i].field.compare_only ? ' conly' : ''}`}>{v ?? ''}</td>)}
+        {vals.map((v, i) => { const sw = cols[i].field.field === 'color' ? paintSwatch(p) : undefined;
+          return <td class={`${cols[i].num ? 'num' : ''}${cols[i].field.compare_only ? ' conly' : ''}`}>{sw && <span class="swatch" title="approximate colour" set:html={sw} />}{v ?? ''}</td>; })}
       </tr>)}
     </tbody>
   </table>
