@@ -53,7 +53,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {replacedBy.length > 0 && <><dt>Replaced by</dt><dd>{replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>}
     {part.pack_qty && <><dt>Pack</dt><dd>{part.pack_qty} pcs</dd></>}
     {part.former_names && part.former_names.length > 0 && <><dt>Formerly listed as</dt><dd>{part.former_names.join('; ')}</dd></>}
-    {part.material && <><dt>Material</dt><dd>{part.material}{part.strength_class && ` ${part.strength_class}`}{part.finish && `, ${part.finish}`}</dd></>}
+    {part.material && <><dt>Material</dt><dd>{part.material === 'carbon' ? 'carbon fibre' : part.material}{part.material_grade && ` ${part.material_grade}`}{part.strength_class && ` ${part.strength_class}`}{part.finish && `, ${part.finish}`}</dd></>}
     {part.thread_type && <><dt>Thread</dt><dd>{part.thread_type}</dd></>}
     {part.seal && <><dt>Seal</dt><dd>{({ open: 'open', metal: 'metal shields (ZZ)', rubber: 'rubber seals (2RS)', 'rubber-metal': 'rubber and metal' } as Record<string, string>)[part.seal] ?? part.seal}</dd></>}
     {part.lubricant && <><dt>Lubricant</dt><dd>{part.lubricant}</dd></>}
