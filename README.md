@@ -25,6 +25,19 @@ npm run build      # dist/, including the Pagefind index
 it, builds the site and publishes it to GitHub Pages on every push to `main`,
 on demand, and once a day to pick up new data.
 
+## Thanks
+
+Hobbydex is built on open source. Thank you to the people behind:
+
+- [Astro](https://astro.build) - the static site generator every page is built with
+- [Pagefind](https://pagefind.app) - the search, which runs in the browser with no server
+- [TypeScript](https://www.typescriptlang.org) - the site's code
+- [Primer Primitives](https://github.com/primer/primitives) - the colour and spacing tokens behind the light and dark themes
+- [Shapely](https://shapely.readthedocs.io) and [svgpathtools](https://github.com/mathandy/svgpathtools) - drawing the vehicle and part icons
+- [Inkscape](https://inkscape.org) - the hand-traced icons and checking renders
+
+The data itself is read from manufacturers' manuals and parts lists with the tools thanked in [hobbydex-rc](https://github.com/hobbydex/hobbydex-rc#thanks).
+
 ## License
 
 Code is under the [MIT License](LICENSE). The data shown on the site comes
