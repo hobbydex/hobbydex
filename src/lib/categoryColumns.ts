@@ -5,10 +5,13 @@ import { db, type Part, type Spec, type KeyField } from './data';
 export type Column = { label: string; num?: boolean; field: KeyField; get: (p: Part, s?: Spec) => string | number | undefined };
 const cat = new Map(db.categories.map((c) => [c.id.split('/')[1], c]));
 
+const POSITION: Record<string, string> = { 'front-rear': 'front and rear', 'front-2wd': 'front (2WD)', 'front-4wd': 'front (4WD)' };
+
 function format(v: unknown, f: KeyField): string | number | undefined {
   if (v === undefined || v === null || v === '') return undefined;
   if (f.format === 'cells' && Array.isArray(v)) return v[0] === v[1] ? `${v[0]}S` : `${v[0]}-${v[1]}S`;
   if (typeof v === 'number') return v;
+  if (typeof v === 'string' && f.field === 'position') return POSITION[v] ?? v.replace(/-/g, ' ');
   if (typeof v === 'string') return v.replace(/-/g, ' ');
   return String(v);
 }

@@ -34,7 +34,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
   <dl class="facts">
     <dt>Kit</dt><dd><a href={url.kit(kit.id)}>{kit.name}</a></dd>
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
-    {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{[kit.category, kit.drive, kit.power].filter(Boolean).join(' · ')}</dd></>}
+    {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{kit.category && <><a href={`/rc/kits/types/${kit.category}/`}>{kitTypeOne[kit.category] ?? kit.category}</a>{(kit.drive || kit.power) && ' · '}</>}{[kit.drive, kit.power].filter(Boolean).join(' · ')}</dd></>}
     {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && ' · '}<a href={url.kit(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
     {release.released ? <><dt>Released</dt><dd>{dateText(release)}</dd></> : <><dt>Year</dt><dd>{yearText(release)}</dd></>}
@@ -42,7 +42,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
-    <a class="typeicon" href={`/rc/kits/types/${kit.category || 'car'}/`} title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}><Icon name={kitTypeIcon(kit.category)} size="5rem" /></a>
+    <span class="typeicon" title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}><Icon name={kitTypeIcon(kit.category)} size="5rem" /></span>
   </div>
   {docs.length > 0 && <><h2>Sources</h2>
     {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length

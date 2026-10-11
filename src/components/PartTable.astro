@@ -18,7 +18,7 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
   <p class="websearch">
     <input type="search" class="q" placeholder="Filter by number or name" aria-label="Filter" />
     {showBrand && brands.length > 1 && <select class="brand" aria-label="Brand"><option value="">every brand</option>{brands.map((b) => <option value={b}>{brandName(b)}</option>)}</select>}
-    {picks.map(({ c, i, choices }) => <select class="pick" data-col={i} aria-label={c.label}><option value="">every {c.label.toLowerCase()}</option>{choices.map((v) => <option>{v}</option>)}</select>)}
+    {picks.map(({ c, i, choices }) => <select class="pick" data-col={i} aria-label={c.label}><option value="">any {c.label.toLowerCase()}</option>{choices.map((v) => <option>{v}</option>)}</select>)}
     {cols.length > 0 && <label><input type="checkbox" class="known" /> only with specs</label>}
     <button type="button" class="btn cmp" disabled>Compare ticked</button>
     <button type="button" class="btn clear" hidden>Clear ticks</button>
