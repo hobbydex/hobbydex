@@ -21,7 +21,7 @@ export const kitTypeAbout: Record<string, string> = {
   'desert-truck': "Modelled on desert racers and trophy trucks: a wide stance and very long suspension travel under a body over a tube frame.",
   truck: "Scale road trucks and tractor units, often with trailers, lights and sound.",
   crawler: "Built for slow, technical off-road driving: climbing rocks, trails and steep or rough terrain. Solid axles on links, lots of suspension articulation, low gearing, and usually a scale body.",
-  touring: "An on-road car with a 4WD chassis under the body of a production or race car, on rubber or foam tyres.",
+  touring: "An on-road car under the body of a production or race car, on rubber or foam tyres. Most are 4WD, driven by belts or a shaft; front-wheel drive (FF) and rear-wheel drive chassis are common too.",
   formula: "An open-wheel single-seater, modelled on Formula 1 and similar classes; usually rear-wheel drive.",
   'pan-car': "A simple on-road racer: a flat chassis plate with the motor on a rear pod driving the rear axle directly, no gearbox, usually on foam tyres.",
   rally: "A rally car body on a 4WD chassis with more ground clearance than a touring car, for tarmac, gravel and dirt.",
