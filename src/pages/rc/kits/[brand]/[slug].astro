@@ -10,7 +10,7 @@ export function getStaticPaths() {
   return [...db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } })), ...moved];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
-const { kit } = Astro.props;
+const kit = Astro.props.kit!;   // set on every page that is not a redirect
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort((a, b) => yearOf(a) - yearOf(b) || a.name.localeCompare(b.name));
 const count = (r: (typeof releases)[number], role: string) => (r.contains ?? []).filter((c) => c.role === role).length;
 const show = { number: releases.some((r) => r.number), edition: releases.some((r) => r.edition), kit: releases.some((r) => count(r, 'kit')),
