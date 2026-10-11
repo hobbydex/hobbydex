@@ -46,10 +46,17 @@ V["stadium-truck"] = vehicle([
     [(1.5, 15.6), (1.5, 11.0), (3.5, 9.8), (13, 9.0), (17, 4.6), (25.5, 4.4), (27.5, 7.6), (44, 7.8), (46.5, 9.4), (46.8, 15.6)],
     [(34.5, 4.6), (46.6, 2.8), (46.8, 5.0), (34.8, 6.8)], box(40.0, 4.6, 42.2, 8.4)],
     [tyre(10, 5.8), tyre(38, 5.8)])
-V["short-course"] = vehicle([
-    # full-width body with fenders over the wheels: sloped hood, cab, flat bed, tail (ARRMA Senton)
-    [(1.5, 17.8), (1.5, 12.4), (3.5, 11.0), (13.5, 10.2), (17.5, 6.0), (26.5, 5.8), (28.5, 9.2), (46.5, 9.6), (46.8, 17.8)]],
-    [tyre(10, 5.4), tyre(38, 5.4)], window=[(18.6, 7.1), (24.0, 6.9), (24.8, 9.4), (15.9, 9.6)])
+def _short_course():
+    # body down over the wheels: fenders cover the tyre tops, the wheels show below them (ARRMA Senton, Traxxas Slash)
+    R, cy = 5.4, GROUND - 5.4
+    body = Polygon([(1.2, 16.2), (1.2, 11.6), (3.2, 10.0), (13.5, 9.4), (17.5, 5.2), (26.8, 5.0), (28.8, 8.6), (46.6, 9.0), (46.9, 16.2)])
+    body = body.difference(Polygon([(18.6, 6.4), (24.2, 6.2), (25.0, 8.8), (15.9, 9.0)]))   # cab window
+    arches = unary_union([Point(x, cy + 2.6).buffer(R + 0.4, 64) for x in (10, 38)])
+    body = body.difference(arches)
+    wheels = unary_union([Point(x, cy).buffer(R, 64).difference(Point(x, cy).buffer(R * 0.3, 32)) for x in (10, 38)])
+    wheels = wheels.difference(body.buffer(0.8))
+    return unary_union([body, wheels])
+V["short-course"] = _short_course()
 V["monster"] = vehicle([
     # pickup body resting on top of two big wheels, one solid silhouette (no gap cut around the wheels)
     [(1.5, 11.0), (1.5, 8.6), (3.5, 7.4), (12.5, 6.8), (15.5, 2.4), (24.5, 2.2), (26.5, 6.4), (46.5, 6.6), (47, 11.0)],
