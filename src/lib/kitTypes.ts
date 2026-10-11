@@ -16,7 +16,7 @@ export const kitTypeAbout: Record<string, string> = {
   buggy: "An off-road racer with a low, light chassis, long-travel suspension, a rear wing and its wheels outside the body. 2WD or 4WD, electric or nitro.",
   truggy: "A truck-buggy hybrid: a buggy-style chassis made longer and wider, on bigger truck tyres, with a truck-style body and wing. More stable over rough ground and big jumps than a buggy, a little slower through tight corners. Usually 4WD, electric or nitro.",
   'stadium-truck': "A racer with buggy suspension under a pickup-style body, on wide truck tyres outside the body. 2WD or 4WD.",
-  'short-course': "Modelled on full-size short course race trucks: the body covers the wheels, with bumpers front and rear, so trucks can lean on each other in a race. 2WD or 4WD.",
+  'short-course': "Modelled on full-size short course race trucks: a truck body with wide fenders over long-travel suspension, and bumpers front and rear so trucks can lean on each other in a race. 2WD or 4WD.",
   monster: "Big wheels, high ground clearance and long suspension travel, made for jumping and bashing rather than racing.",
   'desert-truck': "Modelled on desert racers and trophy trucks: a wide stance and very long suspension travel under a body over a tube frame.",
   truck: "Scale road trucks and tractor units, often with trailers, lights and sound.",
