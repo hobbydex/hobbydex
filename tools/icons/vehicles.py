@@ -162,9 +162,9 @@ V["kart"] = vehicle([
     # go-kart: very small wheels, the front ones set back under the steering column, a nose bumper ahead of them,
     # a low flat frame, a big seat with its back leaning toward the rear, the engine behind the seat
     [(5.0, 20.2), (5.0, 18.2), (7.0, 17.0), (42.0, 17.0), (42.0, 20.2)],
-    [(22.5, 17.2), (22.5, 13.6), (28.6, 13.6), (31.4, 4.2), (35.2, 5.0), (32.8, 14.0), (33.6, 17.2)],   # seat pan, backrest leaning back
+    [(22.5, 17.2), (22.5, 15.0), (28.8, 15.0), (31.4, 7.0), (35.0, 7.8), (32.8, 15.2), (33.6, 17.2)],   # seat pan, backrest leaning back
     link(17.5, 17.2, 20.5, 10.4, 2.2), link(18.0, 8.8, 23.0, 12.0, 2.4),
-    box(32.4, 12.4, 41.0, 17.2)],
+    box(32.4, 13.2, 41.0, 17.2)],
     [tyre(14.0, 3.0, gap=1.4), tyre(39.5, 3.2, gap=1.4)])
 V["touring"] = vehicle([
     [(1, 20.2), (1, 17.2), (3, 15.8), (12, 14.6), (17, 10.6), (28, 10.2), (33.5, 14), (44, 14.6), (46.8, 16), (46.8, 20.2)],
