@@ -66,7 +66,9 @@ def _short_course():
     r = max(w[1] for w in wheels)
     body = body.buffer(0)
     # round arches: fill the hand-drawn notch first, then cut a circle around each wheel with a gap
-    body = unary_union([body, *(Point(c).buffer(rr + 4.5, 96).intersection(box(c[0] - rr - 6, 0, c[0] + rr + 6, c[1])) .intersection(body.convex_hull) for c, rr in wheels)])
+    hull = body.convex_hull
+    # fill each drawn notch completely (down to the body's bottom line), so the arch below is one clean circle
+    body = unary_union([body, *(Point(c).buffer(rr + 9, 96).intersection(box(c[0] - rr - 9, 0, c[0] + rr + 9, c[1] + rr * 0.25)).intersection(hull) for c, rr in wheels)])
     body = body.difference(unary_union([Point(c).buffer(rr + 3.2, 96) for c, rr in wheels]))
     body = body.buffer(-1.8, 32).buffer(1.8, 32)   # drop slivers left between the drawn notch and the round arch
     tyres = unary_union([Point(c).buffer(rr, 96).difference(Point(c).buffer(rr * 0.3, 48)) for c, rr in wheels])
