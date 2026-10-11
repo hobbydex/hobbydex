@@ -163,6 +163,7 @@ V["kart"] = vehicle([
     # a low flat frame, a big seat with its back leaning toward the rear, the engine behind the seat
     [(5.0, 20.2), (5.0, 18.2), (7.0, 17.0), (42.0, 17.0), (42.0, 20.2)],
     [(22.5, 17.2), (22.5, 15.0), (28.8, 15.0), (31.4, 7.0), (35.0, 7.8), (32.8, 15.2), (33.6, 17.2)],   # seat pan, backrest leaning back
+    [(5.0, 18.2), (7.0, 17.0), (17.0, 11.6), (19.6, 12.8), (19.0, 17.2)],   # front fairing (nose panel) rising from the bumper to the steering column
     link(17.5, 17.2, 20.5, 10.4, 2.2), link(18.0, 8.8, 23.0, 12.0, 2.4),
     box(32.4, 13.2, 41.0, 17.2)],
     [tyre(14.0, 3.0, gap=1.4), tyre(39.5, 3.2, gap=1.4)])
