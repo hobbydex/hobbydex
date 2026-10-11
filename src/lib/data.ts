@@ -10,7 +10,7 @@ export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source
 export type Release = { id: string; kit: string; brand: string; number?: string; name: string; year?: number; released?: string; kind: string; status: string; edition?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };
-export type Part = { id: string; brand: string; number: string; name: string; category?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; range?: string };
+export type Part = { id: string; brand: string; number: string; name: string; category?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; range?: string };
 export type Includes = { part?: string; spec?: string; qty?: number; source?: string; notes?: string };
 export type Spec = { id: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
 export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; releases?: string[] };
@@ -62,6 +62,12 @@ for (const p of raw.parts) for (const r of p.rebrand_of ?? []) {
   if (!rebrandsOf.has(r.part)) rebrandsOf.set(r.part, []);
   rebrandsOf.get(r.part)!.push(p);
 }
+// Parts a part's name cites (requires, fits, use-with, for, replaces), seen from the cited part.
+const relatedTo = new Map<string, { part: Part; relation: string }[]>();
+for (const p of raw.parts) for (const r of p.related ?? []) {
+  if (!relatedTo.has(r.part)) relatedTo.set(r.part, []);
+  relatedTo.get(r.part)!.push({ part: p, relation: r.relation });
+}
 const partsBySpec = new Map<string, { part: Part; link: EquivalentTo }[]>();
 for (const p of raw.parts) for (const e of p.equivalent_to ?? []) {
   if (!partsBySpec.has(e.spec)) partsBySpec.set(e.spec, []);
@@ -103,6 +109,7 @@ export const db = {
   replacedBy,
   upgradesFor,
   rebrandsOf,
+  relatedTo,
   setsBySpec,
   doc: byId(raw.documents),
   kitsByBrand: group(raw.kits, (k) => k.brand),

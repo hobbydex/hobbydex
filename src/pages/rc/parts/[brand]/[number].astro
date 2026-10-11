@@ -28,6 +28,12 @@ const upgradeFor = [...new Set((part.fits ?? []).map((f) => f.replaces).filter((
 const upgrades = db.upgradesFor.get(part.id) ?? [];
 const rebrandOf = (part.rebrand_of ?? []).map((r) => db.part.get(r.part)).filter((x): x is NonNullable<typeof x> => !!x);
 const soldAs = db.rebrandsOf.get(part.id) ?? [];
+// part-to-part links from names, both ways: "requires TKR5150" here, "Required by" there
+const FWD: Record<string, string> = { requires: 'Requires', fits: 'Fits', 'use-with': 'Use with', for: 'Made for', replaces: 'Replaces' };
+const BACK: Record<string, string> = { requires: 'Required by', fits: 'Fitted with', 'use-with': 'Used with', for: 'Accessories', replaces: 'Replaced by' };
+const relRows = [...(part.related ?? []).map((r) => ({ label: FWD[r.relation] ?? r.relation, p: db.part.get(r.part) })),
+  ...(db.relatedTo.get(part.id) ?? []).map((r) => ({ label: BACK[r.relation] ?? r.relation, p: r.part }))].filter((r) => r.p);
+const relGroups = [...new Set(relRows.map((r) => r.label))].map((label) => ({ label, parts: relRows.filter((r) => r.label === label).map((r) => r.p!) }));
 const similar = part.category === 'servo' ? similarServos(part.id) : [];
 // the other versions of a range (winds, kV), lowest first
 const rating = (o: typeof part) => o.turns ?? (o.kv ? -o.kv : 0);
@@ -47,6 +53,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.released && <><dt>Released</dt><dd>{part.released}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{replaces.number}</a> {replaces.name}</dd></>}
     {rebrandOf.length > 0 && <><dt>Rebrand of</dt><dd>{rebrandOf.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {r.number}</a> {r.name}</>)}</dd></>}
+    {relGroups.map((g) => <><dt>{g.label}</dt><dd>{g.parts.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>)}
     {soldAs.length > 0 && <><dt>Also sold as</dt><dd>{soldAs.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {r.number}</a> {r.name}</>)}</dd></>}
     {upgradeFor.length > 0 && <><dt>Upgrade for</dt><dd>{upgradeFor.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>}
     {upgrades.length > 0 && <><dt>Upgrades</dt><dd>{upgrades.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>}
