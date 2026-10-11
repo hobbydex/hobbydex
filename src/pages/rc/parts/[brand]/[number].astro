@@ -127,7 +127,14 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
         <td><a href={url.spec(e.spec)}>{sp?.name ?? e.spec}</a></td><td>{e.match}</td><td><Standards codes={sp?.standards} /></td><td class="muted">{d?.title ?? e.source ?? ''}{e.notes && <><br />{e.notes}</>}</td>
       </tr>; })}
     </table></>}
-  {range.length > 0 && <><h2>{part.range?.endsWith('-colours') ? 'Other colours' : <>Other versions <span class="muted">· same range</span></>}</h2>
+  {range.length > 0 && part.range?.endsWith('-springs') && <><h2>Other springs in this series <span class="muted">({range.length})</span></h2>
+    <table>
+      <tr><th class="num">Number</th><th>Name</th><th>Rate</th><th class="num">Wire mm</th><th class="num">Length mm</th></tr>
+      {[part, ...range].sort((a, b) => String(a.free_length_mm ?? '').localeCompare(String(b.free_length_mm ?? ''), undefined, { numeric: true }) || (a.wire_mm ?? a.rate_n_mm ?? a.rate_lb_in ?? 0) - (b.wire_mm ?? b.rate_n_mm ?? b.rate_lb_in ?? 0)).map((o) => <tr>
+        <td class="num">{o.id === part.id ? <strong>{o.number}</strong> : <a href={url.part(o.id)}>{o.number}</a>}</td><td>{o.name}</td>
+        <td>{[o.rate, o.rate_n_mm && `${o.rate_n_mm} N/mm`, o.rate_lb_in && `${o.rate_lb_in} lb/in`].filter(Boolean).join(', ')}</td><td class="num">{o.wire_mm ?? ''}</td><td class="num">{o.free_length_mm ?? ''}</td></tr>)}
+    </table></>}
+  {range.length > 0 && !part.range?.endsWith('-springs') && <><h2>{part.range?.endsWith('-colours') ? 'Other colours' : <>Other versions <span class="muted">· same range</span></>}</h2>
     <ul>{range.map((o) => <li><a href={url.part(o.id)}>{o.number}</a> {o.name}<span class="muted">{o.turns && ` · ${o.turns}T`}{o.kv && ` · ${o.kv} kV`}</span></li>)}</ul></>}
   {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
     <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {o.number}</a> {shortName(o)}<span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
