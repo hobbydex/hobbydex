@@ -7,8 +7,11 @@ import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data'
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 export function getStaticPaths() {
-  return db.parts.map((p) => ({ params: { brand: key(p.id)[0], number: key(p.id)[1] }, props: { part: p } }));
+  // a former id (renamed or corrected) keeps working: its page redirects to the current one
+  const moved = db.parts.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(x.id) } })));
+  return [...db.parts.map((p) => ({ params: { brand: key(p.id)[0], number: key(p.id)[1] }, props: { part: p } })), ...moved];
 }
+if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const { part } = Astro.props;
 const brand = db.brand.get(part.brand);
 const uses = [...(db.usesByPart.get(part.id) ?? [])].sort((a, b) => yearOf(a.release) - yearOf(b.release) || a.release.name.localeCompare(b.release.name));
