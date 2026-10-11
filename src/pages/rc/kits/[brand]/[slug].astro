@@ -5,8 +5,11 @@ import Icon from '../../../../components/Icon.astro';
 import { catName } from '../../../../lib/categories';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 export function getStaticPaths() {
-  return db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } }));
+  // a former id (renamed or corrected) keeps working: its page redirects to the current one
+  const moved = db.kits.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], slug: key(f)[1] }, props: { redirect: url.kit(x.id) } })));
+  return [...db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } })), ...moved];
 }
+if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const { kit } = Astro.props;
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort((a, b) => yearOf(a) - yearOf(b) || a.name.localeCompare(b.name));
 const count = (r: (typeof releases)[number], role: string) => (r.contains ?? []).filter((c) => c.role === role).length;

@@ -1,5 +1,5 @@
 import { defineConfig } from 'astro/config';
-import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const SITE = 'https://hobbydex.com';
 
@@ -22,7 +22,9 @@ function sitemap() {
     name: 'hobbydex-sitemap',
     hooks: {
       'astro:build:done': ({ dir, pages }) => {
-        const urls = pages.map((p) => `${SITE}/${p.pathname}`).filter((u) => !u.includes('/404')).sort();
+        // redirect pages at former ids are left out: search engines should only see the current page
+        const isRedirect = (p) => { try { return readFileSync(new URL(`${p.pathname}index.html`, dir), 'utf8').startsWith('<!doctype html><title>Redirecting to'); } catch { return false; } };
+        const urls = pages.filter((p) => !isRedirect(p)).map((p) => `${SITE}/${p.pathname}`).filter((u) => !u.includes('/404')).sort();
         const chunks = [];
         for (let i = 0; i < urls.length; i += 40000) chunks.push(urls.slice(i, i + 40000));
         chunks.forEach((c, i) => writeFileSync(new URL(`sitemap-${i}.xml`, dir),

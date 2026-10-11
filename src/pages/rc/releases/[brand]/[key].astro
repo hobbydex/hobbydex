@@ -7,8 +7,11 @@ import Icon from '../../../../components/Icon.astro';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 import { bearingList } from '../../../../lib/bearingList';
 export function getStaticPaths() {
-  return db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } }));
+  // a former id (renamed or corrected) keeps working: its page redirects to the current one
+  const moved = db.releases.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], key: key(f)[1] }, props: { redirect: url.release(x.id) } })));
+  return [...db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } })), ...moved];
 }
+if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const { release } = Astro.props;
 const kit = db.kit.get(release.kit)!;
 const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d !== undefined);
