@@ -12,7 +12,7 @@ export function getStaticPaths() {
   return [...db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } })), ...moved];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
-const { release } = Astro.props;
+const release = Astro.props.release!;   // set on every page that is not a redirect
 const kit = db.kit.get(release.kit)!;
 const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d !== undefined);
 const rows = (release.contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
