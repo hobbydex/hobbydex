@@ -32,6 +32,4 @@ jobs:
         env:
           HOBBYDEX_DATA: data/hobbydex-rc.json
       - name: Type check
-        # not blocking until the existing type errors are fixed
-        continue-on-error: true
         run: npm run check
