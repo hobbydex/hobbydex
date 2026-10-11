@@ -46,10 +46,38 @@ V["stadium-truck"] = vehicle([
     [(1.5, 15.6), (1.5, 11.0), (3.5, 9.8), (13, 9.0), (17, 4.6), (25.5, 4.4), (27.5, 7.6), (44, 7.8), (46.5, 9.4), (46.8, 15.6)],
     [(34.5, 4.6), (46.6, 2.8), (46.8, 5.0), (34.8, 6.8)], box(40.0, 4.6, 42.2, 8.4)],
     [tyre(10, 5.8), tyre(38, 5.8)])
-V["short-course"] = vehicle([
-    # full-width body with fenders over the wheels: sloped hood, cab, flat bed, tail (ARRMA Senton)
-    [(1.5, 17.8), (1.5, 12.4), (3.5, 11.0), (13.5, 10.2), (17.5, 6.0), (26.5, 5.8), (28.5, 9.2), (46.5, 9.6), (46.8, 17.8)]],
-    [tyre(10, 5.4), tyre(38, 5.4)], window=[(18.6, 7.1), (24.0, 6.9), (24.8, 9.4), (15.9, 9.6)])
+def _short_course():
+    # traced by hand (Inkscape, mm): body outline and two wheels; arches cut round around each wheel, wheel nut holes
+    def svgpath(d):   # m/l/h relative and M/L/H absolute, as Inkscape writes them
+        toks = d.replace(",", " ").split(); pts, x, y, cmd, i = [], 0.0, 0.0, "m", 0
+        while i < len(toks):
+            t = toks[i]
+            if t in "mMlLhHvVzZ": cmd = t; i += 1; continue
+            if cmd in "mMlL":
+                dx, dy = float(toks[i]), float(toks[i + 1]); i += 2
+                x, y = (x + dx, y + dy) if cmd in "ml" else (dx, dy)
+                cmd = {"m": "l", "M": "L"}.get(cmd, cmd)
+            elif cmd in "hH": v = float(t); i += 1; x = x + v if cmd == "h" else v
+            elif cmd in "vV": v = float(t); i += 1; y = y + v if cmd == "v" else v
+            pts.append((x, y))
+        return Polygon(pts)
+    body = svgpath("m 66.691615,164.20958 64.616765,0.59281 4.1497,-16.30239 8.59581,-6.22455 13.63473,-0.59282 12.4491,4.44611 4.1497,9.48503 16.3024,-7.41018 -2.66767,-14.22754 -26.97305,-3.55689 -20.7485,0.88922 -16.3024,-14.82036 H 86.254491 L 71.730538,131.60479 H 42.089821 l -13.041918,3.85329 -6.520957,5.03893 -3.853294,13.93113 4.742515,-0.59281 5.631736,-10.67066 9.781439,-4.1497 13.63473,0.29641 9.781437,8.00299 3.556886,9.48503 z")
+    wheels = [((43.275448, 162.72755), 18.377245), ((152.3533, 162.13472), 17.784431)]
+    r = max(w[1] for w in wheels)
+    body = body.buffer(0)
+    # round arches: fill the hand-drawn notch first, then cut a circle around each wheel with a gap
+    hull = body.convex_hull
+    # fill each drawn notch completely (down to the body's bottom line), so the arch below is one clean circle
+    body = unary_union([body, *(Point(c).buffer(rr + 9, 96).intersection(box(c[0] - rr - 9, 0, c[0] + rr + 9, c[1] + rr * 0.25)).intersection(hull) for c, rr in wheels)])
+    body = body.difference(unary_union([Point(c).buffer(rr + 3.2, 96) for c, rr in wheels]))
+    body = body.buffer(-1.8, 32).buffer(1.8, 32)   # drop slivers left between the drawn notch and the round arch
+    tyres = unary_union([Point(c).buffer(rr, 96).difference(Point(c).buffer(rr * 0.3, 48)) for c, rr in wheels])
+    g = unary_union([body, tyres])
+    minx, miny, maxx, maxy = g.bounds
+    k = min(46 / (maxx - minx), 22.4 / (maxy - miny))
+    g = affinity.scale(g, k, k, origin=(minx, miny))
+    return affinity.translate(g, (48 - (maxx - minx) * k) / 2 - minx, 23.2 - (maxy - miny) * k - miny)
+V["short-course"] = _short_course()
 V["monster"] = vehicle([
     # pickup body resting on top of two big wheels, one solid silhouette (no gap cut around the wheels)
     [(1.5, 11.0), (1.5, 8.6), (3.5, 7.4), (12.5, 6.8), (15.5, 2.4), (24.5, 2.2), (26.5, 6.4), (46.5, 6.6), (47, 11.0)],
