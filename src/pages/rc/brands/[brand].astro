@@ -3,7 +3,7 @@ import Base from '../../../layouts/Base.astro';
 import { db, key, url } from '../../../lib/data';
 import { catName } from '../../../lib/categories';
 import Icon from '../../../components/Icon.astro';
-import { kitTypeIcon, kitTypeOne } from '../../../lib/kitTypes';
+import { kitTypeIcon, kitTypeOne, kitTypeLabel, kitTypeOrder } from '../../../lib/kitTypes';
 import { byCategory, categories } from '../../../lib/categoryIndex';
 export function getStaticPaths() {
   return db.brands.map((b) => ({ params: { brand: key(b.id)[0] }, props: { brand: b } }));
@@ -11,6 +11,17 @@ export function getStaticPaths() {
 const { brand } = Astro.props;
 const kits = db.kitsByBrand.get(brand.id) ?? [];
 const parts = db.partsByBrand.get(brand.id) ?? [];
+// many kits: one table per kit type, with the years the kit's releases span
+const MANY = 12;
+const kitRows = kits.map((k) => {
+  const rs = db.releasesByKit.get(k.id) ?? [];
+  const ys = rs.map((r) => r.year).filter((y): y is number => !!y);
+  return { k, n: rs.length, from: ys.length ? Math.min(...ys) : undefined, to: ys.length ? Math.max(...ys) : undefined };
+});
+const kitGroups = kitTypeOrder.concat([...new Set(kits.map((k) => k.category ?? 'car'))].filter((c) => !kitTypeOrder.includes(c)))
+  .map((t) => [t, kitRows.filter((r) => (r.k.category ?? 'car') === t).sort((a, b) => a.k.name.localeCompare(b.k.name, undefined, { numeric: true }))] as const)
+  .filter(([, rs]) => rs.length > 0);
+const years = (r: { from?: number; to?: number }) => (r.from === undefined ? '' : r.from === r.to ? `${r.from}` : `${r.from}-${r.to}`);
 const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length ?? 0] as const).filter(([, n]) => n > 0);
 ---
 <Base title={brand.name} description={`${brand.name}: kits and parts in Hobbydex.`} kind="brand">
@@ -23,7 +34,33 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
     <dt>Status</dt><dd>{brand.status}</dd>
   </dl>
   {brand.notes && <p class="muted">{brand.notes}</p>}
-  {kits.length > 0 && <><h2>Kits</h2>
+  {kits.length > MANY && <><h2>Kits <span class="muted">({kits.length})</span></h2>
+  <div class="kitfilter" data-pagefind-ignore>
+    <input type="search" class="search-box" placeholder={`Filter ${brand.name} kits by name, scale or drive`} aria-label="Filter kits" autocomplete="off" />
+    <p class="muted">By type: {kitGroups.map(([t, rs], i) => <>{i > 0 && ' · '}<a href={`#type-${t}`}><Icon name={kitTypeIcon(t)} /> {kitTypeLabel[t] ?? t}</a> <span class="muted">{rs.length}</span></>)}</p>
+  </div>
+  {kitGroups.map(([t, rs]) => <section class="kitgroup" id={`type-${t}`}>
+    <h3><Icon name={kitTypeIcon(t)} size="1.5rem" /> <a href={`/rc/kits/types/${t}/`}>{kitTypeLabel[t] ?? t}</a> <span class="muted">({rs.length})</span></h3>
+    <table class="kits">
+      <thead><tr><th>Kit</th><th>Scale</th><th>Drive</th><th>Power</th><th class="num">Releases</th><th>Years</th></tr></thead>
+      <tbody>{rs.map((r) => <tr data-q={[r.k.name, r.k.scale, r.k.drive, r.k.power, kitTypeOne[t] ?? t].filter(Boolean).join(' ').toLowerCase()}>
+        <td><a href={url.kit(r.k.id)}>{r.k.name}</a></td><td>{r.k.scale}</td><td>{r.k.drive}</td><td>{r.k.power}</td><td class="num">{r.n || ''}</td><td>{years(r)}</td></tr>)}</tbody>
+    </table>
+  </section>)}
+  <script>
+    for (const box of document.querySelectorAll<HTMLElement>('.kitfilter')) {
+      const input = box.querySelector('input')!;
+      input.addEventListener('input', () => {
+        const terms = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        for (const g of document.querySelectorAll<HTMLElement>('.kitgroup')) {
+          let shown = 0;
+          for (const tr of g.querySelectorAll<HTMLElement>('tbody tr')) { const ok = terms.every((w) => (tr.dataset.q ?? '').includes(w)); tr.hidden = !ok; if (ok) shown++; }
+          g.hidden = shown === 0;
+        }
+      });
+    }
+  </script></>}
+  {kits.length > 0 && kits.length <= MANY && <><h2>Kits</h2>
   <ul class="cards">{kits.map((k) => <li class="kitcard"><a href={`/rc/kits/types/${k.category || 'car'}/`} title={kitTypeOne[k.category ?? 'car'] ?? k.category}><Icon name={kitTypeIcon(k.category)} size="2rem" /></a><span><a href={url.kit(k.id)}><b>{k.name}</b></a><br /><span class="muted">{[k.scale, kitTypeOne[k.category ?? 'car'] ?? k.category, k.drive, k.power].filter(Boolean).join(' · ')}</span></span></li>)}</ul></>}
   <h2>Parts <span class="muted">({parts.length})</span></h2>
   {cats.length > 0 && <p data-pagefind-ignore class="bycat">By category: {cats.map(([c, n], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${c}/${key(brand.id)[0]}/`}><Icon name={c} /> {catName(c)}</a> <span class="muted">{n}</span></>)}</p>}
