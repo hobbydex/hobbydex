@@ -127,7 +127,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
         <td><a href={url.spec(e.spec)}>{sp?.name ?? e.spec}</a></td><td>{e.match}</td><td><Standards codes={sp?.standards} /></td><td class="muted">{d?.title ?? e.source ?? ''}{e.notes && <><br />{e.notes}</>}</td>
       </tr>; })}
     </table></>}
-  {range.length > 0 && <><h2>Other versions <span class="muted">· same range</span></h2>
+  {range.length > 0 && <><h2>{part.range?.endsWith('-colours') ? 'Other colours' : <>Other versions <span class="muted">· same range</span></>}</h2>
     <ul>{range.map((o) => <li><a href={url.part(o.id)}>{o.number}</a> {o.name}<span class="muted">{o.turns && ` · ${o.turns}T`}{o.kv && ` · ${o.kv} kV`}</span></li>)}</ul></>}
   {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
     <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {o.number}</a> {shortName(o)}<span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
