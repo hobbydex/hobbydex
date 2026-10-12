@@ -167,6 +167,33 @@ V["kart"] = vehicle([
     link(17.5, 17.2, 20.5, 10.4, 2.2), link(18.0, 8.8, 23.0, 12.0, 2.4),
     box(32.4, 13.2, 41.0, 17.2)],
     [tyre(14.0, 3.0, gap=1.4), tyre(39.5, 3.2, gap=1.4)])
+V["race-truck"] = vehicle([
+    # cab-over race truck (Tamiya Actros MP4 on TT-01E): tall cab with a roof spoiler, short chassis, no trailer
+    [(1.5, 20.0), (1.5, 9.0), (2.6, 4.6), (4.0, 3.8), (17.5, 3.8), (18.8, 5.0), (19.2, 13.0), (46.5, 13.0), (46.5, 18.2), (44.0, 20.0)],
+    [(4.0, 3.8), (5.0, 1.6), (17.0, 1.6), (17.5, 3.8)]],   # roof spoiler
+    [tyre(10.5, 4.0, False), tyre(36.0, 4.0, False)])
+def _tracks(x0, x1, y0, y1, wheels):
+    # a track run: a stadium shape, with the road wheels as nut-like holes
+    r = (y1 - y0) / 2
+    run = unary_union([box(x0 + r, y0, x1 - r, y1), Point(x0 + r, y0 + r).buffer(r, 48), Point(x1 - r, y0 + r).buffer(r, 48)])
+    holes = unary_union([Point(x, y0 + r).buffer(r * 0.42, 32) for x in wheels])
+    return run.difference(holes)
+def _tank():
+    tracks = _tracks(2.5, 41.5, 15.0, 23.2, [7.0, 14.5, 22.0, 29.5, 37.0])
+    hull = Polygon([(1.5, 15.6), (4.0, 11.6), (40.0, 11.6), (43.5, 14.0), (43.5, 15.6)]).difference(box(0, 15.0, 48, 23.2)).union(box(4.0, 13.8, 41.0, 15.0))
+    turret = Polygon([(12.0, 11.8), (14.5, 6.6), (30.0, 6.6), (32.5, 11.8)])
+    barrel = box(0.5, 8.2, 14.0, 9.8)
+    return unary_union([tracks, hull, turret, barrel])
+V["tank"] = _tank()
+def _construction():
+    # tracked excavator: tracks, a cab on the upper body, the boom and dipper arm with a bucket out front (facing left)
+    tracks = _tracks(14.0, 44.0, 16.0, 23.2, [18.5, 25.0, 32.0, 39.5])
+    body = Polygon([(18.0, 16.6), (18.0, 10.0), (21.0, 4.8), (29.5, 4.8), (30.5, 10.0), (46.0, 10.0), (46.0, 16.6)])
+    boom = Polygon([(19.5, 12.5), (12.0, 3.2), (9.0, 3.6), (8.6, 5.6), (17.5, 13.6)])   # boom rising forward from the body
+    stick = Polygon([(8.4, 3.6), (10.6, 4.2), (6.6, 16.4), (4.4, 15.8)])                    # dipper arm down to the bucket
+    bucket = Polygon([(1.2, 16.6), (6.8, 14.6), (8.2, 18.0), (5.8, 21.6), (1.8, 21.0)])
+    return unary_union([tracks, body, boom, stick, bucket])
+V["construction"] = _construction()
 V["touring"] = vehicle([
     [(1, 20.2), (1, 17.2), (3, 15.8), (12, 14.6), (17, 10.6), (28, 10.2), (33.5, 14), (44, 14.6), (46.8, 16), (46.8, 20.2)],
     [(40, 12.2), (46.6, 11.6), (46.6, 13.4), (40, 13.8)]],
