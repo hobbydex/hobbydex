@@ -7,6 +7,7 @@ import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 import { bearingList } from '../../../../lib/bearingList';
+import { gearing } from '../../../../lib/gearing';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.releases.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], key: key(f)[1] }, props: { redirect: url.release(x.id) } })));
@@ -36,6 +37,11 @@ const bearingKits = (db.fitsByKit.get(kit.id) ?? []).map((x) => x.part).filter((
     return { p, missing, short, total };
   });
 const copyText = bearings ? bearings.lines.map((l) => `${l.qty !== undefined ? `${l.qty}x ` : ''}${l.name}`).join('\n') : '';
+const gear = gearing(release);
+// the box at a glance: part numbers per category, each linking to its group in the table
+const boxRows = section('kit');
+const boxCats = [...new Set(boxRows.map((c) => c.p.category ?? ''))].map((g) => ({ g, n: boxRows.filter((c) => (c.p.category ?? '') === g).length }))
+  .sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1) || catName(a.g).localeCompare(catName(b.g)));
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
@@ -57,6 +63,14 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
   </dl>
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><Icon name={kitTypeIcon(release.category ?? kit.category)} size="5rem" /></span>
   </div>
+  {gear && <>
+    <h2>Stock gearing</h2>
+    <div class="gearing">
+      <span set:html={gear.svg} />
+      <p><span class="ratio">{gear.ratio.toFixed(2)} : 1</span><br />
+        <a href={url.part(gear.spur.id)}>{gear.zs}T spur</a> / <a href={url.part(gear.pinion.id)}>{gear.zp}T pinion</a>{gear.pitch && <span class="muted"> · {gear.pitch}</span>}<br />
+        <span class="muted">Spur/pinion ratio of the gears in the box. The transmission's internal ratio is not in our data, so this is not the final drive ratio.</span></p>
+    </div></>}
   {docs.length > 0 && <><h2>Sources</h2>
     {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
       ? <ul>{docs.map((d) => <li>{d.url ? <a href={d.url} rel="nofollow">{d.title}</a> : d.title}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
@@ -92,12 +106,16 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {b.p.number}</a> <span class="muted">{b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span></li>)}</ul></>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
+  {boxCats.length > 1 && <nav class="boxgrid" aria-label="In the box by category" data-pagefind-ignore>
+    <h2>In the box <span class="muted">({boxRows.length} part numbers)</span></h2>
+    <ul>{boxCats.map(({ g, n }) => <li><a href={`#kit-${g || 'other'}`} title={`${n} ${g ? catName(g) : 'other'} part number${n > 1 ? 's' : ''}`}>{g ? <Icon name={g} size="1.6rem" /> : <span class="noicon" />}<b>{n}</b><span>{g ? catName(g) : 'Other'}</span></a></li>)}</ul>
+  </nav>}
   {cats.length > 1 && <p data-pagefind-ignore><label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label></p>}
   {(() => { const shown = sections.map(([role, label]) => ({ role, label, rows: section(role) })).filter((x) => x.rows.length > 0); return shown.length > 0 && <>
     {shown.length > 1 && <div class="tabs" role="tablist" data-pagefind-ignore>{shown.map((x, i) => <button type="button" role="tab" class="tab" data-tab={x.role} aria-selected={i === 0 ? 'true' : 'false'}>{({ kit: 'In the box', option: 'Options', listed: 'Also listed' } as Record<string, string>)[x.role] ?? x.label} <span class="muted">({x.rows.length})</span></button>)}</div>}
     {shown.map((x) => { const groups = [...new Set(x.rows.map((c) => c.p.category ?? ''))].sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))); return <section class="tabpanel" data-panel={x.role}>
       <h2 class="panelhead">{x.label} <span class="muted">({x.rows.length})</span></h2>
-      {groups.map((g) => { const gr = x.rows.filter((c) => (c.p.category ?? '') === g); return <div class="catgroup" data-cat={g}>
+      {groups.map((g) => { const gr = x.rows.filter((c) => (c.p.category ?? '') === g); return <div class="catgroup" data-cat={g} id={`${x.role}-${g || 'other'}`}>
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({gr.length})</span></h3>
         <table>
           <tr><th class="num" style={`width:${numW}`}>Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand c-brand">Brand</th>{hasStep && <th class="w-step">Step</th>}</tr>
@@ -114,8 +132,16 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
       for (const p of panels) p.hidden = tabs.length > 0 && p.dataset.panel !== role;
     };
     for (const t of tabs) t.addEventListener('click', () => { history.replaceState(null, '', `#${t.dataset.tab}`); show(t.dataset.tab!); });
-    if (tabs.length) { document.body.classList.add('hastabs'); show(location.hash.slice(1)); }
     const sel = document.getElementById('catfilter') as HTMLSelectElement | null;
+    // #kit-screw: the In the box tab, every category shown, scrolled to the screws
+    const fromHash = () => {
+      const [role, ...cat] = location.hash.slice(1).split('-');
+      show(role);
+      if (cat.length && sel?.value) { sel.value = ''; sel.dispatchEvent(new Event('change')); }
+      if (cat.length) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+    };
+    if (tabs.length) { document.body.classList.add('hastabs'); fromHash(); }
+    window.addEventListener('hashchange', fromHash);
     sel?.addEventListener('change', () => {
       for (const g of document.querySelectorAll<HTMLElement>('.catgroup')) g.hidden = !!sel.value && g.dataset.cat !== sel.value;
     });
@@ -131,6 +157,20 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     /* phones: the name column needs the room; the brand is nearly always the kit's own */
     @media (max-width: 40rem) { .catgroup th, .catgroup td { padding-left: 0.4rem; padding-right: 0.4rem; } .w-qty { width: 3rem; } .w-step { width: 4.5rem; } .c-brand { display: none; } .catgroup td { overflow-wrap: anywhere; } }
     .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
+    .catgroup { scroll-margin-top: 0.5rem; }
+    .boxgrid ul { list-style: none; padding: 0; margin: 0.75rem 0 1rem; display: grid; gap: 0.4rem; grid-template-columns: repeat(auto-fill, minmax(6.75rem, 1fr)); }
+    .boxgrid a { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.1rem 0.4rem; height: 100%; padding: 0.45rem 0.4rem; text-align: center;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); }
+    .boxgrid a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+    .boxgrid .noicon { display: inline-block; }
+    .boxgrid a :global(.icon), .boxgrid .noicon { color: var(--muted); width: 1.6rem; height: 1.6rem; }
+    .boxgrid a:hover :global(.icon) { color: var(--accent); }
+    .boxgrid b { font-size: 1.1rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .boxgrid span:last-child { flex-basis: 100%; font-size: 0.75rem; line-height: 1.25; color: var(--muted); hyphens: auto; }
+    .gearing { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; }
+    .gearing p { margin: 0; flex: 1 1 14rem; }
+    .gearing .ratio { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .gearing :global(svg) { display: block; max-width: 100%; height: auto; }
   </style>
   <DataLink path={release.toml_path} />
 </Base>
