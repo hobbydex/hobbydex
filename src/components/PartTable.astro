@@ -9,7 +9,8 @@ const { category, parts, showBrand = true } = Astro.props;
 const cols = columns[category] ?? [];
 const short = (p: Part) => (p.name.startsWith(p.number) ? p.name.slice(p.number.length).trim() : p.name === p.number ? '' : p.name);
 const rows = parts.map((p) => { const s = specOf(p); return { p, vals: cols.map((c) => c.get(p, s)) }; })
-  .sort((a, b) => a.vals.filter((v) => v === undefined).length - b.vals.filter((v) => v === undefined).length || a.p.number.localeCompare(b.p.number, undefined, { numeric: true }));
+  // brand, then part number (natural order: PS-2 before PS-10); a column header click re-sorts
+  .sort((a, b) => brandName(a.p.brand).localeCompare(brandName(b.p.brand)) || a.p.number.localeCompare(b.p.number, undefined, { numeric: true }));
 const brands = [...new Set(parts.map((p) => p.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));
 // a dropdown for each text column with a short list of values (mounting, rim size, vehicle, ...)
 const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only ? [] : [...new Set(rows.map((r) => r.vals[i]).filter((v) => v !== undefined))].sort() as string[] }))
