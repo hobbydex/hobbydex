@@ -23,7 +23,7 @@ const hasStep = rows.some((c) => c.step !== undefined);
 const cats = [...new Set(rows.map((c) => c.p.category).filter((c): c is string => !!c))].sort((a, b) => catName(a).localeCompare(catName(b)));
 const related = (db.kitRelations.get(kit.id) ?? []).map((r) => ({ ...r, k: db.kit.get(r.other) })).filter((r) => r.k);
 const bearings = bearingList(release);
-const numW = `min(calc(${Math.max(5, ...rows.map((c) => c.p.number.length))}ch + 1rem), 9rem)`;   // fits the page's longest part number, at most 9rem (longer ones wrap)
+const numW = `min(calc(${Math.max(5, ...rows.map((c) => c.p.number.length))}ch + 2rem), 10rem)`;   // fits the page's longest part number, at most 10rem (longer ones wrap)
 // bearing kits sold for this car, checked against the sizes (and counts) in the box
 const bearingKits = (db.fitsByKit.get(kit.id) ?? []).map((x) => x.part).filter((p) => p.category === 'bearing' && (p.includes ?? []).some((i) => i.spec?.startsWith('spec/bearing/')))
   .sort((a, b) => a.number.localeCompare(b.number)).map((p) => {
@@ -128,7 +128,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     .catgroup td.num { white-space: normal; overflow-wrap: anywhere; }
     .w-qty { width: 4rem; } .w-brand { width: 8rem; } .w-step { width: 9rem; }
     /* phones: the name column needs the room; the brand is nearly always the kit's own */
-    @media (max-width: 40rem) { .w-qty { width: 2.6rem; } .w-step { width: 4.5rem; } .c-brand { display: none; } .catgroup td { overflow-wrap: anywhere; } }
+    @media (max-width: 40rem) { .catgroup th, .catgroup td { padding-left: 0.4rem; padding-right: 0.4rem; } .w-qty { width: 3rem; } .w-step { width: 4.5rem; } .c-brand { display: none; } .catgroup td { overflow-wrap: anywhere; } }
     .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
   </style>
 </Base>
