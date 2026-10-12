@@ -20,15 +20,16 @@ const f = (v: number) => String(Math.round(v * 100) / 100);
 export function screwDrawing(spec: Spec): ScrewDrawing | undefined {
   const d = Number(String(spec.thread ?? '').replace(/^M/, ''));
   const L = Number(spec.length_mm);
-  const head = String(spec.head ?? '');
+  const head = spec.head === 'flat' ? 'countersunk' : String(spec.head ?? '');   // a flat head is a countersunk head
   const drive = String(spec.drive ?? 'hex');
   const tapping = spec.thread_type === 'self-tapping';
-  if (!d || !L || !['socket-cap', 'low-head', 'button', 'countersunk', 'set'].includes(head)) return undefined;
+  if (!d || !L || !['socket-cap', 'low-head', 'button', 'pan', 'countersunk', 'set'].includes(head)) return undefined;
   const key = String(d);
   let dk = 0, k = 0, approximate = false, standard: string | undefined;
   if (head === 'socket-cap') { const h = CAP[key]; standard = 'ISO 4762'; if (h) ({ dk, k } = h); else { dk = 1.75 * d; k = d; approximate = true; } }
   if (head === 'low-head') { const h = CAP[key]; dk = h?.dk ?? 1.75 * d; k = 0.6 * d; standard = 'DIN 7984'; approximate = !h; }
   if (head === 'button') { const h = BUTTON[key]; standard = 'ISO 7380-1'; if (h) ({ dk, k } = h); else { dk = 1.9 * d; k = 0.55 * d; approximate = true; } }
+  if (head === 'pan') { dk = 1.9 * d; k = 0.7 * d; approximate = true; }
   if (head === 'countersunk') { standard = 'ISO 10642'; dk = CSK[key] ?? 2 * d; approximate = !CSK[key]; k = (dk - d) / 2; }
   if (head === 'set') { standard = 'ISO 4029'; }
   if (drive !== 'hex') standard = undefined;   // the ISO tables are for hex socket screws
@@ -46,6 +47,10 @@ export function screwDrawing(spec: Spec): ScrewDrawing | undefined {
     start = k; end = L;
   } else if (head === 'button') {
     o.push(`<path d="M${f(X(k))} ${f(cy - rk)}A${f(k * s)} ${f(rk)} 0 0 0 ${f(X(k))} ${f(cy + rk)}Z"/>`);
+    start = k; end = k + L;
+  } else if (head === 'pan') {
+    const c = Math.min(k * s * 0.6, rk * 0.5);
+    o.push(`<path d="M${f(X(k))} ${f(cy - rk)}H${f(X(0) + c)}Q${f(X(0))} ${f(cy - rk)} ${f(X(0))} ${f(cy - rk + c)}V${f(cy + rk - c)}Q${f(X(0))} ${f(cy + rk)} ${f(X(0) + c)} ${f(cy + rk)}H${f(X(k))}Z"/>`);
     start = k; end = k + L;
   } else if (head === 'set') {
     start = 0; end = L;
@@ -79,13 +84,20 @@ export function screwDrawing(spec: Spec): ScrewDrawing | undefined {
     const hk = ((kk / (dk || d)) * er) / Math.cos(Math.PI / 6);
     o.push(`<path class="solid" d="M${[0, 1, 2, 3, 4, 5].map((i) => `${f(ex + hk * Math.cos((i * Math.PI) / 3))} ${f(cy + hk * Math.sin((i * Math.PI) / 3))}`).join('L')}Z"/>`);
     o.push(`<text x="${ex}" y="${cy + er + 16}" text-anchor="middle">hex ${f(kk)}</text>`);
+  } else if (drive === 'torx') {
+    // six lobes; the size of the matching hex key, a common stand-in for the Torx size
+    const kk = (head === 'set' ? SETKEY[key] : head === 'socket-cap' || head === 'low-head' ? CAPKEY[key] : KEY[key]) ?? 0.5 * d;
+    const hk = ((kk / (dk || d)) * er) * 0.62;
+    const pts = Array.from({ length: 72 }, (_, i) => { const a = (i * Math.PI) / 36, rr = hk * (1 + 0.28 * Math.cos(6 * a)); return `${f(ex + rr * Math.cos(a))} ${f(cy + rr * Math.sin(a))}`; });
+    o.push(`<path class="solid" d="M${pts.join('L')}Z"/>`);
+    o.push(`<text x="${ex}" y="${cy + er + 16}" text-anchor="middle">Torx</text>`);
   } else {
     const a = er * 0.55, w = er * 0.14;
     o.push(`<path class="solid" d="M${f(ex - w)} ${f(cy - a)}H${f(ex + w)}V${f(cy - w)}H${f(ex + a)}V${f(cy + w)}H${f(ex + w)}V${f(cy + a)}H${f(ex - w)}V${f(cy + w)}H${f(ex - a)}V${f(cy - w)}H${f(ex - w)}Z"/>`);
     o.push(`<text x="${ex}" y="${cy + er + 16}" text-anchor="middle">${drive === 'jis' ? 'JIS cross' : 'Phillips'}</text>`);
   }
   const label = `${spec.thread}x${f(L)} ${head.replace('-', ' ')}${tapping ? ', self-tapping' : ''}`;
-  const svg = `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}"><g class="s">${o.join('')}<text x="${W - 4}" y="12" text-anchor="end" class="std">dimensions in mm</text></g></svg>`;
+  const svg = `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${label}"><g class="s">${o.join('')}<text x="${W - 4}" y="12" text-anchor="end" class="std">dimensions in mm</text></g></svg>`;
   return { svg, standard, approximate };
 }
 
