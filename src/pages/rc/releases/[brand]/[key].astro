@@ -1,4 +1,5 @@
 ---
+import { colourDot } from '../../../../lib/colourDot';
 import WebSearch from '../../../../components/WebSearch.astro';
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText, dateText } from '../../../../lib/data';
@@ -119,7 +120,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({gr.length})</span></h3>
         <table>
           <tr><th class="num" style={`width:${numW}`}>Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand c-brand">Brand</th>{hasStep && <th class="w-step">Step</th>}</tr>
-          {gr.map((c) => <tr><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td>{c.p.name}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
+          {gr.map((c) => <tr><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td><Fragment set:html={c.p.category === 'paint' ? '' : colourDot(c.p.color)} />{c.p.name}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
         </table></div>; })}
     </section>; })}</>; })()}
   <script>

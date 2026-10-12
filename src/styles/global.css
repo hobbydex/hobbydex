@@ -10,6 +10,14 @@
   --kit: var(--fgColor-success); --option: var(--fgColor-attention); --mark: var(--bgColor-attention-muted);
   --focus: var(--focus-outlineColor);
 }
+/* native controls (selects and their open lists, checkboxes, plain buttons) follow the theme too */
+:root { color-scheme: light dark; }
+[data-color-mode="light"] { color-scheme: light; }
+[data-color-mode="dark"] { color-scheme: dark; }
+button, select, input, textarea { color: var(--fg); background-color: var(--bg); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+button { cursor: pointer; }
+.copybtn { font-size: 0.85rem; background: var(--surface); padding: 0.3rem 0.8rem; }
+.copybtn:hover { background: var(--surface-2); }
 * { box-sizing: border-box; }
 html { background: var(--bg); }
 body { margin: 0; font-family: var(--fontStack-sansSerif, system-ui, sans-serif); font-size: 14px; line-height: 1.5; color: var(--fg); background: var(--bg); }
@@ -127,3 +135,5 @@ a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
   header.site nav a { margin-right: 0.5rem; font-size: 0.85rem; }
   .home-search button { padding: 0.5rem 0.7rem; }
 }
+.tablescroll { overflow-x: auto; }
+.hbars.years li { grid-template-columns: 3rem 1fr 3rem; }
