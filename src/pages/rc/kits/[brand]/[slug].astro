@@ -6,6 +6,7 @@ import DataLink from '../../../../components/DataLink.astro';
 import WebSearch from '../../../../components/WebSearch.astro';
 import { catName } from '../../../../lib/categories';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
+import { gearing, type Gearing } from '../../../../lib/gearing';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.kits.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], slug: key(f)[1] }, props: { redirect: url.kit(x.id) } })));
@@ -23,6 +24,9 @@ const relations = db.kitRelations.get(kit.id) ?? [];
 const ownParts = releases.reduce((n, r) => n + (r.contains?.length ?? 0), 0);
 const borrowed = ownParts > 0 ? [] : relations.filter((r) => r.link.parts === 'interchangeable').flatMap((r) =>
   (db.releasesByKit.get(r.other) ?? []).flatMap((rel) => (rel.contains ?? []).map((c) => ({ c, rel, p: db.part.get(c.part)! })))).filter((x) => x.p);
+// stock gearing of the releases, one entry per spur/pinion pair
+const gearings = new Map<string, { g: Gearing; rels: typeof releases }>();
+for (const r of releases) { const g = gearing(r); if (!g) continue; const k = `${g.zs}/${g.zp}`; if (!gearings.has(k)) gearings.set(k, { g, rels: [] }); gearings.get(k)!.rels.push(r); }
 const seen = new Set<string>();
 // rows grouped by part category, named categories alphabetically, uncategorised last
 const byCat = <T,>(rows: T[], cat: (r: T) => string | undefined) => [...new Set(rows.map((r) => cat(r) ?? ''))]
@@ -59,6 +63,15 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
       {show.kit && <td class="num">{count(r, 'kit') || ''}</td>}{show.option && <td class="num">{count(r, 'option') || ''}</td>}{show.listed && <td class="num">{count(r, 'listed') || ''}</td>}
     </tr>)}
   </table>
+  {gearings.size > 0 && <>
+    <h2>Stock gearing</h2>
+    {[...gearings.values()].map(({ g, rels }) => <div class="gearing">
+      <span set:html={g.svg} />
+      <p><span class="ratio">{g.ratio.toFixed(2)} : 1</span><br />
+        <a href={url.part(g.spur.id)}>{g.zs}T spur</a> / <a href={url.part(g.pinion.id)}>{g.zp}T pinion</a>{g.pitch && <span class="muted"> · {g.pitch}</span>}<br />
+        <span class="muted">{rels.length === releases.length ? (releases.length > 1 ? 'Every release' : 'In the box') : rels.map((r, i) => <>{i > 0 && ', '}<a href={url.release(r.id)}>{r.name}</a></>)}</span></p>
+    </div>)}
+    <p class="muted">Spur/pinion ratio of the gears in the box. The transmission's internal ratio is not in our data, so this is not the final drive ratio.</p></>}
   {releases.length > 1 && <p><a href={`/rc/compare/?a=${encodeURIComponent(releases[releases.length - 2].id)}&b=${encodeURIComponent(releases[releases.length - 1].id)}`}>Compare the last two releases</a> <span class="muted">or any two releases on the compare page</span></p>}
   {borrowedUnique.length > 0 && <>
     <h2>Parts, from the interchangeable rebrand <span class="muted">({borrowedUnique.length})</span></h2>
@@ -87,6 +100,10 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
     .w-brand { width: 9rem; } .w-from { width: 14rem; } .w-fit { width: 12rem; }
     @media (max-width: 40rem) { .catgroup th, .catgroup td { padding-left: 0.4rem; padding-right: 0.4rem; } .w-brand { width: 5rem; } .w-from, .w-fit { width: 6.5rem; } .catgroup td { overflow-wrap: anywhere; } }
     .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
+    .gearing { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; margin: 0.5rem 0; }
+    .gearing p { margin: 0; flex: 1 1 14rem; }
+    .gearing .ratio { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .gearing :global(svg) { display: block; max-width: 100%; height: auto; }
   </style>
   <DataLink path={kit.toml_path} />
 </Base>

@@ -9,6 +9,7 @@ import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
 import { colourDot } from '../../../../lib/colourDot';
+import { partDrawing } from '../../../../lib/specDrawings';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.parts.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(x.id) } })));
@@ -56,6 +57,8 @@ const isWheel = part.category === 'tire' || part.category === 'wheel';
 const wheelFacts = [part.wheel_size && `${part.wheel_size} rim`, part.compound && `${part.compound} compound`, part.mounting && ({ 'pre-mounted': 'pre-mounted on wheels', 'pre-mounted-not-glued': 'mounted on wheels, not glued', 'wheels-included': 'wheels included, to be mounted', unmounted: 'tires only, no wheels' } as Record<string, string>)[part.mounting],
   part.wheel_color && { dot: colourDot(part.wheel_color), text: `${part.wheel_color} wheels` }, part.color && { dot: colourDot(part.color), text: part.color },
   part.offset_mm !== undefined && `offset ${part.offset_mm > 0 ? '+' : ''}${part.offset_mm} mm`, part.beadlock && 'beadlock'].filter((x): x is string | { dot: string; text: string } => !!x);
+const drawing = partDrawing(part);
+const drawStd = drawing?.standard ? db.standardByCode.get(drawing.standard) : undefined;
 const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
 ---
 <Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
@@ -106,6 +109,11 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
+  {drawing && <figure class="drawing" data-pagefind-ignore>
+    <Fragment set:html={drawing.svg} />
+    <figcaption class="muted">{drawing.spec ? <>To scale, from the generic size <a href={url.spec(drawing.spec.id)}>{drawing.spec.name}</a>{part.category === 'bearing' && part.seal && part.seal !== 'open' && ', with the shields or seals this part lists'}{part.category === 'screw' && (drawStd ? <>; head and socket sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : '; head proportions as usual for this type')}.</>
+      : drawing.approximate ? 'Not to scale: the pitch of this gear is not in our data, so only its tooth count is drawn.' : 'To scale, from the tooth count and the pitch.'}{drawing.note && ` ${drawing.note}.`}</figcaption>
+  </figure>}
   {upgrades.length > 0 && <>
     <h2>Upgrades for this part <span class="muted">({upgrades.length})</span></h2>
     <table>
