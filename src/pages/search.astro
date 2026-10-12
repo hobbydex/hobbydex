@@ -21,6 +21,7 @@ import Base from '../layouts/Base.astro';
       const q = document.getElementById('q'), results = document.getElementById('results'), status = document.getElementById('status');
       const more = document.getElementById('more'), moreBtn = document.getElementById('more-btn'), filters = document.getElementById('filters');
       let pagefind;
+      const { rankHits } = await import('/search-rank.js');   // shared with tests/search.test.mjs
       try {
         pagefind = await import('/pagefind/pagefind.js');
         await pagefind.options({ ranking: { termSimilarity: 9, termFrequency: 0.2, termSaturation: 1.2, pageLength: 0.5 } });
@@ -77,23 +78,10 @@ import Base from '../layouts/Base.astro';
         // ranking: an exact kit or release name, then kits, releases and parts whose title holds every word
         // (shortest title first; bodies before generic parts), then pages that only mention the words
         if (text && !type && !cat) {
-          const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-          const qn = norm(text), words = qn.split(' ').filter(Boolean);
           const top = hits.slice(0, 300), datas = [];
           for (let k = 0; k < top.length; k += 50) datas.push(...await Promise.all(top.slice(k, k + 50).map((h) => h.data())));
           if (my !== seq) return;
-          const CAR = ['Body and covers', 'Wings', 'Decals', 'Bumpers and guards'];
-          const ranked = datas.map((d, i) => {
-            const t = d.meta.type || '', title = norm(d.meta.title), brand = norm((d.meta.sub || '').split('·')[0]);
-            const bare = brand && title.startsWith(brand + ' ') ? title.slice(brand.length + 1) : title;
-            const name = t === 'part' ? bare.replace(/^\S+\s/, '') : bare;   // a part title starts with its number
-            const all = words.every((w) => title.includes(w));
-            const cat = (d.filters && d.filters.category && d.filters.category[0]) || '';
-            const tier = (t === 'kit' || t === 'release') && (name === qn || bare === qn) ? 0
-              : t === 'kit' && all ? 1 : t === 'release' && all ? 2 : t === 'part' && all ? (CAR.includes(cat) ? 3 : 4)
-              : all ? 5 : t === 'part' ? 7 : 6;
-            return { h: top[i], i, tier, len: name.length };
-          }).sort((a, b) => a.tier - b.tier || (a.tier <= 4 ? a.len - b.len : 0) || a.i - b.i);
+          const ranked = rankHits(text, datas).map((i) => ({ h: top[i] }));
           hits = [...ranked.map((x) => x.h), ...hits.slice(300)];
         }
         status.textContent = hits.length ? `${hits.length} ${text ? 'result' : labels[type] || 'page'}${hits.length === 1 ? '' : 's'}` : 'No results';
