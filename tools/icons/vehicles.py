@@ -167,6 +167,19 @@ V["kart"] = vehicle([
     link(17.5, 17.2, 20.5, 10.4, 2.2), link(18.0, 8.8, 23.0, 12.0, 2.4),
     box(32.4, 13.2, 41.0, 17.2)],
     [tyre(14.0, 3.0, gap=1.4), tyre(39.5, 3.2, gap=1.4)])
+def _motorcycle():
+    # motocross bike facing left: big spoked wheels, a fork raked back to the bars, tank and long flat seat,
+    # the engine low between the wheels, a swingarm to the rear axle, a high front fender
+    fy, ry = GROUND - 6.2, GROUND - 6.4
+    wheels = [tyre(8.6, 6.2, gap=1.6), tyre(38.8, 6.4, gap=1.6)]
+    body = [
+        [(13.6, 6.2), (21.0, 5.6), (25.5, 7.8), (41.0, 6.8), (45.4, 7.4), (45.4, 8.8), (37.0, 10.2), (30.0, 13.0), (28.6, 18.2), (19.8, 18.2), (15.4, 11.4)],   # tank, seat, side panel, engine
+        [(3.0, 8.6), (11.6, 7.0), (12.0, 8.6), (4.0, 10.0)],   # front fender
+        link(12.4, 3.4, 16.6, 2.8, 1.6),   # handlebar
+    ]
+    uncut = [link(8.6, fy, 13.6, 3.2, 2.0), link(27.0, 14.6, 38.8, ry, 2.2)]   # fork to the front axle, swingarm to the rear axle
+    return vehicle(body, wheels, uncut=uncut)
+V["motorcycle"] = _motorcycle()
 V["race-truck"] = vehicle([
     # cab-over race truck (Tamiya Actros MP4 on TT-01E): tall cab with a roof spoiler, short chassis, no trailer
     [(1.5, 20.0), (1.5, 9.0), (2.6, 4.6), (4.0, 3.8), (17.5, 3.8), (18.8, 5.0), (19.2, 13.0), (46.5, 13.0), (46.5, 18.2), (44.0, 20.0)],
