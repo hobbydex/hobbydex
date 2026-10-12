@@ -98,8 +98,8 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
       {groups.map((g) => { const gr = x.rows.filter((c) => (c.p.category ?? '') === g); return <div class="catgroup" data-cat={g}>
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({gr.length})</span></h3>
         <table>
-          <tr><th class="num w-num">Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand">Brand</th>{hasStep && <th class="w-step">Step</th>}</tr>
-          {gr.map((c) => <tr><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td>{c.p.name}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td>{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
+          <tr><th class="num w-num">Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand c-brand">Brand</th>{hasStep && <th class="w-step">Step</th>}</tr>
+          {gr.map((c) => <tr><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td>{c.p.name}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
         </table></div>; })}
     </section>; })}</>; })()}
   <script>
@@ -125,6 +125,8 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     :global(body.hastabs) .panelhead { display: none; }
     .catgroup table { table-layout: fixed; width: 100%; }
     .w-num { width: 10rem; } .w-qty { width: 4rem; } .w-brand { width: 8rem; } .w-step { width: 9rem; }
+    /* phones: the name column needs the room; the brand is nearly always the kit's own */
+    @media (max-width: 40rem) { .w-num { width: 5.5rem; } .w-qty { width: 2.6rem; } .w-step { width: 4.5rem; } .c-brand { display: none; } .catgroup td { overflow-wrap: anywhere; } }
     .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
   </style>
 </Base>
