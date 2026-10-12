@@ -45,7 +45,7 @@ const { title, description, jsonld, kind, sub } = Astro.props;
         })();
       </script>
     </header>
-    <main data-pagefind-body>
+    <main data-pagefind-body={kind ? "" : undefined}>   {/* only kits, releases, parts, specs and brands are searchable; list pages are not */}
       {kind && <span hidden data-pagefind-meta={`type:${kind}`} data-pagefind-filter={`type:${kind}`} />}
       {sub && <span hidden data-pagefind-meta={`sub:${sub}`} />}
       <slot />
