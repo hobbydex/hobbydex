@@ -3,11 +3,12 @@ import Base from '../../../../layouts/Base.astro';
 import Standards from '../../../../components/Standards.astro';
 import { specDrawing } from '../../../../lib/specDrawings';
 import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
+import DataLink from '../../../../components/DataLink.astro';
 export function getStaticPaths() {
   return db.specs.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } }));
 }
 const { spec } = Astro.props;
-const skip = new Set(['id', 'category', 'name', 'standards']);
+const skip = new Set(['id', 'category', 'name', 'standards', 'toml_path']);
 const attrs = Object.entries(spec).filter(([k, v]) => !skip.has(k) && (typeof v === 'string' || typeof v === 'number'));
 const linked = db.partsBySpec.get(spec.id) ?? [];
 const uses = linked.flatMap(({ part, link }) => (db.usesByPart.get(part.id) ?? []).map((u) => ({ part, link, ...u })))
@@ -69,4 +70,5 @@ const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c
     });
   </script>
   <p class="muted">Derived by walking release, part and equivalence links; the material is a property of each branded part, not of the spec.</p>
+  <DataLink path={(spec as { toml_path?: string }).toml_path} />
 </Base>
