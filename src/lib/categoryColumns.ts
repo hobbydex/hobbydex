@@ -10,6 +10,7 @@ const POSITION: Record<string, string> = { 'front-rear': 'front and rear', 'fron
 function format(v: unknown, f: KeyField): string | number | undefined {
   if (v === undefined || v === null || v === '') return undefined;
   if (f.format === 'cells' && Array.isArray(v)) return v[0] === v[1] ? `${v[0]}S` : `${v[0]}-${v[1]}S`;
+  if (f.format === 'range' && Array.isArray(v)) return `${v[0]}-${v[1]}`;
   if (typeof v === 'number') return v;
   if (typeof v === 'string' && f.field === 'position') return POSITION[v] ?? v.replace(/-/g, ' ');
   if (typeof v === 'string') return v.replace(/-/g, ' ');
@@ -27,7 +28,7 @@ function isNumeric(slug: string, f: KeyField) {
 export const columns: Record<string, Column[]> = Object.fromEntries([...cat.entries()].filter(([, c]) => c.key_fields?.length).map(([slug, c]) => [slug,
   c.key_fields!.map((f) => ({
     label: f.unit ? `${f.label} ${f.unit}` : f.label,
-    num: f.format !== 'cells' && isNumeric(slug, f),
+    num: f.format !== 'cells' && f.format !== 'range' && isNumeric(slug, f),
     field: f,
     get: (p: Part, s?: Spec) => format(f.from === 'spec' ? s?.[f.field] : (p as unknown as Record<string, unknown>)[f.field], f),
   }))]));
