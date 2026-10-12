@@ -4,6 +4,7 @@ import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText, dateText } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
+import DataLink from '../../../../components/DataLink.astro';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 import { bearingList } from '../../../../lib/bearingList';
 export function getStaticPaths() {
@@ -131,4 +132,5 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     @media (max-width: 40rem) { .catgroup th, .catgroup td { padding-left: 0.4rem; padding-right: 0.4rem; } .w-qty { width: 3rem; } .w-step { width: 4.5rem; } .c-brand { display: none; } .catgroup td { overflow-wrap: anywhere; } }
     .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
   </style>
+  <DataLink path={release.toml_path} />
 </Base>
