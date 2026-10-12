@@ -16,6 +16,7 @@ const cols: Record<string, [string, string][]> = {
   servo: [['size_class', 'Size'], ['spline_teeth', 'Spline']],
   pinion: [['teeth', 'Teeth'], ['pitch_dp', 'Pitch'], ['module', 'Module']],
   pin: [['diameter_mm', 'Diameter mm'], ['length_mm', 'Length mm']],
+  nut: [['thread', 'Thread'], ['type', 'Type'], ['profile', 'Profile'], ['across_flats_mm', 'Across flats mm'], ['height_mm', 'Height mm']],
 };
 const show = cols[category!] ?? [];
 ---

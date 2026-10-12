@@ -1,7 +1,8 @@
 // Dimensioned drawings for bearing, pinion, pin and wheel hex specs, drawn in currentColor (light and dark).
-// Screws have their own module (screwDrawing.ts); specDrawing() picks the right one for a spec.
+// Screws and nuts have their own modules (screwDrawing.ts, nutDrawing.ts); specDrawing() picks the right one for a spec.
 import { db, type Part, type Spec } from './data';
 import { screwDrawing, type ScrewDrawing } from './screwDrawing';
+import { nutDrawing } from './nutDrawing';
 
 const f = (v: number) => String(Math.round(v * 100) / 100);
 export const svgWrap = (w: number, h: number, label: string, body: string, units = true) =>
@@ -168,10 +169,11 @@ export function specDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | un
   if (spec.category === 'pinion') return gearDrawing({ teeth: spec.teeth, module: spec.module, pitch_dp: spec.pitch_dp });
   if (spec.category === 'wheel-hex') return wheelHex(spec);
   if (spec.category === 'pin') return pin(spec);
+  if (spec.category === 'nut') return nutDrawing(spec);
   return undefined;
 }
 
-// The drawing for a branded part: a bearing or screw through the spec it is equivalent to (with the part's
+// The drawing for a branded part: a bearing, screw or nut through the spec it is equivalent to (with the part's
 // own seal or thread), a pinion or spur gear from its tooth count and pitch (the part's, else its spec's).
 export function partDrawing(part: Part): (ScrewDrawing & { note?: string; spec?: Spec }) | undefined {
   const eq = (part.equivalent_to ?? []).map((e) => db.spec.get(e.spec)).filter((x): x is Spec => !!x);
@@ -184,5 +186,7 @@ export function partDrawing(part: Part): (ScrewDrawing & { note?: string; spec?:
   if (bs && part.category === 'bearing') { const dr = bearingDrawing(bs, part.seal); return dr && { ...dr, spec: bs }; }
   const ss = eq.find((x) => x.category === 'screw');
   if (ss && part.category === 'screw') { const dr = screwDrawing({ ...ss, thread_type: part.thread_type ?? ss.thread_type }); return dr && { ...dr, spec: ss }; }
+  const ns = eq.find((x) => x.category === 'nut');
+  if (ns && part.category === 'nut') { const dr = nutDrawing(ns); return dr && { ...dr, spec: ns }; }
   return undefined;
 }

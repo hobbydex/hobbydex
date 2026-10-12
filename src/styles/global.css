@@ -107,6 +107,7 @@ figure.drawing figcaption { font-size: 0.8rem; }
 .screwdrawing .bg { fill: var(--bg); }
 .screwdrawing .ball { fill: var(--bg); stroke-width: 1.2; }
 .screwdrawing .shield { fill: currentColor; fill-opacity: 0.35; stroke-width: 0.8; }
+.screwdrawing .nylon { fill: var(--accent); fill-opacity: 0.45; stroke-width: 0.8; }
 .screwdrawing .seal { fill: currentColor; fill-opacity: 0.7; stroke-width: 0.8; }
 .screwdrawing .dashdot { stroke-dasharray: 8 2 2 2; opacity: 0.6; }
 .screwdrawing text.big, .screwdrawing tspan.big { font-size: 15px; font-weight: 600; }
