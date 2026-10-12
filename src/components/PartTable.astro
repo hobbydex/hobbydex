@@ -4,6 +4,7 @@
 import { url, brandName, type Part } from '../lib/data';
 import { columns, specOf } from '../lib/categoryColumns';
 import { paintChip } from '../lib/paintSwatch';
+import { colourDot } from '../lib/colourDot';
 interface Props { category: string; parts: Part[]; showBrand?: boolean }
 const { category, parts, showBrand = true } = Astro.props;
 const cols = columns[category] ?? [];
@@ -33,8 +34,11 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
       {rows.map(({ p, vals }) => <tr data-brand={p.brand} data-known={vals.some((v) => v !== undefined) ? '1' : ''}>
         <td><input type="checkbox" autocomplete="off" aria-label={`Compare ${p.number}`} /></td>
         <td><a href={url.part(p.id)}>{showBrand && `${brandName(p.brand)} `}{p.number}</a>{short(p) && <span class="muted"> {short(p)}</span>}</td>
-        {vals.map((v, i) => { const sw = cols[i].field.field === 'color' ? paintChip(p, 22, 'circle') : undefined;
-          return <td class={`${cols[i].num ? 'num' : ''}${cols[i].field.compare_only ? ' conly' : ''}`}>{sw && <span class="swatch" title="approximate colour" set:html={sw} />}{v ?? ''}</td>; })}
+        {vals.map((v, i) => { const f = cols[i].field.field, paint = p.category === 'paint';
+          const sw = f === 'color' && paint ? paintChip(p, 22, 'circle') : undefined;
+          // a named colour (not a paint): a dot from the fixed palette
+          const dot = (f === 'color' || f === 'wheel_color') && !paint ? colourDot((p as unknown as Record<string, string | undefined>)[f]) : '';
+          return <td class={`${cols[i].num ? 'num' : ''}${cols[i].field.compare_only ? ' conly' : ''}`}>{sw && <span class="swatch" title="approximate colour" set:html={sw} />}{dot && <Fragment set:html={dot} />}{v ?? ''}</td>; })}
       </tr>)}
     </tbody>
   </table>

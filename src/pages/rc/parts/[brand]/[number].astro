@@ -7,6 +7,7 @@ import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data'
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
+import { colourDot } from '../../../../lib/colourDot';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.parts.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(x.id) } })));
@@ -49,6 +50,11 @@ const swatch = paintSwatch(part, 'large');
 const engine = part.category === 'engine-fuel' ? [part.engine_class && `${part.engine_class} class`, part.displacement_cc && `${part.displacement_cc} cc`,
   part.bore_mm && part.stroke_mm ? `bore x stroke ${part.bore_mm} x ${part.stroke_mm} mm` : part.bore_mm && `bore ${part.bore_mm} mm`, part.fuel].filter(Boolean).join(', ') : '';
 const chip = paintChip(part, 120);
+const isWheel = part.category === 'tire' || part.category === 'wheel';
+// the wheel facts in one line, the colours with their dot
+const wheelFacts = [part.wheel_size && `${part.wheel_size} rim`, part.compound && `${part.compound} compound`, part.mounting && ({ 'pre-mounted': 'pre-mounted on wheels', 'pre-mounted-not-glued': 'mounted on wheels, not glued', 'wheels-included': 'wheels included, to be mounted', unmounted: 'tires only, no wheels' } as Record<string, string>)[part.mounting],
+  part.wheel_color && { dot: colourDot(part.wheel_color), text: `${part.wheel_color} wheels` }, part.color && { dot: colourDot(part.color), text: part.color },
+  part.offset_mm !== undefined && `offset ${part.offset_mm > 0 ? '+' : ''}${part.offset_mm} mm`, part.beadlock && 'beadlock'].filter((x): x is string | { dot: string; text: string } => !!x);
 const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
 ---
 <Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
@@ -79,7 +85,8 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.category === 'paint' && (swatch || part.color) && <><dt>Colour</dt><dd class="paintcolour">{chip && <span set:html={chip} />}{swatch && <span set:html={swatch} />}{part.color}{swatch && <span class="muted"> · approximate colour, sampled from {brandName(part.brand)}'s colour chart; screens show colours differently</span>}</dd></>}
     {part.viscosity_wt && <><dt>Viscosity</dt><dd>{part.viscosity_wt} wt <span class="muted">(the brand's own scale)</span></dd></>}
     {part.volume_ml && <><dt>Volume</dt><dd>{part.pack_qty && part.pack_qty > 1 ? `${part.pack_qty} x ${part.volume_ml} ml` : `${part.volume_ml} ml`}</dd></>}
-    {(part.category === 'tire' || part.category === 'wheel') && (part.wheel_size || part.mounting || part.compound || part.color || part.offset_mm !== undefined) && <><dt>{part.category === 'tire' ? 'Tire' : 'Wheel'}</dt><dd>{[part.wheel_size && `${part.wheel_size} rim`, part.compound && `${part.compound} compound`, part.mounting && ({ 'pre-mounted': 'pre-mounted on wheels', 'pre-mounted-not-glued': 'mounted on wheels, not glued', 'wheels-included': 'wheels included, to be mounted', unmounted: 'tires only, no wheels' } as Record<string, string>)[part.mounting], part.wheel_color && `${part.wheel_color} wheels`, part.color && part.color, part.offset_mm !== undefined && `offset ${part.offset_mm > 0 ? '+' : ''}${part.offset_mm} mm`, part.beadlock && 'beadlock'].filter(Boolean).join(', ')}</dd></>}
+    {isWheel && wheelFacts.length > 0 && <><dt>{part.category === 'tire' ? 'Tire' : 'Wheel'}</dt><dd>{wheelFacts.map((f, i) => <>{i > 0 && ', '}{typeof f === 'string' ? f : <><Fragment set:html={f.dot} />{f.text}</>}</>)}</dd></>}
+    {!isWheel && part.category !== 'paint' && part.color && <><dt>Colour</dt><dd><Fragment set:html={colourDot(part.color)} />{part.color}</dd></>}
     {part.teeth && part.category === 'spur-gear' && <><dt>Gear</dt><dd>{part.teeth}T{part.pitch_dp ? `, ${part.pitch_dp} pitch` : part.module ? `, module ${part.module}` : ''}</dd></>}
     {part.bore_mm && !engine && <><dt>Bore</dt><dd>{part.bore_mm} mm</dd></>}
     {engine && <><dt>Engine</dt><dd>{engine}</dd></>}
@@ -148,7 +155,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
         <td>{[o.rate, o.rate_n_mm && `${o.rate_n_mm} N/mm`, o.rate_lb_in && `${o.rate_lb_in} lb/in`].filter(Boolean).join(', ')}</td><td class="num">{o.wire_mm ?? ''}</td><td class="num">{o.free_length_mm ?? ''}</td></tr>)}
     </table></>}
   {range.length > 0 && !part.range?.endsWith('-springs') && <><h2>{part.range?.endsWith('-colours') ? 'Other colours' : <>Other versions <span class="muted">· same range</span></>}</h2>
-    <ul>{range.map((o) => <li><a href={url.part(o.id)}>{o.number}</a> {o.name}<span class="muted">{o.turns && ` · ${o.turns}T`}{o.kv && ` · ${o.kv} kV`}</span></li>)}</ul></>}
+    <ul>{range.map((o) => <li>{o.category !== 'paint' && <Fragment set:html={colourDot(o.color)} />}<a href={url.part(o.id)}>{o.number}</a> {o.name}<span class="muted">{o.turns && ` · ${o.turns}T`}{o.kv && ` · ${o.kv} kV`}</span></li>)}</ul></>}
   {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
     <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {o.number}</a> {shortName(o)}<span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
   <h2>Used in</h2>
