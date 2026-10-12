@@ -60,6 +60,7 @@ ul.search-results mark { background: var(--mark); color: inherit; border-radius:
 .websearch { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin: 0.25rem 0 1rem; }
 .websearch .btn, .websearch select { font: inherit; font-size: 0.85rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 0.8rem; cursor: pointer; text-decoration: none; }
 .websearch .btn:hover { background: var(--surface-2); }
+.fanlinks { font-size: 0.85rem; margin: -0.5rem 0 1rem; }
 .search-filters select { font: inherit; font-size: 0.8rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.1rem 0.6rem; }
 .home-search { display: flex; gap: 0.5rem; margin: 1rem 0; max-width: 40rem; }
 .home-search input { flex: 1; font: inherit; font-size: 1rem; padding: 0.5rem 0.75rem; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }

@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 
 export type Brand = { id: string; name: string; legal_name?: string; country?: string; website?: string; kind?: string; status: string; notes?: string };
-export type Link = { site: string; url: string };
+export type Link = { site: string; url: string; kind?: 'fan-site' };
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
 export type Kit = { id: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[] };
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
