@@ -5,7 +5,7 @@ import { catName } from '../../../lib/categories';
 import Icon from '../../../components/Icon.astro';
 import { categories, countOf } from '../../../lib/categoryIndex';
 import { columns } from '../../../lib/categoryColumns';
-const desc = new Map(db.categories.map((c) => [c.id.split('/')[1], c.description ?? '']));
+const desc = new Map(db.categories.map((c) => [c.id.split('/')[1], c.summary ?? c.description ?? '']));
 const total = categories.reduce((n, c) => n + countOf(c), 0);
 ---
 <Base title="Part categories" description="Every RC part category in Hobbydex: what it holds and how many parts it has.">
