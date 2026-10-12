@@ -37,7 +37,7 @@ const bearingKits = (db.fitsByKit.get(kit.id) ?? []).map((x) => x.part).filter((
 const copyText = bearings ? bearings.lines.map((l) => `${l.qty !== undefined ? `${l.qty}x ` : ''}${l.name}`).join('\n') : '';
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 ---
-<Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name} (${release.year}): parts list and options.`} kind="release" sub={`${brandName(release.brand)} · ${release.year}`}>
+<Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a> / <a href={url.kit(kit.id)}>{kit.name}</a> / {release.name}</div>
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(release.brand)} {release.name}</h1>
   <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
