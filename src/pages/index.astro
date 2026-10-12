@@ -9,8 +9,9 @@ const top = <T,>(m: Map<T, number>, n: number) => [...m.entries()].sort((a, b) =
 const byCat = new Map<string, number>();
 for (const p of db.parts) if (p.category) byCat.set(p.category, (byCat.get(p.category) ?? 0) + 1);
 const cats = top(byCat, 12);
+// car makers by how many releases (kits and RTRs) we have: part counts favour sellers of per-car bearing or screw kits
 const byBrand = new Map<string, number>();
-for (const p of db.parts) byBrand.set(p.brand, (byBrand.get(p.brand) ?? 0) + 1);
+for (const r of db.releases) byBrand.set(r.brand, (byBrand.get(r.brand) ?? 0) + 1);
 const brands = top(byBrand, 12);
 // one row per kit, by its newest release that is not discontinued
 const newest = new Map<string, (typeof db.releases)[number]>();
@@ -46,10 +47,10 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
       </ul>
     </section>
     <section>
-      <h2>Brands by parts <span class="muted">· <a href="/rc/brands/">all brands</a></span></h2>
+      <h2>Brands by releases <span class="muted">· <a href="/rc/brands/">all brands</a> · <a href="/stats/">statistics</a></span></h2>
       <ul class="hbars">
         {brands.map(([b, n]) => <li><a href={url.brand(b)}>{brandName(b)}</a>
-          <span class="bar" style={`width:${(n / max(brands)) * 100}%`} title={`${brandName(b)}: ${n} parts`}></span><span class="v">{n}</span></li>)}
+          <span class="bar" style={`width:${(n / max(brands)) * 100}%`} title={`${brandName(b)}: ${n} releases`}></span><span class="v">{n}</span></li>)}
       </ul>
     </section>
   </div>
