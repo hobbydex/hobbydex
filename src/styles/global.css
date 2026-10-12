@@ -63,7 +63,7 @@ ul.search-results mark { background: var(--mark); color: inherit; border-radius:
 .fanlinks { font-size: 0.85rem; margin: -0.5rem 0 1rem; }
 .search-filters select { font: inherit; font-size: 0.8rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.1rem 0.6rem; }
 .home-search { display: flex; gap: 0.5rem; margin: 1rem 0; max-width: 40rem; }
-.home-search input { flex: 1; font: inherit; font-size: 1rem; padding: 0.5rem 0.75rem; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+.home-search input { flex: 1; min-width: 0; font: inherit; font-size: 1rem; padding: 0.5rem 0.75rem; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
 .home-search button { font: inherit; padding: 0.5rem 1rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
 .home-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 0 2rem; }
 .hbars { list-style: none; padding: 0; margin: 0; }
@@ -105,3 +105,15 @@ svg.paintchip { vertical-align: middle; margin-right: 0.5rem; }
 .factsrow .typeicon { color: var(--muted); margin-left: auto; }
 a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* phones: the header fits on one line (GitHub stays reachable from the footer links) */
+@media (max-width: 600px) {
+  header.site { padding: 0.6rem 1rem; gap: 0.75rem; }
+  header.site .logo { gap: 0.35rem; }
+  header.site nav a { margin-right: 0.7rem; white-space: nowrap; }
+  header.site nav a.gh { display: none; }
+}
+@media (max-width: 360px) {
+  header.site { padding: 0.6rem 0.75rem; gap: 0.5rem; }
+  header.site nav a { margin-right: 0.5rem; font-size: 0.85rem; }
+  .home-search button { padding: 0.5rem 0.7rem; }
+}
