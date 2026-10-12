@@ -7,7 +7,7 @@ export type Link = { site: string; url: string };
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
 export type Kit = { id: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[] };
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
-export type Release = { id: string; former_ids?: string[]; kit: string; brand: string; number?: string; name: string; year?: number; released?: string; kind: string; status: string; edition?: string; surface?: string[]; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; links?: Link[] };
+export type Release = { id: string; former_ids?: string[]; kit: string; brand: string; number?: string; name: string; year?: number; released?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };
 export type Part = { id: string; former_ids?: string[]; brand: string; number: string; name: string; category?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string; paint_type?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; range?: string };
@@ -130,7 +130,7 @@ export const url = {
   standard: (id: string) => `/rc/standards/${key(id)[0]}/`,
 };
 // Releases with an unknown year sort as oldest and show as 'unknown'.
-export const yearOf = (r: { year?: number }) => r.year ?? 0;
+export const yearOf = (r: { year?: number; model_year?: number }) => r.year ?? r.model_year ?? 0;   // a model year sorts in place of an unknown release year
 // Sort key and label for a release date: '2025-03-22' > '2025-03' > '2025'.
 export const dateKey = (r: { year?: number; released?: string }) => r.released ?? (r.year ? String(r.year) : '');
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -139,5 +139,5 @@ export const dateText = (r: { year?: number; released?: string }) => {
   if (!m) return r.year ? String(r.year) : 'unknown';
   return [m[3] && String(Number(m[3])), m[2] && MONTHS[Number(m[2]) - 1], m[1]].filter(Boolean).join(' ');
 };
-export const yearText = (r: { year?: number }) => (r.year ? String(r.year) : 'unknown');
+export const yearText = (r: { year?: number; model_year?: number }) => (r.year ? String(r.year) : r.model_year ? `MY ${r.model_year}` : 'unknown');
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
