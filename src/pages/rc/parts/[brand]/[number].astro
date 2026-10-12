@@ -6,6 +6,7 @@ import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
+import DataLink from '../../../../components/DataLink.astro';
 import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
 import { colourDot } from '../../../../lib/colourDot';
 export function getStaticPaths() {
@@ -165,4 +166,5 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {uses.map((u) => <tr><td class="num">{yearText(u.release)}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
   </table>}
   <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p>
+  <DataLink path={part.toml_path} />
 </Base>

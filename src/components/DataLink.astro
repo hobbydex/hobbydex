@@ -1,0 +1,7 @@
+---
+// Where this record lives in the data repo: view it on GitHub, or propose a change there.
+interface Props { path?: string }
+const { path } = Astro.props;
+const repo = 'https://github.com/hobbydex/hobbydex-rc';
+---
+{path && <p class="muted datalink" data-pagefind-ignore>Data: <a href={`${repo}/blob/main/${path}`} rel="noopener">{path.split('/').pop()}</a> on GitHub · <a href={`${repo}/edit/main/${path}`} rel="noopener">suggest a correction</a></p>}
