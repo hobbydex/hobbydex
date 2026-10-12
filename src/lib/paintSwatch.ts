@@ -51,3 +51,29 @@ export function paintSwatch(p: Part, size: 'small' | 'large' = 'small'): string 
   return `<svg class="paintswatch" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${Math.round(W * scale)}" height="${Math.round(H * scale)}" role="img" aria-label="${label}">`
     + (defs.length ? `<defs>${defs.join('')}</defs>` : '') + layers.join('') + cap + `</svg>`;
 }
+
+/** A plain colour chip (a rounded square, or a circle for tables) in the swatch colour, with the same finish effects. */
+export function paintChip(p: Part, px = 120, shape: 'square' | 'circle' = 'square'): string | undefined {
+  if (!p.swatch || !HEX.test(p.swatch)) return undefined;
+  const id = 'ch' + px + p.id.replace(/[^a-z0-9]/gi, '');
+  const finish = p.finish ?? '';
+  const fill = finish === 'fluorescent' ? brighter(p.swatch) : p.swatch;
+  const see = finish === 'translucent' ? 0.6 : finish === 'clear' ? 0.25 : 1;
+  const sheen = finish === 'metallic' || finish === 'pearl' || finish === 'chrome';
+  const shapeEl = (attrs: string) => shape === 'circle' ? `<circle cx="50" cy="50" r="48" ${attrs}/>` : `<rect x="2" y="2" width="96" height="96" rx="10" ${attrs}/>`;
+  const defs: string[] = [], layers: string[] = [];
+  if (see < 1) {
+    defs.push(`<pattern id="${id}c" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#fff"/><rect width="5" height="5" fill="#bbb"/><rect x="5" y="5" width="5" height="5" fill="#bbb"/></pattern>`);
+    layers.push(shapeEl(`fill="url(#${id}c)"`));
+  }
+  layers.push(shapeEl(`fill="${fill}" fill-opacity="${see}"`));
+  if (sheen) {
+    const hi = finish === 'chrome' ? 0.85 : 0.6, tint = finish === 'pearl' ? '#f4e8ff' : '#fff';
+    defs.push(`<linearGradient id="${id}s" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0.2"/><stop offset="0.35" stop-color="${tint}" stop-opacity="${hi}"/><stop offset="0.5" stop-color="${tint}" stop-opacity="0.1"/><stop offset="1" stop-color="#000" stop-opacity="0.3"/></linearGradient>`);
+    layers.push(shapeEl(`fill="url(#${id}s)"`));
+  }
+  layers.push(shapeEl(`fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-width="2"`));   // an edge, so white paints still show
+  const label = `approximate colour ${p.swatch}${finish ? `, ${finish}` : ''}`;
+  return `<svg class="paintchip" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${px}" height="${px}" role="img" aria-label="${label}">`
+    + (defs.length ? `<defs>${defs.join('')}</defs>` : '') + layers.join('') + `</svg>`;
+}

@@ -98,6 +98,8 @@ figure.drawing figcaption { font-size: 0.8rem; }
 svg.paintswatch { vertical-align: middle; margin-right: 0.35rem; overflow: visible; }
 svg.paintswatch .o { fill: none; stroke: currentColor; stroke-width: 1.1; stroke-linejoin: round; }
 svg.paintswatch .thin { stroke-width: 0.6; opacity: 0.5; }
+svg.paintchip { vertical-align: middle; margin-right: 0.5rem; }
+.paintcolour { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; }
 .factsrow { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
 .factsrow .typeicon { color: var(--muted); margin-left: auto; }
 a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
