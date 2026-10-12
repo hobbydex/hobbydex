@@ -21,6 +21,10 @@ import Base from '../layouts/Base.astro';
       const q = document.getElementById('q'), results = document.getElementById('results'), status = document.getElementById('status');
       const more = document.getElementById('more'), moreBtn = document.getElementById('more-btn'), filters = document.getElementById('filters');
       let pagefind;
+      // show the query and that we are working at once; the index takes a moment to load
+      const params = new URLSearchParams(location.search);
+      if (params.get('q')) q.value = params.get('q');
+      if (params.get('q') || params.get('category') || params.get('type')) status.textContent = 'Searching...';
       const { rankHits } = await import('/search-rank.js');   // shared with tests/search.test.mjs
       try {
         pagefind = await import('/pagefind/pagefind.js');
@@ -66,6 +70,7 @@ import Base from '../layouts/Base.astro';
         const qs = new URLSearchParams(); if (text) qs.set('q', text); if (type) qs.set('type', type); if (cat) qs.set('category', cat);
         history.replaceState(null, '', qs.toString() ? `?${qs}` : location.pathname);
         if (!text && !type && !cat) { status.textContent = ''; hits = []; return; }
+        status.textContent = 'Searching...';
         let r;
         try {
           // empty query with a type selected: list every page of that type, by title
@@ -96,11 +101,9 @@ import Base from '../layouts/Base.astro';
         search();
       });
       catSel.addEventListener('change', () => { cat = catSel.value; search(); });
-      const params = new URLSearchParams(location.search);
       if (params.get('category')) { cat = params.get('category'); catSel.value = cat; }
       if (params.get('type')) { type = params.get('type'); for (const x of filters.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x.dataset.type === type)); }
-      if (params.get('q')) q.value = params.get('q');
-      if (params.get('q') || cat) search();
+      if (params.get('q') || cat || type) search();
     })();
   </script>
 </Base>
