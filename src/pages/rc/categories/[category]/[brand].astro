@@ -1,4 +1,5 @@
 ---
+import { colourDot } from '../../../../lib/colourDot';
 import Base from '../../../../layouts/Base.astro';
 import PartTable from '../../../../components/PartTable.astro';
 import { db, brandName, key, url } from '../../../../lib/data';
@@ -18,6 +19,6 @@ const parts = [...byCategory.get(category)!.get(brandId)!].sort((a, b) => a.numb
   {columns[category] ? <PartTable category={category} parts={parts} showBrand={false} /> :
   <table>
     <tr><th>Part</th><th>Name</th><th class="num">Releases</th></tr>
-    {parts.map((p) => <tr><td><a href={url.part(p.id)}>{p.number}</a></td><td>{p.name}</td><td class="num">{new Set((db.usesByPart.get(p.id) ?? []).map((u) => u.release.id)).size || ''}</td></tr>)}
+    {parts.map((p) => <tr><td><a href={url.part(p.id)}>{p.number}</a></td><td><Fragment set:html={p.category === 'paint' ? '' : colourDot(p.color)} />{p.name}</td><td class="num">{new Set((db.usesByPart.get(p.id) ?? []).map((u) => u.release.id)).size || ''}</td></tr>)}
   </table>}
 </Base>
