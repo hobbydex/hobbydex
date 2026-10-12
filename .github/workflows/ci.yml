@@ -31,5 +31,7 @@ jobs:
         run: npm run build
         env:
           HOBBYDEX_DATA: data/hobbydex-rc.json
+      - name: Search tests (ranking rules and the built index)
+        run: npm test
       - name: Type check
         run: npm run check
