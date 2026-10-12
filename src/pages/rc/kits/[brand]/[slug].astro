@@ -63,7 +63,7 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
     {byCat(borrowedUnique, (x) => x.p.category).map(({ g, rows }) => <div class="catgroup">
       <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
       <table>
-        <tr><th class="num w-num">Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-from">From</th></tr>
+        <tr><th class="num" style={`width:min(calc(${Math.max(5, ...borrowedUnique.map((x) => x.p.number.length))}ch + 1rem), 9rem)`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-from">From</th></tr>
         {rows.map(({ rel, p }) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td>{p.name}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
       </table></div>)}
   </>}
@@ -74,14 +74,15 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
       {groups.map(({ g, rows }) => <div class="catgroup" id={`cat-${g || 'other'}`}>
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
         <table>
-          <tr><th class="num w-num">Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
+          <tr><th class="num" style={`width:min(calc(${Math.max(5, ...fits.map((x) => x.part.number.length))}ch + 1rem), 9rem)`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
           {rows.map(({ part, fit }) => <tr><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td>{brandName(part.brand)}</td><td>{fit.type}{fit.notes && <span class="muted"> · {fit.notes}</span>}</td></tr>)}
         </table></div>)}</>; })()}
   </>}
   <style>
     .catgroup table { table-layout: fixed; width: 100%; }
-    .w-num { width: 10rem; } .w-brand { width: 9rem; } .w-from { width: 14rem; } .w-fit { width: 12rem; }
-    @media (max-width: 40rem) { .w-num { width: 5.5rem; } .w-brand { width: 5rem; } .w-from, .w-fit { width: 6.5rem; } .catgroup td { overflow-wrap: anywhere; } }
+    .catgroup td.num { white-space: normal; overflow-wrap: anywhere; }
+    .w-brand { width: 9rem; } .w-from { width: 14rem; } .w-fit { width: 12rem; }
+    @media (max-width: 40rem) { .w-brand { width: 5rem; } .w-from, .w-fit { width: 6.5rem; } .catgroup td { overflow-wrap: anywhere; } }
     .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
   </style>
 </Base>
