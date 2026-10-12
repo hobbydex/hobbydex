@@ -22,7 +22,7 @@ const latest = [...newest.values()].sort((a, b) => dateKey(b).localeCompare(date
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 ---
 <Base title="Open hobby parts database" description="Hobbydex: which parts are in my RC car, what fits it, and what is it equivalent to. Open data, no prices, no images.">
-  <h1>Hobbydex</h1>
+  <h1 class="sr-only">Hobbydex</h1>
   <p>Which parts are in my car, what fits it, and what is it equivalent to? An open, cross-brand parts database, starting with RC cars.</p>
   <form class="home-search" action="/search/" method="get" role="search">
     <input type="search" name="q" placeholder="Part number, part name, kit or brand" aria-label="Search" />
