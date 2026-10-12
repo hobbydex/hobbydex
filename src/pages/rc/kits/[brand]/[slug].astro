@@ -2,6 +2,7 @@
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 import Icon from '../../../../components/Icon.astro';
+import WebSearch from '../../../../components/WebSearch.astro';
 import { catName } from '../../../../lib/categories';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 export function getStaticPaths() {
@@ -30,6 +31,7 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="kit" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(kit.brand)} {kit.name}</h1>
+  <WebSearch query={`${brandName(kit.brand)} ${kit.name}`} />
   <div class="factsrow">
   <dl class="facts">
     <dt>Category</dt><dd><a href={`/rc/kits/types/${kit.category || 'car'}/`}>{kitTypeOne[kit.category ?? 'car'] ?? kit.category}</a></dd>

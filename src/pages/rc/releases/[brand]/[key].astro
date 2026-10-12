@@ -54,7 +54,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
-    <span class="typeicon" title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}><Icon name={kitTypeIcon(kit.category)} size="5rem" /></span>
+    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><Icon name={kitTypeIcon(release.category ?? kit.category)} size="5rem" /></span>
   </div>
   {docs.length > 0 && <><h2>Sources</h2>
     {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
