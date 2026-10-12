@@ -45,6 +45,9 @@ const similar = part.category === 'servo' ? similarServos(part.id) : [];
 const rating = (o: typeof part) => o.turns ?? (o.kv ? -o.kv : 0);
 const range = part.range ? (db.partsByRange.get(part.range) ?? []).filter((o) => o.id !== part.id).sort((a, b) => rating(b) - rating(a)) : [];
 const swatch = paintSwatch(part, 'large');
+// a nitro or gas engine: class, displacement, bore x stroke, fuel
+const engine = part.category === 'engine-fuel' ? [part.engine_class && `${part.engine_class} class`, part.displacement_cc && `${part.displacement_cc} cc`,
+  part.bore_mm && part.stroke_mm ? `bore x stroke ${part.bore_mm} x ${part.stroke_mm} mm` : part.bore_mm && `bore ${part.bore_mm} mm`, part.fuel].filter(Boolean).join(', ') : '';
 const chip = paintChip(part, 120);
 const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
 ---
@@ -77,7 +80,10 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.volume_ml && <><dt>Volume</dt><dd>{part.pack_qty && part.pack_qty > 1 ? `${part.pack_qty} x ${part.volume_ml} ml` : `${part.volume_ml} ml`}</dd></>}
     {(part.category === 'tire' || part.category === 'wheel') && (part.wheel_size || part.mounting || part.compound || part.color || part.offset_mm !== undefined) && <><dt>{part.category === 'tire' ? 'Tire' : 'Wheel'}</dt><dd>{[part.wheel_size && `${part.wheel_size} rim`, part.compound && `${part.compound} compound`, part.mounting && ({ 'pre-mounted': 'pre-mounted on wheels', 'pre-mounted-not-glued': 'mounted on wheels, not glued', 'wheels-included': 'wheels included, to be mounted', unmounted: 'tires only, no wheels' } as Record<string, string>)[part.mounting], part.wheel_color && `${part.wheel_color} wheels`, part.color && part.color, part.offset_mm !== undefined && `offset ${part.offset_mm > 0 ? '+' : ''}${part.offset_mm} mm`, part.beadlock && 'beadlock'].filter(Boolean).join(', ')}</dd></>}
     {part.teeth && part.category === 'spur-gear' && <><dt>Gear</dt><dd>{part.teeth}T{part.pitch_dp ? `, ${part.pitch_dp} pitch` : part.module ? `, module ${part.module}` : ''}</dd></>}
-    {part.bore_mm && <><dt>Bore</dt><dd>{part.bore_mm} mm</dd></>}
+    {part.bore_mm && !engine && <><dt>Bore</dt><dd>{part.bore_mm} mm</dd></>}
+    {engine && <><dt>Engine</dt><dd>{engine}</dd></>}
+    {part.output_hp && <><dt>Output</dt><dd>{part.output_hp} hp{part.output_rpm && ` at ${part.output_rpm.toLocaleString('en')} rpm`}</dd></>}
+    {part.rpm_range && <><dt>Practical rpm</dt><dd>{part.rpm_range.map((r) => r.toLocaleString('en')).join(' - ')} rpm</dd></>}
     {part.capacity_mah && <><dt>Battery</dt><dd>{part.chemistry?.toUpperCase()} {part.cells}S {part.capacity_mah} mAh{part.c_rating && ` ${part.c_rating}C`}{part.case && `, ${part.case} case`}</dd></>}
     {part.dimensions_mm && <><dt>Size</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
     {part.weight_g && <><dt>Weight</dt><dd>{part.weight_g} g</dd></>}
