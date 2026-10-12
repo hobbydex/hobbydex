@@ -49,6 +49,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
     {release.released ? <><dt>Released</dt><dd>{dateText(release)}</dd></> : <><dt>Year</dt><dd>{yearText(release)}</dd></>}
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
+    {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
