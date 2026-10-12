@@ -1,7 +1,7 @@
 // A paint's approximate colour (part.swatch, sampled from the maker's colour chart) drawn as a small
 // spray can (application spray-can) or a paint bottle (everything else), outlined in currentColor
 // (light and dark). The finish shows as a sheen (metallic, pearl, chrome), a brighter tint
-// (fluorescent) or a checker under a see-through fill (translucent, clear).
+// (fluorescent), specks (flake) or a checker under a see-through fill (translucent, clear).
 import type { Part } from './data';
 
 const HEX = /^#[0-9a-f]{6}$/;
@@ -16,6 +16,22 @@ function brighter(hex: string) {
   const c = (1 - Math.abs(2 * l2 - 1)) * s2, x = c * (1 - Math.abs((h % 2) - 1)), m = l2 - c / 2;
   const [R, G, B] = h < 1 ? [c, x, 0] : h < 2 ? [x, c, 0] : h < 3 ? [0, c, x] : h < 4 ? [0, x, c] : h < 5 ? [x, 0, c] : [c, 0, x];
   return '#' + [R, G, B].map((v) => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
+}
+
+
+// Flake and glitter paints: a scatter of small specks, placed the same way for every render of one paint.
+function specks(id: string, hex: string, x0: number, y0: number, w: number, h: number, n: number, r: number) {
+  // white specks on a dark or mid colour, dark ones on a light colour, where white would vanish
+  const lum = [1, 3, 5].reduce((a, i, k) => a + parseInt(hex.slice(i, i + 2), 16) / 255 * [0.299, 0.587, 0.114][k], 0);
+  const col = lum > 0.7 ? '#444' : '#fff';
+  let seed = 0; for (const ch of id) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  let out = '';
+  for (let i = 0; i < n; i++) {
+    const x = (x0 + rnd() * w).toFixed(1), y = (y0 + rnd() * h).toFixed(1), o = (0.55 + rnd() * 0.45).toFixed(2), rr = (r * (0.6 + rnd() * 0.8)).toFixed(2);
+    out += `<circle cx="${x}" cy="${y}" r="${rr}" fill="${col}" fill-opacity="${o}"/>`;
+  }
+  return out;
 }
 
 /** Inline SVG of the paint's container in its swatch colour, or undefined when the part has no swatch. */
@@ -44,6 +60,10 @@ export function paintSwatch(p: Part, size: 'small' | 'large' = 'small'): string 
     layers.push(`<path d="${body}" fill="url(#${id}s)"/>`);
   }
   if (finish === 'fluorescent') layers.push(`<path d="${body}" fill="none" stroke="${fill}" stroke-opacity="0.45" stroke-width="3"/>`);
+  if (finish === 'flake') {
+    defs.push(`<clipPath id="${id}k"><path d="${body}"/></clipPath>`);
+    layers.push(`<g clip-path="url(#${id}k)">${can ? specks(p.id, fill, 4, 9, 16, 33, 40, 0.5) : specks(p.id, fill, 3, 11, 18, 17, 26, 0.5)}</g>`);
+  }
   layers.push(`<path class="o" d="${body}"/>`);
   if (can) layers.push(`<path class="o thin" d="M4 16H20"/>`);   // the label band's top edge
   const scale = size === 'large' ? 1.6 : 0.55;
@@ -71,6 +91,10 @@ export function paintChip(p: Part, px = 120, shape: 'square' | 'circle' = 'squar
     const hi = finish === 'chrome' ? 0.85 : 0.6, tint = finish === 'pearl' ? '#f4e8ff' : '#fff';
     defs.push(`<linearGradient id="${id}s" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0.2"/><stop offset="0.35" stop-color="${tint}" stop-opacity="${hi}"/><stop offset="0.5" stop-color="${tint}" stop-opacity="0.1"/><stop offset="1" stop-color="#000" stop-opacity="0.3"/></linearGradient>`);
     layers.push(shapeEl(`fill="url(#${id}s)"`));
+  }
+  if (finish === 'flake') {
+    defs.push(`<clipPath id="${id}k">${shapeEl('')}</clipPath>`);
+    layers.push(`<g clip-path="url(#${id}k)">${specks(p.id, fill, 2, 2, 96, 96, 70, 1.6)}</g>`);
   }
   layers.push(shapeEl(`fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-width="2"`));   // an edge, so white paints still show
   const label = `approximate colour ${p.swatch}${finish ? `, ${finish}` : ''}`;
