@@ -16,7 +16,7 @@ export type Spec = { id: string; category: string; name?: string; standards?: st
 export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; releases?: string[] };
 export type KeyField = { field: string; label: string; from: 'part' | 'spec'; unit?: string; format?: string; compare_only?: boolean };
 export type Standard = { id: string; code: string; title: string; url?: string; replaced_by?: string; notes?: string };
-export type Category = { id: string; name: string; description?: string; spec_type?: string; key_fields?: KeyField[] };
+export type Category = { id: string; name: string; summary?: string; description?: string; spec_type?: string; key_fields?: KeyField[] };
 export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[] };
 
 const path = process.env.HOBBYDEX_DATA ?? 'data/hobbydex-rc.json';
