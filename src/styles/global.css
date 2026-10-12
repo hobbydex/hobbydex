@@ -100,6 +100,9 @@ svg.paintswatch { vertical-align: middle; margin-right: 0.35rem; overflow: visib
 svg.paintswatch .o { fill: none; stroke: currentColor; stroke-width: 1.1; stroke-linejoin: round; }
 svg.paintswatch .thin { stroke-width: 0.6; opacity: 0.5; }
 svg.paintchip { vertical-align: middle; margin-right: 0.5rem; }
+/* a named colour of a part (lib/colourDot.ts), edged so white and black show on either theme */
+.cdot { display: inline-block; width: 0.85em; height: 0.85em; border-radius: 50%; vertical-align: -0.1em; margin-right: 0.35em;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent); }
 .paintcolour { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; }
 .factsrow { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
 .factsrow .typeicon { color: var(--muted); margin-left: auto; }
