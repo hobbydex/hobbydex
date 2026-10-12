@@ -81,6 +81,7 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
   <style>
     .catgroup table { table-layout: fixed; width: 100%; }
     .w-num { width: 10rem; } .w-brand { width: 9rem; } .w-from { width: 14rem; } .w-fit { width: 12rem; }
+    @media (max-width: 40rem) { .w-num { width: 5.5rem; } .w-brand { width: 5rem; } .w-from, .w-fit { width: 6.5rem; } .catgroup td { overflow-wrap: anywhere; } }
     .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
   </style>
 </Base>
