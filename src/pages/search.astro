@@ -74,12 +74,24 @@ import Base from '../layouts/Base.astro';
         catch (e) { status.textContent = 'Search failed: ' + (e && e.message ? e.message : e); return; }
         if (my !== seq) return;
         hits = r.results;
-        // without a type or category filter, kits come first and releases next: a car is usually what people look for
+        // a title that holds every search word beats a page that only mentions them in its text:
+        // kits and releases first, then parts (bodies and other car-specific parts before generic sets), then the rest
         if (text && !type && !cat) {
-          const [k, rl] = await Promise.all([pagefind.search(text, { filters: { type: 'kit' } }), pagefind.search(text, { filters: { type: 'release' } })]);
+          const words = text.toLowerCase().split(/\s+/).filter(Boolean);
+          const top = hits.slice(0, 300), datas = await Promise.all(top.map((h) => h.data()));
           if (my !== seq) return;
-          const first = [...k.results, ...rl.results], ids = new Set(first.map((h) => h.id));
-          hits = [...first, ...hits.filter((h) => !ids.has(h.id))];
+          const CAR = ['Body and covers', 'Wings', 'Decals', 'Bumpers and guards'];
+          const rank = (d) => {
+            const title = (d.meta.title || '').toLowerCase(), t = d.meta.type || '';
+            const inTitle = words.every((w) => title.includes(w));
+            const cat = (d.filters && d.filters.category && d.filters.category[0]) || '';
+            if (inTitle && (t === 'kit' || t === 'release')) return 0;
+            if (inTitle && t === 'part') return CAR.includes(cat) ? 1 : 2;
+            if (inTitle) return 3;
+            return t === 'part' ? 5 : 4;
+          };
+          const order = top.map((h, i) => ({ h, i, r: rank(datas[i]) })).sort((a, b) => a.r - b.r || a.i - b.i).map((x) => x.h);
+          hits = [...order, ...hits.slice(300)];
         }
         status.textContent = hits.length ? `${hits.length} ${text ? 'result' : labels[type] || 'page'}${hits.length === 1 ? '' : 's'}` : 'No results';
         await render();
