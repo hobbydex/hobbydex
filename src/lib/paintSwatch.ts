@@ -23,7 +23,7 @@ export function paintSwatch(p: Part, size: 'small' | 'large' = 'small'): string 
   if (!p.swatch || !HEX.test(p.swatch)) return undefined;
   const id = 'sw' + p.id.replace(/[^a-z0-9]/gi, '');
   const finish = p.finish ?? '';
-  const can = p.application === 'spray-can';
+  const can = [p.application ?? []].flat()[0] === 'spray-can';
   const fill = finish === 'fluorescent' ? brighter(p.swatch) : p.swatch;
   const see = finish === 'translucent' ? 0.6 : finish === 'clear' ? 0.25 : 1;
   const sheen = finish === 'metallic' || finish === 'pearl' || finish === 'chrome';

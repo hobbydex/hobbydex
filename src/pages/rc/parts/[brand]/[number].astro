@@ -74,7 +74,8 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.thread_type && <><dt>Thread</dt><dd>{part.thread_type}</dd></>}
     {part.seal && <><dt>Seal</dt><dd>{({ open: 'open', metal: 'metal shields (ZZ)', rubber: 'rubber seals (2RS)', 'rubber-metal': 'rubber and metal' } as Record<string, string>)[part.seal] ?? part.seal}</dd></>}
     {part.lubricant && <><dt>Lubricant</dt><dd>{part.lubricant}</dd></>}
-    {part.category === 'paint' && (part.paint_type || part.application || part.finish) && <><dt>Paint</dt><dd>{[part.paint_type, part.application?.replace(/-/g, ' '), part.finish?.replace(/-/g, ' ')].filter(Boolean).join(', ')}</dd></>}
+    {part.category === 'paint' && (part.paint_type || part.finish) && <><dt>Paint</dt><dd>{[part.paint_type, part.finish?.replace(/-/g, ' ')].filter(Boolean).join(', ')}</dd></>}
+    {part.category === 'paint' && part.application && <><dt>Apply with</dt><dd>{[part.application].flat().map((a) => ({ 'spray-can': 'spray can', marker: 'paint pen' } as Record<string, string>)[a] ?? a).join(' or ')}</dd></>}
     {part.category === 'paint' && (swatch || part.color) && <><dt>Colour</dt><dd class="paintcolour">{chip && <span set:html={chip} />}{swatch && <span set:html={swatch} />}{part.color}{swatch && <span class="muted"> · approximate colour, sampled from {brandName(part.brand)}'s colour chart; screens show colours differently</span>}</dd></>}
     {part.viscosity_wt && <><dt>Viscosity</dt><dd>{part.viscosity_wt} wt <span class="muted">(the brand's own scale)</span></dd></>}
     {part.volume_ml && <><dt>Volume</dt><dd>{part.pack_qty && part.pack_qty > 1 ? `${part.pack_qty} x ${part.volume_ml} ml` : `${part.volume_ml} ml`}</dd></>}
