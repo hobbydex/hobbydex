@@ -120,3 +120,5 @@ a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
   header.site nav a { margin-right: 0.5rem; font-size: 0.85rem; }
   .home-search button { padding: 0.5rem 0.7rem; }
 }
+.tablescroll { overflow-x: auto; }
+.hbars.years li { grid-template-columns: 3rem 1fr 3rem; }
