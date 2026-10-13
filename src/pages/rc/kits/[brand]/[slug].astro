@@ -1,5 +1,6 @@
 ---
 import { colourDot } from '../../../../lib/colourDot';
+import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
 import Icon from '../../../../components/Icon.astro';
@@ -78,7 +79,7 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
       <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
       <table>
         <tr><th class="num" style={`width:min(calc(${Math.max(5, ...borrowedUnique.map((x) => x.p.number.length))}ch + 2rem), 10rem)`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-from">From</th></tr>
-        {rows.map(({ rel, p }) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td><Fragment set:html={p.category === 'paint' ? '' : colourDot(p.color)} />{p.name}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
+        {rows.map(({ rel, p }) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.name}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
       </table></div>)}
   </>}
   {fits.length > 0 && <>
