@@ -41,4 +41,6 @@ export default defineConfig({
   trailingSlash: 'always',
   build: { format: 'directory' },
   integrations: [sitemap(), dataExport()],
+  // SIZE: component scripts are always separate cached files, never inlined into every page (see Base.astro)
+  vite: { build: { assetsInlineLimit: 0 } },
 });
