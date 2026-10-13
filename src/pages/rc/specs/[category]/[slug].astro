@@ -70,5 +70,5 @@ const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c
     });
   </script>
   <p class="muted">Derived by walking release, part and equivalence links; the material is a property of each branded part, not of the spec.</p>
-  <DataLink path={(spec as { toml_path?: string }).toml_path} />
+  <DataLink path={(spec as { toml_path?: string }).toml_path} id={spec.id} />
 </Base>

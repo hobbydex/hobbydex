@@ -115,5 +115,5 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
     .gearing .ratio { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
     .gearing :global(svg) { display: block; max-width: 100%; height: auto; }
   </style>
-  <DataLink path={kit.toml_path} />
+  <DataLink path={kit.toml_path} id={kit.id} />
 </Base>
