@@ -16,7 +16,8 @@ export function getStaticPaths() {
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const kit = Astro.props.kit!;   // set on every page that is not a redirect
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort((a, b) => yearOf(a) - yearOf(b) || a.name.localeCompare(b.name));
-const show = { number: releases.some((r) => r.number), edition: releases.some((r) => r.edition), surface: releases.some((r) => r.surface) };
+const show = { number: releases.some((r) => r.number), edition: releases.some((r) => r.edition), surface: releases.some((r) => r.surface),
+  status: releases.some((r) => r.status && r.status !== 'released') };   // the column only when a release is discontinued or announced
 const fits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => a.part.number.localeCompare(b.part.number));
 const relations = db.kitRelations.get(kit.id) ?? [];
 // parts of interchangeable rebrands, for kits whose own releases list none
@@ -56,9 +57,9 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
     </ul></>}
   <h2>Releases</h2>
   <table class="releases">
-    <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}</tr>
+    <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
     {releases.map((r) => <tr>
-      <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><a href={url.release(r.id)}>{r.name}</a></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}
+      <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><a href={url.release(r.id)}>{r.name}</a></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status !== 'released' ? r.status : ''}</td>}
     </tr>)}
   </table>
   {gearings.size > 0 && <>
@@ -77,7 +78,7 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
     {byCat(borrowedUnique, (x) => x.p.category).map(({ g, rows }) => <div class="catgroup">
       <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
       <table>
-        <tr><th class="num" style={`width:min(calc(${Math.max(5, ...borrowedUnique.map((x) => x.p.number.length))}ch + 2rem), 10rem)`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-from">From</th></tr>
+        <tr><th class="num numcol" style={`--numn:${Math.max(5, ...borrowedUnique.map((x) => x.p.number.length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-from">From</th></tr>
         {rows.map(({ rel, p }) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td><Fragment set:html={p.category === 'paint' ? '' : colourDot(p.color)} />{p.name}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
       </table></div>)}
   </>}
@@ -88,7 +89,7 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
       {groups.map(({ g, rows }) => <div class="catgroup" id={`cat-${g || 'other'}`}>
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
         <table>
-          <tr><th class="num" style={`width:min(calc(${Math.max(5, ...fits.map((x) => x.part.number.length))}ch + 2rem), 10rem)`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
+          <tr><th class="num numcol" style={`--numn:${Math.max(5, ...fits.map((x) => x.part.number.length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
           {rows.map(({ part, fit }) => <tr><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td>{brandName(part.brand)}</td><td>{fit.type}{fit.notes && <span class="muted"> · {fit.notes}</span>}</td></tr>)}
         </table></div>)}</>; })()}
   </>}
