@@ -83,11 +83,16 @@ import Base from '../layouts/Base.astro';
         // ranking: an exact kit or release name, then kits, releases and parts whose title holds every word
         // (shortest title first; bodies before generic parts), then pages that only mention the words
         if (text && !type && !cat) {
-          const top = hits.slice(0, 300), datas = [];
+          // kits are few and can sit far down pagefind's order behind hundreds of a chassis's releases
+          // and parts ("TT-02"): they always join the ranked candidates
+          const kits = (await pagefind.search(text, { filters: { type: 'kit' } })).results.slice(0, 50);
+          if (my !== seq) return;
+          const seen = new Set(kits.map((h) => h.id)), rest = hits.filter((h) => !seen.has(h.id));
+          const top = [...kits, ...rest.slice(0, 300)], datas = [];
           for (let k = 0; k < top.length; k += 50) datas.push(...await Promise.all(top.slice(k, k + 50).map((h) => h.data())));
           if (my !== seq) return;
           const ranked = rankHits(text, datas).map((i) => ({ h: top[i] }));
-          hits = [...ranked.map((x) => x.h), ...hits.slice(300)];
+          hits = [...ranked.map((x) => x.h), ...rest.slice(300)];
         }
         status.textContent = hits.length ? `${hits.length} ${text ? 'result' : labels[type] || 'page'}${hits.length === 1 ? '' : 's'}` : 'No results';
         await render();
