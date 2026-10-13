@@ -49,14 +49,23 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
     const q = box.querySelector<HTMLInputElement>('.q')!, brand = box.querySelector<HTMLSelectElement>('.brand');
     const picks = [...box.querySelectorAll<HTMLSelectElement>('.pick')], known = box.querySelector<HTMLInputElement>('.known');
     const cmp = box.querySelector<HTMLButtonElement>('.cmp')!, clear = box.querySelector<HTMLButtonElement>('.clear')!, side = box.querySelector<HTMLElement>('.side')!, count = box.querySelector<HTMLElement>('.count')!;
+    const valueOf = (tr: HTMLTableRowElement, s: HTMLSelectElement) => s === brand ? tr.dataset.brand : tr.cells[Number(s.dataset.col) + 2].textContent;
+    // a row passes every filter but `skip`: the choices of one select are the values left by the other filters
+    const passes = (tr: HTMLTableRowElement, skip: HTMLSelectElement | null) => {
+      const text = q.value.trim().toLowerCase();
+      return (!text || tr.cells[1].textContent!.toLowerCase().includes(text)) && (!known?.checked || !!tr.dataset.known)
+        && [brand, ...picks].every((s) => !s || s === skip || !s.value || valueOf(tr, s) === s.value);
+    };
     const filter = () => {
-      const text = q.value.trim().toLowerCase(); let shown = 0;
-      for (const tr of body.rows) {
-        const hide = (!!text && !tr.cells[1].textContent!.toLowerCase().includes(text)) || (!!brand?.value && tr.dataset.brand !== brand.value)
-          || picks.some((pk) => !!pk.value && tr.cells[Number(pk.dataset.col) + 2].textContent !== pk.value) || (!!known?.checked && !tr.dataset.known);
-        tr.hidden = hide; if (!hide) shown++;
-      }
+      let shown = 0;
+      for (const tr of body.rows) { tr.hidden = !passes(tr, null); if (!tr.hidden) shown++; }
       count.textContent = `${shown} of ${body.rows.length}`;
+      // cascade: a brushed motor's size filter offers brushed sizes only (the chosen value always stays)
+      for (const s of [brand, ...picks]) {
+        if (!s) continue;
+        const left = new Set([...body.rows].filter((tr) => passes(tr, s)).map((tr) => valueOf(tr, s)));
+        for (const o of s.options) { const off = !!o.value && o.value !== s.value && !left.has(o.value); o.hidden = off; o.disabled = off; }
+      }
     };
     for (const el of [q, brand, ...picks, known]) el?.addEventListener(el === q ? 'input' : 'change', filter);
     filter();
