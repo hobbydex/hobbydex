@@ -7,11 +7,12 @@ const releaseCount = (id: string) => (db.kitsByBrand.get(id) ?? []).reduce((n, k
 <Base title="Brands" description="Every brand in Hobbydex with its kits, releases and parts.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Brands</div>
   <h1>Brands</h1>
-  <table>
-    <tr><th>Brand</th><th>Country</th><th class="num">Kits</th><th class="num">Releases</th><th class="num">Parts</th></tr>
-    {brands.map((b) => <tr>
+  <table class="sortable">
+    <thead><tr><th aria-sort="ascending">Brand</th><th>Country</th><th class="num">Kits</th><th class="num">Releases</th><th class="num">Parts</th></tr></thead>
+    <tbody>{brands.map((b) => <tr>
       <td><a href={url.brand(b.id)}>{b.name}</a></td><td>{b.country ?? ''}</td>
       <td class="num">{db.kitsByBrand.get(b.id)?.length || ''}</td><td class="num">{releaseCount(b.id) || ''}</td><td class="num">{db.partsByBrand.get(b.id)?.length || ''}</td>
-    </tr>)}
+    </tr>)}</tbody>
   </table>
+  <script src="/sort-table.js" defer></script>
 </Base>

@@ -153,3 +153,9 @@ a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
 /* the part number column is as wide as the page's longest number; on phones it is capped so the name keeps room */
 th.numcol { width: calc(var(--numn, 8) * 0.6rem + 1.6rem); }   /* 0.6rem per character of the table font, plus the cell padding */
 @media (max-width: 600px) { th.numcol { width: min(calc(var(--numn, 8) * 0.6rem + 1.6rem), 10rem); } }
+
+/* sortable tables: the header is a button, the arrow shows the sorted column */
+table.sortable th .sortbtn { all: unset; cursor: pointer; font: inherit; color: inherit; }
+table.sortable th .sortbtn:hover { color: var(--accent); }
+table.sortable th[aria-sort] .sortbtn::after { content: " \2191"; color: var(--muted); }
+table.sortable th[aria-sort="descending"] .sortbtn::after { content: " \2193"; }
