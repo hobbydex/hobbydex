@@ -64,13 +64,15 @@ before(async () => {
       res.writeHead(200, { 'content-type': MIME[extname(req.url)] || 'application/octet-stream' }); res.end(body);
     } catch { res.writeHead(404); res.end(); }
   });
+  server.keepAliveTimeout = 120000; server.headersTimeout = 125000;   // pagefind reuses sockets between its chunk fetches: an idle close mid-run is 'fetch failed'
   await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
   const pf = await import(join(DIST, 'pagefind', 'pagefind.js'));
   await pf.options({ basePath: `http://127.0.0.1:${server.address().port}/pagefind/` });
   await pf.init();
   search = async (text) => {
-    const r = await pf.search(text);
-    const top = r.results.slice(0, 300), datas = [];
+    const r = await pf.search(text), kits = (await pf.search(text, { filters: { type: 'kit' } })).results.slice(0, 50);
+    const seen = new Set(kits.map((h) => h.id));   // as /search/ does: kits always join the ranked candidates
+    const top = [...kits, ...r.results.filter((h) => !seen.has(h.id)).slice(0, 300)], datas = [];
     for (let k = 0; k < top.length; k += 50) datas.push(...await Promise.all(top.slice(k, k + 50).map((h) => h.data())));
     return rankHits(text, datas).map((i) => datas[i]);
   };
