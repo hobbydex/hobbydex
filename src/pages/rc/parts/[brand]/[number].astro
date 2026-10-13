@@ -174,5 +174,5 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {uses.map((u) => <tr><td class="num">{yearText(u.release)}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
   </table>}
   <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p>
-  <DataLink path={part.toml_path} />
+  <DataLink path={part.toml_path} id={part.id} />
 </Base>
