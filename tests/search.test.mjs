@@ -64,6 +64,7 @@ before(async () => {
       res.writeHead(200, { 'content-type': MIME[extname(req.url)] || 'application/octet-stream' }); res.end(body);
     } catch { res.writeHead(404); res.end(); }
   });
+  server.keepAliveTimeout = 120000; server.headersTimeout = 125000;   // pagefind reuses sockets between its chunk fetches: an idle close mid-run is 'fetch failed'
   await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
   const pf = await import(join(DIST, 'pagefind', 'pagefind.js'));
   await pf.options({ basePath: `http://127.0.0.1:${server.address().port}/pagefind/` });
