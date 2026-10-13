@@ -57,18 +57,17 @@ const CHECKER = 'repeating-conic-gradient(#bbb 0 25%, #fff 0 50%) 0 0 / 50% 50%'
 export function colourDotStyle(color: string | undefined): string | undefined {
   if (!color) return undefined;
   const parts = color.split('/').map((s) => s.trim()).filter(Boolean);
-  if (parts.length < 1 || parts.length > 2) return undefined;
+  if (parts.length < 1 || parts.length > 3) return undefined;
   const shades = parts.map(shade);
   if (shades.some((s) => !s)) return undefined;
-  const [a, b = a] = shades as Shade[];
+  const ss = shades as Shade[], n = ss.length, w = 100 / n;
   const layers: string[] = [];
-  if (a.metal && b.metal) layers.push(SHEEN);
-  else {
-    if (a.metal) layers.push(`${SHEEN} left / 50% 100% no-repeat`);
-    if (b.metal) layers.push(`${SHEEN} right / 50% 100% no-repeat`);
-  }
-  layers.push(a === b ? `linear-gradient(${a.c}, ${a.c})` : `linear-gradient(90deg, ${a.c} 50%, ${b.c} 50%)`);
-  if (a.see || b.see) layers.push(CHECKER);
+  if (ss.every((s) => s.metal)) layers.push(SHEEN);
+  else ss.forEach((s, i) => { if (s.metal) layers.push(`${SHEEN} ${i * w}% 0 / ${w}% 100% no-repeat`); });
+  // one colour fills the dot; two or three stand side by side as vertical bands
+  layers.push(n === 1 ? `linear-gradient(${ss[0].c}, ${ss[0].c})`
+    : `linear-gradient(90deg, ${ss.map((s, i) => `${s.c} ${i * w}% ${(i + 1) * w}%`).join(', ')})`);
+  if (ss.some((s) => s.see)) layers.push(CHECKER);
   return `background: ${layers.join(', ')}`;
 }
 
