@@ -180,6 +180,39 @@ def _motorcycle():
     uncut = [link(8.6, fy, 13.6, 3.2, 2.0), link(27.0, 14.6, 38.8, ry, 2.2)]   # fork to the front axle, swingarm to the rear axle
     return vehicle(body, wheels, uncut=uncut)
 V["motorcycle"] = _motorcycle()
+def _drag():
+    # rail dragster facing left: small front wheel under the tip of a long thin chassis, the driver's cage and the engine
+    # with its blower ahead of a big rear slick, a tall rear wing on struts, a wheelie bar out behind on a tiny wheel
+    rx, rr = 37.0, 7.2
+    ry = GROUND - rr
+    rim = lambda deg: (rx + (rr - 0.4) * math.cos(math.radians(deg)), ry - (rr - 0.4) * math.sin(math.radians(deg)))
+    wheels = [tyre(4.6, 2.1, False, gap=0.8), tyre(rx, rr, gap=1.2)]
+    body = [
+        [(18.0, 18.6), (19.2, 12.8), (21.8, 11.2), (24.4, 11.6), (24.8, 18.4)],   # driver's cage
+        [(24.4, 18.4), (24.8, 12.4), (29.0, 12.2), (29.4, 18.0)],   # engine
+        box(25.2, 8.6, 28.4, 12.4),   # blower
+        [(36.4, 0.8), (47.2, 0.2), (47.2, 2.8), (36.8, 3.6)],   # rear wing
+    ]
+    uncut = [[(0.8, 19.6), (1.6, 18.4), (20.0, 17.6), (rx, 17.4), (rx, 19.4), (1.6, 20.4)],   # nose and chassis rails to the rear axle
+             link(37.6, 3.2, *rim(110), 1.3), link(45.0, 2.4, *rim(60), 1.3),   # wing struts to the tyre's top
+             link(*rim(-20), 46.0, 21.4, 1.3), Point(46.0, 21.9).buffer(1.3, 32)]   # wheelie bar and its wheel
+    g = vehicle(body, wheels, uncut=uncut)
+    return g.difference(Point(rx, ry).buffer(rr * 0.3, 32))   # the rails cross the hub: keep its nut hole
+V["drag"] = _drag()
+def _lowrider():
+    # 60s hardtop (Impala) facing left: long hood and trunk, a long low roof, small wheels tucked up under the body;
+    # hopping: the car pivots on its rear wheel, the front lifted and its wheel hanging down out of the arch
+    fx, rx, r = 9.0, 38.5, 3.0
+    body = Polygon([(0.6, 21.0), (0.6, 17.8), (1.6, 16.6), (14.0, 16.0), (18.4, 12.2), (31.0, 12.0), (35.0, 15.6), (46.6, 16.0), (47.4, 17.4), (47.4, 21.0)])
+    front, fcut = tyre(fx, r, False, gap=0.7)
+    rear, rcut = tyre(rx, r, False, gap=0.7)
+    g = unary_union([body.difference(unary_union([fcut, rcut])), rear, affinity.translate(front, 0, 1.6)])
+    g = affinity.rotate(g, 7, origin=(rx, GROUND))
+    minx, miny, maxx, maxy = g.bounds
+    k = min(47 / (maxx - minx), 23 / (maxy - miny), 1)
+    g = affinity.scale(g, k, k, origin=(maxx, maxy))
+    return affinity.translate(g, 47.6 - maxx, GROUND - maxy)
+V["lowrider"] = _lowrider()
 V["race-truck"] = vehicle([
     # cab-over race truck (Tamiya Actros MP4 on TT-01E): tall cab with a roof spoiler, short chassis, no trailer
     [(1.5, 20.0), (1.5, 9.0), (2.6, 4.6), (4.0, 3.8), (17.5, 3.8), (18.8, 5.0), (19.2, 13.0), (46.5, 13.0), (46.5, 18.2), (44.0, 20.0)],
