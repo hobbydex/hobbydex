@@ -138,3 +138,15 @@ a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
 }
 .tablescroll { overflow-x: auto; }
 .hbars.years li { grid-template-columns: 3rem 1fr 3rem; }
+/* phones: a kit's releases stack one per block (name first, then the numbers with their labels) instead of a six-column table */
+@media (max-width: 600px) {
+  table.releases, table.releases tbody, table.releases tr { display: block; }
+  table.releases tr:first-child { display: none; }
+  table.releases tr { padding: 0.5rem 0.75rem; border-top: 1px solid var(--border-muted); }
+  table.releases tr:nth-child(2) { border-top: 0; }
+  table.releases td { display: inline; padding: 0; border: 0; white-space: normal; background: none; }
+  table.releases td.name { display: block; margin-bottom: 0.15rem; }
+  table.releases td:empty { display: none; }
+  table.releases td[data-label] { margin-right: 0.9rem; font-size: 0.8rem; }
+  table.releases td[data-label]::before { content: attr(data-label) " "; color: var(--muted); }
+}
