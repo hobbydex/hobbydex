@@ -78,7 +78,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     </div></>}
   {docs.length > 0 && <><h2>Sources</h2>
     {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
-      ? <ul>{docs.map((d) => <li>{d.url ? <a href={d.url} rel="nofollow">{d.title}</a> : d.title}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
+      ? <ul>{docs.map((d) => <li>{d.page || d.url ? <a href={d.page ?? d.url} rel="nofollow">{d.title}</a> : d.title}{d.page && d.url && <span class="muted"> · <a href={d.url} rel="nofollow">PDF</a></span>}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
       : <ul>{[...new Set(docs.map((d) => d.url ?? ''))].map((u) => { const ds = docs.filter((d) => (d.url ?? '') === u); return <li>
           {u ? <a href={u} rel="nofollow">{new URL(u).hostname}{new URL(u).pathname.length > 1 ? new URL(u).pathname : ''}</a> : 'Documents'} <span class="muted">· {ds.length} documents</span>
           <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
