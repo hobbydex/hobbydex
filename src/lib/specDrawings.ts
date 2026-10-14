@@ -1,4 +1,4 @@
-// Dimensioned drawings for bearing, pinion, pin and wheel hex specs, drawn in currentColor (light and dark).
+// Dimensioned drawings for bearing, washer, pinion, pin and wheel hex specs, drawn in currentColor (light and dark).
 // Screws and nuts have their own modules (screwDrawing.ts, nutDrawing.ts); specDrawing() picks the right one for a spec.
 import { db, type Part, type Spec } from './data';
 import { screwDrawing, type ScrewDrawing } from './screwDrawing';
@@ -137,6 +137,41 @@ export function gearDrawing(g: { teeth?: unknown; module?: unknown; pitch_dp?: u
   return { svg, standard: undefined, approximate: !known };
 }
 
+// Washer, shim or spacer to scale: a face view (the ring) and a cross-section through the axis, the ring's
+// section above and below the bore. Countersunk: the bore chamfered on one face; conical: the section sloped
+// like a dish. Very thin shims are drawn at least a hairline thick.
+export function washerDrawing(spec: Spec): ScrewDrawing | undefined {
+  const D = Number(spec.outer_mm), d = Number(spec.bore_mm), T = Number(spec.thickness_mm);
+  if (!D || !d || !T || d >= D) return undefined;
+  const s = Math.min(16, 120 / D, 160 / T);   // px per mm
+  const R = (D / 2) * s, r = (d / 2) * s, w = Math.max(T * s, 1.5);
+  const cy = 26 + R, fx = 14 + R;
+  const o: string[] = [`<path class="fill" fill-rule="evenodd" d="${ring(fx, cy, R, r)}"/>`];
+  const sx = fx + R + 56;
+  const conical = spec.shape === 'conical', csk = spec.shape === 'countersunk';
+  const rise = conical ? Math.min(0.25 * (D - d) / 2 * s, 2.5 * w) : 0;   // dish height of a conical washer (drawn)
+  const c = csk ? Math.min(0.8 * w, 0.6 * (R - r)) : 0;   // countersink depth and width (drawn at 90 degrees)
+  const half = (sg: number) => {
+    const Y = (px: number) => cy - sg * px;   // distance from the axis (px) to screen y
+    // outer edge at sx + rise, inner edge at sx: the cone rises towards the bore
+    return `<path class="fill" d="M${f(sx + rise)} ${f(Y(R))}H${f(sx + rise + w)}L${f(sx + w)} ${f(Y(r))}H${f(sx + c)}L${f(sx)} ${f(Y(r + c))}Z"/>`;
+  };
+  o.push(half(1), half(-1));
+  const xr = sx + rise + w;
+  o.push(`<path class="thin dashdot" d="M${f(sx - 8)} ${f(cy)}H${f(xr + 8)}M${f(fx - R - 6)} ${f(cy)}H${f(fx + R + 6)}M${f(fx)} ${f(cy - R - 6)}V${f(cy + R + 6)}"/>`);
+  o.push(vdim(sx - 10, cy - r, cy + r, `⌀${f(d)}`, true));
+  o.push(`<path class="thin" d="M${f(xr + 2)} ${f(cy - R)}H${f(xr + 18)}M${f(xr + 2)} ${f(cy + R)}H${f(xr + 18)}"/>`);
+  o.push(vdim(xr + 14, cy - R, cy + R, `⌀${f(D)}`));
+  const by = cy + R + 16, x1 = sx + rise;
+  o.push(`<path class="thin" d="M${f(x1)} ${f(cy + R + 2)}V${f(by + 4)}M${f(x1 + w)} ${f(cy + R + 2)}V${f(by + 4)}"/>`);
+  o.push(hdim(x1 - (w < 14 ? 14 : 0), x1 + w + (w < 14 ? 14 : 0), by, `${f(T)}`, true));
+  const W = Math.max(300, Math.ceil(xr + 70)), H = Math.ceil(Math.max(cy + R + 14, by + 20));
+  const word = T < 1 ? 'shim' : T < 3 ? 'washer' : 'spacer';
+  const label = `${f(d)}x${f(D)}x${f(T)} ${csk ? 'countersunk ' : conical ? 'conical ' : ''}${word}`;
+  return { svg: svgWrap(W, H, label, o.join('')), standard: undefined, approximate: conical || csk,
+    note: conical ? 'The dish height is not part of the spec and is drawn at a usual size' : csk ? 'The countersink is drawn at the usual 90 degrees' : T * s < 1.5 ? 'The thickness is drawn wider than to scale' : undefined };
+}
+
 // Wheel hex: the hex seen from the wheel side with its size across the flats. The axle is dashed: its size is not part of the spec.
 function wheelHex(spec: Spec): ScrewDrawing | undefined {
   const af = Number(spec.hex_mm);
@@ -170,10 +205,11 @@ export function specDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | un
   if (spec.category === 'wheel-hex') return wheelHex(spec);
   if (spec.category === 'pin') return pin(spec);
   if (spec.category === 'nut') return nutDrawing(spec);
+  if (spec.category === 'washer') return washerDrawing(spec);
   return undefined;
 }
 
-// The drawing for a branded part: a bearing, screw or nut through the spec it is equivalent to (with the part's
+// The drawing for a branded part: a bearing, screw, nut or washer through the spec it is equivalent to (with the part's
 // own seal or thread), a pinion or spur gear from its tooth count and pitch (the part's, else its spec's).
 export function partDrawing(part: Part): (ScrewDrawing & { note?: string; spec?: Spec }) | undefined {
   const eq = (part.equivalent_to ?? []).map((e) => db.spec.get(e.spec)).filter((x): x is Spec => !!x);
@@ -188,5 +224,7 @@ export function partDrawing(part: Part): (ScrewDrawing & { note?: string; spec?:
   if (ss && part.category === 'screw') { const dr = screwDrawing({ ...ss, thread_type: part.thread_type ?? ss.thread_type }); return dr && { ...dr, spec: ss }; }
   const ns = eq.find((x) => x.category === 'nut');
   if (ns && part.category === 'nut') { const dr = nutDrawing(ns); return dr && { ...dr, spec: ns }; }
+  const ws = eq.find((x) => x.category === 'washer');
+  if (ws && part.category === 'washer-shim') { const dr = washerDrawing(ws); return dr && { ...dr, spec: ws }; }
   return undefined;
 }
