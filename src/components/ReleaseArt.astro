@@ -1,0 +1,28 @@
+---
+// A release drawn as its kit type's silhouette in its own colour(s): one colour fills the shape, two or
+// three stand side by side as vertical bands; metals get a sheen, see-through colours a light fill.
+// No colour (or an unknown word) draws the silhouette in the muted text colour, like the type icon.
+import { wideIcons } from '../lib/wideIcons';
+import { colourShades } from '../lib/colourDot';
+import { kitTypeIcon, kitTypeOne } from '../lib/kitTypes';
+interface Props { category?: string; color?: string; size?: string; id: string; class?: string }
+const { category, color, size = '1.4em', id, class: cls } = Astro.props;
+const icon = kitTypeIcon(category);
+const wide = wideIcons.has(icon);
+const w = wide ? 48 : 24, h = 24;
+const shades = colourShades(color);
+const uid = 'ra-' + id.replace(/[^a-z0-9]+/gi, '-');
+const label = [kitTypeOne[category ?? 'car'] ?? category ?? '', color ?? ''].filter(Boolean).join(', ');
+const n = shades?.length ?? 0, bw = n ? w / n : w;
+---
+<svg class={cls ? `relart ${cls}` : 'relart'} viewBox={`0 0 ${w} ${h}`} style={`width:${wide ? `calc(${size} * 2)` : size};height:${size}`} role="img" aria-label={label}><title>{label}</title>
+  {shades ? <>
+    <defs>
+      {n > 1 && shades.map((_, i) => <clipPath id={`${uid}-c${i}`}><rect x={i * bw} y="0" width={bw} height={h} /></clipPath>)}
+      {shades.some((s) => s.metal) && <linearGradient id={`${uid}-m`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0.2" /><stop offset="0.4" stop-color="#fff" stop-opacity="0.55" /><stop offset="0.6" stop-color="#fff" stop-opacity="0.05" /><stop offset="1" stop-color="#000" stop-opacity="0.3" /></linearGradient>}
+    </defs>
+    {shades.map((s, i) => <use href={`/icons.svg#${icon}`} fill={s.see ? 'rgba(150,150,160,0.35)' : s.c} clip-path={n > 1 ? `url(#${uid}-c${i})` : undefined} />)}
+    {shades.map((s, i) => s.metal && <use href={`/icons.svg#${icon}`} fill={`url(#${uid}-m)`} clip-path={n > 1 ? `url(#${uid}-c${i})` : undefined} />)}
+    {shades.some((s) => s.c === '#ffffff' || s.see) && <use href={`/icons.svg#${icon}`} fill="none" stroke="var(--muted)" stroke-width="0.6" />}
+  </> : <use href={`/icons.svg#${icon}`} fill="currentColor" />}
+</svg>

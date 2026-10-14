@@ -126,6 +126,8 @@ svg.paintchip { vertical-align: middle; margin-right: 0.5rem; }
 .paintcolour { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; }
 .factsrow { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
 .factsrow .typeicon { color: var(--muted); margin-left: auto; }
+.relart { vertical-align: -0.25em; flex: none; }
+.relart.inrow { color: var(--muted); margin-right: 0.15rem; }
 a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 /* phones: the header fits on one line (GitHub stays reachable from the footer links) */
