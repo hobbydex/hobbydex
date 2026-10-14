@@ -1,5 +1,6 @@
 ---
-// Web search button with engine choice, an optional copy icon button (CopyButton) and outbound reference links.
+// Web search button with engine choice and an optional copy icon button (CopyButton); the pages the data came from
+// follow as a plain "Source:" line (user, 2026-10-14: links, not shop-like buttons), fan sites as a courtesy line.
 import type { Link } from '../lib/data';
 import CopyButton from './CopyButton.astro';
 interface Props { query: string; copy?: string; copyLabel?: string; links?: Link[] }
@@ -11,8 +12,8 @@ const own = links.filter((l) => l.kind !== 'fan-site'), fans = links.filter((l) 
   <a class="btn" href={`https://www.google.com/search?q=${encodeURIComponent(query)}`} rel="nofollow noopener" target="_blank">Search the web</a>
   <select aria-label="Search engine"><option value="google">Google</option><option value="ddg">DuckDuckGo</option><option value="bing">Bing</option><option value="ecosia">Ecosia</option></select>
   {copy && <CopyButton text={copy} label={copyLabel} class="btn" />}
-  {own.map((l) => <a class="btn" href={l.url} rel="noopener" target="_blank">{l.site}</a>)}
 </p>
+{own.length > 0 && <p class="fanlinks muted" data-pagefind-ignore>Source: {own.map((l, i) => <>{i > 0 && ', '}<a href={l.url} rel="nofollow noopener" target="_blank">{l.site}</a></>)}.</p>}
 {fans.length > 0 && <p class="fanlinks muted" data-pagefind-ignore>Also on {fans.map((l, i) => <>{i > 0 && ', '}<a href={l.url} rel="noopener" target="_blank">{l.site}</a></>)}, a fan site; a courtesy link, not a source for Hobbydex.</p>}
 <script>
   const ENGINES: Record<string, string> = {
