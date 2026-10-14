@@ -1,5 +1,6 @@
 ---
 import { colourDot } from '../../../../lib/colourDot';
+import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { shownNote } from '../../../../lib/notes';
 import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
@@ -61,7 +62,7 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
   <table class="releases">
     <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
     {releases.map((r) => <tr>
-      <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><a href={url.release(r.id)}>{r.name}</a>{r.color && <Fragment set:html={' ' + colourDot(r.color)} />}</td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status !== 'released' ? r.status : ''}</td>}
+      <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status !== 'released' ? r.status : ''}</td>}
     </tr>)}
   </table>
   {gearings.size > 0 && <>

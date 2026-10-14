@@ -71,6 +71,15 @@ export function colourDotStyle(color: string | undefined): string | undefined {
   return `background: ${layers.join(', ')}`;
 }
 
+/** The palette shades for a colour name ("red", "black/red"), or undefined when a word is unknown. */
+export function colourShades(color: string | undefined): { c: string; metal?: boolean; see?: boolean }[] | undefined {
+  if (!color) return undefined;
+  const parts = color.split('/').map((s) => s.trim()).filter(Boolean);
+  if (parts.length < 1 || parts.length > 3) return undefined;
+  const shades = parts.map(shade);
+  return shades.some((s) => !s) ? undefined : (shades as Shade[]);
+}
+
 /** An inline dot (HTML) for a colour name with the name as its title and label, or '' for an unknown colour. */
 export function colourDot(color: string | undefined): string {
   const style = colourDotStyle(color);

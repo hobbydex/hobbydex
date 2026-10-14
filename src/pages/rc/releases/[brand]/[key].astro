@@ -1,5 +1,6 @@
 ---
 import { colourDot } from '../../../../lib/colourDot';
+import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { paintChip } from '../../../../lib/paintSwatch';
 import WebSearch from '../../../../components/WebSearch.astro';
 import CopyButton from '../../../../components/CopyButton.astro';
@@ -66,7 +67,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
-    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><Icon name={kitTypeIcon(release.category ?? kit.category)} size="5rem" /></span>
+    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} size="5rem" /></span>
   </div>
   {gear && <>
     <h2>Stock gearing</h2>
