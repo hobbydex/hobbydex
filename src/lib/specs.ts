@@ -1,6 +1,6 @@
 import { db, type Spec } from './data';
 
-export const specLabel: Record<string, string> = { screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts' };
+export const specLabel: Record<string, string> = { screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims' };
 
 const num = (v: unknown) => (typeof v === 'number' ? v : Number(String(v ?? '').replace(/^M/, '')) || 0);
 
@@ -14,6 +14,7 @@ export function specSort(a: Spec, b: Spec) {
   if (a.category === 'wheel-hex') return num(a.hex_mm) - num(b.hex_mm);
   if (a.category === 'motor') return String(a.motor_type).localeCompare(String(b.motor_type)) || num(a.shaft_mm) - num(b.shaft_mm) || num(a.diameter_mm) - num(b.diameter_mm) || num(a.length_mm) - num(b.length_mm);
   if (a.category === 'nut') return num(String(a.thread).split('x')[0]) - num(String(b.thread).split('x')[0]) || String(a.thread).localeCompare(String(b.thread)) || String(a.type).localeCompare(String(b.type)) || String(a.profile ?? '').localeCompare(String(b.profile ?? ''));
+  if (a.category === 'washer') return num(a.bore_mm) - num(b.bore_mm) || num(a.outer_mm) - num(b.outer_mm) || num(a.thickness_mm) - num(b.thickness_mm) || String(a.shape ?? '').localeCompare(String(b.shape ?? ''));
   if (a.category === 'pin') return num(a.diameter_mm) - num(b.diameter_mm) || num(a.length_mm) - num(b.length_mm);
   if (a.category === 'pinion') return num(a.module) - num(b.module) || num(b.pitch_dp) - num(a.pitch_dp) || num(a.teeth) - num(b.teeth);
   return a.id.localeCompare(b.id);
