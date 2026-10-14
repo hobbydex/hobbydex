@@ -1,17 +1,16 @@
 ---
 // A filterable, sortable table of parts with their category's key spec columns.
 // Ticked rows can be shown side by side.
-import { url, brandName, type Part } from '../lib/data';
+import { url, brandName, byPartNo, partLabel, partRest, type Part } from '../lib/data';
 import { columns, specOf } from '../lib/categoryColumns';
 import { paintChip } from '../lib/paintSwatch';
 import { colourDot } from '../lib/colourDot';
 interface Props { category: string; parts: Part[]; showBrand?: boolean }
 const { category, parts, showBrand = true } = Astro.props;
 const cols = columns[category] ?? [];
-const short = (p: Part) => (p.name.startsWith(p.number) ? p.name.slice(p.number.length).trim() : p.name === p.number ? '' : p.name);
 const rows = parts.map((p) => { const s = specOf(p); return { p, vals: cols.map((c) => c.get(p, s)) }; })
   // brand, then part number (natural order: PS-2 before PS-10); a column header click re-sorts
-  .sort((a, b) => brandName(a.p.brand).localeCompare(brandName(b.p.brand)) || a.p.number.localeCompare(b.p.number, undefined, { numeric: true }));
+  .sort((a, b) => brandName(a.p.brand).localeCompare(brandName(b.p.brand)) || byPartNo(a.p, b.p));
 const brands = [...new Set(parts.map((p) => p.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));
 // a dropdown for each text column with a short list of values (mounting, rim size, vehicle, ...)
 const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only ? [] : [...new Set(rows.map((r) => r.vals[i]).filter((v) => v !== undefined))].sort() as string[] }))
@@ -32,8 +31,8 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
     <thead><tr><th></th><th data-k="text">Part</th>{cols.map((c) => <th data-k={c.num ? 'num' : 'text'} class={`${c.num ? 'num' : ''}${c.field.compare_only ? ' conly' : ''}`}>{c.label}</th>)}</tr></thead>
     <tbody>
       {rows.map(({ p, vals }) => <tr data-brand={p.brand} data-known={vals.some((v) => v !== undefined) ? '1' : ''}>
-        <td><input type="checkbox" autocomplete="off" aria-label={`Compare ${p.number}`} /></td>
-        <td><a href={url.part(p.id)}>{showBrand && `${brandName(p.brand)} `}{p.number}</a>{short(p) && <span class="muted"> {short(p)}</span>}</td>
+        <td><input type="checkbox" autocomplete="off" aria-label={`Compare ${partLabel(p)}`} /></td>
+        <td><a href={url.part(p.id)}>{showBrand && `${brandName(p.brand)} `}{partLabel(p)}</a>{partRest(p) && <span class="muted"> {partRest(p)}</span>}</td>
         {vals.map((v, i) => { const f = cols[i].field.field, paint = p.category === 'paint';
           const sw = f === 'color' && paint ? paintChip(p, 22, 'circle') : undefined;
           // a named colour (not a paint): a dot from the fixed palette

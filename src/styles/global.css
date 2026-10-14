@@ -157,9 +157,11 @@ a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
   table.releases td[data-label] { margin-right: 0.9rem; font-size: 0.8rem; }
   table.releases td[data-label]::before { content: attr(data-label) " "; color: var(--muted); }
 }
-/* the part number column is as wide as the page's longest number; on phones it is capped so the name keeps room */
-th.numcol { width: calc(var(--numn, 8) * 0.6rem + 1.6rem); }   /* 0.6rem per character of the table font, plus the cell padding */
-@media (max-width: 600px) { th.numcol { width: min(calc(var(--numn, 8) * 0.6rem + 1.6rem), 10rem); } }
+/* the part number column is as wide as the page's longest number, up to 16 characters (a longer number wraps in its cell);
+   on phones it is capped further so the name keeps room */
+th.numcol { width: calc(min(var(--numn, 8), 16) * 0.6rem + 1.6rem); }   /* 0.6rem per character of the table font, plus the cell padding */
+@media (max-width: 600px) { th.numcol { width: min(calc(min(var(--numn, 8), 16) * 0.6rem + 1.6rem), 10rem); } }
+table:has(th.numcol) td.num { white-space: normal; overflow-wrap: anywhere; }
 
 /* sortable tables: the header is a button, the arrow shows the sorted column */
 table.sortable th .sortbtn { all: unset; cursor: pointer; font: inherit; color: inherit; }

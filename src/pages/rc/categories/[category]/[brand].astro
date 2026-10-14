@@ -3,7 +3,7 @@ import { colourDot } from '../../../../lib/colourDot';
 import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
 import PartTable from '../../../../components/PartTable.astro';
-import { db, brandName, key, url } from '../../../../lib/data';
+import { db, brandName, byPartNo, key, url } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import { byCategory, categories } from '../../../../lib/categoryIndex';
 import { columns } from '../../../../lib/categoryColumns';
@@ -12,7 +12,7 @@ export function getStaticPaths() {
 }
 const { category } = Astro.params;
 const { brandId } = Astro.props;
-const parts = [...byCategory.get(category)!.get(brandId)!].sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+const parts = [...byCategory.get(category)!.get(brandId)!].sort(byPartNo);
 ---
 <Base title={`${brandName(brandId)} ${catName(category).toLowerCase()}`} description={`${parts.length} ${catName(category).toLowerCase()} from ${brandName(brandId)}.`}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/categories/">Categories</a> / <a href={`/rc/categories/${category}/`}>{catName(category)}</a> / {brandName(brandId)}</div>
@@ -20,6 +20,6 @@ const parts = [...byCategory.get(category)!.get(brandId)!].sort((a, b) => a.numb
   {columns[category] ? <PartTable category={category} parts={parts} showBrand={false} /> :
   <table>
     <tr><th>Part</th><th>Name</th><th class="num">Releases</th></tr>
-    {parts.map((p) => <tr><td><a href={url.part(p.id)}>{p.number}</a></td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.name}</td><td class="num">{new Set((db.usesByPart.get(p.id) ?? []).map((u) => u.release.id)).size || ''}</td></tr>)}
+    {parts.map((p) => <tr><td>{p.number && <a href={url.part(p.id)}>{p.number}</a>}</td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.number ? p.name : <a href={url.part(p.id)}>{p.name}</a>}</td><td class="num">{new Set((db.usesByPart.get(p.id) ?? []).map((u) => u.release.id)).size || ''}</td></tr>)}
   </table>}
 </Base>
