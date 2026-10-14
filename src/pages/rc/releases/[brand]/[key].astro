@@ -6,7 +6,7 @@ import WebSearch from '../../../../components/WebSearch.astro';
 import CopyButton from '../../../../components/CopyButton.astro';
 import { gtinLabel } from '../../../../lib/gtin';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName, yearOf, yearText, dateText } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partLabel, partNo, yearOf, yearText, dateText } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -22,18 +22,21 @@ if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const release = Astro.props.release!;   // set on every page that is not a redirect
 const kit = db.kit.get(release.kit)!;
 const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d !== undefined);
+// the maker's own files for this release, as rows of the facts list (every document stays listed under Sources)
+const FILE_KINDS: Record<string, string> = { manual: 'Manual', part_list: 'Parts list', exploded_view: 'Exploded view', setup_sheet: 'Setup sheet' };
+const fileRows = Object.entries(FILE_KINDS).map(([k, label]) => [label, docs.filter((d) => d.kind === k && (d.page || d.url))] as const).filter(([, ds]) => ds.length > 0);
 const rows = (release.contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
-const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b) => a.p.number.localeCompare(b.p.number));
+const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b) => byPartNo(a.p, b.p));
 const hasSplit = rows.some((c) => c.role !== 'listed');
 const hasQty = rows.some((c) => c.qty !== undefined);
 const hasStep = rows.some((c) => c.step !== undefined);
 const cats = [...new Set(rows.map((c) => c.p.category).filter((c): c is string => !!c))].sort((a, b) => catName(a).localeCompare(catName(b)));
 const related = (db.kitRelations.get(kit.id) ?? []).map((r) => ({ ...r, k: db.kit.get(r.other) })).filter((r) => r.k);
 const bearings = bearingList(release);
-const numW = String(Math.max(5, ...rows.map((c) => c.p.number.length)));   // characters in the page's longest part number; CSS turns it into a width and caps it on phones
+const numW = String(Math.max(5, ...rows.map((c) => partNo(c.p).length)));   // characters in the page's longest part number; CSS turns it into a width and caps it on phones
 // bearing kits sold for this car, checked against the sizes (and counts) in the box
 const bearingKits = (db.fitsByKit.get(kit.id) ?? []).map((x) => x.part).filter((p) => p.category === 'bearing' && (p.includes ?? []).some((i) => i.spec?.startsWith('spec/bearing/')))
-  .sort((a, b) => a.number.localeCompare(b.number)).map((p) => {
+  .sort(byPartNo).map((p) => {
     const inc = new Map((p.includes ?? []).filter((i) => i.spec).map((i) => [i.spec!, i.qty]));
     const need = bearings?.lines ?? [];
     const missing = need.filter((l) => !inc.has(l.spec));
@@ -64,6 +67,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
+    {fileRows.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page ?? d.url} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : (d.page ? 'maker page' : 'PDF')}</a>{d.page && d.url && <span class="muted"> (<a href={d.url} rel="nofollow">PDF</a>)</span>}</>)}</dd></>)}
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
@@ -77,34 +81,26 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
         <a href={url.part(gear.spur.id)}>{gear.zs}T spur</a> / <a href={url.part(gear.pinion.id)}>{gear.zp}T pinion</a>{gear.pitch && <span class="muted"> · {gear.pitch}</span>}<br />
         <span class="muted">Spur/pinion ratio of the gears in the box. The transmission's internal ratio is not in our data, so this is not the final drive ratio.</span></p>
     </div></>}
-  {docs.length > 0 && <><h2>Sources</h2>
-    {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
-      ? <ul>{docs.map((d) => <li>{d.page || d.url ? <a href={d.page ?? d.url} rel="nofollow">{d.title}</a> : d.title}{d.page && d.url && <span class="muted"> · <a href={d.url} rel="nofollow">PDF</a></span>}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
-      : <ul>{[...new Set(docs.map((d) => d.url ?? ''))].map((u) => { const ds = docs.filter((d) => (d.url ?? '') === u); return <li>
-          {u ? <a href={u} rel="nofollow">{new URL(u).hostname}{new URL(u).pathname.length > 1 ? new URL(u).pathname : ''}</a> : 'Documents'} <span class="muted">· {ds.length} documents</span>
-          <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
-        </li>; })}</ul>}
-    <p><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p></>}
   {bearings && <>
     <h2>Bearings <span class="muted">({bearings.lines.length} {bearings.lines.length === 1 ? 'size' : 'sizes'})</span> <CopyButton text={copyText} label="Copy bearing list" class="inline" /></h2>
     <p class="muted">{bearings.counted ? 'Counts per car, from the build manual.' : 'Sizes of the bearings in the box; the count per car is not in our source for this release.'}{bearings.lines.some((l) => l.bushing) && ' A bushing is listed with the ball bearing that replaces it.'}</p>
     <table>
       <tr><th>Size</th>{bearings.counted && <th class="num">Qty</th>}<th>Parts</th></tr>
-      {bearings.lines.map((l) => <tr><td><a href={url.spec(l.spec)}>{l.name}</a></td>{bearings.counted && <td class="num">{l.qty}</td>}<td>{l.parts.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{p.number}</a></>)}{l.bushing && <span class="muted"> · bushing in the kit</span>}</td></tr>)}
+      {bearings.lines.map((l) => <tr><td><a href={url.spec(l.spec)}>{l.name}</a></td>{bearings.counted && <td class="num">{l.qty}</td>}<td>{l.parts.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{partLabel(p)}</a></>)}{l.bushing && <span class="muted"> · bushing in the kit</span>}</td></tr>)}
     </table>
-    {bearings.unsized.length > 0 && <p class="muted">Also {bearings.unsized.length} bearing {bearings.unsized.length === 1 ? 'part' : 'parts'} of unknown size: {bearings.unsized.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{p.number}</a></>)}.</p>}
+    {bearings.unsized.length > 0 && <p class="muted">Also {bearings.unsized.length} bearing {bearings.unsized.length === 1 ? 'part' : 'parts'} of unknown size: {bearings.unsized.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{partLabel(p)}</a></>)}.</p>}
     {bearingKits.length > 0 && <>
       <h3>Bearing kits for this car</h3>
       <table>
         <tr><th>Kit</th><th class="num">Bearings</th><th>Against the box</th></tr>
-        {bearingKits.map((b) => <tr><td><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {b.p.number}</a> <span class="muted">{b.p.name}</span></td><td class="num">{b.total || ''}</td>
+        {bearingKits.map((b) => <tr><td><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> {b.p.number && <span class="muted">{b.p.name}</span>}</td><td class="num">{b.total || ''}</td>
           <td>{b.missing.length === 0 && b.short.length === 0 ? (bearings.counted ? 'every size, enough of each' : 'every size') : <span class="muted">{b.missing.length > 0 && `misses ${b.missing.map((l) => l.name).join(', ')}`}{b.missing.length > 0 && b.short.length > 0 && '; '}{b.short.length > 0 && `too few ${b.short.map((l) => l.name).join(', ')}`}</span>}</td></tr>)}
       </table></>}
     </>}
   {!bearings && bearingKits.length > 0 && <>
     <h2>Bearing kits for this car <span class="muted">({bearingKits.length})</span></h2>
     <p class="muted">The bearings in the box are not in our data for this release, so the kits are not checked against it.</p>
-    <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {b.p.number}</a> <span class="muted">{b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span></li>)}</ul></>}
+    <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> <span class="muted">{b.p.number && b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span></li>)}</ul></>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
   {boxCats.length > 1 && <nav class="boxgrid" aria-label="In the box by category" data-pagefind-ignore>
@@ -120,7 +116,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({gr.length})</span></h3>
         <table>
           <tr><th class="num numcol" style={`--numn:${numW}`}>Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand c-brand">Brand</th>{hasStep && <th class="w-step">Step</th>}</tr>
-          {gr.map((c) => <tr><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td><Fragment set:html={c.p.category === 'paint' ? (paintChip(c.p, 14, 'circle') ?? '') : colourDot(c.p.color)} />{c.p.name}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
+          {gr.map((c) => <tr><td class="num">{c.p.number && <a href={url.part(c.p.id)}>{c.p.number}</a>}</td><td><Fragment set:html={c.p.category === 'paint' ? (paintChip(c.p, 14, 'circle') ?? '') : colourDot(c.p.color)} />{c.p.number ? c.p.name : <a href={url.part(c.p.id)}>{c.p.name}</a>}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
         </table></div>; })}
     </section>; })}</>; })()}
   <script>
@@ -147,6 +143,14 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
       for (const g of document.querySelectorAll<HTMLElement>('.catgroup')) g.hidden = !!sel.value && g.dataset.cat !== sel.value;
     });
   </script>
+  {docs.length > 0 && <><h2>Sources</h2>
+    {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
+      ? <ul>{docs.map((d) => <li>{d.page || d.url ? <a href={d.page ?? d.url} rel="nofollow">{d.title}</a> : d.title}{d.page && d.url && <span class="muted"> · <a href={d.url} rel="nofollow">PDF</a></span>}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
+      : <ul>{[...new Set(docs.map((d) => d.url ?? ''))].map((u) => { const ds = docs.filter((d) => (d.url ?? '') === u); return <li>
+          {u ? <a href={u} rel="nofollow">{new URL(u).hostname}{new URL(u).pathname.length > 1 ? new URL(u).pathname : ''}</a> : 'Documents'} <span class="muted">· {ds.length} documents</span>
+          <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
+        </li>; })}</ul>}
+    <p><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p></>}
   <style>
     .tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; border-bottom: 1px solid var(--border, #8884); margin: 1.5rem 0 0.5rem; }
     .tab { font: inherit; background: none; border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; padding: 0.4rem 0.8rem; cursor: pointer; color: inherit; }

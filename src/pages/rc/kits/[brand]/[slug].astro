@@ -4,7 +4,7 @@ import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { shownNote } from '../../../../lib/notes';
 import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText } from '../../../../lib/data';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import WebSearch from '../../../../components/WebSearch.astro';
@@ -21,7 +21,7 @@ const kit = Astro.props.kit!;   // set on every page that is not a redirect
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort((a, b) => yearOf(a) - yearOf(b) || a.name.localeCompare(b.name));
 const show = { number: releases.some((r) => r.number), edition: releases.some((r) => r.edition), surface: releases.some((r) => r.surface),
   status: releases.some((r) => r.status && r.status !== 'released') };   // the column only when a release is discontinued or announced
-const fits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => a.part.number.localeCompare(b.part.number));
+const fits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => byPartNo(a.part, b.part));
 const relations = db.kitRelations.get(kit.id) ?? [];
 // parts of interchangeable rebrands, for kits whose own releases list none
 const ownParts = releases.reduce((n, r) => n + (r.contains?.length ?? 0), 0);
@@ -34,7 +34,7 @@ const seen = new Set<string>();
 // rows grouped by part category, named categories alphabetically, uncategorised last
 const byCat = <T,>(rows: T[], cat: (r: T) => string | undefined) => [...new Set(rows.map((r) => cat(r) ?? ''))]
   .sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))).map((g) => ({ g, rows: rows.filter((r) => (cat(r) ?? '') === g) }));
-const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => a.p.number.localeCompare(b.p.number));
+const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => byPartNo(a.p, b.p));
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="kit" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
@@ -81,8 +81,8 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
     {byCat(borrowedUnique, (x) => x.p.category).map(({ g, rows }) => <div class="catgroup">
       <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
       <table>
-        <tr><th class="num numcol" style={`--numn:${Math.max(5, ...borrowedUnique.map((x) => x.p.number.length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-from">From</th></tr>
-        {rows.map(({ rel, p }) => <tr><td class="num"><a href={url.part(p.id)}>{p.number}</a></td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.name}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
+        <tr><th class="num numcol" style={`--numn:${Math.max(5, ...borrowedUnique.map((x) => partNo(x.p).length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-from">From</th></tr>
+        {rows.map(({ rel, p }) => <tr><td class="num">{p.number && <a href={url.part(p.id)}>{p.number}</a>}</td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.number ? p.name : <a href={url.part(p.id)}>{p.name}</a>}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
       </table></div>)}
   </>}
   {fits.length > 0 && <>
@@ -92,8 +92,8 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
       {groups.map(({ g, rows }) => <div class="catgroup" id={`cat-${g || 'other'}`}>
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
         <table>
-          <tr><th class="num numcol" style={`--numn:${Math.max(5, ...fits.map((x) => x.part.number.length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
-          {rows.map(({ part, fit }) => <tr><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && <span class="muted"> · {shownNote(fit.notes)}</span>}</td></tr>)}
+          <tr><th class="num numcol" style={`--numn:${Math.max(5, ...fits.map((x) => partNo(x.part).length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
+          {rows.map(({ part, fit }) => <tr><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td>{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && <span class="muted"> · {shownNote(fit.notes)}</span>}</td></tr>)}
         </table></div>)}</>; })()}
   </>}
   <style>
@@ -108,6 +108,7 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
       .catgroup tr:nth-child(2) { border-top: 0; }
       .catgroup td { display: inline; padding: 0; border: 0; background: none; white-space: normal; overflow-wrap: anywhere; }
       .catgroup td.num { white-space: nowrap; margin-right: 0.4rem; }
+      .catgroup td.num:empty { display: none; }   /* a part without a number: the name is the link */
       .catgroup td:nth-child(3), .catgroup td:nth-child(4) { display: inline; font-size: 0.8rem; color: var(--muted); }
       .catgroup td:nth-child(3)::before { content: ''; display: block; }
       .catgroup td:nth-child(4)::before { content: ' · '; }
