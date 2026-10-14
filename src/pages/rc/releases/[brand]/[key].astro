@@ -22,6 +22,9 @@ if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const release = Astro.props.release!;   // set on every page that is not a redirect
 const kit = db.kit.get(release.kit)!;
 const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d !== undefined);
+// the maker's own files for this release, as rows of the facts list (every document stays listed under Sources)
+const FILE_KINDS: Record<string, string> = { manual: 'Manual', part_list: 'Parts list', exploded_view: 'Exploded view', setup_sheet: 'Setup sheet' };
+const fileRows = Object.entries(FILE_KINDS).map(([k, label]) => [label, docs.filter((d) => d.kind === k && (d.page || d.url))] as const).filter(([, ds]) => ds.length > 0);
 const rows = (release.contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
 const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b) => byPartNo(a.p, b.p));
 const hasSplit = rows.some((c) => c.role !== 'listed');
@@ -64,6 +67,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
+    {fileRows.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page ?? d.url} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : (d.page ? 'maker page' : 'PDF')}</a>{d.page && d.url && <span class="muted"> (<a href={d.url} rel="nofollow">PDF</a>)</span>}</>)}</dd></>)}
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
@@ -77,14 +81,6 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
         <a href={url.part(gear.spur.id)}>{gear.zs}T spur</a> / <a href={url.part(gear.pinion.id)}>{gear.zp}T pinion</a>{gear.pitch && <span class="muted"> · {gear.pitch}</span>}<br />
         <span class="muted">Spur/pinion ratio of the gears in the box. The transmission's internal ratio is not in our data, so this is not the final drive ratio.</span></p>
     </div></>}
-  {docs.length > 0 && <><h2>Sources</h2>
-    {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
-      ? <ul>{docs.map((d) => <li>{d.page || d.url ? <a href={d.page ?? d.url} rel="nofollow">{d.title}</a> : d.title}{d.page && d.url && <span class="muted"> · <a href={d.url} rel="nofollow">PDF</a></span>}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
-      : <ul>{[...new Set(docs.map((d) => d.url ?? ''))].map((u) => { const ds = docs.filter((d) => (d.url ?? '') === u); return <li>
-          {u ? <a href={u} rel="nofollow">{new URL(u).hostname}{new URL(u).pathname.length > 1 ? new URL(u).pathname : ''}</a> : 'Documents'} <span class="muted">· {ds.length} documents</span>
-          <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
-        </li>; })}</ul>}
-    <p><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p></>}
   {bearings && <>
     <h2>Bearings <span class="muted">({bearings.lines.length} {bearings.lines.length === 1 ? 'size' : 'sizes'})</span> <CopyButton text={copyText} label="Copy bearing list" class="inline" /></h2>
     <p class="muted">{bearings.counted ? 'Counts per car, from the build manual.' : 'Sizes of the bearings in the box; the count per car is not in our source for this release.'}{bearings.lines.some((l) => l.bushing) && ' A bushing is listed with the ball bearing that replaces it.'}</p>
@@ -147,6 +143,14 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
       for (const g of document.querySelectorAll<HTMLElement>('.catgroup')) g.hidden = !!sel.value && g.dataset.cat !== sel.value;
     });
   </script>
+  {docs.length > 0 && <><h2>Sources</h2>
+    {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
+      ? <ul>{docs.map((d) => <li>{d.page || d.url ? <a href={d.page ?? d.url} rel="nofollow">{d.title}</a> : d.title}{d.page && d.url && <span class="muted"> · <a href={d.url} rel="nofollow">PDF</a></span>}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
+      : <ul>{[...new Set(docs.map((d) => d.url ?? ''))].map((u) => { const ds = docs.filter((d) => (d.url ?? '') === u); return <li>
+          {u ? <a href={u} rel="nofollow">{new URL(u).hostname}{new URL(u).pathname.length > 1 ? new URL(u).pathname : ''}</a> : 'Documents'} <span class="muted">· {ds.length} documents</span>
+          <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
+        </li>; })}</ul>}
+    <p><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p></>}
   <style>
     .tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; border-bottom: 1px solid var(--border, #8884); margin: 1.5rem 0 0.5rem; }
     .tab { font: inherit; background: none; border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; padding: 0.4rem 0.8rem; cursor: pointer; color: inherit; }
