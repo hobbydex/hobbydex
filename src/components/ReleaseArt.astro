@@ -20,7 +20,10 @@ const label = [kitTypeOne[category ?? 'car'] ?? category ?? '', color ?? ''].fil
 const n = shades?.length ?? 0, bw = n ? w / n : w;
 // relative luminance of a #rrggbb shade, to outline the darkest ones (black on a dark page)
 const lum = (c: string) => /^#[0-9a-f]{6}$/i.test(c) ? [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16) / 255).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0) : 1;
-const edge = shades?.some((s) => s.c === '#ffffff' || s.see || lum(s.c) < 0.08);
+const dark = shades?.some((s) => !s.see && lum(s.c) < 0.15);   // black: outlined in the text colour, which shows on a dark page only
+const edge = dark || shades?.some((s) => s.c === '#ffffff' || s.see);
+// the outline: 0.6 of 24 units on a large drawing, about a pixel on a small one (an inline icon in a row)
+const small = parseFloat(size) < 2.5 && /em$/.test(size);
 ---
 <svg class={cls ? `relart ${cls}` : 'relart'} viewBox={`0 0 ${w} ${h}`} style={`width:${wide ? `calc(${size} * 2)` : size};height:${size}`} role="img" aria-label={label}><title>{label}</title>
   {(shape || shades) && <defs>
@@ -31,6 +34,6 @@ const edge = shades?.some((s) => s.c === '#ffffff' || s.see || lum(s.c) < 0.08);
   {shades ? <>
     {shades.map((s, i) => <use href={href} fill={s.see ? 'rgba(150,150,160,0.35)' : s.c} clip-path={n > 1 ? `url(#${uid}-c${i})` : undefined} />)}
     {shades.map((s, i) => s.metal && <use href={href} fill={`url(#${uid}-m)`} clip-path={n > 1 ? `url(#${uid}-c${i})` : undefined} />)}
-    {edge && <use href={href} fill="none" stroke="var(--muted)" stroke-width="0.6" />}
+    {edge && <use href={href} fill="none" stroke={dark ? 'var(--fg)' : 'var(--muted)'} stroke-width={small ? 1.4 : 0.6} />}
   </> : <use href={href} fill="currentColor" />}
 </svg>
