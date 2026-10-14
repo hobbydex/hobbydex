@@ -1,5 +1,6 @@
 ---
 import { colourDot } from '../../../../lib/colourDot';
+import { shownNote } from '../../../../lib/notes';
 import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
@@ -91,7 +92,7 @@ const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
         <table>
           <tr><th class="num numcol" style={`--numn:${Math.max(5, ...fits.map((x) => x.part.number.length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
-          {rows.map(({ part, fit }) => <tr><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td>{brandName(part.brand)}</td><td>{fit.type}{fit.notes && <span class="muted"> · {fit.notes}</span>}</td></tr>)}
+          {rows.map(({ part, fit }) => <tr><td class="num"><a href={url.part(part.id)}>{part.number}</a></td><td>{part.name}</td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && <span class="muted"> · {shownNote(fit.notes)}</span>}</td></tr>)}
         </table></div>)}</>; })()}
   </>}
   <style>
