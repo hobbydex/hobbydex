@@ -16,8 +16,6 @@
 [data-color-mode="dark"] { color-scheme: dark; }
 button, select, input, textarea { color: var(--fg); background-color: var(--bg); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
 button { cursor: pointer; }
-.copybtn { font-size: 0.85rem; background: var(--surface); padding: 0.3rem 0.8rem; }
-.copybtn:hover { background: var(--surface-2); }
 * { box-sizing: border-box; }
 html { background: var(--bg); }
 body { margin: 0; font-family: var(--fontStack-sansSerif, system-ui, sans-serif); font-size: 14px; line-height: 1.5; color: var(--fg); background: var(--bg); }
@@ -68,11 +66,12 @@ ul.search-results mark { background: var(--mark); color: inherit; border-radius:
 .websearch { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin: 0.25rem 0 1rem; }
 .websearch .btn, .websearch select { font: inherit; font-size: 0.85rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 0.8rem; cursor: pointer; text-decoration: none; }
 .websearch .btn:hover { background: var(--surface-2); }
-.copybtn { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 0.45rem; line-height: 0; cursor: pointer; }
+.copybtn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 2rem; height: 2rem; padding: 0; font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; vertical-align: middle; }
 .copybtn:hover { background: var(--surface-2); }
 .copybtn.done { color: var(--ok, var(--fg)); }
-.copybtn.inline { padding: 0.15rem 0.3rem; vertical-align: middle; margin-left: 0.3rem; }
-.copybtn .icon { width: 1.15rem; height: 1.15rem; vertical-align: 0; }
+.copybtn.inline { width: 1.6rem; height: 1.6rem; margin-left: 0.3rem; }
+.copybtn .icon { display: block; width: 1.15rem; height: 1.15rem; }
+.copybtn.inline .icon { width: 1rem; height: 1rem; }
 .fanlinks { font-size: 0.85rem; margin: -0.5rem 0 1rem; }
 .search-filters select { font: inherit; font-size: 0.8rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.1rem 0.6rem; }
 .home-search { display: flex; gap: 0.5rem; margin: 1rem 0; max-width: 40rem; }
