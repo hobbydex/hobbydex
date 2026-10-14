@@ -2,6 +2,7 @@
 import { colourDot } from '../../../../lib/colourDot';
 import { paintChip } from '../../../../lib/paintSwatch';
 import WebSearch from '../../../../components/WebSearch.astro';
+import CopyButton from '../../../../components/CopyButton.astro';
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText, dateText } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
@@ -82,14 +83,13 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
         </li>; })}</ul>}
     <p><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p></>}
   {bearings && <>
-    <h2>Bearings <span class="muted">({bearings.lines.length} {bearings.lines.length === 1 ? 'size' : 'sizes'})</span></h2>
+    <h2>Bearings <span class="muted">({bearings.lines.length} {bearings.lines.length === 1 ? 'size' : 'sizes'})</span> <CopyButton text={copyText} label="Copy bearing list" class="inline" /></h2>
     <p class="muted">{bearings.counted ? 'Counts per car, from the build manual.' : 'Sizes of the bearings in the box; the count per car is not in our source for this release.'}{bearings.lines.some((l) => l.bushing) && ' A bushing is listed with the ball bearing that replaces it.'}</p>
     <table>
       <tr><th>Size</th>{bearings.counted && <th class="num">Qty</th>}<th>Parts</th></tr>
       {bearings.lines.map((l) => <tr><td><a href={url.spec(l.spec)}>{l.name}</a></td>{bearings.counted && <td class="num">{l.qty}</td>}<td>{l.parts.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{p.number}</a></>)}{l.bushing && <span class="muted"> · bushing in the kit</span>}</td></tr>)}
     </table>
     {bearings.unsized.length > 0 && <p class="muted">Also {bearings.unsized.length} bearing {bearings.unsized.length === 1 ? 'part' : 'parts'} of unknown size: {bearings.unsized.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{p.number}</a></>)}.</p>}
-    <p><button type="button" class="copybtn" data-copy={copyText}>Copy bearing list</button></p>
     {bearingKits.length > 0 && <>
       <h3>Bearing kits for this car</h3>
       <table>
@@ -97,11 +97,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
         {bearingKits.map((b) => <tr><td><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {b.p.number}</a> <span class="muted">{b.p.name}</span></td><td class="num">{b.total || ''}</td>
           <td>{b.missing.length === 0 && b.short.length === 0 ? (bearings.counted ? 'every size, enough of each' : 'every size') : <span class="muted">{b.missing.length > 0 && `misses ${b.missing.map((l) => l.name).join(', ')}`}{b.missing.length > 0 && b.short.length > 0 && '; '}{b.short.length > 0 && `too few ${b.short.map((l) => l.name).join(', ')}`}</span>}</td></tr>)}
       </table></>}
-    <script>
-      for (const b of document.querySelectorAll<HTMLButtonElement>('button[data-copy]')) b.addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(b.dataset.copy ?? ''); b.textContent = 'Copied'; setTimeout(() => (b.textContent = 'Copy bearing list'), 1500); } catch {}
-      });
-    </script></>}
+    </>}
   {!bearings && bearingKits.length > 0 && <>
     <h2>Bearing kits for this car <span class="muted">({bearingKits.length})</span></h2>
     <p class="muted">The bearings in the box are not in our data for this release, so the kits are not checked against it.</p>
