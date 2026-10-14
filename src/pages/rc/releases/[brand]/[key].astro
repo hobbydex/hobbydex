@@ -22,9 +22,14 @@ if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const release = Astro.props.release!;   // set on every page that is not a redirect
 const kit = db.kit.get(release.kit)!;
 const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d !== undefined);
-// the maker's own files for this release, as rows of the facts list (every document stays listed under Sources)
-const FILE_KINDS: Record<string, string> = { manual: 'Manual', part_list: 'Parts list', exploded_view: 'Exploded view', setup_sheet: 'Setup sheet' };
-const fileRows = Object.entries(FILE_KINDS).map(([k, label]) => [label, docs.filter((d) => d.kind === k && (d.page || d.url))] as const).filter(([, ds]) => ds.length > 0);
+// the maker's pages for this release's files, as rows of the facts list: only documents with a maker page, so the
+// prominent link is never the file itself (every document, file links included, stays listed under Sources)
+const FILE_KINDS: Record<string, string> = { manual: 'Manual', part_list: 'Parts list', exploded_view: 'Exploded view' };
+// setup sheets (dozens on a race car) are folded into one collapsed line under Sources
+const sheets = docs.filter((d) => d.kind === 'setup_sheet');
+const webLink = (d: { page?: string; url?: string; kind?: string }) => d.page ?? (d.kind === 'product_page' ? d.url : undefined);
+const mainDocs = docs.filter((d) => d.kind !== 'setup_sheet');
+const fileRows = Object.entries(FILE_KINDS).map(([k, label]) => [label, docs.filter((d) => d.kind === k && d.page)] as const).filter(([, ds]) => ds.length > 0);
 const rows = (release.contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
 const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b) => byPartNo(a.p, b.p));
 const hasSplit = rows.some((c) => c.role !== 'listed');
@@ -67,7 +72,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
-    {fileRows.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page ?? d.url} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : (d.page ? 'maker page' : 'PDF')}</a>{d.page && d.url && <span class="muted"> (<a href={d.url} rel="nofollow">PDF</a>)</span>}</>)}</dd></>)}
+    {fileRows.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'maker page'}</a></>)}</dd></>)}
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
@@ -143,11 +148,12 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
       for (const g of document.querySelectorAll<HTMLElement>('.catgroup')) g.hidden = !!sel.value && g.dataset.cat !== sel.value;
     });
   </script>
-  {docs.length > 0 && <><h2>Sources</h2>
-    {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
-      ? <ul>{docs.map((d) => <li>{d.page || d.url ? <a href={d.page ?? d.url} rel="nofollow">{d.title}</a> : d.title}{d.page && d.url && <span class="muted"> · <a href={d.url} rel="nofollow">PDF</a></span>}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
-      : <ul>{[...new Set(docs.map((d) => d.url ?? ''))].map((u) => { const ds = docs.filter((d) => (d.url ?? '') === u); return <li>
-          {u ? <a href={u} rel="nofollow">{new URL(u).hostname}{new URL(u).pathname.length > 1 ? new URL(u).pathname : ''}</a> : 'Documents'} <span class="muted">· {ds.length} documents</span>
+    {sheets.length > 0 && <><h2>Setup sheets <span class="muted">({sheets.length})</span></h2><details class="sheets"><summary class="muted">{sheets.length === 1 ? "the sheet" : "all sheets"}</summary><ul>{sheets.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details></>}
+  {mainDocs.length > 0 && <><h2>Sources</h2>
+    {mainDocs.length <= 4 || new Set(mainDocs.map((d) => d.url)).size === mainDocs.length
+      ? <ul>{mainDocs.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{!webLink(d) && d.url && <span class="muted"> · {new URL(d.url).hostname}</span>}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
+      : <ul>{[...new Set(mainDocs.map((d) => d.page ?? d.url ?? ''))].map((u) => { const ds = mainDocs.filter((d) => (d.page ?? d.url ?? '') === u); const pg = webLink(ds[0]); return <li>
+          {pg ? <a href={pg} rel="nofollow">{new URL(pg).hostname}{new URL(pg).pathname.length > 1 ? new URL(pg).pathname : ''}</a> : u ? new URL(u).hostname : 'Documents'} <span class="muted">· {ds.length} documents</span>
           <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
         </li>; })}</ul>}
     <p><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p></>}
