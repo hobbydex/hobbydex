@@ -67,7 +67,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
-    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} kitArt={kit.art} size="5rem" /></span>
+    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} kitArt={kit.art} size={release.art || kit.art ? "8rem" : "5rem"} /></span>
   </div>
   {gear && <>
     <h2>Stock gearing</h2>

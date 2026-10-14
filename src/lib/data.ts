@@ -139,5 +139,5 @@ export const dateText = (r: { year?: number; released?: string }) => {
   if (!m) return r.year ? String(r.year) : 'unknown';
   return [m[3] && String(Number(m[3])), m[2] && MONTHS[Number(m[2]) - 1], m[1]].filter(Boolean).join(' ');
 };
-export const yearText = (r: { year?: number; model_year?: number }) => (r.year ? String(r.year) : r.model_year ? `MY ${r.model_year}` : 'unknown');
+export const yearText = (r: { year?: number; model_year?: number }) => (r.year ? String(r.year) : r.model_year ? `${r.model_year} model` : 'unknown');
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
