@@ -3,6 +3,7 @@ import { colourDot } from '../../../../lib/colourDot';
 import { paintChip } from '../../../../lib/paintSwatch';
 import WebSearch from '../../../../components/WebSearch.astro';
 import CopyButton from '../../../../components/CopyButton.astro';
+import { gtinLabel } from '../../../../lib/gtin';
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, yearOf, yearText, dateText } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
@@ -61,6 +62,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     {release.released ? <><dt>Released</dt><dd>{dateText(release)}</dd></> : <><dt>Year</dt><dd>{yearText(release)}</dd></>}
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
+    {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
