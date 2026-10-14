@@ -2,7 +2,7 @@
 // The site reads only this JSON (schema_version 0); it never touches TOML.
 import { readFileSync } from 'node:fs';
 
-export type Brand = { id: string; name: string; legal_name?: string; country?: string; website?: string; kind?: string; status: string; notes?: string };
+export type Brand = { id: string; name: string; legal_name?: string; country?: string; website?: string; kind?: string; status: string; item_numbers?: boolean; notes?: string };
 export type Link = { site: string; url: string; kind?: 'fan-site' };
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
 export type Kit = { id: string; toml_path?: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; art?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[]; links?: Link[] };
@@ -10,7 +10,7 @@ export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source
 export type Release = { id: string; toml_path?: string; gtin?: string; former_ids?: string[]; kit: string; brand: string; number?: string; name: string; color?: string; year?: number; released?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };
-export type Part = { id: string; toml_path?: string; gtin?: string; former_ids?: string[]; brand: string; number: string; name: string; category?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string | string[]; paint_type?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; range?: string; displacement_cc?: number; engine_class?: string; stroke_mm?: number; output_hp?: number; output_rpm?: number; rpm_range?: number[]; fuel?: string };
+export type Part = { id: string; toml_path?: string; gtin?: string; former_ids?: string[]; brand: string; number?: string; name: string; category?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string | string[]; paint_type?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; range?: string; displacement_cc?: number; engine_class?: string; stroke_mm?: number; output_hp?: number; output_rpm?: number; rpm_range?: number[]; fuel?: string };
 export type Includes = { part?: string; spec?: string; qty?: number; source?: string; notes?: string };
 export type Spec = { id: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
 export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; page?: string; releases?: string[] };
@@ -118,6 +118,16 @@ export const db = {
   usesByPart,
   partsByRange: group(raw.parts.filter((p) => p.range), (p) => p.range!),
 };
+
+// A part's item number. Parts of a brand that prints none (item_numbers = false, Acer Racing) have no number:
+// their page URL still comes from the id's slug (url.part), their Number cell stays empty and their name is the link.
+export const partNo = (p: Part) => p.number ?? '';
+/** Link text for a part: its number, or its name when it has none. */
+export const partLabel = (p: Part) => p.number ?? p.name;
+/** What follows partLabel: the name without its number in front ("SB-2290SG SB-2290SG Standard ..."), empty when partLabel is the name. */
+export const partRest = (p: Part) => (!p.number ? '' : p.name.startsWith(p.number) ? p.name.slice(p.number.length).trim() : p.name);
+/** Natural order by part number (PS-2 before PS-10), parts without a number by name after them. */
+export const byPartNo = (a: Part, b: Part) => (a.number ? 0 : 1) - (b.number ? 0 : 1) || partNo(a).localeCompare(partNo(b), undefined, { numeric: true }) || a.name.localeCompare(b.name);
 
 /** 'brand/xray' -> ['xray']; 'part/xray/303122' -> ['xray', '303122'] */
 export const key = (id: string) => id.split('/').slice(1);

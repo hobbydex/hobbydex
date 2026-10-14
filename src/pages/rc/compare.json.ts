@@ -9,7 +9,7 @@ export function GET() {
     const rows = (r.contains ?? []).flatMap((c) => {
       const p = db.part.get(c.part);
       if (!p) return [];
-      if (!index.has(p.id)) { index.set(p.id, parts.length); parts.push([p.number, p.name, url.part(p.id), p.category ?? '']); }
+      if (!index.has(p.id)) { index.set(p.id, parts.length); parts.push([p.number ?? '', p.name, url.part(p.id), p.category ?? '']); }
       return [[index.get(p.id)!, c.role === 'kit' ? 'k' : c.role === 'option' ? 'o' : 'l']];
     });
     return { id: r.id, label: `${brandName(r.brand)} ${r.name} ${r.year ? ` (${r.year})` : ''}`, kit: kit ? `${brandName(kit.brand)} ${kit.name}` : '', url: url.release(r.id), rows };

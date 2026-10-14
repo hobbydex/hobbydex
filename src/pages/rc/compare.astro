@@ -26,7 +26,9 @@ import Base from '../../layouts/Base.astro';
       if (find(q.get('b')) >= 0) b.value = String(find(q.get('b')));
       const table = (id: string, title: string, rows: string[]) => rows.length === 0 ? '' :
         `<h2 id="${id}">${title} <span class="muted">(${rows.length})</span></h2><table><tr><th class="num">Number</th><th>Name</th><th>Category</th><th>Role</th></tr>${rows.join('')}</table>`;
-      const row = (i: number, role: string) => { const p = d.parts[i]; return `<tr><td class="num"><a href="${p[2]}">${esc(p[0])}</a></td><td>${esc(p[1])}</td><td class="muted">${esc(p[3])}</td><td>${role}</td></tr>`; };
+      // a part without a number (a brand that prints none) links its name instead
+      const row = (i: number, role: string) => { const p = d.parts[i], rest = `<td class="muted">${esc(p[3])}</td><td>${role}</td></tr>`;
+        return p[0] ? `<tr><td class="num"><a href="${p[2]}">${esc(p[0])}</a></td><td>${esc(p[1])}</td>${rest}` : `<tr><td class="num"></td><td><a href="${p[2]}">${esc(p[1])}</a></td>${rest}`; };
       const render = () => {
         if (a.value === '' || b.value === '') { $('out').innerHTML = '<p class="muted">Choose two releases.</p>'; return; }
         const A = d.releases[+a.value], B = d.releases[+b.value];
