@@ -1,5 +1,6 @@
 ---
 import Standards from '../../../../components/Standards.astro';
+import { shownNote } from '../../../../lib/notes';
 import { gtinLabel } from '../../../../lib/gtin';
 import WebSearch from '../../../../components/WebSearch.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
@@ -147,7 +148,7 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     <table>
       <tr><th>Kit</th><th>Fit</th><th>Source</th></tr>
       {part.fits.map((f) => { const k = db.kit.get(f.kit); const d = f.source ? db.doc.get(f.source) : undefined; return <tr>
-        <td><a href={url.kit(f.kit)}>{k ? `${brandName(k.brand)} ${k.name}` : f.kit}</a></td><td>{f.type}{f.notes && <span class="muted"> · {f.notes}</span>}</td><td class="muted">{d?.title ?? f.source ?? ''}</td>
+        <td><a href={url.kit(f.kit)}>{k ? `${brandName(k.brand)} ${k.name}` : f.kit}</a></td><td>{f.type}{shownNote(f.notes) && <span class="muted"> · {shownNote(f.notes)}</span>}</td><td class="muted">{d?.title ?? f.source ?? ''}</td>
       </tr>; })}
     </table></>}
   {part.equivalent_to && part.equivalent_to.length > 0 && <>
