@@ -1,0 +1,20 @@
+---
+// A small icon button that copies `text` to the clipboard; `label` is its tooltip and accessible name.
+// Shows a check mark for a moment once copied. Clipboard access needs a secure context; the button
+// stays harmless where it fails.
+interface Props { text: string; label: string; class?: string }
+const { text, label, class: cls } = Astro.props;
+---
+<button type="button" class={cls ? `copybtn ${cls}` : 'copybtn'} data-copy={text} data-label={label} aria-label={label} title={label}><svg class="icon" aria-hidden="true"><use href="/icons.svg#copy" /></svg></button>
+<script>
+  for (const b of document.querySelectorAll<HTMLButtonElement>('button.copybtn[data-copy]')) {
+    const use = b.querySelector('use')!, label = b.dataset.label ?? 'Copy';
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.dataset.copy ?? ''); } catch { return; }
+      use.setAttribute('href', '/icons.svg#check'); b.title = 'Copied'; b.setAttribute('aria-label', 'Copied'); b.classList.add('done');
+      clearTimeout(timer);
+      timer = setTimeout(() => { use.setAttribute('href', '/icons.svg#copy'); b.title = label; b.setAttribute('aria-label', label); b.classList.remove('done'); }, 1500);
+    });
+  }
+</script>
