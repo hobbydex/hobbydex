@@ -11,7 +11,7 @@ export type Release = { id: string; toml_path?: string; requires?: string[]; gti
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };
 export type MountHoles = { thread: string; count?: number; circle_mm: number };   // count left out: the maker gives thread and spacing only
-export type Part = { id: string; toml_path?: string; gtin?: string; former_ids?: string[]; brand: string; number?: string; name: string; category?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string | string[]; paint_type?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; sensored?: boolean; mount_holes?: MountHoles[]; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; range?: string; displacement_cc?: number; engine_class?: string; stroke_mm?: number; output_hp?: number; output_rpm?: number; rpm_range?: number[]; fuel?: string };
+export type Part = { id: string; toml_path?: string; gtin?: string; former_ids?: string[]; brand: string; number?: string; name: string; category?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string | string[]; paint_type?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; sensored?: boolean; mount_holes?: MountHoles[]; motor_can_mm?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; range?: string; displacement_cc?: number; engine_class?: string; stroke_mm?: number; output_hp?: number; output_rpm?: number; rpm_range?: number[]; fuel?: string };
 export type Includes = { part?: string; spec?: string; qty?: number; source?: string; notes?: string };
 export type Spec = { id: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
 export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; page?: string; releases?: string[] };
@@ -166,5 +166,21 @@ export function requiredName(id: string): { name: string; href: string } | undef
   if (k) return { name: `${brandName(k.brand)} ${k.name}`, href: url.kit(id) };
   const r = db.release.get(id);
   if (r) return { name: `${brandName(r.brand)} ${r.name}${r.number ? ` (${r.number})` : ''}`, href: url.release(id) };
+  return undefined;
+}
+
+// Clamp-on motor heat sinks and fan mounts by the can diameter they take (part.motor_can_mm), and a motor's can
+// diameter: its own, else its spec's; a brushed spec names only a can code (540: 36 mm, 380: 28 mm).
+const CAN_DIA: Record<string, number> = { '380': 28, '540': 36, '550': 36, '555': 36 };
+export const heatsinksByCan = (() => {
+  const m = new Map<number, Part[]>();
+  for (const p of raw.parts) if (p.motor_can_mm) { const k = Math.round(p.motor_can_mm); if (!m.has(k)) m.set(k, []); m.get(k)!.push(p); }
+  for (const v of m.values()) v.sort((a, b) => brandName(a.brand).localeCompare(brandName(b.brand)) || (a.number ?? '').localeCompare(b.number ?? ''));
+  return m;
+})();
+export function canDiameter(x: { diameter_mm?: number; can?: unknown; equivalent_to?: { spec: string }[] }): number | undefined {
+  if (x.diameter_mm) return Math.round(x.diameter_mm);
+  if (x.can && CAN_DIA[String(x.can)]) return CAN_DIA[String(x.can)];
+  for (const e of x.equivalent_to ?? []) { const s = db.spec.get(e.spec); if (s?.category === 'motor') return canDiameter(s as { diameter_mm?: number; can?: unknown }); }
   return undefined;
 }
