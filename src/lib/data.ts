@@ -7,7 +7,7 @@ export type Link = { site: string; url: string; kind?: 'fan-site' };
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
 export type Kit = { id: string; toml_path?: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; art?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[]; links?: Link[] };
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
-export type Release = { id: string; toml_path?: string; gtin?: string; former_ids?: string[]; kit: string; brand: string; number?: string; name: string; color?: string; year?: number; released?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; links?: Link[] };
+export type Release = { id: string; toml_path?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; brand: string; number?: string; name: string; color?: string; year?: number; released?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };
 export type MountHoles = { thread: string; count?: number; circle_mm: number };   // count left out: the maker gives thread and spacing only
@@ -152,3 +152,19 @@ export const dateText = (r: { year?: number; released?: string }) => {
 };
 export const yearText = (r: { year?: number; model_year?: number }) => (r.year ? String(r.year) : r.model_year ? `${r.model_year} model` : 'unknown');
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
+
+// Conversion kits: a release whose `requires` names a kit or release (the car it needs). For a kit, the
+// conversion kits made for it or for any of its releases; for a release, those made for it or for its kit.
+const requiredBy = new Map<string, Release[]>();
+for (const r of raw.releases) for (const id of r.requires ?? []) { if (!requiredBy.has(id)) requiredBy.set(id, []); requiredBy.get(id)!.push(r); }
+const uniq = (rs: Release[]) => [...new Map(rs.map((r) => [r.id, r])).values()].sort((a, b) => a.name.localeCompare(b.name));
+export const conversionsForKit = (kitId: string) => uniq([...(requiredBy.get(kitId) ?? []), ...(db.releasesByKit.get(kitId) ?? []).flatMap((r) => requiredBy.get(r.id) ?? [])]);
+export const conversionsForRelease = (r: Release) => uniq([...(requiredBy.get(r.id) ?? []), ...(requiredBy.get(r.kit) ?? [])]);
+// what a required id is called: "Traxxas Slash 2WD" for a kit, "1RC Racing 1/18 Sprint Car (1RC1095)" for a release
+export function requiredName(id: string): { name: string; href: string } | undefined {
+  const k = db.kit.get(id);
+  if (k) return { name: `${brandName(k.brand)} ${k.name}`, href: url.kit(id) };
+  const r = db.release.get(id);
+  if (r) return { name: `${brandName(r.brand)} ${r.name}${r.number ? ` (${r.number})` : ''}`, href: url.release(id) };
+  return undefined;
+}
