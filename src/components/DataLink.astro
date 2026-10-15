@@ -1,8 +1,8 @@
 ---
-// Where this record lives in the data repo: view it on GitHub, or propose a change there.
+// Where this record lives in the data repo (view only; reports go through an issue, see /faq/).
 interface Props { path?: string; id?: string }
 const { path, id } = Astro.props;
 const issue = `${'https://github.com/hobbydex/hobbydex-rc'}/issues/new?title=${encodeURIComponent((id ?? path ?? '') + ': ')}&body=${encodeURIComponent(`Page: https://hobbydex.com${Astro.url.pathname}\n\nWhat is wrong or missing:\n`)}`;
 const repo = 'https://github.com/hobbydex/hobbydex-rc';
 ---
-{path && <p class="muted datalink" data-pagefind-ignore>Data: <a href={`${repo}/blob/main/${path}`} rel="noopener">{path.split('/').pop()}</a> on GitHub · <a href={`${repo}/edit/main/${path}`} rel="noopener">suggest a correction</a> · <a href={issue} rel="noopener">report a problem</a></p>}
+{path && <p class="muted datalink" data-pagefind-ignore>Data: <a href={`${repo}/blob/main/${path}`} rel="noopener">{path.split('/').pop()}</a> on GitHub · <a href={issue} rel="noopener">report an error</a></p>}
