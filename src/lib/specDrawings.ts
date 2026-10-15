@@ -202,7 +202,7 @@ function pin(spec: Spec): ScrewDrawing | undefined {
 // side, with the can diameter, length and shaft diameter. Brushed specs give only a can code, so their sizes
 // are the usual ones for that can; the shaft length is never part of the spec. Mounting holes: the patterns
 // the maker states (a motor's own `mount_holes`, or on a spec page every pattern its branded motors state) are
-// drawn solid, each on its bolt circle and listed below the end view; with none stated, a 36 mm or larger can
+// drawn solid, each on its bolt circle and listed below the end view (most common first); with none stated, a 36 mm or larger can
 // (a 540-size can) shows the usual 2 x M3 on 25 mm dotted, marked as not stated; larger cans show none. Patterns are drawn evenly around the shaft,
 // a second pattern turned against the first: makers rarely give the angle between them.
 const CAN_SIZE: Record<string, [number, number]> = { '380': [28, 38], '540': [36, 50], '550': [36, 57], '555': [36, 57] };
@@ -259,8 +259,7 @@ export function motorDrawing(spec: Spec, own?: MountHoles[]): (ScrewDrawing & { 
       o.push(h.dashed ? `<circle class="thin" cx="${f(ex + rc * Math.cos(a))}" cy="${f(ey + rc * Math.sin(a))}" r="${f(rh)}" fill="none" stroke-dasharray="1.2 1.2"/>`
         : `<circle class="solid" cx="${f(ex + rc * Math.cos(a))}" cy="${f(ey + rc * Math.sin(a))}" r="${f(rh)}"/>`);
     }
-    const by = h.parts ? ` (${h.parts} motor${h.parts > 1 ? 's' : ''})` : '';
-    lines.push(usual ? `${h.count} x ${h.thread} on ${f(h.circle_mm)} (usual, not stated)` : h.dashed ? `${h.thread} at ${f(h.circle_mm)}, number of holes not stated${by}` : `${h.count} x ${h.thread} on ${f(h.circle_mm)}${by}`);
+    lines.push(usual ? `${h.count} x ${h.thread} on ${f(h.circle_mm)} (usual, not stated)` : h.dashed ? `${h.thread} at ${f(h.circle_mm)}, number of holes not stated` : `${h.count} x ${h.thread} on ${f(h.circle_mm)}`);
   });
   const ty = ey + R + 16;
   lines.forEach((t, i) => o.push(`<text x="${f(ex)}" y="${f(ty + i * 14)}" text-anchor="middle" class="std">${t}</text>`));
