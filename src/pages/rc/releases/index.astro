@@ -1,15 +1,28 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import { db, url, brandName, yearOf, yearText } from '../../../lib/data';
-const releases = [...db.releases].sort((a, b) => yearOf(b) - yearOf(a) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
+import { db, url, key, brandName, dateKey, dateText } from '../../../lib/data';
+// The newest releases with a known date, and every brand's full release list on its own page
+// (/rc/releases/<brand>/): one table of all 5,500 releases was 1.3 MB.
+const NEWEST = 100;
+const dated = db.releases.filter((r) => dateKey(r)).sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name)).slice(0, NEWEST);
+const byBrand = [...db.releases.reduce((m, r) => m.set(r.brand, (m.get(r.brand) ?? 0) + 1), new Map<string, number>())]
+  .sort((a, b) => b[1] - a[1] || brandName(a[0]).localeCompare(brandName(b[0])));
 ---
-<Base title="Releases" description="Every kit and RTR release in Hobbydex, newest first.">
+<Base title="Releases" description="RC kit and RTR releases in Hobbydex: the newest, and every brand's releases on its own page.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Releases</div>
   <h1>Releases</h1>
+  <p class="muted">{db.releases.length} releases from {byBrand.length} brands. The {NEWEST} newest with a known date are below; each brand's releases are on their own page.</p>
+  <h2>By brand</h2>
+  <table class="sortable">
+    <thead><tr><th>Brand</th><th class="num">Releases</th></tr></thead>
+    <tbody>{byBrand.map(([b, n]) => <tr><td><a href={`/rc/releases/${key(b)[0]}/`}>{brandName(b)}</a></td><td class="num">{n}</td></tr>)}</tbody>
+  </table>
+  <script src="/sort-table.js" defer></script>
+  <h2>Newest</h2>
   <table>
-    <tr><th class="num">Year</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Kind</th><th class="num">Parts</th></tr>
-    {releases.map((r) => <tr>
-      <td class="num">{yearText(r)}</td><td><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td>
+    <tr><th class="num">Released</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Kind</th><th class="num">Parts</th></tr>
+    {dated.map((r) => <tr>
+      <td class="num">{dateText(r)}</td><td><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td>
       <td class="num">{r.number ?? ''}</td><td>{r.kind}</td><td class="num">{r.contains?.length ?? 0}</td>
     </tr>)}
   </table>

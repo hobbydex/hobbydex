@@ -2,13 +2,13 @@
 export const kitTypeLabel: Record<string, string> = {
   buggy: 'Buggies', truggy: 'Truggies', 'stadium-truck': 'Stadium trucks', 'short-course': 'Short course', monster: 'Monster trucks',
   'desert-truck': 'Desert trucks', truck: 'Trucks', 'race-truck': 'Race trucks', crawler: 'Crawlers', touring: 'Touring cars', formula: 'Formula',
-  'pan-car': 'Pan cars', rally: 'Rally', 'street-basher': 'Street bashers', drift: 'Drift cars', drag: 'Drag cars', lowrider: 'Lowriders',
+  'pan-car': 'Pan cars', rally: 'Rally', 'street-basher': 'Street bashers', drift: 'Drift cars', drag: 'Drag cars', lowrider: 'Lowriders', oval: 'Oval cars',
   'speed-run': 'Speed run', kart: 'Karts', motorcycle: 'Motorcycles', tank: 'Tanks', construction: 'Construction machines', car: 'Other cars', boat: 'Boats',
 };
 export const kitTypeOne: Record<string, string> = {
   buggy: 'buggy', truggy: 'truggy', 'stadium-truck': 'stadium truck', 'short-course': 'short course truck', monster: 'monster truck',
   'desert-truck': 'desert truck', truck: 'truck', 'race-truck': 'race truck', crawler: 'crawler', touring: 'touring car', formula: 'formula car',
-  'pan-car': 'pan car', rally: 'rally car', 'street-basher': 'street basher', drift: 'drift car', drag: 'drag car', lowrider: 'lowrider',
+  'pan-car': 'pan car', rally: 'rally car', 'street-basher': 'street basher', drift: 'drift car', drag: 'drag car', lowrider: 'lowrider', oval: 'oval car',
   'speed-run': 'speed run car', kart: 'kart', motorcycle: 'motorcycle', tank: 'tank', construction: 'construction machine', car: 'car', boat: 'boat',
 };
 // A short explanation shown on each type's page.
@@ -29,6 +29,7 @@ export const kitTypeAbout: Record<string, string> = {
   'street-basher': "A road car style body on a sturdy chassis made for fun driving and speed rather than racing.",
   drift: "An on-road car set up to slide sideways: today mostly rear-wheel drive with a gyro, on hard plastic tyres.",
   drag: "Built for straight-line drag racing over a short strip: no prep drag cars and trucks with a car body, big soft rear tyres and a wheelie bar, and rail dragsters.",
+  oval: "Built for oval-track racing, mostly an American scene: winged sprint cars with their big top wing, midgets, late models, modifieds and street stocks, on dirt or asphalt. Many turn only left, with offset suspension and staggered tyres.",
   lowrider: "A classic American car that sits low on small wire wheels, with servos or hydraulics that lift and drop each corner, so it can hop, dance and drive on three wheels.",
   'speed-run': "Built for top speed in a straight line.",
   kart: "A go-kart: a low tube frame with no suspension, small wheels and the driver's seat in the open, often with a figure in it.",
