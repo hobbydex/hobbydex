@@ -127,7 +127,7 @@ svg.paintchip { vertical-align: middle; margin-right: 0.5rem; }
 .factsrow { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
 .factsrow .typeicon { color: var(--muted); margin-left: auto; }
 .relart { vertical-align: -0.25em; flex: none; }
-.relart.hero { width: min(24rem, 100%) !important; height: auto !important; }   /* the release page outline: wide on a desktop, the full width on a phone */
+.relart.hero { height: 12rem !important; width: auto !important; max-width: 100%; }   /* the release page outline or type icon: 12rem tall, as wide as its shape, never wider than a phone */
 .relart.inrow { color: var(--muted); margin-right: 0.15rem; }
 a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

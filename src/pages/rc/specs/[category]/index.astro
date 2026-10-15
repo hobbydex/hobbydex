@@ -1,7 +1,7 @@
 ---
 import Base from '../../../../layouts/Base.astro';
 import { url } from '../../../../lib/data';
-import { specLabel, specsByCategory, linkedCount } from '../../../../lib/specs';
+import { specLabel, specIntro, specsByCategory, linkedCount } from '../../../../lib/specs';
 export function getStaticPaths() {
   return [...specsByCategory.keys()].map((category) => ({ params: { category } }));
 }
@@ -20,10 +20,16 @@ const cols: Record<string, [string, string][]> = {
   nut: [['thread', 'Thread'], ['type', 'Type'], ['profile', 'Profile'], ['across_flats_mm', 'Across flats mm'], ['height_mm', 'Height mm']],
 };
 const show = cols[category!] ?? [];
+const washerNames: [string, string][] = [['under 1 mm', 'shim'], ['1 mm to under 3 mm', 'washer'], ['3 mm and up', 'spacer']];
 ---
 <Base title={`${title}: generic specs`} description={`Every generic ${category} spec in Hobbydex and how many branded parts match it.`}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">specs</a> / {category}</div>
   <h1>{title}</h1>
+  {specIntro[category!] && <p>{specIntro[category!]}</p>}
+  {category === 'washer' && <table style="width:auto;margin-bottom:1rem">
+    <tr><th>Thickness</th><th>Name</th></tr>
+    {washerNames.map(([t, n]) => <tr><td>{t}</td><td>{n}</td></tr>)}
+  </table>}
   <p class="muted">{specs.length} specs, sorted by size. Counts are branded parts linked to each spec.</p>
   <table>
     <tr><th>Spec</th>{show.map(([, l]) => <th>{l}</th>)}<th class="num">Parts</th><th class="num">Brands</th></tr>
