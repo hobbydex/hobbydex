@@ -2,7 +2,7 @@
 import Base from '../../../../layouts/Base.astro';
 import Standards from '../../../../components/Standards.astro';
 import { specDrawing } from '../../../../lib/specDrawings';
-import { db, key, url, brandName, partLabel, yearOf, yearText } from '../../../../lib/data';
+import { db, key, url, brandName, partLabel, yearOf, yearText, heatsinksByCan, canDiameter } from '../../../../lib/data';
 import DataLink from '../../../../components/DataLink.astro';
 export function getStaticPaths() {
   return db.specs.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } }));
@@ -21,6 +21,8 @@ const sameSize = spec.category !== 'servo' ? [] : db.specs.filter((o) => o.categ
   .flatMap((o) => (db.partsBySpec.get(o.id) ?? []).map(({ part }) => ({ part, spline: o.spline_teeth as number | undefined })))
   .sort((a, b) => (a.part.dimensions_mm?.[0] ?? 999) - (b.part.dimensions_mm?.[0] ?? 999) || (a.part.dimensions_mm?.[2] ?? 999) - (b.part.dimensions_mm?.[2] ?? 999));
 const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c is string => !!c))].sort();
+const specCan = spec.category === 'motor' ? canDiameter(spec as { diameter_mm?: number; can?: unknown }) : undefined;
+const specSinks = specCan ? (heatsinksByCan.get(specCan) ?? []) : [];
 ---
 <Base title={title} description={`${title}: generic ${spec.category} spec, and which branded parts and kits match it.`} kind="spec" sub={spec.category}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">specs</a> / <a href={`/rc/specs/${spec.category}/`}>{spec.category}</a> / {key(spec.id)[1]}</div>
@@ -36,6 +38,8 @@ const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c
       : spec.category === 'nut' ? <figcaption class="muted">{drawing.approximate ? 'Drawn to the sizes the spec gives' : 'To scale'}{drawStd ? <>; sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : ''}.{drawing.note && ` ${drawing.note}.`}{String(spec.type).endsWith('nylon-lock') ? ' The nylon ring is shaded.' : ''}</figcaption>
       : <figcaption class="muted">{drawing.approximate ? 'Drawn to the usual sizes' : 'To scale'}.{drawing.note && ` ${drawing.note}.`}</figcaption>}
   </figure>}
+  {specSinks.length > 0 && <><h2>Heat sinks and fan mounts for a {specCan} mm can <span class="muted">({specSinks.length}, any brand)</span></h2>
+    <ul>{specSinks.map((h) => <li><a href={url.part(h.id)}>{brandName(h.brand)} {partLabel(h)}</a>{h.number && <span class="muted"> {h.name}</span>}</li>)}</ul></>}
   <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>
   {spec.category === 'battery' && plugs.length > 1 && <p data-pagefind-ignore><label>Plug <select id="plugfilter"><option value="">any (plugs can be changed)</option>{plugs.map((c) => <option value={c}>{c}</option>)}</select></label></p>}
   {linked.length === 0 ? <p class="muted">None linked yet.</p> :

@@ -5,7 +5,7 @@ import { gtinLabel } from '../../../../lib/gtin';
 import WebSearch from '../../../../components/WebSearch.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName, partLabel, yearOf, yearText } from '../../../../lib/data';
+import { db, key, url, brandName, partLabel, yearOf, yearText, heatsinksByCan, canDiameter } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -71,6 +71,9 @@ const noLoad = (kv: number, cells?: number[]) => {
   for (let c = lo; c <= Math.min(hi, lo + 5); c++) { const v = Math.round(c * 3.7 * 10) / 10; list.push([c, v, Math.round((kv * v) / 100) * 100] as [number, number, number]); }
   return list;
 };
+// a motor: the clamp-on heat sinks and fan mounts for its can, any brand; a heat sink: the can it takes
+const motorCan = part.category === 'motor' ? canDiameter(part) : undefined;
+const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
 ---
 <Base title={numName} description={`${brand?.name} ${numName}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a> / {partLabel(part)}</div>
@@ -115,6 +118,7 @@ const noLoad = (kv: number, cells?: number[]) => {
     {part.connector && <><dt>Plug</dt><dd>{part.connector}</dd></>}
     {(part.kv || part.turns) && <><dt>Motor</dt><dd title="kV: rpm per volt without load. T: turns of wire per pole, fewer is faster.">{[part.kv && `${part.kv} kV`, part.turns && `${part.turns}T`, part.diameter_mm && part.length_mm && `${part.diameter_mm} x ${part.length_mm} mm`, part.shaft_mm && `${part.shaft_mm} mm shaft`].filter(Boolean).join(', ')}</dd></>}
     {part.kv && part.category === 'motor' && <><dt>No-load rpm</dt><dd title="kV x nominal LiPo voltage (3.7 V per cell), without load; under load a motor turns slower.">{noLoad(part.kv, part.lipo_cells).map(([c, v, r]) => `${c}S (${v} V): about ${r.toLocaleString('en-US')} rpm`).join(' · ')}</dd></>}
+    {part.motor_can_mm && <><dt>Motor can</dt><dd>{part.motor_can_mm} mm diameter <span class="muted">(clamps on a motor of this size)</span></dd></>}
     {part.mount_holes?.length && <><dt>Mounting holes</dt><dd>{part.mount_holes.map((h) => h.count ? `${h.count} x ${h.thread} on a ${h.circle_mm} mm bolt circle` : `${h.thread} on a ${h.circle_mm} mm bolt circle (number of holes not stated)`).join(', ')}</dd></>}
     {part.sensored !== undefined && <><dt>{part.category === 'motor' ? 'Sensors' : 'Sensor port'}</dt><dd>{part.category === 'motor' ? (part.sensored ? 'sensored' : 'sensorless') : (part.sensored ? 'yes, runs sensored motors' : 'no, sensorless motors only')}</dd></>}
     {part.current_a && <><dt>ESC</dt><dd>{part.current_a} A{part.peak_current_a && ` (${part.peak_current_a} A peak)`}</dd></>}
@@ -164,6 +168,9 @@ const noLoad = (kv: number, cells?: number[]) => {
         <td><a href={url.kit(f.kit)}>{k ? `${brandName(k.brand)} ${k.name}` : f.kit}</a></td><td>{f.type}{shownNote(f.notes) && <span class="muted"> · {shownNote(f.notes)}</span>}</td><td class="muted">{d?.title ?? f.source ?? ''}</td>
       </tr>; })}
     </table></>}
+  {sinks.length > 0 && <><h2>Heat sinks and fan mounts for a {motorCan} mm can <span class="muted">({sinks.length}, any brand)</span></h2>
+    <p class="muted">Clamp-on heat sinks and motor fan mounts whose maker states this can diameter; check the length and the fan size on the part's page.</p>
+    <ul>{sinks.map((h) => <li><a href={url.part(h.id)}>{brandName(h.brand)} {partLabel(h)}</a>{h.number && <span class="muted"> {h.name}</span>}</li>)}</ul></>}
   {part.equivalent_to && part.equivalent_to.length > 0 && <>
     <h2>Equivalent to</h2>
     <table>
