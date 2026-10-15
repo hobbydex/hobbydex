@@ -64,6 +64,13 @@ const drawStd = drawing?.standard ? db.standardByCode.get(drawing.standard) : un
 const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, ...(part.number && { mpn: part.number, sku: part.number }), brand: { '@type': 'Brand', name: brand?.name } };
 // a part of a brand that prints no item numbers has none: the name is its title, there is no number to copy
 const numName = part.number ? `${part.number} ${part.name}` : part.name;
+// unloaded speed of a brushless motor: kV x nominal LiPo voltage, for the cells the maker states (else 2S and 3S)
+const noLoad = (kv: number, cells?: number[]) => {
+  const [lo, hi] = cells?.length === 2 ? cells : [2, 3];
+  const list = [];
+  for (let c = lo; c <= Math.min(hi, lo + 5); c++) { const v = Math.round(c * 3.7 * 10) / 10; list.push([c, v, Math.round((kv * v) / 100) * 100] as [number, number, number]); }
+  return list;
+};
 ---
 <Base title={numName} description={`${brand?.name} ${numName}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a> / {partLabel(part)}</div>
@@ -105,8 +112,9 @@ const numName = part.number ? `${part.number} ${part.name}` : part.name;
     {part.dimensions_mm && <><dt>Size</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
     {part.weight_g && <><dt>Weight</dt><dd>{part.weight_g} g</dd></>}
     {part.connector && <><dt>Plug</dt><dd>{part.connector}</dd></>}
-    {(part.kv || part.turns) && <><dt>Motor</dt><dd>{[part.kv && `${part.kv} kV`, part.turns && `${part.turns}T`, part.diameter_mm && part.length_mm && `${part.diameter_mm} x ${part.length_mm} mm`, part.shaft_mm && `${part.shaft_mm} mm shaft`].filter(Boolean).join(', ')}</dd></>}
-    {part.mount_holes?.length && <><dt>Mounting holes</dt><dd>{part.mount_holes.map((h) => h.count ? `${h.count} x ${h.thread} on ${h.circle_mm} mm` : `${h.thread} at ${h.circle_mm} mm (number of holes not stated)`).join(', ')}</dd></>}
+    {(part.kv || part.turns) && <><dt>Motor</dt><dd title="kV: rpm per volt without load. T: turns of wire per pole, fewer is faster.">{[part.kv && `${part.kv} kV`, part.turns && `${part.turns}T`, part.diameter_mm && part.length_mm && `${part.diameter_mm} x ${part.length_mm} mm`, part.shaft_mm && `${part.shaft_mm} mm shaft`].filter(Boolean).join(', ')}</dd></>}
+    {part.kv && part.category === 'motor' && <><dt>No-load rpm</dt><dd title="kV x nominal LiPo voltage (3.7 V per cell), without load; under load a motor turns slower.">{noLoad(part.kv, part.lipo_cells).map(([c, v, r]) => `${c}S (${v} V): about ${r.toLocaleString('en-US')} rpm`).join(' · ')}</dd></>}
+    {part.mount_holes?.length && <><dt>Mounting holes</dt><dd>{part.mount_holes.map((h) => h.count ? `${h.count} x ${h.thread} on a ${h.circle_mm} mm bolt circle` : `${h.thread} on a ${h.circle_mm} mm bolt circle (number of holes not stated)`).join(', ')}</dd></>}
     {part.sensored !== undefined && <><dt>{part.category === 'motor' ? 'Sensors' : 'Sensor port'}</dt><dd>{part.category === 'motor' ? (part.sensored ? 'sensored' : 'sensorless') : (part.sensored ? 'yes, runs sensored motors' : 'no, sensorless motors only')}</dd></>}
     {part.current_a && <><dt>ESC</dt><dd>{part.current_a} A{part.peak_current_a && ` (${part.peak_current_a} A peak)`}</dd></>}
     {part.lipo_cells && <><dt>LiPo</dt><dd>{part.lipo_cells[0] === part.lipo_cells[1] ? `${part.lipo_cells[0]}S` : `${part.lipo_cells[0]}-${part.lipo_cells[1]}S`}</dd></>}

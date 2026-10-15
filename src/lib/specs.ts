@@ -9,7 +9,7 @@ export const specIntro: Record<string, string> = {
   oil: 'Silicone oils by viscosity in cSt (centistokes), for shocks and differentials. Thin oils of a few hundred cSt go in shocks, thick ones from 1,000 to 1,000,000 cSt in differentials. Makers who rate oils in weight use scales that differ by brand, so only oils stated in cSt are listed.',
   battery: 'Battery packs by chemistry, cell count and capacity. 2S LiPo is two lithium-polymer cells in series at 7.4 V nominal; NiMH packs count cells of 1.2 V. Capacity in mAh sets the run time. The plug and the pack\'s outer size decide whether it fits the car and are on the branded parts.',
   servo: 'Servos by case size class and output spline. The size class (micro, mini, low profile, standard, jumbo) fixes the case and its mounting holes; the spline count (23T, 24T, 25T) decides which horns and arms fit. Torque and speed are on the branded parts.',
-  motor: 'Electric motors by type, can size and shaft. 540 and 550 are the classic cans of about 36 mm with a 3.175 mm shaft; 380 cans are smaller. A brushless motor\'s number gives its size (3650: 36 mm can, 50 mm long); turns on a brushed motor and kV on a brushless one give the speed.',
+  motor: 'Electric motors by type, can size and shaft. 540 and 550 are the classic cans of about 36 mm with a 3.175 mm shaft; 380 cans are smaller. A brushless motor\'s number gives its size (3650: 36 mm can, 50 mm long). Speed is given as kV or turns, explained below; the mounting holes are drawn where the maker states them.',
   'wheel-hex': 'Wheel hexes are the drive hexagons between axle and wheel. 12 mm is the 1/10 standard, 14 mm is used on heavier 1/10 trucks, 17 mm on 1/8 cars and 23 or 24 mm on 1/5 scale. A wheel fits only a car with the same hex; the wheel nut\'s thread is a separate spec.',
   pin: 'Parallel pins by diameter and length in mm: the plain steel pins that lock drive-shaft cups, wheel hexes and gears to their shafts. A grooved pin or a pin with an E-clip is a different part.',
   nut: 'Nuts by thread and type. Hex, nylon-insert lock and flanged nuts share a thread; the type decides whether they hold under vibration and how much room they need. Wheel nuts list the hex size a wrench takes.',
@@ -50,3 +50,9 @@ export function linkedCount(id: string) {
   const ps = db.partsBySpec.get(id) ?? [];
   return { parts: ps.length, brands: new Set(ps.map((p) => p.part.brand)).size };
 }
+
+/** What kV and turns mean, shown on the motor spec and category pages. */
+export const MOTOR_SPEED_NOTE = [
+  'kV is how fast a brushless motor turns per volt: revolutions per minute for every volt, without load. A 4000 kV motor on a 2S LiPo (7.4 V) spins about 29,600 rpm unloaded. A higher kV is faster but draws more current and runs hotter; heavier cars and more cells call for a lower kV.',
+  'Turns (T) count the windings of wire on each pole: fewer turns make a faster motor, so a 10.5T is faster than a 17.5T. Racing classes are set by turns (17.5T and 13.5T stock classes, for example), and brushed motors are rated by turns too, such as a 27T silver can or a 55T crawler motor. For a brushless motor kV and turns describe the same thing from two sides: the rules count turns, you gear for kV.',
+];

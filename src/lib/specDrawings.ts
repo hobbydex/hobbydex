@@ -259,13 +259,19 @@ export function motorDrawing(spec: Spec, own?: MountHoles[]): (ScrewDrawing & { 
       o.push(h.dashed ? `<circle class="thin" cx="${f(ex + rc * Math.cos(a))}" cy="${f(ey + rc * Math.sin(a))}" r="${f(rh)}" fill="none" stroke-dasharray="1.2 1.2"/>`
         : `<circle class="solid" cx="${f(ex + rc * Math.cos(a))}" cy="${f(ey + rc * Math.sin(a))}" r="${f(rh)}"/>`);
     }
-    lines.push(usual ? `${h.count} x ${h.thread} on ${f(h.circle_mm)} (usual, not stated)` : h.dashed ? `${h.thread} at ${f(h.circle_mm)}, number of holes not stated` : `${h.count} x ${h.thread} on ${f(h.circle_mm)}`);
+    lines.push(usual ? `${h.count} x ${h.thread} on ⌀${f(h.circle_mm)} (usual, not stated)` : h.dashed ? `${h.thread} on ⌀${f(h.circle_mm)}, number of holes not stated` : `${h.count} x ${h.thread} on ⌀${f(h.circle_mm)}`);
   });
-  const ty = ey + R + 16;
+  // the first pattern's bolt circle dimensioned below the end view: centre to centre of two opposite holes
+  let ty = ey + R + 16;
+  if (pats.length) {
+    const rc0 = (pats[0].circle_mm / 2) * s, dy = ey + R + 12;
+    o.push(`<path class="thin" d="M${f(ex - rc0)} ${f(ey + 2)}V${f(dy + 4)}M${f(ex + rc0)} ${f(ey + 2)}V${f(dy + 4)}"/>`, hdim(ex - rc0, ex + rc0, dy, `⌀${f(pats[0].circle_mm)}`, true));
+    ty = dy + 30;
+  }
   lines.forEach((t, i) => o.push(`<text x="${f(ex)}" y="${f(ty + i * 14)}" text-anchor="middle" class="std">${t}</text>`));
   const noShaft = 'The shaft length is not part of the spec';
-  const holeNote = usual ? '; dotted: the usual 2 x M3 holes 25 mm apart, which no maker states for this size' : !stated.length && D > 37 ? '; no maker states the mounting holes for this size yet'
-    : stated.length ? (own?.length ? '; mounting holes as the maker states them' : '; mounting holes as the makers of these motors state them') + (pats.some((h) => h.dashed) ? ', dotted where the number of holes is not stated' : '') + (pats.length > 1 ? ', the angle between the patterns is not stated' : '') : '';
+  const holeNote = usual ? '; dotted: the usual 2 x M3 holes 25 mm apart, which no maker states for this size; hole sizes are bolt circles (⌀), centre to centre across the shaft' : !stated.length && D > 37 ? '; no maker states the mounting holes for this size yet'
+    : stated.length ? (own?.length ? '; mounting holes as the maker states them' : '; mounting holes as the makers of these motors state them') + (pats.some((h) => h.dashed) ? ', dotted where the number of holes is not stated' : '') + (pats.length > 1 ? ', the angle between the patterns is not stated' : '') + '; ⌀ is the bolt circle, centre to centre across the shaft' : '';
   const note = (approx ? `Can sizes as usual for a ${spec.can} can, the spec gives only the can code and the shaft; the shaft length is not part of the spec` : noShaft) + holeNote;
   return { svg: svgWrap(Math.max(300, ex + R + 90), Math.max(140, ty + lines.length * 14 + 10), String(spec.name ?? 'motor'), o.join('')), standard: undefined, approximate: approx, note };
 }
