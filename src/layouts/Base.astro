@@ -28,6 +28,7 @@ const { title, description, jsonld, kind, sub } = Astro.props;
         <a href="/rc/">RC cars</a>
         <a href="/rc/kits/">Kits</a>
         <a href="/search/">Search</a>
+        <a href="/faq/">FAQ</a>
         <a class="gh" href="https://github.com/hobbydex">GitHub</a>
       </nav>
       <button type="button" class="theme" aria-label="Theme: auto" title="Theme: auto (follows the system)"><svg class="icon"><use href="/icons.svg#theme-auto" /></svg></button>
@@ -45,8 +46,8 @@ const { title, description, jsonld, kind, sub } = Astro.props;
     </main>
     <footer class="site" data-pagefind-ignore>
       Open hobby parts database. Facts only: part numbers, names and fitment with their source; no prices, stock or images.
-      Data and corrections: <a href="https://github.com/hobbydex/hobbydex-rc">hobbydex/hobbydex-rc</a> · <a href="https://github.com/hobbydex/hobbydex-rc/issues/new">report an issue</a>.
-      Download everything as one file: <a href="/data/rc.json">rc.json</a> (CC0). <a href="/stats/">Statistics</a> · <a href="/audit/">Data audit</a>.
+      The data is maintained by the project, not crowdsourced: tell us about an error, a missing brand or a better source by <a href="https://github.com/hobbydex/hobbydex-rc/issues/new">opening an issue</a>; see the <a href="/faq/">FAQ</a>.
+      The data is public on <a href="https://github.com/hobbydex/hobbydex-rc">GitHub</a> and as one file: <a href="/data/rc.json">rc.json</a>. <a href="/stats/">Statistics</a> · <a href="/audit/">Data audit</a>.
     </footer>
   </body>
 </html>

@@ -1,0 +1,42 @@
+---
+import Base from '../layouts/Base.astro';
+import { db } from '../lib/data';
+const issue = 'https://github.com/hobbydex/hobbydex-rc/issues/new';
+---
+<Base title="FAQ" description="What Hobbydex is, where its data comes from, how to report an error or a missing brand, and how the data may be used.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / FAQ</div>
+  <h1>Frequently asked questions</h1>
+
+  <h2>What is Hobbydex?</h2>
+  <p>An open parts database for RC cars: which parts are in a kit, what fits it and what it is equivalent to across brands. It holds {db.brands.length} brands, {db.kits.length} kits, {db.releases.length} releases and {db.parts.length} parts, with generic hardware specs (screws, bearings, pinions, washers, motors...) that connect them. Facts only: part numbers, names, sizes and fitment with their source. No prices, no stock, no shop.</p>
+
+  <h2>Where does the data come from?</h2>
+  <p>From the manufacturers: their manuals, parts lists, exploded views and product pages. Every list of parts names the document it was read from, so a row can be checked against the maker's own list. Fan sites and shops are not used as sources. The outlines next to kits and releases are traced by us from the maker's product photo and show only the shape.</p>
+
+  <h2>Is Hobbydex crowdsourced?</h2>
+  <p>No. The project maintains the data and the tools that build it itself; nobody else writes records into the dataset, and pull requests against the data are not taken. The data stays open source; what we keep is a clear attribution path: every record was written by the project from a named manufacturer source, so it is always clear where a fact came from and who put it there. If contributions are opened up one day, they will live in their own files next to the dataset, not in its history.</p>
+
+  <h2>How can I help, then?</h2>
+  <p>Tell us what we lack or got wrong:</p>
+  <ul>
+    <li>a brand or a product line that is missing;</li>
+    <li>a source we do not use yet: a manual, a parts list, an exploded view, a maker's catalogue page;</li>
+    <li>an error: a wrong number, a wrong fit, a part filed under the wrong car.</li>
+  </ul>
+  <p><a href={issue}>Open an issue</a> on GitHub, or use the "report an error" link at the bottom of any kit, release, part or spec page, which fills in the page for you. We read every report and fix the data from the source.</p>
+
+  <h2>May I use the data?</h2>
+  <p>Yes. The dataset is public on <a href="https://github.com/hobbydex/hobbydex-rc">GitHub</a> and downloadable as one file, <a href="/data/rc.json">rc.json</a>. The data is open source under CC0 1.0, so it may be used without conditions; the site's code is under the MIT licence. A link back to hobbydex.com helps the project and lets corrections find their way home.</p>
+
+  <h2>What are kits, releases and parts?</h2>
+  <p>A <b>kit</b> is a model or chassis platform, such as the Tamiya TT-02 or the Traxxas Slash. A <b>release</b> is one boxed product with its item number: the first kit, a re-release, a ready-to-run version, a colour or an edition. A <b>part</b> is one item with the maker's part number. A part <b>fits</b> a kit when the maker's parts list or manual says so; options and upgrades are listed apart from the parts in the box.</p>
+
+  <h2>Why do some names look odd?</h2>
+  <p>Older parts lists exist only as scans and are read by OCR; a misread name or number can slip through. The <a href="/audit/">data audit</a> lists where the data is thinnest, and those lists are worked through source by source. An error you spot is worth a report.</p>
+
+  <h2>Why are there no prices or shops?</h2>
+  <p>Hobbydex records what a part is and what it fits, which does not change from shop to shop. Prices and stock do, and they would make the site a shop rather than a reference.</p>
+
+  <h2>Who runs Hobbydex?</h2>
+  <p>An independent project, not tied to any maker or shop. The code and the data are on <a href="https://github.com/hobbydex">GitHub</a>; that is also where to reach us.</p>
+</Base>
