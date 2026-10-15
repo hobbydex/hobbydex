@@ -3,7 +3,7 @@ export const kitTypeLabel: Record<string, string> = {
   buggy: 'Buggies', truggy: 'Truggies', 'stadium-truck': 'Stadium trucks', 'short-course': 'Short course', monster: 'Monster trucks',
   'desert-truck': 'Desert trucks', truck: 'Trucks', 'race-truck': 'Race trucks', crawler: 'Crawlers', touring: 'Touring cars', formula: 'Formula',
   'pan-car': 'Pan cars', rally: 'Rally', 'street-basher': 'Street bashers', drift: 'Drift cars', drag: 'Drag cars', lowrider: 'Lowriders', oval: 'Oval cars',
-  'speed-run': 'Speed run', kart: 'Karts', motorcycle: 'Motorcycles', tank: 'Tanks', construction: 'Construction machines', car: 'Other cars', boat: 'Boats',
+  'speed-run': 'Speed run', kart: 'Karts', motorcycle: 'Motorcycles', tank: 'Tanks', construction: 'Construction', car: 'Other cars', boat: 'Boats',
 };
 export const kitTypeOne: Record<string, string> = {
   buggy: 'buggy', truggy: 'truggy', 'stadium-truck': 'stadium truck', 'short-course': 'short course truck', monster: 'monster truck',
