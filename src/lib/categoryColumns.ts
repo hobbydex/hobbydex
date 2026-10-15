@@ -9,6 +9,7 @@ const POSITION: Record<string, string> = { 'front-rear': 'front and rear', 'fron
 
 function format(v: unknown, f: KeyField): string | number | undefined {
   if (v === undefined || v === null || v === '') return undefined;
+  if (f.format === 'yesno' && typeof v === 'boolean') return v ? 'yes' : 'no';
   if (f.format === 'cells' && Array.isArray(v)) return v[0] === v[1] ? `${v[0]}S` : `${v[0]}-${v[1]}S`;
   if (f.format === 'range' && Array.isArray(v)) return `${v[0]}-${v[1]}`;
   if (typeof v === 'number') return v;
