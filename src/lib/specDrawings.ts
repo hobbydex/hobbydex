@@ -198,6 +198,39 @@ function pin(spec: Spec): ScrewDrawing | undefined {
   return { svg: svgWrap(Math.max(300, x0 + w + 70), Math.max(120, cy + r + 40), `${f(d)}x${f(L)} parallel pin`, o.join('')), standard: std || undefined, approximate: false };
 }
 
+// Electric motor: side view (can, front bearing cap line, shaft with its flat) and the end view from the shaft
+// side, with the can diameter, length and shaft diameter. Brushed specs give only a can code, so their sizes
+// are the usual ones for that can; the shaft length is never part of the spec. 36 mm and larger cans show
+// the usual pair of M3 mounting holes 25 mm apart.
+const CAN_SIZE: Record<string, [number, number]> = { '380': [28, 38], '540': [36, 50], '550': [36, 57], '555': [36, 57] };
+export function motorDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | undefined {
+  const shaft = Number(spec.shaft_mm);
+  let D = Number(spec.diameter_mm), L = Number(spec.length_mm), approx = false;
+  if (!D || !L) { const u = CAN_SIZE[String(spec.can)]; if (!u) return undefined; [D, L] = u; approx = true; }
+  if (!shaft) return undefined;
+  const ls = shaft < 2.5 ? 8 : shaft < 4 ? 14 : 18;   // the usual exposed shaft length (mm), not a spec figure
+  const s = Math.min(3.2, 230 / (L + ls), 100 / D);
+  const x0 = 50, R = (D / 2) * s, cy = 28 + R, w = L * s, r = (shaft / 2) * s, sw = ls * s;
+  const o: string[] = [];
+  o.push(`<rect class="fill" x="${f(x0)}" y="${f(cy - R)}" width="${f(w)}" height="${f(2 * R)}" rx="2"/>`);
+  o.push(`<path class="thin" d="M${f(x0 + w - 1.6 * s)} ${f(cy - R)}V${f(cy + R)}"/>`);
+  o.push(`<rect class="fill" x="${f(x0 + w)}" y="${f(cy - r)}" width="${f(sw)}" height="${f(2 * r)}"/>`);
+  o.push(`<path class="thin" d="M${f(x0 + w + sw * 0.35)} ${f(cy - r + 0.9)}H${f(x0 + w + sw)}"/>`);
+  o.push(hdim(x0, x0 + w, cy + R + 18, `${f(L)}`), `<path class="thin" d="M${f(x0)} ${f(cy + R + 3)}V${f(cy + R + 22)}M${f(x0 + w)} ${f(cy + R + 3)}V${f(cy + R + 22)}"/>`);
+  o.push(vdim(x0 - 12, cy - R, cy + R, `⌀${f(D)}`, true));
+  o.push(vdim(x0 + w + sw + 12, cy - r, cy + r, `⌀${f(shaft)}`));
+  const ex = x0 + w + sw + 64 + R, ey = cy;
+  o.push(`<circle class="fill" cx="${f(ex)}" cy="${f(ey)}" r="${f(R)}"/><circle cx="${f(ex)}" cy="${f(ey)}" r="${f(r)}"/>`);
+  const holes = D >= 34;
+  if (holes) {
+    o.push(`<circle class="thin" cx="${f(ex - 12.5 * s)}" cy="${f(ey)}" r="${f(1.5 * s)}"/><circle class="thin" cx="${f(ex + 12.5 * s)}" cy="${f(ey)}" r="${f(1.5 * s)}"/>`);
+    o.push(hdim(ex - 12.5 * s, ex + 12.5 * s, ey + R + 18, '25', true), `<path class="thin" d="M${f(ex - 12.5 * s)} ${f(ey + 1.5 * s + 2)}V${f(ey + R + 22)}M${f(ex + 12.5 * s)} ${f(ey + 1.5 * s + 2)}V${f(ey + R + 22)}"/>`);
+  }
+  const note = approx ? `Can sizes as usual for a ${spec.can} can, the spec gives only the can code and the shaft; the shaft length is not part of the spec`
+    : holes ? 'The shaft length is not part of the spec; the end view shows the usual M3 mounting holes 25 mm apart' : 'The shaft length is not part of the spec';
+  return { svg: svgWrap(Math.max(300, ex + R + 24), Math.max(140, cy + R + 40), String(spec.name ?? 'motor'), o.join('')), standard: undefined, approximate: approx, note };
+}
+
 export function specDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | undefined {
   if (spec.category === 'screw') return screwDrawing(spec);
   if (spec.category === 'bearing') return bearingDrawing(spec);
@@ -206,6 +239,7 @@ export function specDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | un
   if (spec.category === 'pin') return pin(spec);
   if (spec.category === 'nut') return nutDrawing(spec);
   if (spec.category === 'washer') return washerDrawing(spec);
+  if (spec.category === 'motor') return motorDrawing(spec);
   return undefined;
 }
 
@@ -226,5 +260,7 @@ export function partDrawing(part: Part): (ScrewDrawing & { note?: string; spec?:
   if (ns && part.category === 'nut') { const dr = nutDrawing(ns); return dr && { ...dr, spec: ns }; }
   const ws = eq.find((x) => x.category === 'washer');
   if (ws && part.category === 'washer-shim') { const dr = washerDrawing(ws); return dr && { ...dr, spec: ws }; }
+  const ms = eq.find((x) => x.category === 'motor');
+  if (ms && part.category === 'motor') { const dr = motorDrawing(ms); return dr && { ...dr, spec: ms }; }
   return undefined;
 }
