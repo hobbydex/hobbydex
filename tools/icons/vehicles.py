@@ -213,6 +213,21 @@ def _lowrider():
     g = affinity.scale(g, k, k, origin=(maxx, maxy))
     return affinity.translate(g, 47.6 - maxx, GROUND - maxy)
 V["lowrider"] = _lowrider()
+def _sprint():
+    # winged sprint car (oval track), facing left: small front tyres, big rear tyres, low narrow body and tail tank,
+    # the roll cage, and the big top wing with its side board over the cage; a small nose wing up front
+    front, fcut = tyre(9.0, 3.4)
+    rear, rcut = tyre(38.0, 5.2)
+    body = Polygon([(12.4, 18.6), (12.4, 15.8), (22.0, 14.6), (31.0, 14.0), (44.6, 14.4), (45.4, 16.4), (44.6, 18.6)])
+    axle = box(3.0, 14.0, 13.0, 15.2)   # front axle and nose above the front tyre
+    cage = Polygon([(23.0, 14.8), (25.0, 9.0), (32.5, 8.6), (33.5, 14.2)]).difference(Polygon([(25.6, 13.8), (26.6, 10.2), (31.4, 10.0), (32.0, 13.6)]))
+    wing = Polygon([(14.0, 4.6), (16.0, 1.2), (42.6, 0.6), (42.6, 7.2), (16.6, 7.6)])
+    struts = unary_union([Polygon(link(27.0, 7.4, 26.2, 9.4, 1.4)), Polygon(link(32.0, 7.2, 32.4, 9.0, 1.4))])
+    nose = unary_union([box(1.0, 12.8, 9.0, 14.0), box(1.0, 11.6, 2.4, 15.6)])
+    tank = Polygon([(41.0, 14.4), (41.6, 11.6), (46.6, 11.6), (46.6, 14.4)])
+    g = unary_union([body, axle, cage, wing, struts, nose, tank]).difference(unary_union([fcut, rcut]))
+    return unary_union([g, front, rear])
+V["oval"] = _sprint()
 V["race-truck"] = vehicle([
     # cab-over race truck (Tamiya Actros MP4 on TT-01E): tall cab with a roof spoiler, short chassis, no trailer
     [(1.5, 20.0), (1.5, 9.0), (2.6, 4.6), (4.0, 3.8), (17.5, 3.8), (18.8, 5.0), (19.2, 13.0), (46.5, 13.0), (46.5, 18.2), (44.0, 20.0)],
