@@ -207,7 +207,7 @@ function pin(spec: Spec): ScrewDrawing | undefined {
 // a second pattern turned against the first: makers rarely give the angle between them.
 const CAN_SIZE: Record<string, [number, number]> = { '380': [28, 38], '540': [36, 50], '550': [36, 57], '555': [36, 57] };
 type Pattern = MountHoles & { parts?: number };
-const holeKey = (h: MountHoles) => `${h.count}x${h.thread}@${h.circle_mm}`;
+const holeKey = (h: MountHoles) => `${h.count ?? '?'}x${h.thread}@${h.circle_mm}`;
 let mountsBySpec: Map<string, Pattern[]> | undefined;
 // every hole pattern the branded motors of a spec state, with how many motors state it
 function specMounts(id: string): Pattern[] {
@@ -245,24 +245,28 @@ export function motorDrawing(spec: Spec, own?: MountHoles[]): (ScrewDrawing & { 
   o.push(`<circle class="fill" cx="${f(ex)}" cy="${f(ey)}" r="${f(R)}"/><circle cx="${f(ex)}" cy="${f(ey)}" r="${f(r)}"/>`);
   const stated: Pattern[] = own?.length ? own : specMounts(spec.id);
   const usual = !stated.length && D >= 34 && D <= 37;   // the 540-size layout; larger cans (1/8) vary too much to guess
-  const pats: (Pattern & { dashed?: boolean })[] = usual ? [{ thread: 'M3', count: 2, circle_mm: 25, dashed: true }] : stated.filter((h) => h.circle_mm < D + 6);
+  // a pattern whose hole count the maker does not give is drawn as a dotted pair at its spacing
+  const pats: (Pattern & { dashed?: boolean })[] = usual ? [{ thread: 'M3', count: 2, circle_mm: 25, dashed: true }]
+    : stated.filter((h) => h.circle_mm < D + 6).map((h) => (h.count ? h : { ...h, count: 2, dashed: true }));
   const lines: string[] = [];
   pats.forEach((h, i) => {
-    const rot = (i * (360 / h.count)) / pats.length;   // a second pattern turned against the first
+    const n = h.count ?? 2;
+    const rot = (i * (360 / n)) / pats.length;   // a second pattern turned against the first
     const rc = (h.circle_mm / 2) * s, rh = Math.max(1.2, (parseFloat(h.thread.slice(1)) / 2) * s);
     o.push(`<circle class="thin dash" cx="${f(ex)}" cy="${f(ey)}" r="${f(rc)}" opacity="0.5"/>`);
-    for (let k = 0; k < h.count; k++) {
-      const a = ((rot + (k * 360) / h.count) * Math.PI) / 180;
+    for (let k = 0; k < n; k++) {
+      const a = ((rot + (k * 360) / n) * Math.PI) / 180;
       o.push(h.dashed ? `<circle class="thin" cx="${f(ex + rc * Math.cos(a))}" cy="${f(ey + rc * Math.sin(a))}" r="${f(rh)}" fill="none" stroke-dasharray="1.2 1.2"/>`
         : `<circle class="solid" cx="${f(ex + rc * Math.cos(a))}" cy="${f(ey + rc * Math.sin(a))}" r="${f(rh)}"/>`);
     }
-    lines.push(`${h.count} x ${h.thread} on ${f(h.circle_mm)}${h.dashed ? ' (usual, not stated)' : h.parts ? ` (${h.parts} motor${h.parts > 1 ? 's' : ''})` : ''}`);
+    const by = h.parts ? ` (${h.parts} motor${h.parts > 1 ? 's' : ''})` : '';
+    lines.push(usual ? `${h.count} x ${h.thread} on ${f(h.circle_mm)} (usual, not stated)` : h.dashed ? `${h.thread} at ${f(h.circle_mm)}, number of holes not stated${by}` : `${h.count} x ${h.thread} on ${f(h.circle_mm)}${by}`);
   });
   const ty = ey + R + 16;
   lines.forEach((t, i) => o.push(`<text x="${f(ex)}" y="${f(ty + i * 14)}" text-anchor="middle" class="std">${t}</text>`));
   const noShaft = 'The shaft length is not part of the spec';
   const holeNote = usual ? '; dotted: the usual 2 x M3 holes 25 mm apart, which no maker states for this size' : !stated.length && D > 37 ? '; no maker states the mounting holes for this size yet'
-    : stated.length ? (own?.length ? '; mounting holes as the maker states them' : '; mounting holes as the makers of these motors state them') + (pats.length > 1 ? ', the angle between the patterns is not stated' : '') : '';
+    : stated.length ? (own?.length ? '; mounting holes as the maker states them' : '; mounting holes as the makers of these motors state them') + (pats.some((h) => h.dashed) ? ', dotted where the number of holes is not stated' : '') + (pats.length > 1 ? ', the angle between the patterns is not stated' : '') : '';
   const note = (approx ? `Can sizes as usual for a ${spec.can} can, the spec gives only the can code and the shaft; the shaft length is not part of the spec` : noShaft) + holeNote;
   return { svg: svgWrap(Math.max(300, ex + R + 90), Math.max(140, ty + lines.length * 14 + 10), String(spec.name ?? 'motor'), o.join('')), standard: undefined, approximate: approx, note };
 }
