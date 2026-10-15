@@ -6,7 +6,7 @@ import WebSearch from '../../../../components/WebSearch.astro';
 import CopyButton from '../../../../components/CopyButton.astro';
 import { gtinLabel } from '../../../../lib/gtin';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName, byPartNo, partLabel, partNo, yearOf, yearText, dateText } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partLabel, partNo, yearOf, yearText, dateText, requiredName, conversionsForRelease } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -56,6 +56,7 @@ const boxRows = section('kit');
 const boxCats = [...new Set(boxRows.map((c) => c.p.category ?? ''))].map((g) => ({ g, n: boxRows.filter((c) => (c.p.category ?? '') === g).length }))
   .sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1) || catName(a.g).localeCompare(catName(b.g)));
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
+const conversions = conversionsForRelease(release);
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a> / <a href={url.kit(kit.id)}>{kit.name}</a> / {release.name}</div>
@@ -64,6 +65,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
   <div class="factsrow">
   <dl class="facts">
     <dt>Kit</dt><dd><a href={url.kit(kit.id)}>{kit.name}</a></dd>
+    {release.requires?.length && <><dt>Needs</dt><dd>{release.requires.length > 1 && 'one of: '}{release.requires.map((id, i) => { const n = requiredName(id); return <>{i > 0 && (i === release.requires!.length - 1 ? ' or ' : ', ')}{n ? <a href={n.href}>{n.name}</a> : id}</>; })}<span class="muted"> (not included: this is a conversion kit)</span></dd></>}
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
     {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{kit.category && <><a href={`/rc/kits/types/${kit.category}/`}>{kitTypeOne[kit.category] ?? kit.category}</a>{(kit.drive || kit.power) && ' · '}</>}{[kit.drive, kit.power].filter(Boolean).join(' · ')}</dd></>}
     {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && ' · '}<a href={url.kit(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
@@ -72,12 +74,15 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
+    {(release.links ?? []).filter((l) => l.kind !== 'fan-site').length > 0 && <><dt>Product page</dt><dd>{(release.links ?? []).filter((l) => l.kind !== 'fan-site').map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
     {fileRows.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
     <dt>Kind</dt><dd>{release.kind}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} kitArt={kit.art} size="12rem" class="hero" /></span>
   </div>
+  {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
+    <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a>{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
   {gear && <>
     <h2>Stock gearing</h2>
     <div class="gearing">
@@ -112,7 +117,7 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     <h2>In the box <span class="muted">({boxRows.length} part numbers)</span></h2>
     <ul>{boxCats.map(({ g, n }) => <li><a href={`#kit-${g || 'other'}`} title={`${n} ${g ? catName(g) : 'other'} part number${n > 1 ? 's' : ''}`}>{g ? <Icon name={g} size="1.6rem" /> : <span class="noicon" />}<b>{n}</b><span>{g ? catName(g) : 'Other'}</span></a></li>)}</ul>
   </nav>}
-  {cats.length > 1 && <p data-pagefind-ignore><label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label></p>}
+  {(cats.length > 1 || hasStep) && <p data-pagefind-ignore>{cats.length > 1 && <label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label>}{hasStep && <label class="steptoggle"><input type="checkbox" id="showsteps" /> Build steps</label>}</p>}
   {(() => { const shown = sections.map(([role, label]) => ({ role, label, rows: section(role) })).filter((x) => x.rows.length > 0); return shown.length > 0 && <>
     {shown.length > 1 && <div class="tabs" role="tablist" data-pagefind-ignore>{shown.map((x, i) => <button type="button" role="tab" class="tab" data-tab={x.role} aria-selected={i === 0 ? 'true' : 'false'}>{({ kit: 'In the box', option: 'Options', listed: 'Also listed' } as Record<string, string>)[x.role] ?? x.label} <span class="muted">({x.rows.length})</span></button>)}</div>}
     {shown.map((x) => { const groups = [...new Set(x.rows.map((c) => c.p.category ?? ''))].sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))); return <section class="tabpanel" data-panel={x.role}>
@@ -120,10 +125,19 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
       {groups.map((g) => { const gr = x.rows.filter((c) => (c.p.category ?? '') === g); return <div class="catgroup" data-cat={g} id={`${x.role}-${g || 'other'}`}>
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({gr.length})</span></h3>
         <table>
-          <tr><th class="num numcol" style={`--numn:${numW}`}>Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand c-brand">Brand</th>{hasStep && <th class="w-step">Step</th>}</tr>
-          {gr.map((c) => <tr><td class="num">{c.p.number && <a href={url.part(c.p.id)}>{c.p.number}</a>}</td><td><Fragment set:html={c.p.category === 'paint' ? (paintChip(c.p, 14, 'circle') ?? '') : colourDot(c.p.color)} />{c.p.number ? c.p.name : <a href={url.part(c.p.id)}>{c.p.name}</a>}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
+          <tr><th class="num numcol" style={`--numn:${numW}`}>Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand c-brand">Brand</th>{hasStep && <th class="w-step c-step">Step</th>}</tr>
+          {gr.map((c) => <tr><td class="num">{c.p.number && <a href={url.part(c.p.id)}>{c.p.number}</a>}</td><td><Fragment set:html={c.p.category === 'paint' ? (paintChip(c.p, 14, 'circle') ?? '') : colourDot(c.p.color)} />{c.p.number ? c.p.name : <a href={url.part(c.p.id)}>{c.p.name}</a>}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted c-step">{c.step ?? ''}</td>}</tr>)}
         </table></div>; })}
     </section>; })}</>; })()}
+  <script>
+    // build steps column: off by default, the choice remembered per viewer
+    const st = document.getElementById('showsteps') as HTMLInputElement | null;
+    if (st) {
+      try { st.checked = localStorage.getItem('hobbydex-steps') === '1'; } catch (e) {}
+      const apply = () => { document.body.classList.toggle('steps-on', st.checked); try { localStorage.setItem('hobbydex-steps', st.checked ? '1' : '0'); } catch (e) {} };
+      st.addEventListener('change', apply); apply();
+    }
+  </script>
   <script>
     // tabs: one role at a time, remembered in the address (#option); without script every section shows
     const tabs = [...document.querySelectorAll<HTMLButtonElement>('.tab')];
@@ -165,6 +179,9 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     .catgroup table { table-layout: fixed; width: 100%; }
     .catgroup td.num { white-space: normal; overflow-wrap: anywhere; }
     .w-qty { width: 4rem; } .w-brand { width: 8rem; } .w-step { width: 9rem; }
+    /* the manual's build step per part: hidden until asked for, the column is wide on race kits */
+    :global(body:not(.steps-on)) .c-step { display: none; }
+    .steptoggle { margin-left: 1rem; }
     /* phones: the name column needs the room; the brand is nearly always the kit's own */
     @media (max-width: 40rem) { .catgroup th, .catgroup td { padding-left: 0.4rem; padding-right: 0.4rem; } .w-qty { width: 3rem; } .w-step { width: 4.5rem; } .c-brand { display: none; } .catgroup td { overflow-wrap: anywhere; } }
     .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
