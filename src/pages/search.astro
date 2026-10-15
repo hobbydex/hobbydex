@@ -24,7 +24,9 @@ import Base from '../layouts/Base.astro';
       // show the query and that we are working at once; the index takes a moment to load
       const params = new URLSearchParams(location.search);
       if (params.get('q')) q.value = params.get('q');
-      if (params.get('q') || params.get('category') || params.get('type')) status.textContent = 'Searching...';
+      // listing every part (130,000+) without a query takes a long time: ask for a query instead
+      const browseAll = (t, c) => t === 'part' && !c;
+      if (params.get('q') || params.get('category') || (params.get('type') && !browseAll(params.get('type'), params.get('category')))) status.textContent = 'Searching...';
       const { rankHits } = await import('/search-rank.js');   // shared with tests/search.test.mjs
       try {
         pagefind = await import('/pagefind/pagefind.js');
@@ -70,6 +72,7 @@ import Base from '../layouts/Base.astro';
         const qs = new URLSearchParams(); if (text) qs.set('q', text); if (type) qs.set('type', type); if (cat) qs.set('category', cat);
         history.replaceState(null, '', qs.toString() ? `?${qs}` : location.pathname);
         if (!text && !type && !cat) { status.textContent = ''; hits = []; return; }
+        if (!text && browseAll(type, cat)) { status.textContent = 'Type a part number or name to search the parts, or pick a category.'; hits = []; q.focus(); return; }
         status.textContent = 'Searching...';
         let r;
         try {

@@ -43,9 +43,9 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   {kitGroups.map(([t, rs]) => <section class="kitgroup" id={`type-${t}`}>
     <h3><Icon name={kitTypeIcon(t)} size="1.5rem" /> <a href={`/rc/kits/types/${t}/`}>{kitTypeLabel[t] ?? t}</a> <span class="muted">({rs.length})</span></h3>
     <table class="kits">
-      <thead><tr><th>Kit</th><th>Scale</th><th>Drive</th><th>Power</th><th class="num">Releases</th><th>Years</th></tr></thead>
+      <thead><tr><th class="artcol"></th><th>Kit</th><th>Scale</th><th>Drive</th><th>Power</th><th class="num">Releases</th><th>Years</th></tr></thead>
       <tbody>{rs.map((r) => <tr data-q={[r.k.name, r.k.scale, r.k.drive, r.k.power, kitTypeOne[t] ?? t].filter(Boolean).join(' ').toLowerCase()}>
-        <td><a href={url.kit(r.k.id)}>{r.k.name}</a></td><td>{r.k.scale}</td><td>{r.k.drive}</td><td>{r.k.power}</td><td class="num">{r.n || ''}</td><td>{years(r)}</td></tr>)}</tbody>
+        <td class="artcol"><a href={url.kit(r.k.id)} tabindex="-1" aria-hidden="true">{r.k.art ? <ReleaseArt id={r.k.id} category={r.k.category} kitArt={r.k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(r.k.category)} size="1.3em" />}</a></td><td><a href={url.kit(r.k.id)}>{r.k.name}</a></td><td>{r.k.scale}</td><td>{r.k.drive}</td><td>{r.k.power}</td><td class="num">{r.n || ''}</td><td>{years(r)}</td></tr>)}</tbody>
     </table>
   </section>)}
   <script>
@@ -102,3 +102,6 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
     }
   </script>
 </Base>
+<style>
+  .artcol { width: 3.2em; padding-right: 0 !important; }
+</style>
