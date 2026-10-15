@@ -4,34 +4,89 @@ import Base from '../../layouts/Base.astro';
 <Base title="Compare releases" description="Compare the parts of any two RC releases: what is only in one, only in the other, and what both share.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Compare</div>
   <h1>Compare releases</h1>
-  <p class="muted">Pick two releases, of the same kit or of different kits and brands. Shared parts show where a part number is used in both.</p>
-  <form id="cmp" class="websearch" data-pagefind-ignore>
-    <label>A <select id="a" required></select></label>
-    <label>B <select id="b" required></select></label>
+  <p class="muted">Pick two releases, of the same kit or of different kits and brands: type part of the brand, name, item number or kit. Shared parts show where a part number is used in both.</p>
+  <form id="cmp" class="websearch" data-pagefind-ignore onsubmit="return false">
+    <div class="combo-row"><b>A</b><div class="combo"><input id="a" type="text" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="a-list" autocomplete="off" spellcheck="false" placeholder="Type a release: brand, name, item number or kit" disabled /><ul id="a-list" role="listbox" hidden></ul></div></div>
+    <div class="combo-row"><b>B</b><div class="combo"><input id="b" type="text" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="b-list" autocomplete="off" spellcheck="false" placeholder="Type a release: brand, name, item number or kit" disabled /><ul id="b-list" role="listbox" hidden></ul></div></div>
     <label><input type="checkbox" id="boxonly" /> In the box only</label>
   </form>
   <div id="out"><p class="muted">Loading releases...</p></div>
   <script>
-    type Data = { parts: [string, string, string, string][]; releases: { id: string; label: string; kit: string; url: string; rows: [number, string][] }[] };
+    type Rel = { id: string; label: string; number: string; kit: string; url: string; rows: [number, string][] };
+    type Data = { parts: [string, string, string, string][]; releases: Rel[] };
     const ROLE: Record<string, string> = { k: 'in the box', o: 'option', l: 'listed' };
     const $ = (id: string) => document.getElementById(id)!;
     const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    // accents and punctuation do not matter when matching: "re-release" finds "Re Release", "ae" finds "ä"
+    const norm = (s: string) => s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const MAX = 50;
+
     fetch('/rc/compare.json').then((r) => r.json()).then((d: Data) => {
-      const a = $('a') as HTMLSelectElement, b = $('b') as HTMLSelectElement, box = $('boxonly') as HTMLInputElement;
-      const opts = '<option value="">choose a release</option>' + d.releases.map((r, i) => `<option value="${i}">${esc(r.label)}</option>`).join('');
-      a.innerHTML = opts; b.innerHTML = opts;
-      const q = new URLSearchParams(location.search);
-      const find = (id: string | null) => d.releases.findIndex((r) => r.id === id);
-      if (find(q.get('a')) >= 0) a.value = String(find(q.get('a')));
-      if (find(q.get('b')) >= 0) b.value = String(find(q.get('b')));
+      const box = $('boxonly') as HTMLInputElement;
+      const hay = d.releases.map((r) => ({ text: norm(`${r.label} ${r.number} ${r.kit}`), num: norm(r.number), lab: norm(r.label) }));
+      const chosen: Record<'a' | 'b', number> = { a: -1, b: -1 };
+
+      // every word typed must appear; an item number typed in full ranks first, then labels starting with the words
+      const search = (q: string) => {
+        const words = norm(q).split(' ').filter(Boolean);
+        if (!words.length) return [];
+        const hits: [number, number][] = [];
+        for (let i = 0; i < hay.length; i++) {
+          const h = hay[i];
+          if (!words.every((w) => h.text.includes(w))) continue;
+          const score = (words.some((w) => w === h.num) ? 0 : 2) + (h.lab.startsWith(words[0]) ? 0 : 1) + (d.releases[i].rows.length ? 0 : 3);
+          hits.push([score, i]);
+        }
+        return hits.sort((x, y) => x[0] - y[0] || x[1] - y[1]).map(([, i]) => i);
+      };
+
+      const picker = (key: 'a' | 'b') => {
+        const input = $(key) as HTMLInputElement, list = $(`${key}-list`) as HTMLUListElement;
+        let shown: number[] = [], active = -1;
+        const close = () => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); active = -1; };
+        const mark = (n: number) => {
+          active = n;
+          [...list.children].forEach((li, j) => li.setAttribute('aria-selected', String(j === n)));
+          const li = list.children[n] as HTMLElement | undefined;
+          if (li) { input.setAttribute('aria-activedescendant', li.id); li.scrollIntoView({ block: 'nearest' }); }
+        };
+        const open = () => {
+          const all = search(input.value);
+          shown = all.slice(0, MAX);
+          list.innerHTML = shown.length
+            ? shown.map((i, j) => { const r = d.releases[i]; const n = r.rows.length;
+                return `<li id="${key}-opt-${j}" role="option" data-i="${i}"><span>${esc(r.label)}${r.number ? ` <span class="muted">${esc(r.number)}</span>` : ''}</span><span class="muted">${n ? `${n} parts` : 'no parts list'}</span></li>`; }).join('')
+              + (all.length > MAX ? `<li class="empty" role="presentation">${all.length - MAX} more: type more to narrow down</li>` : '')
+            : `<li class="empty" role="presentation">${input.value.trim() ? 'No release matches' : 'Type to search'}</li>`;
+          list.hidden = false; input.setAttribute('aria-expanded', 'true');
+          mark(shown.length ? 0 : -1);
+        };
+        const pick = (i: number) => { chosen[key] = i; input.value = d.releases[i].label; close(); render(); };
+        input.addEventListener('input', () => { chosen[key] = -1; open(); });
+        input.addEventListener('focus', () => { if (chosen[key] >= 0) input.select(); else if (input.value) open(); });
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); if (list.hidden) open(); else if (shown.length) mark((active + 1) % shown.length); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); if (shown.length) mark((active - 1 + shown.length) % shown.length); }
+          else if (e.key === 'Enter') { e.preventDefault(); if (!list.hidden && active >= 0) pick(shown[active]); }
+          else if (e.key === 'Escape') { close(); if (chosen[key] >= 0) input.value = d.releases[chosen[key]].label; }
+        });
+        // mousedown, not click: it fires before the input loses focus and closes the list
+        list.addEventListener('mousedown', (e) => {
+          const li = (e.target as HTMLElement).closest('li[data-i]') as HTMLElement | null;
+          if (li) { e.preventDefault(); pick(+li.dataset.i!); }
+        });
+        input.addEventListener('blur', () => { close(); if (chosen[key] >= 0) input.value = d.releases[chosen[key]].label; });
+        return (i: number) => { chosen[key] = i; input.value = d.releases[i].label; };
+      };
+
       const table = (id: string, title: string, rows: string[]) => rows.length === 0 ? '' :
         `<h2 id="${id}">${title} <span class="muted">(${rows.length})</span></h2><table><tr><th class="num">Number</th><th>Name</th><th>Category</th><th>Role</th></tr>${rows.join('')}</table>`;
       // a part without a number (a brand that prints none) links its name instead
       const row = (i: number, role: string) => { const p = d.parts[i], rest = `<td class="muted">${esc(p[3])}</td><td>${role}</td></tr>`;
         return p[0] ? `<tr><td class="num"><a href="${p[2]}">${esc(p[0])}</a></td><td>${esc(p[1])}</td>${rest}` : `<tr><td class="num"></td><td><a href="${p[2]}">${esc(p[1])}</a></td>${rest}`; };
       const render = () => {
-        if (a.value === '' || b.value === '') { $('out').innerHTML = '<p class="muted">Choose two releases.</p>'; return; }
-        const A = d.releases[+a.value], B = d.releases[+b.value];
+        if (chosen.a < 0 || chosen.b < 0) { $('out').innerHTML = '<p class="muted">Choose two releases.</p>'; return; }
+        const A = d.releases[chosen.a], B = d.releases[chosen.b];
         history.replaceState(null, '', `?a=${encodeURIComponent(A.id)}&b=${encodeURIComponent(B.id)}${location.hash}`);
         const keep = (rows: [number, string][]) => new Map(rows.filter(([, r]) => !box.checked || r === 'k'));
         const ma = keep(A.rows), mb = keep(B.rows);
@@ -40,10 +95,19 @@ import Base from '../../layouts/Base.astro';
         const onlyB = [...mb.keys()].filter((i) => !ma.has(i)).sort(byNum).map((i) => row(i, ROLE[mb.get(i)!]));
         const both = [...ma.keys()].filter((i) => mb.has(i)).sort(byNum).map((i) => row(i, ma.get(i) === mb.get(i) ? ROLE[ma.get(i)!] : `${ROLE[ma.get(i)!]} / ${ROLE[mb.get(i)!]}`));
         const jump = (id: string, n: number, label: string) => n ? `<a href="#${id}">${n} ${label}</a>` : `0 ${label}`;
-        $('out').innerHTML = `<p><a href="${A.url}">${esc(A.label)}</a> and <a href="${B.url}">${esc(B.label)}</a>: ${jump('both', both.length, 'shared')}, ${jump('only-a', onlyA.length, 'only in A')}, ${jump('only-b', onlyB.length, 'only in B')}.</p>`
+        const none = [A, B].filter((r) => !r.rows.length).map((r) => `<a href="${r.url}">${esc(r.label)}</a>`);
+        $('out').innerHTML = (none.length ? `<p class="muted">We have no parts list for ${none.join(' or ')} yet, so the comparison is one-sided.</p>` : '')
+          + `<p><a href="${A.url}">${esc(A.label)}</a> and <a href="${B.url}">${esc(B.label)}</a>: ${jump('both', both.length, 'shared')}, ${jump('only-a', onlyA.length, 'only in A')}, ${jump('only-b', onlyB.length, 'only in B')}.</p>`
           + table('only-a', `Only in ${esc(A.label)}`, onlyA) + table('only-b', `Only in ${esc(B.label)}`, onlyB) + table('both', 'In both', both);
       };
-      a.addEventListener('change', render); b.addEventListener('change', render); box.addEventListener('change', render);
+
+      const setA = picker('a'), setB = picker('b');
+      const q = new URLSearchParams(location.search);
+      const find = (id: string | null) => d.releases.findIndex((r) => r.id === id);
+      if (find(q.get('a')) >= 0) setA(find(q.get('a')));
+      if (find(q.get('b')) >= 0) setB(find(q.get('b')));
+      for (const k of ['a', 'b']) ($(k) as HTMLInputElement).disabled = false;
+      box.addEventListener('change', render);
       render();
     });
   </script>
