@@ -1,6 +1,6 @@
 // Dimensioned drawings for bearing, washer, pinion, pin and wheel hex specs, drawn in currentColor (light and dark).
 // Screws and nuts have their own modules (screwDrawing.ts, nutDrawing.ts); specDrawing() picks the right one for a spec.
-import { db, type Part, type Spec } from './data';
+import { db, type Part, type Spec, type MountHoles } from './data';
 import { screwDrawing, type ScrewDrawing } from './screwDrawing';
 import { nutDrawing } from './nutDrawing';
 
@@ -200,10 +200,32 @@ function pin(spec: Spec): ScrewDrawing | undefined {
 
 // Electric motor: side view (can, front bearing cap line, shaft with its flat) and the end view from the shaft
 // side, with the can diameter, length and shaft diameter. Brushed specs give only a can code, so their sizes
-// are the usual ones for that can; the shaft length is never part of the spec. 36 mm and larger cans show
-// the usual pair of M3 mounting holes 25 mm apart.
+// are the usual ones for that can; the shaft length is never part of the spec. Mounting holes: the patterns
+// the maker states (a motor's own `mount_holes`, or on a spec page every pattern its branded motors state) are
+// drawn solid, each on its bolt circle and listed below the end view; with none stated, a 36 mm or larger can
+// (a 540-size can) shows the usual 2 x M3 on 25 mm dotted, marked as not stated; larger cans show none. Patterns are drawn evenly around the shaft,
+// a second pattern turned against the first: makers rarely give the angle between them.
 const CAN_SIZE: Record<string, [number, number]> = { '380': [28, 38], '540': [36, 50], '550': [36, 57], '555': [36, 57] };
-export function motorDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | undefined {
+type Pattern = MountHoles & { parts?: number };
+const holeKey = (h: MountHoles) => `${h.count}x${h.thread}@${h.circle_mm}`;
+let mountsBySpec: Map<string, Pattern[]> | undefined;
+// every hole pattern the branded motors of a spec state, with how many motors state it
+function specMounts(id: string): Pattern[] {
+  if (!mountsBySpec) {
+    const m = new Map<string, Map<string, Pattern>>();
+    for (const p of db.parts) {
+      if (p.category !== 'motor' || !p.mount_holes?.length) continue;
+      for (const e of p.equivalent_to ?? []) {
+        if (!m.has(e.spec)) m.set(e.spec, new Map());
+        const by = m.get(e.spec)!;
+        for (const h of p.mount_holes) { const k = holeKey(h); const x = by.get(k) ?? { ...h, parts: 0 }; x.parts!++; by.set(k, x); }
+      }
+    }
+    mountsBySpec = new Map([...m].map(([k, v]) => [k, [...v.values()].sort((a, b) => b.parts! - a.parts! || a.circle_mm - b.circle_mm)]));
+  }
+  return mountsBySpec.get(id) ?? [];
+}
+export function motorDrawing(spec: Spec, own?: MountHoles[]): (ScrewDrawing & { note?: string }) | undefined {
   const shaft = Number(spec.shaft_mm);
   let D = Number(spec.diameter_mm), L = Number(spec.length_mm), approx = false;
   if (!D || !L) { const u = CAN_SIZE[String(spec.can)]; if (!u) return undefined; [D, L] = u; approx = true; }
@@ -221,14 +243,28 @@ export function motorDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | u
   o.push(vdim(x0 + w + sw + 12, cy - r, cy + r, `⌀${f(shaft)}`));
   const ex = x0 + w + sw + 64 + R, ey = cy;
   o.push(`<circle class="fill" cx="${f(ex)}" cy="${f(ey)}" r="${f(R)}"/><circle cx="${f(ex)}" cy="${f(ey)}" r="${f(r)}"/>`);
-  const holes = D >= 34;
-  if (holes) {
-    o.push(`<circle class="thin" cx="${f(ex - 12.5 * s)}" cy="${f(ey)}" r="${f(1.5 * s)}"/><circle class="thin" cx="${f(ex + 12.5 * s)}" cy="${f(ey)}" r="${f(1.5 * s)}"/>`);
-    o.push(hdim(ex - 12.5 * s, ex + 12.5 * s, ey + R + 18, '25', true), `<path class="thin" d="M${f(ex - 12.5 * s)} ${f(ey + 1.5 * s + 2)}V${f(ey + R + 22)}M${f(ex + 12.5 * s)} ${f(ey + 1.5 * s + 2)}V${f(ey + R + 22)}"/>`);
-  }
-  const note = approx ? `Can sizes as usual for a ${spec.can} can, the spec gives only the can code and the shaft; the shaft length is not part of the spec`
-    : holes ? 'The shaft length is not part of the spec; the end view shows the usual M3 mounting holes 25 mm apart' : 'The shaft length is not part of the spec';
-  return { svg: svgWrap(Math.max(300, ex + R + 24), Math.max(140, cy + R + 40), String(spec.name ?? 'motor'), o.join('')), standard: undefined, approximate: approx, note };
+  const stated: Pattern[] = own?.length ? own : specMounts(spec.id);
+  const usual = !stated.length && D >= 34 && D <= 37;   // the 540-size layout; larger cans (1/8) vary too much to guess
+  const pats: (Pattern & { dashed?: boolean })[] = usual ? [{ thread: 'M3', count: 2, circle_mm: 25, dashed: true }] : stated.filter((h) => h.circle_mm < D + 6);
+  const lines: string[] = [];
+  pats.forEach((h, i) => {
+    const rot = (i * (360 / h.count)) / pats.length;   // a second pattern turned against the first
+    const rc = (h.circle_mm / 2) * s, rh = Math.max(1.2, (parseFloat(h.thread.slice(1)) / 2) * s);
+    o.push(`<circle class="thin dash" cx="${f(ex)}" cy="${f(ey)}" r="${f(rc)}" opacity="0.5"/>`);
+    for (let k = 0; k < h.count; k++) {
+      const a = ((rot + (k * 360) / h.count) * Math.PI) / 180;
+      o.push(h.dashed ? `<circle class="thin" cx="${f(ex + rc * Math.cos(a))}" cy="${f(ey + rc * Math.sin(a))}" r="${f(rh)}" fill="none" stroke-dasharray="1.2 1.2"/>`
+        : `<circle class="solid" cx="${f(ex + rc * Math.cos(a))}" cy="${f(ey + rc * Math.sin(a))}" r="${f(rh)}"/>`);
+    }
+    lines.push(`${h.count} x ${h.thread} on ${f(h.circle_mm)}${h.dashed ? ' (usual, not stated)' : h.parts ? ` (${h.parts} motor${h.parts > 1 ? 's' : ''})` : ''}`);
+  });
+  const ty = ey + R + 16;
+  lines.forEach((t, i) => o.push(`<text x="${f(ex)}" y="${f(ty + i * 14)}" text-anchor="middle" class="std">${t}</text>`));
+  const noShaft = 'The shaft length is not part of the spec';
+  const holeNote = usual ? '; dotted: the usual 2 x M3 holes 25 mm apart, which no maker states for this size' : !stated.length && D > 37 ? '; no maker states the mounting holes for this size yet'
+    : stated.length ? (own?.length ? '; mounting holes as the maker states them' : '; mounting holes as the makers of these motors state them') + (pats.length > 1 ? ', the angle between the patterns is not stated' : '') : '';
+  const note = (approx ? `Can sizes as usual for a ${spec.can} can, the spec gives only the can code and the shaft; the shaft length is not part of the spec` : noShaft) + holeNote;
+  return { svg: svgWrap(Math.max(300, ex + R + 90), Math.max(140, ty + lines.length * 14 + 10), String(spec.name ?? 'motor'), o.join('')), standard: undefined, approximate: approx, note };
 }
 
 export function specDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | undefined {
@@ -261,6 +297,6 @@ export function partDrawing(part: Part): (ScrewDrawing & { note?: string; spec?:
   const ws = eq.find((x) => x.category === 'washer');
   if (ws && part.category === 'washer-shim') { const dr = washerDrawing(ws); return dr && { ...dr, spec: ws }; }
   const ms = eq.find((x) => x.category === 'motor');
-  if (ms && part.category === 'motor') { const dr = motorDrawing(ms); return dr && { ...dr, spec: ms }; }
+  if (ms && part.category === 'motor') { const dr = motorDrawing(ms, part.mount_holes); return dr && { ...dr, spec: ms }; }
   return undefined;
 }
