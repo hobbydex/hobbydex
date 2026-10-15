@@ -1,6 +1,7 @@
 ---
 import Base from '../../../../layouts/Base.astro';
 import Icon from '../../../../components/Icon.astro';
+import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { db, url, brandName, yearText } from '../../../../lib/data';
 import { kitTypeLabel, kitTypeIcon, kitTypeAbout } from '../../../../lib/kitTypes';
 export function getStaticPaths() {
@@ -25,8 +26,9 @@ const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scale
   {scales.map((sc) => { const ks = kits.filter((k) => (k.scale ?? '') === sc); return <>
     <h2 id={`scale-${sc ? sc.replace('/', '-') : 'unknown'}`}>{sc || 'Scale unknown'} <span class="muted">({ks.length})</span></h2>
     <table>
-      <tr><th>Brand</th><th>Kit</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
+      <tr><th class="artcol"></th><th>Brand</th><th>Kit</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
       {ks.map((k) => <tr>
+        <td class="artcol"><a href={url.kit(k.id)} tabindex="-1" aria-hidden="true">{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(k.category)} size="1.3em" />}</a></td>
         <td><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td><td><a href={url.kit(k.id)}>{k.name}</a></td>
         <td>{k.drive ?? ''}</td><td>{k.power ?? ''}</td><td class="num">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
       </tr>)}
@@ -40,3 +42,6 @@ const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scale
     </table></>}
   <style>.about { max-width: 46rem; font-size: 1.05rem; }</style>
 </Base>
+<style>
+  .artcol { width: 3.2em; padding-right: 0 !important; }
+</style>
