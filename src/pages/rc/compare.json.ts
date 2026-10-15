@@ -12,7 +12,7 @@ export function GET() {
       if (!index.has(p.id)) { index.set(p.id, parts.length); parts.push([p.number ?? '', p.name, url.part(p.id), p.category ?? '']); }
       return [[index.get(p.id)!, c.role === 'kit' ? 'k' : c.role === 'option' ? 'o' : 'l']];
     });
-    return { id: r.id, label: `${brandName(r.brand)} ${r.name} ${r.year ? ` (${r.year})` : ''}`, kit: kit ? `${brandName(kit.brand)} ${kit.name}` : '', url: url.release(r.id), rows };
+    return { id: r.id, label: `${brandName(r.brand)} ${r.name}${r.year ? ` (${r.year})` : ''}`, number: r.number ?? '', kit: kit ? `${brandName(kit.brand)} ${kit.name}` : '', url: url.release(r.id), rows };
   });
   return new Response(JSON.stringify({ parts, releases }), { headers: { 'Content-Type': 'application/json' } });
 }

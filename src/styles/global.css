@@ -168,3 +168,15 @@ table.sortable th .sortbtn { all: unset; cursor: pointer; font: inherit; color: 
 table.sortable th .sortbtn:hover { color: var(--accent); }
 table.sortable th[aria-sort] .sortbtn::after { content: " \2191"; color: var(--muted); }
 table.sortable th[aria-sort="descending"] .sortbtn::after { content: " \2193"; }
+
+/* compare page: a release picker that filters as you type (combobox with a listbox below the input) */
+.combo { position: relative; flex: 1 1 18rem; min-width: 0; }
+.combo input { width: 100%; box-sizing: border-box; padding: 0.35rem 0.6rem; font-size: 0.9rem; }
+.combo ul { position: absolute; z-index: 20; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: 0; list-style: none; max-height: 20rem; overflow-y: auto;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.combo li { padding: 0.35rem 0.6rem; cursor: pointer; display: flex; justify-content: space-between; gap: 0.75rem; }
+.combo li .muted { font-size: 0.8rem; white-space: nowrap; }
+.combo li[aria-selected="true"], .combo li:hover { background: var(--surface-2); }
+.combo li.empty { cursor: default; color: var(--muted); }
+.combo-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; width: 100%; }
+.combo-row > b { width: 1.2rem; }
