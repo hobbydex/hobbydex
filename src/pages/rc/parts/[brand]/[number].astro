@@ -106,6 +106,7 @@ const numName = part.number ? `${part.number} ${part.name}` : part.name;
     {part.weight_g && <><dt>Weight</dt><dd>{part.weight_g} g</dd></>}
     {part.connector && <><dt>Plug</dt><dd>{part.connector}</dd></>}
     {(part.kv || part.turns) && <><dt>Motor</dt><dd>{[part.kv && `${part.kv} kV`, part.turns && `${part.turns}T`, part.diameter_mm && part.length_mm && `${part.diameter_mm} x ${part.length_mm} mm`, part.shaft_mm && `${part.shaft_mm} mm shaft`].filter(Boolean).join(', ')}</dd></>}
+    {part.sensored !== undefined && <><dt>{part.category === 'motor' ? 'Sensors' : 'Sensor port'}</dt><dd>{part.category === 'motor' ? (part.sensored ? 'sensored' : 'sensorless') : (part.sensored ? 'yes, runs sensored motors' : 'no, sensorless motors only')}</dd></>}
     {part.current_a && <><dt>ESC</dt><dd>{part.current_a} A{part.peak_current_a && ` (${part.peak_current_a} A peak)`}</dd></>}
     {part.lipo_cells && <><dt>LiPo</dt><dd>{part.lipo_cells[0] === part.lipo_cells[1] ? `${part.lipo_cells[0]}S` : `${part.lipo_cells[0]}-${part.lipo_cells[1]}S`}</dd></>}
     {part.torque_kgcm && <><dt>Servo</dt><dd>{part.torque_kgcm} kg/cm{part.speed_s && `, ${part.speed_s} s/60°`}{part.voltage && ` at ${part.voltage} V`}{part.motor && `, ${part.motor}`}{part.gear_material && `, ${part.gear_material} gears`}</dd></>}
