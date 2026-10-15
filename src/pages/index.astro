@@ -48,7 +48,7 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
       </ul>
     </section>
     <section>
-      <h2>Brands by releases <span class="muted">· <a href="/rc/brands/">all brands</a> · <a href="/stats/">statistics</a></span></h2>
+      <h2>Releases by brand <span class="muted">· <a href="/rc/brands/">all brands</a> · <a href="/stats/">statistics</a></span></h2>
       <ul class="hbars">
         {brands.map(([b, n]) => <li><a href={url.brand(b)}>{brandName(b)}</a>
           <span class="bar" style={`width:${(n / max(brands)) * 100}%`} title={`${brandName(b)}: ${n} releases`}></span><span class="v">{n}</span></li>)}
