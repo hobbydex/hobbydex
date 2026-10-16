@@ -24,6 +24,12 @@ const kitGroups = kitTypeOrder.concat([...new Set(kits.map((k) => k.category ?? 
   .map((t) => [t, kitRows.filter((r) => (r.k.category ?? 'car') === t).sort((a, b) => a.k.name.localeCompare(b.k.name, undefined, { numeric: true }))] as const)
   .filter(([, rs]) => rs.length > 0);
 const years = (r: { from?: number; to?: number }) => (r.from === undefined ? '' : r.from === r.to ? `${r.from}` : `${r.from}-${r.to}`);
+// the company that owns the brand, and its other brands
+const owner = brand.owner ? db.company.get(brand.owner) : undefined;
+// owner_source: the page that states it, or a document of the brand (linked by the maker page that lists it)
+const ownerDoc = brand.owner_source?.startsWith('doc/') ? db.doc.get(brand.owner_source) : undefined;
+const ownerHref = ownerDoc ? ownerDoc.page ?? ownerDoc.url : brand.owner_source;
+const sisters = owner ? (db.brandsByOwner.get(owner.id) ?? []).filter((b) => b.id !== brand.id).sort((a, b) => a.name.localeCompare(b.name)) : [];
 const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length ?? 0] as const).filter(([, n]) => n > 0);
 ---
 <Base title={brand.name} description={`${brand.name}: kits and parts in Hobbydex.`} kind="brand">
@@ -31,6 +37,8 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brand.name}</h1>
   <dl class="facts">
     {brand.legal_name && <><dt>Legal name</dt><dd>{brand.legal_name}</dd></>}
+    {owner && <><dt>Owned by</dt><dd>{owner.brand && owner.brand !== brand.id ? <a href={url.brand(owner.brand)}>{owner.name}</a> : owner.name}{owner.country && <span class="muted"> ({owner.country})</span>}{brand.owner_since && <span class="muted">, since {brand.owner_since}</span>} {ownerHref && <a class="muted" href={ownerHref} rel="nofollow" title={ownerDoc?.title}>source</a>}</dd></>}
+    {sisters.length > 0 && <><dt>Sister brands</dt><dd>{sisters.map((b, i) => <>{i > 0 && ', '}<a href={url.brand(b.id)}>{b.name}</a></>)}</dd></>}
     {brand.country && <><dt>Country</dt><dd>{brand.country}</dd></>}
     {brand.website && <><dt>Website</dt><dd><a href={brand.website} rel="nofollow">{brand.website}</a></dd></>}
     <dt>Status</dt><dd>{brand.status}</dd>
