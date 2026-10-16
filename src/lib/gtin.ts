@@ -8,3 +8,10 @@ export function gtinLabel(code: string): string {
   if (d.length === 14) return 'GTIN-14';
   return 'GTIN';
 }
+
+// The schema.org property for a barcode: gtin8, gtin12, gtin13 or gtin14 by its length, else the generic gtin.
+export function gtinJsonld(code?: string): Record<string, string> {
+  if (!code) return {};
+  const d = code.replace(/\D/g, '');
+  return [8, 12, 13, 14].includes(d.length) ? { [`gtin${d.length}`]: d } : { gtin: code };
+}
