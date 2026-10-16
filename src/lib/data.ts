@@ -179,7 +179,31 @@ export const dateText = (r: { year?: number; released?: string }) => {
   if (!m) return r.year ? String(r.year) : 'unknown';
   return [m[3] && String(Number(m[3])), m[2] && MONTHS[Number(m[2]) - 1], m[1]].filter(Boolean).join(' ');
 };
-export const yearText = (r: { year?: number; model_year?: number }) => (r.year ? String(r.year) : r.model_year ? `${r.model_year} model` : 'unknown');
+// A document's web page as linked from a dated record. A catalogue paged by month (Tamiya's monthly new
+// items, `current=YYYYMM` in its page URL) is recorded with one month's page; a release or part dated by it
+// links the page of its own month, the one that lists it.
+const MONTH_PAGE = /([?&]current=)\d{6}(?=&|$)/;
+export const docPage = (d: { page?: string; url?: string; kind?: string }, released?: string) => {
+  const w = d.page ?? (d.kind === 'product_page' ? d.url : undefined);
+  const m = released?.match(/^(\d{4})-(\d{2})/);
+  return w && m && MONTH_PAGE.test(w) ? w.replace(MONTH_PAGE, `$1${m[1]}${m[2]}`) : w;
+};
+/** The month-paged catalogue among a record's documents that dates it (see docPage), with the link to its month. */
+export const dateSource = (r: { released?: string; documents?: string[] }) => {
+  if (!r.released || !/^\d{4}-\d{2}/.test(r.released)) return undefined;
+  for (const id of r.documents ?? []) {
+    const d = db.doc.get(id);
+    if (d?.page && MONTH_PAGE.test(d.page)) return { doc: d, href: docPage(d, r.released)! };
+  }
+  return undefined;
+};
+/** Oldest release first, by its date (or model year); undated releases last, in item-number order, then by name. */
+export const byReleaseDate = (a: Release, b: Release) => {
+  const ka = a.released ?? (yearOf(a) ? String(yearOf(a)) : ''), kb = b.released ?? (yearOf(b) ? String(yearOf(b)) : '');
+  return (ka ? 0 : 1) - (kb ? 0 : 1) || ka.localeCompare(kb)
+    || (a.number ? 0 : 1) - (b.number ? 0 : 1) || (a.number ?? '').localeCompare(b.number ?? '', undefined, { numeric: true }) || a.name.localeCompare(b.name);
+};
+export const yearText = (r: { year?: number; model_year?: number }) =>(r.year ? String(r.year) : r.model_year ? `${r.model_year} model` : 'unknown');
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
 
 // Conversion kits: a release whose `requires` names a kit or release (the car it needs). For a kit, the

@@ -182,3 +182,14 @@ table.sortable th[aria-sort="descending"] .sortbtn::after { content: " \2193"; }
 .combo li.empty { cursor: default; color: var(--muted); }
 .combo-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; width: 100%; }
 .combo-row > b { width: 1.2rem; }
+/* a source note (SourceNote.astro): a small (i) that opens where a fact was read */
+.srcnote { display: inline; }
+.srcnote > summary { display: inline-grid; place-items: center; list-style: none; cursor: pointer; width: 1.1em; height: 1.1em; vertical-align: 0.05em;
+  border: 1px solid var(--muted); border-radius: 50%; color: var(--muted); font: italic 600 0.75em/1 Georgia, serif; }
+.srcnote > summary::-webkit-details-marker { display: none; }
+.srcnote > summary:hover, .srcnote[open] > summary { color: var(--fg); border-color: var(--fg); }
+.srcnote > span { display: block; color: var(--muted); font-size: 0.85em; font-weight: 400; }
+/* per-car sets of other makers on a kit page (KitSets.astro), one collapsed line per kind */
+.kitsets { margin: 0.4rem 0; }
+.kitsets > summary { cursor: pointer; color: var(--muted); }
+.kitsets h4 { margin: 0.6rem 0 0.2rem; }

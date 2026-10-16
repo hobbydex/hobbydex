@@ -8,7 +8,7 @@ import CopyButton from '../../../../components/CopyButton.astro';
 import OtherCarSets from '../../../../components/OtherCarSets.astro';
 import { gtinLabel, gtinJsonld } from '../../../../lib/gtin';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName, byPartNo, partLabel, partNo, yearOf, yearText, dateText, requiredName, depictsText, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partLabel, partNo, yearOf, yearText, dateText, docPage, dateSource, requiredName, depictsText, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -31,7 +31,9 @@ const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d
 const FILE_KINDS: Record<string, string> = { manual: 'Manual', part_list: 'Parts list', exploded_view: 'Exploded view' };
 // setup sheets (dozens on a race car) are folded into one collapsed line under Sources
 const sheets = docs.filter((d) => d.kind === 'setup_sheet');
-const webLink = (d: { page?: string; url?: string; kind?: string }) => d.page ?? (d.kind === 'product_page' ? d.url : undefined);
+// a catalogue paged by month links the month that lists this release (docPage)
+const webLink = (d: { page?: string; url?: string; kind?: string }) => docPage(d, release.released);
+const dated = dateSource(release);
 const mainDocs = docs.filter((d) => d.kind !== 'setup_sheet');
 const fileRows = Object.entries(FILE_KINDS).map(([k, label]) => [label, docs.filter((d) => d.kind === k && d.page)] as const).filter(([, ds]) => ds.length > 0);
 const rows = (release.contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
@@ -85,7 +87,7 @@ const conversions = conversionsForRelease(release);
     {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{kit.category && <><a href={`/rc/kits/types/${kit.category}/`}>{kitTypeOne[kit.category] ?? kit.category}</a>{(kit.drive || kit.power) && ' · '}</>}{[driveLabel(kit.drive), kit.power].filter(Boolean).join(' · ')}</dd></>}
     {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && ' · '}<a href={url.kit(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
-    {release.released ? <><dt>Released</dt><dd>{dateText(release)}</dd></> : <><dt>Year</dt><dd>{yearText(release)}</dd></>}
+    {release.released ? <><dt>Released</dt><dd>{dateText(release)}{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></> : <><dt>Year</dt><dd>{yearText(release)}</dd></>}
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
