@@ -2,7 +2,9 @@
 // The site reads only this JSON (schema_version 0); it never touches TOML.
 import { readFileSync } from 'node:fs';
 
-export type Brand = { id: string; name: string; legal_name?: string; country?: string; website?: string; kind?: string; status: string; item_numbers?: boolean; notes?: string };
+export type Brand = { id: string; name: string; legal_name?: string; country?: string; website?: string; kind?: string; status: string; item_numbers?: boolean; notes?: string; owner?: string; owner_source?: string; owner_since?: number };
+// A company that owns brands (hobbydex-rc docs/schema.md "company"); brand: the brand that carries its own range, when it has one.
+export type Company = { id: string; name: string; legal_name?: string; country?: string; website?: string; status?: string; brand?: string; parent?: string; notes?: string };
 export type Link = { site: string; url: string; kind?: 'fan-site' };
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
 export type Kit = { id: string; toml_path?: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; art?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[]; links?: Link[] };
@@ -18,7 +20,7 @@ export type Doc = { id: string; brand?: string; kind: string; title: string; ver
 export type KeyField = { field: string; label: string; from: 'part' | 'spec'; unit?: string; format?: string; compare_only?: boolean };
 export type Standard = { id: string; code: string; title: string; url?: string; replaced_by?: string; notes?: string };
 export type Category = { id: string; name: string; summary?: string; description?: string; spec_type?: string; key_fields?: KeyField[] };
-export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[] };
+export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[]; companies?: Company[] };
 
 const path = process.env.HOBBYDEX_DATA ?? 'data/hobbydex-rc.json';
 const raw: Dataset = JSON.parse(readFileSync(path, 'utf8'));
@@ -121,6 +123,8 @@ export const db = {
   spec: byId(raw.specs ?? []),
   partsBySpec,
   brand: byId(raw.brands),
+  company: byId(raw.companies ?? []),
+  brandsByOwner: group(raw.brands.filter((b) => b.owner), (b) => b.owner!),
   kit: byId(raw.kits),
   release: byId(raw.releases),
   part: byId(raw.parts),
