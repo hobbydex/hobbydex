@@ -1,0 +1,18 @@
+---
+// The platform pages lived under /rc/kits/ until 2026-10; every old address (index, by date, type pages,
+// platform pages and their former ids) keeps working as a redirect page to its /rc/platforms/ address.
+// Redirect pages stay out of the sitemap (astro.config.mjs).
+import { db, key, url } from '../../../lib/data';
+export function getStaticPaths() {
+  const to = (path: string | undefined, redirect: string) => ({ params: { path }, props: { redirect } });
+  const types = [...new Set([...db.kits.map((k) => k.category || 'car'), ...db.releases.flatMap((r) => (r.category ? [r.category] : []))])];
+  return [
+    to(undefined, '/rc/platforms/'),
+    to('by-date', '/rc/platforms/by-date/'),
+    ...types.map((t) => to(`types/${t}`, `/rc/platforms/types/${t}/`)),
+    ...db.kits.map((k) => to(key(k.id).join('/'), url.platform(k.id))),
+    ...db.kits.flatMap((k) => (k.former_ids ?? []).map((f) => to(key(f).join('/'), url.platform(k.id)))),
+  ];
+}
+return Astro.redirect(Astro.props.redirect, 301);
+---

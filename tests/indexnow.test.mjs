@@ -2,16 +2,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { decodeManifest, encodeManifest, pageHash, plan } from '../tools/indexnow.mjs';
 
-const current = { '/': 'a', '/rc/': 'b', '/rc/kits/': 'c', '/rc/kits/tamiya/58001/': 'd', '/rc/parts/x/1/': 'e' };
+const current = { '/': 'a', '/rc/': 'b', '/rc/platforms/': 'c', '/rc/platforms/tamiya/58001/': 'd', '/rc/parts/x/1/': 'e' };
 
 test('first run submits only the home and section pages and stores every hash', () => {
   const r = plan(null, current);
-  assert.deepEqual(r.submit, ['/', '/rc/', '/rc/kits/']);
+  assert.deepEqual(r.submit, ['/', '/rc/', '/rc/platforms/']);
   assert.deepEqual(r.manifest, current);
 });
 
 test('changed, new and removed pages are submitted, shallow first', () => {
-  const previous = { '/': 'a', '/rc/': 'B', '/rc/kits/': 'c', '/rc/kits/tamiya/58001/': 'd', '/rc/old/1/': 'z' };
+  const previous = { '/': 'a', '/rc/': 'B', '/rc/platforms/': 'c', '/rc/platforms/tamiya/58001/': 'd', '/rc/old/1/': 'z' };
   const r = plan(previous, current);
   assert.deepEqual(r.submit, ['/rc/', '/rc/old/1/', '/rc/parts/x/1/']);
   assert.equal(r.pending, 0);
@@ -19,7 +19,7 @@ test('changed, new and removed pages are submitted, shallow first', () => {
 });
 
 test('pages over the cap keep their old state in the manifest and come back next run', () => {
-  const previous = { '/': 'A', '/rc/': 'B', '/rc/kits/': 'c', '/rc/kits/tamiya/58001/': 'd', '/rc/old/1/': 'z' };
+  const previous = { '/': 'A', '/rc/': 'B', '/rc/platforms/': 'c', '/rc/platforms/tamiya/58001/': 'd', '/rc/old/1/': 'z' };
   const r = plan(previous, current, 2);
   assert.deepEqual(r.submit, ['/', '/rc/']);
   assert.equal(r.pending, 2);

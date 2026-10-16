@@ -12,14 +12,14 @@ const rows = db.kits.map((k) => {
 }).filter((x) => x.newest).sort((a, b) => dateKey(b.newest!).localeCompare(dateKey(a.newest!)) || a.k.name.localeCompare(b.k.name));
 const PAGE = 50;
 ---
-<Base title="Kits by date" description="Every RC kit in Hobbydex, newest first, by the year of its latest release.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/kits/">Kits</a> / by date</div>
-  <h1>Kits by date</h1>
-  <p class="muted">{rows.length} kits, newest first by the date of their latest release (the day or month where a source gives it, else the year); kits whose release years are unknown are left out. <a href="/rc/kits/">Kits by type</a></p>
+<Base title="Platforms by date" description="Every RC platform in Hobbydex, newest first, by the year of its latest release.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/platforms/">Platforms</a> / by date</div>
+  <h1>Platforms by date</h1>
+  <p class="muted">{rows.length} platforms, newest first by the date of their latest release (the day or month where a source gives it, else the year); platforms whose release years are unknown are left out. <a href="/rc/platforms/">Platforms by type</a></p>
   <table id="kits">
-    <tr><th class="num">Released</th><th>Kit</th><th>Type</th><th>Scale</th><th>Newest release</th><th class="num">Releases</th></tr>
+    <tr><th class="num">Released</th><th>Platform</th><th>Type</th><th>Scale</th><th>Newest release</th><th class="num">Releases</th></tr>
     {rows.map(({ k, newest, first, count }, i) => <tr hidden={i >= PAGE}>
-      <td class="num">{dateText(newest!)}</td><td><a href={url.kit(k.id)}><span class="muted" title={kitTypeOne[k.category ?? 'car']}>{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1em" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="1em" />}</span> {brandName(k.brand)} {k.name}</a></td><td><a href={`/rc/kits/types/${k.category || 'car'}/`}>{kitTypeOne[k.category ?? 'car'] ?? k.category}</a></td><td>{k.scale ?? ''}</td>
+      <td class="num">{dateText(newest!)}</td><td><a href={url.platform(k.id)}><span class="muted" title={kitTypeOne[k.category ?? 'car']}>{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1em" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="1em" />}</span> {brandName(k.brand)} {k.name}</a></td><td><a href={`/rc/platforms/types/${k.category || 'car'}/`}>{kitTypeOne[k.category ?? 'car'] ?? k.category}</a></td><td>{k.scale ?? ''}</td>
       <td><a href={url.release(newest!.id)}>{newest!.name}</a>{newest!.status !== 'released' && <span class="muted"> · {newest!.status}</span>}</td>
       <td class="num">{count}{first !== undefined && first !== newest!.year && <span class="muted"> since {first}</span>}</td>
     </tr>)}

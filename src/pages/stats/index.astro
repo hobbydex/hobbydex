@@ -19,10 +19,10 @@ const rows = db.brands.map((b) => {
 const years = [...count(db.releases.filter((r) => r.year), (r) => String(r.year)).entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
 const maxYear = Math.max(1, ...years.map(([, n]) => n));
 ---
-<Base title="Statistics" description="How much of each brand is in Hobbydex: parts, kits and releases per brand, and how complete they are.">
+<Base title="Statistics" description="How much of each brand is in Hobbydex: parts, platforms and releases per brand, and how complete they are.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / Statistics</div>
   <h1>Statistics</h1>
-  <p class="muted">{db.brands.length} brands, {db.kits.length} kits, {db.releases.length} releases and {db.parts.length} parts in the export of {db.generated}. For quality gaps see the <a href="/audit/">data audit</a>.</p>
+  <p class="muted">{db.brands.length} brands, {db.kits.length} platforms, {db.releases.length} releases and {db.parts.length} parts in the export of {db.generated}. For quality gaps see the <a href="/audit/">data audit</a>.</p>
   <div class="home-grid">
     <section>
       <h2>Brands by parts <span class="muted">· top 20</span></h2>
@@ -34,9 +34,9 @@ const maxYear = Math.max(1, ...years.map(([, n]) => n));
     </section>
   </div>
   <h2>Per brand <span class="muted">· most releases first</span></h2>
-  <p class="muted">Contents: releases whose parts list is in the data. Dated: releases with a known year. Linked: parts in a release's contents or linked to the kits they fit. Barcode: parts with a UPC/EAN.</p>
+  <p class="muted">Contents: releases whose parts list is in the data. Dated: releases with a known year. Linked: parts in a release's contents or linked to the platforms they fit. Barcode: parts with a UPC/EAN.</p>
   <div class="tablescroll"><table>
-    <tr><th>Brand</th><th class="num">Kits</th><th class="num">Releases</th><th class="num">Parts</th><th class="num">Contents</th><th class="num">Dated</th><th class="num">Linked</th><th class="num">Barcode</th></tr>
+    <tr><th>Brand</th><th class="num">Platforms</th><th class="num">Releases</th><th class="num">Parts</th><th class="num">Contents</th><th class="num">Dated</th><th class="num">Linked</th><th class="num">Barcode</th></tr>
     {rows.map((r) => <tr><td><a href={url.brand(r.b)}>{brandName(r.b)}</a></td><td class="num">{r.kits}</td><td class="num">{r.rel}</td><td class="num">{r.parts}</td>
       <td class="num">{r.rel ? `${r.contents}%` : ''}</td><td class="num">{r.rel ? `${r.dated}%` : ''}</td><td class="num">{r.parts ? `${r.linked}%` : ''}</td><td class="num">{r.parts ? `${r.gtin}%` : ''}</td></tr>)}
   </table></div>

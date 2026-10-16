@@ -14,11 +14,11 @@ const kitName = (id: string) => db.kit.get(id)?.name ?? '';
 <Base title={`${brandName(brand)} releases`} description={`Every ${brandName(brand)} kit and RTR release in Hobbydex, newest first.`}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / {brandName(brand)}</div>
   <h1>{brandName(brand)} releases</h1>
-  <p class="muted">{releases.length} releases, newest first; click a heading to sort. The brand's kits and parts are on <a href={url.brand(brand)}>its brand page</a>.</p>
+  <p class="muted">{releases.length} releases, newest first; click a heading to sort. The brand's platforms and parts are on <a href={url.brand(brand)}>its brand page</a>.</p>
   <table class="sortable">
-    <thead><tr><th class="num">Year</th><th>Release</th><th>Kit</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr></thead>
+    <thead><tr><th class="num">Year</th><th>Release</th><th>Platform</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr></thead>
     <tbody>{releases.map((r) => <tr>
-      <td class="num">{yearText(r)}</td><td><a href={url.release(r.id)}>{r.name}</a></td><td><a href={url.kit(r.kit)}>{kitName(r.kit)}</a></td>
+      <td class="num">{yearText(r)}</td><td><a href={url.release(r.id)}>{r.name}</a></td><td><a href={url.platform(r.kit)}>{kitName(r.kit)}</a></td>
       <td class="num">{r.number ?? ''}</td><td>{buildLabel(r.kind)}</td><td class="num">{r.contains?.length ?? 0}</td>
     </tr>)}</tbody>
   </table>

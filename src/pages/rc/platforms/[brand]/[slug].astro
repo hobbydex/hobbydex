@@ -16,7 +16,7 @@ import { driveLabel } from '../../../../lib/drive';
 import { gearing, type Gearing } from '../../../../lib/gearing';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
-  const moved = db.kits.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], slug: key(f)[1] }, props: { redirect: url.kit(x.id) } })));
+  const moved = db.kits.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], slug: key(f)[1] }, props: { redirect: url.platform(x.id) } })));
   return [...db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } })), ...moved];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
@@ -49,13 +49,13 @@ const byCat = <T,>(rows: T[], cat: (r: T) => string | undefined) => [...new Set(
 const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => byPartNo(a.p, b.p));
 const conversions = conversionsForKit(kit.id);
 ---
-<Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="kit" sub={brandName(kit.brand)}>
+<Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="platform" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(kit.brand)} {kit.name}</h1>
   <WebSearch query={`${brandName(kit.brand)} ${kit.name}`} links={kit.links} />
   <div class="factsrow">
   <dl class="facts">
-    <dt>Category</dt><dd><a href={`/rc/kits/types/${kit.category || 'car'}/`}>{kitTypeOne[kit.category ?? 'car'] ?? kit.category}</a>{isSourceNote(kit.notes) && <> <SourceNote text={kit.notes!} /></>}</dd>
+    <dt>Category</dt><dd><a href={`/rc/platforms/types/${kit.category || 'car'}/`}>{kitTypeOne[kit.category ?? 'car'] ?? kit.category}</a>{isSourceNote(kit.notes) && <> <SourceNote text={kit.notes!} /></>}</dd>
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
     {kit.drive && <><dt>Drive</dt><dd>{driveLabel(kit.drive)}<span hidden data-pagefind-filter={`drive:${driveLabel(kit.drive)}`} /></dd></>}
     {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
@@ -67,7 +67,7 @@ const conversions = conversionsForKit(kit.id);
     <h2>Same car or platform</h2>
     <ul>
       {relations.map((r) => { const o = db.kit.get(r.other); const label = r.relation === 'rebrand' ? (r.reverse ? 'Also sold as' : 'Rebrand of') : 'Shares its platform with'; return <li>
-        {label} <a href={url.kit(r.other)}>{o ? `${brandName(o.brand)} ${o.name}` : r.other}</a>
+        {label} <a href={url.platform(r.other)}>{o ? `${brandName(o.brand)} ${o.name}` : r.other}</a>
         {r.link.parts && <span class="muted"> · parts {r.link.parts}</span>}{r.link.notes && <span class="muted"> · {r.link.notes}</span>}
       </li>; })}
     </ul></>}
@@ -92,7 +92,7 @@ const conversions = conversionsForKit(kit.id);
   {pair.length > 1 && <p><a href={`/rc/compare/?a=${encodeURIComponent(pair[0].id)}&b=${encodeURIComponent(pair[1].id)}`}>Compare the last two releases</a> <span class="muted">or any two releases on the compare page</span></p>}
   {borrowedUnique.length > 0 && <>
     <h2>Parts, from the interchangeable rebrand <span class="muted">({borrowedUnique.length})</span></h2>
-    <p class="muted">No parts list for this kit itself; these come from the rebrand above, whose parts interchange.</p>
+    <p class="muted">No parts list for this platform itself; these come from the rebrand above, whose parts interchange.</p>
     {byCat(borrowedUnique, (x) => x.p.category).map(({ g, rows }) => <div class="catgroup">
       <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
       <table>

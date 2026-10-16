@@ -8,9 +8,9 @@ const SLOTS = ['a', 'b', 'c', 'd'];
 <Base title="Compare releases" description="Compare the parts of two to four RC releases side by side: what each has in the box, as an option, or not at all.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Compare</div>
   <h1>Compare releases</h1>
-  <p class="muted">Pick two to four releases, of the same kit or of different kits and brands: type part of the brand, name, item number or kit. A part shared between releases is the same part number in each.</p>
+  <p class="muted">Pick two to four releases, of the same platform or of different platforms and brands: type part of the brand, name, item number or platform. A part shared between releases is the same part number in each.</p>
   <form id="cmp" class="cmpform" data-pagefind-ignore onsubmit="return false" data-cats={JSON.stringify(categoryLabel)}>
-    {SLOTS.map((k, i) => <div class="combo-row" data-slot={k} hidden={i > 1}><b>{k.toUpperCase()}</b><div class="combo"><input id={k} type="text" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls={`${k}-list`} autocomplete="off" spellcheck="false" placeholder="Type a release: brand, name, item number or kit" disabled /><ul id={`${k}-list`} role="listbox" hidden></ul></div>{i > 1 && <button type="button" class="rm" data-rm={k} aria-label={`Remove release ${k.toUpperCase()}`}>×</button>}</div>)}
+    {SLOTS.map((k, i) => <div class="combo-row" data-slot={k} hidden={i > 1}><b>{k.toUpperCase()}</b><div class="combo"><input id={k} type="text" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls={`${k}-list`} autocomplete="off" spellcheck="false" placeholder="Type a release: brand, name, item number or platform" disabled /><ul id={`${k}-list`} role="listbox" hidden></ul></div>{i > 1 && <button type="button" class="rm" data-rm={k} aria-label={`Remove release ${k.toUpperCase()}`}>×</button>}</div>)}
     <p class="cmpopts"><button type="button" id="add" class="btn">+ add a release</button>
       <label><input type="checkbox" id="boxonly" /> In the box only</label>
       <label><input type="checkbox" id="diffonly" /> Only differences</label>

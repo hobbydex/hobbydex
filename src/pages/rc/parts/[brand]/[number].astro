@@ -79,7 +79,7 @@ const noLoad = (kv: number, cells?: number[]) => {
 const motorCan = part.category === 'motor' ? canDiameter(part) : undefined;
 const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
 ---
-<Base title={numName} description={`${brand?.name} ${numName}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
+<Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a> / {partLabel(part)}</div>
   {part.category && <span hidden data-pagefind-filter={`category:${catName(part.category)}`} />}
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</h1>
@@ -160,10 +160,10 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
       </tr>; })}
     </table></>}
   {(kitsOf.length > 1 || (part.fits?.length ?? 0) > 0) && <>
-    <h2>Fits these kits <span class="muted">({kitsOf.length})</span></h2>
+    <h2>Fits these platforms <span class="muted">({kitsOf.length})</span></h2>
     <table>
-      <tr><th>Kit</th><th>How</th><th>Source</th></tr>
-      {kitsOf.map((k) => <tr><td><a href={url.kit(k.id)}>{k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : k.id}</a></td>
+      <tr><th>Platform</th><th>How</th><th>Source</th></tr>
+      {kitsOf.map((k) => <tr><td><a href={url.platform(k.id)}>{k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : k.id}</a></td>
         <td>{[...k.roles].join(', ')}{k.releases > 0 && ` (${k.releases} release${k.releases > 1 ? 's' : ''})`}{k.fits.map((f, i) => { const n = shownNote(f.notes); return <>{(k.releases > 0 || i > 0) && '; '}fitment list: {f.type}{n && (isSourceNote(n) ? <> <SourceNote text={n} /></> : <span class="muted"> · {n}</span>)}</>; })}</td>
         <td class="muted">{[...new Set(k.fits.map((f) => (f.source && db.doc.get(f.source)?.title) ?? f.source ?? ''))].filter(Boolean).join('; ')}</td></tr>)}
     </table></>}
