@@ -1,0 +1,29 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { url, brandName, releasesByMake, bodiesByMake } from '../../../lib/data';
+// every make a release or body shell depicts, with how many models, releases and RC brands
+const makes = [...new Set([...releasesByMake.keys(), ...bodiesByMake.keys()])].sort((a, b) => a.localeCompare(b)).map((make) => {
+  const rs = releasesByMake.get(make) ?? [], bs = bodiesByMake.get(make) ?? [];
+  return { make, models: new Set([...rs, ...bs].map((x) => x.depicts!.model)).size, releases: rs.length, bodies: bs.length,
+    brands: [...new Set(rs.map((r) => r.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b))) };
+});
+---
+<Base title="Car makes" description="Real car and truck makes replicated by RC cars: every Porsche, Ford or Toyota across RC brands.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Makes</div>
+  <h1>Car makes <span class="muted">({makes.length})</span></h1>
+  <p class="about">The real cars and trucks RC releases replicate, by make, read from the RC makers' product names. A make page lists every release of that make across RC brands, and the body shells sold for it. Names only: the makes' logos and trademarks belong to their owners.</p>
+  <table class="sortable releases">
+    <thead><tr><th aria-sort="ascending">Make</th><th class="num">Models</th><th class="num">Releases</th><th class="num">Body shells</th><th>RC brands</th></tr></thead>
+    <tbody>{makes.map((m) => <tr>
+      <td class="name"><a href={url.make(m.make)}>{m.make}</a></td>
+      <td class="num" data-label="Models">{m.models}</td><td class="num" data-label="Releases">{m.releases || ''}</td><td class="num" data-label="Body shells">{m.bodies || ''}</td>
+      <td data-label="RC brands">{m.brands.map((b, i) => <>{i > 0 && ', '}{brandName(b)}</>)}</td>
+    </tr>)}</tbody>
+  </table>
+  <script src="/sort-table.js" defer></script>
+  <style>
+    .about { max-width: 46rem; }
+    /* phones: the labelled cells wrap as whole boxes, the brand list wraps inside its own */
+    @media (max-width: 600px) { table.releases td[data-label]:not(:empty) { display: inline-block; white-space: normal; } }
+  </style>
+</Base>

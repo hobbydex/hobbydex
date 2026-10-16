@@ -5,7 +5,7 @@ import { gtinLabel, gtinJsonld } from '../../../../lib/gtin';
 import WebSearch from '../../../../components/WebSearch.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName, partLabel, yearOf, yearText, heatsinksByCan, canDiameter } from '../../../../lib/data';
+import { db, key, url, brandName, partLabel, yearOf, yearText, heatsinksByCan, canDiameter, depictsText } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -84,6 +84,7 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
   <WebSearch query={`"${part.number ?? part.name}" ${brand?.name ?? ''}`.trim()} copy={part.number} links={part.links} />
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
+    {part.depicts && <><dt>Real vehicle</dt><dd><a href={url.make(part.depicts.make)}>{part.depicts.make}</a> {depictsText(part.depicts).slice(part.depicts.make.length + 1)}<span hidden data-pagefind-filter={`make:${part.depicts.make}`} /></dd></>}
     {part.number && <><dt>Part number</dt><dd>{part.number}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span></dd></>}
     {(part.links ?? []).filter((l) => l.kind !== 'fan-site').length > 0 && <><dt>Product page</dt><dd>{(part.links ?? []).filter((l) => l.kind !== 'fan-site').map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
