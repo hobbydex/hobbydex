@@ -1,0 +1,31 @@
+---
+// Drive chips over kit tables: rows carry data-drive, the groups holding them class "drivegroup"
+// (hidden when no row is left). ?drive=tracks preselects one; shown only when the kits have two drives or more.
+import { driveLabel, driveOrder } from '../lib/drive';
+interface Props { drives: (string | undefined)[] }
+const counts = new Map<string, number>();
+for (const d of Astro.props.drives) counts.set(d ?? '', (counts.get(d ?? '') ?? 0) + 1);
+const values = [...counts.keys()].filter(Boolean).sort((a, b) => (driveOrder.indexOf(a) + 1 || 99) - (driveOrder.indexOf(b) + 1 || 99));
+---
+{values.length + (counts.has('') ? 1 : 0) > 1 && <div class="search-filters drivefilter" role="group" aria-label="Drive" data-pagefind-ignore>
+  <button data-drive="" aria-pressed="true">Any drive</button>
+  {values.map((d) => <button data-drive={d} aria-pressed="false">{driveLabel(d)} <span class="muted">{counts.get(d)}</span></button>)}
+</div>}
+<script>
+  for (const box of document.querySelectorAll<HTMLElement>('.drivefilter')) {
+    const pick = (drive: string) => {
+      for (const b of box.querySelectorAll<HTMLElement>('button')) b.setAttribute('aria-pressed', String(b.dataset.drive === drive));
+      for (const g of document.querySelectorAll<HTMLElement>('.drivegroup')) {
+        let shown = 0;
+        for (const tr of g.querySelectorAll<HTMLElement>('tr[data-drive]')) { const ok = !drive || tr.dataset.drive === drive; tr.hidden = !ok; if (ok) shown++; }
+        g.hidden = shown === 0;
+      }
+      const u = new URL(location.href);
+      if (drive) u.searchParams.set('drive', drive); else u.searchParams.delete('drive');
+      history.replaceState(null, '', u);
+    };
+    box.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('button'); if (b) pick(b.dataset.drive ?? ''); });
+    const want = new URLSearchParams(location.search).get('drive');
+    if (want && box.querySelector(`button[data-drive="${CSS.escape(want)}"]`)) pick(want);
+  }
+</script>

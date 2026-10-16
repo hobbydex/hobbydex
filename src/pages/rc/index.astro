@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { db, url } from '../../lib/data';
+import { driveLabel } from '../../lib/drive';
 ---
 <Base title="RC cars" description="RC car brands, kits and parts in Hobbydex.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / RC cars</div>
@@ -25,7 +26,7 @@ import { db, url } from '../../lib/data';
       <tr>
         <td><a href={url.brand(k.brand)}>{db.brand.get(k.brand)?.name}</a></td>
         <td><a href={url.kit(k.id)}>{k.name}</a></td>
-        <td>{k.category}</td><td>{k.scale}</td><td>{k.drive}</td>
+        <td>{k.category}</td><td>{k.scale}</td><td>{driveLabel(k.drive)}</td>
         <td>{(db.releasesByKit.get(k.id) ?? []).map((r, i) => <>{i > 0 && ', '}<a href={url.release(r.id)}>{r.name}</a></>)}</td>
       </tr>
     ))}

@@ -11,6 +11,7 @@ import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
+import { driveLabel } from '../../../../lib/drive';
 import { bearingList } from '../../../../lib/bearingList';
 import { gearing } from '../../../../lib/gearing';
 export function getStaticPaths() {
@@ -67,7 +68,7 @@ const conversions = conversionsForRelease(release);
     <dt>Kit</dt><dd><a href={url.kit(kit.id)}>{kit.name}</a></dd>
     {release.requires?.length && <><dt>Needs</dt><dd>{release.requires.length > 1 && 'one of: '}{release.requires.map((id, i) => { const n = requiredName(id); return <>{i > 0 && (i === release.requires!.length - 1 ? ' or ' : ', ')}{n ? <a href={n.href}>{n.name}</a> : id}</>; })}<span class="muted"> (not included: this is a conversion kit)</span></dd></>}
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
-    {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{kit.category && <><a href={`/rc/kits/types/${kit.category}/`}>{kitTypeOne[kit.category] ?? kit.category}</a>{(kit.drive || kit.power) && ' · '}</>}{[kit.drive, kit.power].filter(Boolean).join(' · ')}</dd></>}
+    {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{kit.category && <><a href={`/rc/kits/types/${kit.category}/`}>{kitTypeOne[kit.category] ?? kit.category}</a>{(kit.drive || kit.power) && ' · '}</>}{[driveLabel(kit.drive), kit.power].filter(Boolean).join(' · ')}</dd></>}
     {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && ' · '}<a href={url.kit(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
     {release.released ? <><dt>Released</dt><dd>{dateText(release)}</dd></> : <><dt>Year</dt><dd>{yearText(release)}</dd></>}
