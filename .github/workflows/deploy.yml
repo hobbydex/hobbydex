@@ -34,7 +34,7 @@ jobs:
         run: |
           python3 -I tools/validate.py
           python3 -I tools/export.py ../data/hobbydex-rc.json
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
