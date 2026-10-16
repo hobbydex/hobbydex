@@ -9,7 +9,7 @@ export type Kit = { id: string; toml_path?: string; former_ids?: string[]; brand
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
 export type Release = { id: string; toml_path?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; brand: string; number?: string; name: string; color?: string; year?: number; released?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
-export type Fits = { kit: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };
+export type Fits = { kit: string; releases?: string[]; car?: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };   // releases: the cars of the kit the maker lists the part for; car: a car that is none of them; neither: every release
 export type MountHoles = { thread: string; count?: number; circle_mm: number };   // count left out: the maker gives thread and spacing only
 export type Part = { id: string; toml_path?: string; gtin?: string; former_ids?: string[]; brand: string; number?: string; name: string; category?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string | string[]; paint_type?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; sensored?: boolean; mount_holes?: MountHoles[]; motor_can_mm?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; radio_unit?: 'transmitter' | 'receiver' | 'set'; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; range?: string; displacement_cc?: number; engine_class?: string; stroke_mm?: number; output_hp?: number; output_rpm?: number; rpm_range?: number[]; fuel?: string };
 export type Includes = { part?: string; spec?: string; qty?: number; source?: string; notes?: string };
@@ -73,6 +73,23 @@ const partsBySpec = new Map<string, { part: Part; link: EquivalentTo }[]>();
 for (const p of raw.parts) for (const e of p.equivalent_to ?? []) {
   if (!partsBySpec.has(e.spec)) partsBySpec.set(e.spec, []);
   partsBySpec.get(e.spec)!.push({ part: p, link: e });
+}
+
+// Parts sold for a release's kit, split by the cars a per-car set is listed for: `here` fit this release (the fit
+// names it, or names neither releases nor a car and so fits the whole kit), `other` are sets made for other cars
+// of the kit (releases of it, or a car not in the data). Each part once, in the order given.
+export function fitsForRelease(kitId: string, releaseId: string, keep: (p: Part) => boolean) {
+  const here = new Map<string, Part>(), other = new Map<string, { part: Part; releases: string[]; cars: string[] }>();
+  for (const { part, fit } of fitsByKit.get(kitId) ?? []) {
+    if (!keep(part)) continue;
+    if (fit.releases ? fit.releases.includes(releaseId) : !fit.car) { here.set(part.id, part); continue; }
+    const o = other.get(part.id) ?? { part, releases: [], cars: [] };
+    for (const r of fit.releases ?? []) if (!o.releases.includes(r)) o.releases.push(r);
+    if (fit.car && !o.cars.includes(fit.car)) o.cars.push(fit.car);
+    other.set(part.id, o);
+  }
+  for (const id of here.keys()) other.delete(id);
+  return { here: [...here.values()], other: [...other.values()] };
 }
 
 const fitsByKit = new Map<string, { part: Part; fit: Fits }[]>();
