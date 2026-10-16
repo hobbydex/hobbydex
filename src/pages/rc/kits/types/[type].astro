@@ -28,20 +28,20 @@ const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scale
   <DriveFilter drives={kits.map((k) => k.drive)} />
   {scales.map((sc) => { const ks = kits.filter((k) => (k.scale ?? '') === sc); return <section class="drivegroup">
     <h2 id={`scale-${sc ? sc.replace('/', '-') : 'unknown'}`}>{sc || 'Scale unknown'} <span class="muted">({ks.length})</span></h2>
-    <table>
-      <tr><th class="artcol"></th><th>Brand</th><th>Kit</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
+    <table class="releases">
+      <tr><th>Kit</th><th>Brand</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
       {ks.map((k) => <tr data-drive={k.drive ?? ''}>
-        <td class="artcol"><a href={url.kit(k.id)} tabindex="-1" aria-hidden="true">{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(k.category)} size="1.3em" />}</a></td>
-        <td><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td><td><a href={url.kit(k.id)}>{k.name}</a></td>
-        <td>{driveLabel(k.drive)}</td><td>{k.power ?? ''}</td><td class="num">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
+        <td class="name">{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(k.category)} size="1.3em" />} <a href={url.kit(k.id)}>{k.name}</a></td>
+        <td data-label="Brand"><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td>
+        <td data-label="Drive">{driveLabel(k.drive)}</td><td data-label="Power">{k.power ?? ''}</td><td class="num" data-label="Releases">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
       </tr>)}
     </table></section>; })}
   {onOther.length > 0 && <>
     <h2>On another chassis <span class="muted">({onOther.length})</span></h2>
     <p class="muted">Releases of this type built on a kit of another type.</p>
-    <table>
-      <tr><th>Brand</th><th>Release</th><th>Kit</th><th class="num">Year</th></tr>
-      {onOther.map((r) => <tr><td><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td><td><a href={url.kit(r.kit)}>{db.kit.get(r.kit)?.name}</a></td><td class="num">{yearText(r)}</td></tr>)}
+    <table class="releases">
+      <tr><th>Release</th><th>Brand</th><th>Kit</th><th class="num">Year</th></tr>
+      {onOther.map((r) => <tr><td class="name"><a href={url.release(r.id)}>{r.name}</a></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td data-label="Kit"><a href={url.kit(r.kit)}>{db.kit.get(r.kit)?.name}</a></td><td class="num" data-label="Year">{yearText(r)}</td></tr>)}
     </table></>}
   <style>.about { max-width: 46rem; font-size: 1.05rem; }</style>
 </Base>
