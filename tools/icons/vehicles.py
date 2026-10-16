@@ -233,6 +233,11 @@ V["race-truck"] = vehicle([
     [(1.5, 20.0), (1.5, 9.0), (2.6, 4.6), (4.0, 3.8), (17.5, 3.8), (18.8, 5.0), (19.2, 13.0), (46.5, 13.0), (46.5, 18.2), (44.0, 20.0)],
     [(4.0, 3.8), (5.0, 1.6), (17.0, 1.6), (17.5, 3.8)]],   # roof spoiler
     [tyre(10.5, 4.0, False), tyre(36.0, 4.0, False)])
+def _trailer():
+    # box semi-trailer, front to the left: the box, the chassis rail under it, landing legs down near the front, three axles at the rear
+    wheels = [tyre(x, 3.5, False, gap=0.9) for x in (28.6, 36.0, 43.4)]
+    return vehicle([box(1.2, 4.0, 46.8, 13.8), box(6.0, 13.8, 46.6, 15.0), box(10.6, 15.0, 12.2, 21.8), box(8.8, 21.8, 14.0, 23.2)], wheels)
+V["trailer"] = _trailer()
 def _tracks(x0, x1, y0, y1, wheels):
     # a track run: a stadium shape, with the road wheels as nut-like holes
     r = (y1 - y0) / 2
