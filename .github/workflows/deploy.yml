@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false   # a running deploy always finishes; GitHub keeps only the newest waiting one
 
 jobs:
   build:

@@ -1,0 +1,51 @@
+---
+import Base from '../../../layouts/Base.astro';
+import ReleaseArt from '../../../components/ReleaseArt.astro';
+import { db, url, brandName, yearText, yearOf, makeSlug, releasesByMake, bodiesByMake, partLabel, type Release, type Part } from '../../../lib/data';
+export function getStaticPaths() {
+  return [...new Set([...releasesByMake.keys(), ...bodiesByMake.keys()])].map((make) => ({ params: { make: makeSlug(make) }, props: { make } }));
+}
+const { make } = Astro.props;
+const releases = releasesByMake.get(make) ?? [], bodies = bodiesByMake.get(make) ?? [];
+// one section per model family, the model's first word ("911 GT3 RS" and "911 Carrera RSR" are both 911s) or its
+// first two for a two-word name ("Land Cruiser 40"); families in natural order ("911" before "934"); in a family,
+// releases by RC brand, then year, with the model as the maker names it
+const TWO_WORDS = new Set(['land cruiser', 'fj cruiser', 'range rover', 'lancer evolution', 'el camino', 'bel air', 'karmann ghia', 'sprinter trueno',
+  'monte carlo', 'caprice classic', 'corolla levin', 'mark ii', 'mark x', 'type 2', 'series ii', 'series iia', 'series iii', 'sport quattro', 'giulia sprint',
+  'gr supra', 'gr yaris', 'gr corolla', 'power wagon', 'round hood', 'round-hood', 'round-nose', 'round-nosed', 'round-bonnet']);
+const family = (model: string) => { const w = model.split(' '); return w.length > 1 && TWO_WORDS.has(`${w[0]} ${w[1]}`.toLowerCase()) ? `${w[0]} ${w[1]}` : w[0]; };
+const famKey = (m: string) => family(m).toLowerCase();
+const models = [...new Map([...releases, ...bodies].map((x) => [famKey(x.depicts!.model), family(x.depicts!.model)])).values()]
+  .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+const anchor = (m: string) => 'model-' + m.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const byBrandYear = (a: Release, b: Release) => brandName(a.brand).localeCompare(brandName(b.brand)) || yearOf(a) - yearOf(b) || a.name.localeCompare(b.name);
+const byBrandNo = (a: Part, b: Part) => brandName(a.brand).localeCompare(brandName(b.brand)) || partLabel(a).localeCompare(partLabel(b), undefined, { numeric: true });
+const brands = new Set(releases.map((r) => r.brand)).size;
+const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
+---
+<Base title={`${make} RC cars`} description={`${make}: ${releases.length} RC releases across ${brands} brands${bodies.length ? ` and ${bodies.length} body shells` : ''}, by model.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/makes/">Car makes</a> / {make}</div>
+  <h1>{make} <span class="muted">({releases.length} {releases.length === 1 ? 'release' : 'releases'})</span></h1>
+  <p class="muted">RC replicas of {make} vehicles, read from the RC makers' product names{brands > 1 ? `, across ${brands} RC brands` : ''}. Vehicle year where the name states it. {make} is a trademark of its owner; no logos are shown.</p>
+  {models.length > 1 && <p class="toc" data-pagefind-ignore>{models.map((m, i) => <>{i > 0 && ' · '}<a href={`#${anchor(m)}`}>{m}</a></>)}</p>}
+  {models.map((m) => { const rs = releases.filter((r) => famKey(r.depicts!.model) === m.toLowerCase()).sort(byBrandYear); const bs = bodies.filter((p) => famKey(p.depicts!.model) === m.toLowerCase()).sort(byBrandNo); return <section>
+    <h2 id={anchor(m)}>{make} {m} <span class="muted">({rs.length + bs.length})</span></h2>
+    {rs.length > 0 && <table class="releases">
+      <tr><th>Release</th><th>Model</th><th>Brand</th><th class="num">Vehicle year</th><th class="num">Released</th></tr>
+      {rs.map((r) => { const k = db.kit.get(r.kit); return <tr>
+        <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a>{r.number && <span class="muted"> {r.number}</span>}</td>
+        <td data-label="Model">{r.depicts!.model}</td>
+        <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
+        <td class="num" data-label="Vehicle year">{vyear(r)}</td><td class="num" data-label="Released">{r.year || r.model_year ? yearText(r) : ''}</td>
+      </tr>; })}
+    </table>}
+    {bs.length > 0 && <>
+      <h3>Body shells <span class="muted">({bs.length})</span></h3>
+      <ul>{bs.map((p) => <li><a href={url.part(p.id)}>{brandName(p.brand)} {partLabel(p)}</a>{p.number && <span class="muted"> {p.name}</span>} <span class="muted">· {p.depicts!.model}</span></li>)}</ul></>}
+  </section>; })}
+  <style>
+    .toc { line-height: 1.8; }
+    /* phones: the labelled cells wrap as whole boxes, five of them do not fit one line */
+    @media (max-width: 600px) { table.releases td[data-label]:not(:empty) { display: inline-block; white-space: normal; } }
+  </style>
+</Base>

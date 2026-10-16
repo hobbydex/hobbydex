@@ -13,6 +13,7 @@ import Base from '../layouts/Base.astro';
     <button data-type="brand" aria-pressed="false">Brands</button>
     <select id="cat" aria-label="Part category"><option value="">any category</option></select>
     <select id="drive" aria-label="Kit drive"><option value="">any drive</option></select>
+    <select id="make" aria-label="Real vehicle make"><option value="">any make</option></select>
   </div>
   <div class="search-status" id="status"></div>
   <ul class="search-results" id="results"></ul>
@@ -37,8 +38,8 @@ import Base from '../layouts/Base.astro';
         status.textContent = 'Search index failed to load: ' + (e && e.message ? e.message : e);
         return;
       }
-      let type = '', cat = '', drive = '', hits = [], shown = 0, seq = 0;
-      const catSel = document.getElementById('cat'), driveSel = document.getElementById('drive');
+      let type = '', cat = '', drive = '', make = '', hits = [], shown = 0, seq = 0;
+      const catSel = document.getElementById('cat'), driveSel = document.getElementById('drive'), makeSel = document.getElementById('make');
       const DRIVES = ['2WD', '4WD', 'FWD', '6WD', '8WD', 'Tracks'];
       try {
         const f = await pagefind.filters();
@@ -48,8 +49,12 @@ import Base from '../layouts/Base.astro';
         for (const [name, n] of Object.entries(f.drive || {}).sort((a, b) => (DRIVES.indexOf(a[0]) + 1 || 99) - (DRIVES.indexOf(b[0]) + 1 || 99))) {
           const o = document.createElement('option'); o.value = name; o.textContent = `${name} (${n})`; driveSel.appendChild(o);
         }
+        // real vehicle makes a release or body shell replicates
+        for (const [name, n] of Object.entries(f.make || {}).sort((a, b) => a[0].localeCompare(b[0]))) {
+          const o = document.createElement('option'); o.value = name; o.textContent = `${name} (${n})`; makeSel.appendChild(o);
+        }
       } catch (e) {}
-      const filt = () => { const f = {}; if (type) f.type = type; if (cat) { f.category = cat; f.type = 'part'; } if (drive) { f.drive = drive; f.type = 'kit'; } return f; };
+      const filt = () => { const f = {}; if (type) f.type = type; if (cat) { f.category = cat; f.type = 'part'; } if (drive) { f.drive = drive; f.type = 'kit'; } if (make) f.make = make; return f; };
       const PAGE = 20;
       const labels = { part: 'part', spec: 'spec', release: 'release', kit: 'kit', brand: 'brand' };
       const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -74,10 +79,10 @@ import Base from '../layouts/Base.astro';
       async function search() {
         const my = ++seq, text = q.value.trim();
         results.innerHTML = ''; shown = 0; more.hidden = true;
-        const qs = new URLSearchParams(); if (text) qs.set('q', text); if (type) qs.set('type', type); if (cat) qs.set('category', cat); if (drive) qs.set('drive', drive);
+        const qs = new URLSearchParams(); if (text) qs.set('q', text); if (type) qs.set('type', type); if (cat) qs.set('category', cat); if (drive) qs.set('drive', drive); if (make) qs.set('make', make);
         history.replaceState(null, '', qs.toString() ? `?${qs}` : location.pathname);
-        if (!text && !type && !cat && !drive) { status.textContent = ''; hits = []; return; }
-        if (!text && browseAll(type, cat)) { status.textContent = 'Type a part number or name to search the parts, or pick a category.'; hits = []; q.focus(); return; }
+        if (!text && !type && !cat && !drive && !make) { status.textContent = ''; hits = []; return; }
+        if (!text && !make && browseAll(type, cat)) { status.textContent = 'Type a part number or name to search the parts, or pick a category.'; hits = []; q.focus(); return; }
         status.textContent = 'Searching...';
         let r;
         try {
@@ -90,7 +95,7 @@ import Base from '../layouts/Base.astro';
         hits = r.results;
         // ranking: an exact kit or release name, then kits, releases and parts whose title holds every word
         // (shortest title first; bodies before generic parts), then pages that only mention the words
-        if (text && !type && !cat && !drive) {
+        if (text && !type && !cat && !drive && !make) {
           // kits are few and can sit far down pagefind's order behind hundreds of a chassis's releases
           // and parts ("TT-02"): they always join the ranked candidates
           const kits = (await pagefind.search(text, { filters: { type: 'kit' } })).results.slice(0, 50);
@@ -114,11 +119,13 @@ import Base from '../layouts/Base.astro';
         search();
       });
       catSel.addEventListener('change', () => { cat = catSel.value; if (cat) { drive = ''; driveSel.value = ''; } search(); });
-      driveSel.addEventListener('change', () => { drive = driveSel.value; if (drive) { cat = ''; catSel.value = ''; } search(); });
+      driveSel.addEventListener('change', () => { drive = driveSel.value; if (drive) { cat = ''; catSel.value = ''; make = ''; makeSel.value = ''; } search(); });
+      makeSel.addEventListener('change', () => { make = makeSel.value; if (make) { drive = ''; driveSel.value = ''; } search(); });
       if (params.get('category')) { cat = params.get('category'); catSel.value = cat; }
       if (params.get('drive')) { drive = params.get('drive'); driveSel.value = drive; }
+      if (params.get('make')) { make = params.get('make'); makeSel.value = make; }
       if (params.get('type')) { type = params.get('type'); for (const x of filters.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x.dataset.type === type)); }
-      if (params.get('q') || cat || drive || type) search();
+      if (params.get('q') || cat || drive || make || type) search();
     })();
   </script>
 </Base>
