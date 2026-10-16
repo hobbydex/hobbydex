@@ -4,9 +4,10 @@ import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { paintChip } from '../../../../lib/paintSwatch';
 import WebSearch from '../../../../components/WebSearch.astro';
 import CopyButton from '../../../../components/CopyButton.astro';
+import OtherCarSets from '../../../../components/OtherCarSets.astro';
 import { gtinLabel, gtinJsonld } from '../../../../lib/gtin';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName, byPartNo, partLabel, partNo, yearOf, yearText, dateText, requiredName, conversionsForRelease } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partLabel, partNo, yearOf, yearText, dateText, requiredName, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -41,8 +42,10 @@ const cats = [...new Set(rows.map((c) => c.p.category).filter((c): c is string =
 const related = (db.kitRelations.get(kit.id) ?? []).map((r) => ({ ...r, k: db.kit.get(r.other) })).filter((r) => r.k);
 const bearings = bearingList(release);
 const numW = String(Math.max(5, ...rows.map((c) => partNo(c.p).length)));   // characters in the page's longest part number; CSS turns it into a width and caps it on phones
-// bearing kits sold for this car, checked against the sizes (and counts) in the box
-const bearingKits = (db.fitsByKit.get(kit.id) ?? []).map((x) => x.part).filter((p) => p.category === 'bearing' && (p.includes ?? []).some((i) => i.spec?.startsWith('spec/bearing/')))
+// bearing kits sold for this car, checked against the sizes (and counts) in the box; a set a shop lists for another
+// car of the kit (a Fast Eddy kit for the Ford GT Mk II on a TT-02) goes in one collapsed line below
+const bearingFits = fitsForRelease(kit.id, release.id, (p) => p.category === 'bearing' && (p.includes ?? []).some((i) => i.spec?.startsWith('spec/bearing/')));
+const bearingKits = bearingFits.here
   .sort(byPartNo).map((p) => {
     const inc = new Map((p.includes ?? []).filter((i) => i.spec).map((i) => [i.spec!, i.qty]));
     const need = bearings?.lines ?? [];
@@ -51,6 +54,14 @@ const bearingKits = (db.fitsByKit.get(kit.id) ?? []).map((x) => x.part).filter((
     const total = [...inc.values()].reduce((n: number, q) => n + (q ?? 0), 0);
     return { p, missing, short, total };
   });
+// screw kits sold for this car by aftermarket brands (RCScrewZ and others list one per car; their contents are
+// not itemised); the maker's own small screw sets are spare parts, not kits for the car
+const screwFits = fitsForRelease(kit.id, release.id, (p) => p.category === 'screw' && p.brand !== kit.brand && /\b(screw|hardware|fastener|bolt)s?\s+(kit|set)\b/i.test(p.name));
+screwFits.here.sort(byPartNo);
+// the sets made for other cars of the kit, with the cars they are listed for
+const otherCars = (o: { part: Part; releases: string[] }[]) => o.map((x) => ({ p: x.part, cars: x.releases.map((r) => db.release.get(r)).filter((r) => r !== undefined) }))
+  .sort((a, b) => byPartNo(a.p, b.p));
+const otherBearing = otherCars(bearingFits.other), otherScrew = otherCars(screwFits.other);
 const copyText = bearings ? bearings.lines.map((l) => `${l.qty !== undefined ? `${l.qty}x ` : ''}${l.name}`).join('\n') : '';
 const gear = gearing(release);
 // the box at a glance: part numbers per category, each linking to its group in the table
@@ -102,18 +113,25 @@ const conversions = conversionsForRelease(release);
       {bearings.lines.map((l) => <tr><td><a href={url.spec(l.spec)}>{l.name}</a></td>{bearings.counted && <td class="num">{l.qty}</td>}<td>{l.parts.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{partLabel(p)}</a></>)}{l.bushing && <span class="muted"> · bushing in the kit</span>}</td></tr>)}
     </table>
     {bearings.unsized.length > 0 && <p class="muted">Also {bearings.unsized.length} bearing {bearings.unsized.length === 1 ? 'part' : 'parts'} of unknown size: {bearings.unsized.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{partLabel(p)}</a></>)}.</p>}
-    {bearingKits.length > 0 && <>
+    {(bearingKits.length > 0 || otherBearing.length > 0) && <>
       <h3>Bearing kits for this car</h3>
-      <table>
+      {bearingKits.length > 0 && <table>
         <tr><th>Kit</th><th class="num">Bearings</th><th>Against the box</th></tr>
         {bearingKits.map((b) => <tr><td><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> {b.p.number && <span class="muted">{b.p.name}</span>}</td><td class="num">{b.total || ''}</td>
           <td>{b.missing.length === 0 && b.short.length === 0 ? (bearings.counted ? 'every size, enough of each' : 'every size') : <span class="muted">{b.missing.length > 0 && `misses ${b.missing.map((l) => l.name).join(', ')}`}{b.missing.length > 0 && b.short.length > 0 && '; '}{b.short.length > 0 && `too few ${b.short.map((l) => l.name).join(', ')}`}</span>}</td></tr>)}
-      </table></>}
+      </table>}
+      <OtherCarSets items={otherBearing} kitName={kit.name} /></>}
     </>}
-  {!bearings && bearingKits.length > 0 && <>
+  {!bearings && (bearingKits.length > 0 || otherBearing.length > 0) && <>
     <h2>Bearing kits for this car <span class="muted">({bearingKits.length})</span></h2>
-    <p class="muted">The bearings in the box are not in our data for this release, so the kits are not checked against it.</p>
-    <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> <span class="muted">{b.p.number && b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span></li>)}</ul></>}
+    {bearingKits.length > 0 && <>
+      <p class="muted">The bearings in the box are not in our data for this release, so the kits are not checked against it.</p>
+      <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> <span class="muted">{b.p.number && b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span></li>)}</ul></>}
+    <OtherCarSets items={otherBearing} kitName={kit.name} /></>}
+  {(screwFits.here.length > 0 || otherScrew.length > 0) && <>
+    <h2>Screw kits for this car <span class="muted">({screwFits.here.length})</span></h2>
+    {screwFits.here.length > 0 && <ul>{screwFits.here.map((p) => <li><a href={url.part(p.id)}>{brandName(p.brand)} {partLabel(p)}</a> {p.number && <span class="muted">{p.name}</span>}</li>)}</ul>}
+    <OtherCarSets items={otherScrew} kitName={kit.name} /></>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
   {boxCats.length > 1 && <nav class="boxgrid" aria-label="In the box by category" data-pagefind-ignore>
