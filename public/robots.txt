@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+# Pages with a query string (search, compare, filters) are views of pages the sitemap lists.
+Disallow: /*?
 
 Sitemap: https://hobbydex.com/sitemap-index.xml
