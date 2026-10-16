@@ -7,8 +7,12 @@ import { paintChip } from '../lib/paintSwatch';
 import { colourDot } from '../lib/colourDot';
 interface Props { category: string; parts: Part[]; showBrand?: boolean }
 const { category, parts, showBrand = true } = Astro.props;
-const cols = columns[category] ?? [];
-const rows = parts.map((p) => { const s = specOf(p); return { p, vals: cols.map((c) => c.get(p, s)) }; })
+const all = columns[category] ?? [];
+const raw = parts.map((p) => { const s = specOf(p); return { p, vals: all.map((c) => c.get(p, s)) }; });
+// a column none of these parts has a value for is left out (the Radio column on an ESC maker's page)
+const keep = all.map((_, i) => raw.some((r) => r.vals[i] !== undefined));
+const cols = all.filter((_, i) => keep[i]);
+const rows = raw.map(({ p, vals }) => ({ p, vals: vals.filter((_, i) => keep[i]) }))
   // brand, then part number (natural order: PS-2 before PS-10); a column header click re-sorts
   .sort((a, b) => brandName(a.p.brand).localeCompare(brandName(b.p.brand)) || byPartNo(a.p, b.p));
 const brands = [...new Set(parts.map((p) => p.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));

@@ -12,6 +12,7 @@ import DataLink from '../../../../components/DataLink.astro';
 import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
 import { colourDot } from '../../../../lib/colourDot';
 import { partDrawing } from '../../../../lib/specDrawings';
+import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.parts.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(x.id) } })));
@@ -113,8 +114,9 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
     {part.output_hp && <><dt>Output</dt><dd>{part.output_hp} hp{part.output_rpm && ` at ${part.output_rpm.toLocaleString('en')} rpm`}</dd></>}
     {part.rpm_range && <><dt>Practical rpm</dt><dd>{part.rpm_range.map((r) => r.toLocaleString('en')).join(' - ')} rpm</dd></>}
     {part.capacity_mah && <><dt>Battery</dt><dd>{part.chemistry?.toUpperCase()} {part.cells}S {part.capacity_mah} mAh{part.c_rating && ` ${part.c_rating}C`}{part.case && `, ${part.case} case`}</dd></>}
-    {part.dimensions_mm && <><dt>Size</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
-    {part.weight_g && <><dt>Weight</dt><dd>{part.weight_g} g</dd></>}
+    {part.radio_unit && <><dt>Radio</dt><dd>{radioUnitLabel[part.radio_unit] ?? part.radio_unit}</dd></>}
+    {part.dimensions_mm && <><dt>{figureLabel(part, 'size')}</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
+    {part.weight_g && <><dt>{figureLabel(part, 'weight')}</dt><dd>{part.weight_g} g</dd></>}
     {part.connector && <><dt>Plug</dt><dd>{part.connector}</dd></>}
     {(part.kv || part.turns) && <><dt>Motor</dt><dd title="kV: rpm per volt without load. T: turns of wire per pole, fewer is faster.">{[part.kv && `${part.kv} kV`, part.turns && `${part.turns}T`, part.diameter_mm && part.length_mm && `${part.diameter_mm} x ${part.length_mm} mm`, part.shaft_mm && `${part.shaft_mm} mm shaft`].filter(Boolean).join(', ')}</dd></>}
     {part.kv && part.category === 'motor' && <><dt>No-load rpm</dt><dd title="kV x nominal LiPo voltage (3.7 V per cell), without load; under load a motor turns slower.">{noLoad(part.kv, part.lipo_cells).map(([c, v, r]) => `${c}S (${v} V): about ${r.toLocaleString('en-US')} rpm`).join(' · ')}</dd></>}
