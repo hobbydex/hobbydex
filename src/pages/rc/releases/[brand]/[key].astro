@@ -1,4 +1,5 @@
 ---
+import { buildLabel } from '../../../../lib/build';
 import { colourDot } from '../../../../lib/colourDot';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { paintChip } from '../../../../lib/paintSwatch';
@@ -90,7 +91,7 @@ const conversions = conversionsForRelease(release);
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
     {(release.links ?? []).filter((l) => l.kind !== 'fan-site').length > 0 && <><dt>Product page</dt><dd>{(release.links ?? []).filter((l) => l.kind !== 'fan-site').map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
     {fileRows.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
-    <dt>Kind</dt><dd>{release.kind}</dd>
+    <dt>Build</dt><dd>{buildLabel(release.kind)}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
   </dl>
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} size="12rem" class="hero" /></span>
