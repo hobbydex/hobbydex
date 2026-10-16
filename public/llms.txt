@@ -7,7 +7,7 @@ Prefer the JSON export over crawling the HTML: it holds everything the site show
 ## Data
 
 - [Full export (JSON)](https://hobbydex.com/data/rc.json): brands, kits, releases, parts, documents, specs; rebuilt daily. Top-level keys: schema_version, dataset, generated, brands, kits, releases, parts, documents, specs, shops. Ids look like `part/<brand>/<number>`.
-- [Source data and schema](https://github.com/hobbydex/hobbydex-rc): one TOML file per entity; field reference in docs/schema.md. Corrections go there as pull requests.
+- [Source data and schema](https://github.com/hobbydex/hobbydex-rc): one TOML file per entity; field reference in docs/schema.md. The data is maintained by the project, not crowdsourced: report an error, a missing brand or a better source as an issue (https://github.com/hobbydex/hobbydex-rc/issues/new); pull requests against the data are not taken.
 
 ## URL scheme
 

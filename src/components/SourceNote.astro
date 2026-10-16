@@ -1,0 +1,7 @@
+---
+// Where a fact was read, kept out of the running text: a small (i) that opens the note on click, tap or
+// Enter. The note stays in the page, so screen readers and search still find it.
+interface Props { text: string }
+const { text } = Astro.props;
+---
+<details class="srcnote"><summary aria-label="Source note">i</summary><span>{text}</span></details>

@@ -3,7 +3,7 @@ import Base from '../../../../layouts/Base.astro';
 import Icon from '../../../../components/Icon.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { db, url, brandName, yearText } from '../../../../lib/data';
-import { kitTypeLabel, kitTypeIcon, kitTypeAbout } from '../../../../lib/kitTypes';
+import { kitTypeLabel, kitTypeIcon, kitTypeOne, kitTypeAbout } from '../../../../lib/kitTypes';
 import DriveFilter from '../../../../components/DriveFilter.astro';
 import { driveLabel } from '../../../../lib/drive';
 export function getStaticPaths() {
@@ -31,7 +31,7 @@ const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scale
     <table class="releases">
       <tr><th>Kit</th><th>Brand</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
       {ks.map((k) => <tr data-drive={k.drive ?? ''}>
-        <td class="name">{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(k.category)} size="1.3em" />} <a href={url.kit(k.id)}>{k.name}</a></td>
+        <td class="name">{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="1.3em" />} <a href={url.kit(k.id)}>{k.name}</a></td>
         <td data-label="Brand"><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td>
         <td data-label="Drive">{driveLabel(k.drive)}</td><td data-label="Power">{k.power ?? ''}</td><td class="num" data-label="Releases">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
       </tr>)}
