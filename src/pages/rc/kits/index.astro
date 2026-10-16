@@ -3,6 +3,8 @@ import Base from '../../../layouts/Base.astro';
 import { db, url, brandName } from '../../../lib/data';
 import Icon from '../../../components/Icon.astro';
 import { kitTypeLabel, kitTypeOrder, kitTypeIcon } from '../../../lib/kitTypes';
+import DriveFilter from '../../../components/DriveFilter.astro';
+import { driveLabel } from '../../../lib/drive';
 const label = kitTypeLabel;
 const order = kitTypeOrder;
 const scaleKey = (s?: string) => (s ? Number(s.split('/')[1]) : 999);
@@ -25,16 +27,17 @@ const cats = [...new Set([...byCat.keys(), ...onOther.keys()])].sort((a, b) => (
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Kits</div>
   <h1>Kits by type</h1>
   <p class="muted">{db.kits.length} kits · <a href="/rc/kits/by-date/">by date</a></p>
+  <DriveFilter drives={db.kits.map((k) => k.drive)} />
   <ul class="typegrid">{cats.map((c) => <li><a href={`/rc/kits/types/${c}/`}><Icon name={kitTypeIcon(c)} size="2rem" /><b>{label[c] ?? c}</b><span class="muted">{byCat.get(c)?.length ?? `${onOther.get(c)!.length} releases`}</span></a></li>)}</ul>
   {cats.map((c) => {
     const kits = [...(byCat.get(c) ?? [])].sort((a, b) => scaleKey(a.scale) - scaleKey(b.scale) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
-    return <>
+    return <section class="drivegroup">
       <h2 id={c}><Icon name={kitTypeIcon(c)} /> <a href={`/rc/kits/types/${c}/`}>{label[c] ?? c}</a> <span class="muted">({kits.length || `${onOther.get(c)!.length} releases`})</span></h2>
       {kits.length > 0 && <table>
         <tr><th>Scale</th><th>Brand</th><th>Kit</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
-        {kits.map((k) => <tr>
+        {kits.map((k) => <tr data-drive={k.drive ?? ''}>
           <td>{k.scale ?? ''}</td><td><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td><td><a href={url.kit(k.id)}>{k.name}</a></td>
-          <td>{k.drive ?? ''}</td><td>{k.power ?? ''}</td><td class="num">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
+          <td>{driveLabel(k.drive)}</td><td>{k.power ?? ''}</td><td class="num">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
         </tr>)}
       </table>}
       {onOther.has(c) && <>
@@ -46,6 +49,6 @@ const cats = [...new Set([...byCat.keys(), ...onOther.keys()])].sort((a, b) => (
           </tr>; })}
         </table>
       </>}
-    </>;
+    </section>;
   })}
 </Base>

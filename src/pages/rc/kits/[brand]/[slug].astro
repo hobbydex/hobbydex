@@ -10,6 +10,7 @@ import DataLink from '../../../../components/DataLink.astro';
 import WebSearch from '../../../../components/WebSearch.astro';
 import { catName } from '../../../../lib/categories';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
+import { driveLabel } from '../../../../lib/drive';
 import { gearing, type Gearing } from '../../../../lib/gearing';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
@@ -45,7 +46,7 @@ const conversions = conversionsForKit(kit.id);
   <dl class="facts">
     <dt>Category</dt><dd><a href={`/rc/kits/types/${kit.category || 'car'}/`}>{kitTypeOne[kit.category ?? 'car'] ?? kit.category}</a></dd>
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
-    {kit.drive && <><dt>Drive</dt><dd>{kit.drive}</dd></>}
+    {kit.drive && <><dt>Drive</dt><dd>{driveLabel(kit.drive)}<span hidden data-pagefind-filter={`drive:${driveLabel(kit.drive)}`} /></dd></>}
     {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
   </dl>
     <span class="typeicon" title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}>{kit.art ? <ReleaseArt id={kit.id} category={kit.category} kitArt={kit.art} size="5rem" /> : <Icon name={kitTypeIcon(kit.category)} size="5rem" />}</span>

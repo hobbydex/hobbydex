@@ -4,6 +4,8 @@ import Icon from '../../../../components/Icon.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { db, url, brandName, yearText } from '../../../../lib/data';
 import { kitTypeLabel, kitTypeIcon, kitTypeAbout } from '../../../../lib/kitTypes';
+import DriveFilter from '../../../../components/DriveFilter.astro';
+import { driveLabel } from '../../../../lib/drive';
 export function getStaticPaths() {
   return [...new Set([...db.kits.map((k) => k.category || 'car'), ...db.releases.flatMap((r) => (r.category ? [r.category] : []))])].map((type) => ({ params: { type } }));
 }
@@ -23,16 +25,17 @@ const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scale
   <h1><Icon name={kitTypeIcon(type)} size="1.4em" /> {label} <span class="muted">({kits.length + onOther.length})</span></h1>
   {kitTypeAbout[type] && <p class="about">{kitTypeAbout[type]}</p>}
   {scales.length > 1 && <p class="muted" data-pagefind-ignore>{scales.map((sc, i) => <>{i > 0 && ' · '}<a href={`#scale-${sc ? sc.replace('/', '-') : 'unknown'}`}>{sc || 'scale unknown'}</a> ({kits.filter((k) => (k.scale ?? '') === sc).length})</>)}</p>}
-  {scales.map((sc) => { const ks = kits.filter((k) => (k.scale ?? '') === sc); return <>
+  <DriveFilter drives={kits.map((k) => k.drive)} />
+  {scales.map((sc) => { const ks = kits.filter((k) => (k.scale ?? '') === sc); return <section class="drivegroup">
     <h2 id={`scale-${sc ? sc.replace('/', '-') : 'unknown'}`}>{sc || 'Scale unknown'} <span class="muted">({ks.length})</span></h2>
     <table>
       <tr><th class="artcol"></th><th>Brand</th><th>Kit</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
-      {ks.map((k) => <tr>
+      {ks.map((k) => <tr data-drive={k.drive ?? ''}>
         <td class="artcol"><a href={url.kit(k.id)} tabindex="-1" aria-hidden="true">{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(k.category)} size="1.3em" />}</a></td>
         <td><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td><td><a href={url.kit(k.id)}>{k.name}</a></td>
-        <td>{k.drive ?? ''}</td><td>{k.power ?? ''}</td><td class="num">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
+        <td>{driveLabel(k.drive)}</td><td>{k.power ?? ''}</td><td class="num">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
       </tr>)}
-    </table></>; })}
+    </table></section>; })}
   {onOther.length > 0 && <>
     <h2>On another chassis <span class="muted">({onOther.length})</span></h2>
     <p class="muted">Releases of this type built on a kit of another type.</p>
