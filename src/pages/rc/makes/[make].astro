@@ -24,7 +24,7 @@ const brands = new Set(releases.map((r) => r.brand)).size;
 const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
 ---
 <Base title={`${make} RC cars`} description={`${make}: ${releases.length} RC releases across ${brands} brands${bodies.length ? ` and ${bodies.length} body shells` : ''}, by model.`}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/makes/">Makes</a> / {make}</div>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/makes/">Car makes</a> / {make}</div>
   <h1>{make} <span class="muted">({releases.length} {releases.length === 1 ? 'release' : 'releases'})</span></h1>
   <p class="muted">RC replicas of {make} vehicles, read from the RC makers' product names{brands > 1 ? `, across ${brands} RC brands` : ''}. Vehicle year where the name states it. {make} is a trademark of its owner; no logos are shown.</p>
   {models.length > 1 && <p class="toc" data-pagefind-ignore>{models.map((m, i) => <>{i > 0 && ' · '}<a href={`#${anchor(m)}`}>{m}</a></>)}</p>}
