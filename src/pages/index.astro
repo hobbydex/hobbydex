@@ -27,12 +27,12 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
   <h1 class="sr-only">Hobbydex</h1>
   <p>Which parts are in my car, what fits it, and what is it equivalent to? An open, cross-brand parts database, starting with RC cars.</p>
   <form class="home-search" action="/search/" method="get" role="search">
-    <input type="search" name="q" placeholder="Part number, part name, kit or brand" aria-label="Search" />
+    <input type="search" name="q" placeholder="Part number, part name, platform or brand" aria-label="Search" />
     <button type="submit">Search</button>
   </form>
   <div class="stats">
     <a class="stat" href="/rc/brands/"><b>{db.brands.length}</b> brands</a>
-    <a class="stat" href="/rc/kits/"><b>{db.kits.length}</b> kits</a>
+    <a class="stat" href="/rc/platforms/"><b>{db.kits.length}</b> platforms</a>
     <a class="stat" href="/rc/releases/"><b>{db.releases.length}</b> releases</a>
     <a class="stat" href="/search/?type=part"><b>{db.parts.length}</b> parts</a>
     <a class="stat" href="/rc/categories/"><b>{byCat.size}</b> part categories</a>
@@ -56,12 +56,12 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
     </section>
   </div>
 
-  <h2>Latest releases <span class="muted">· <a href="/rc/kits/by-date/">all kits by date</a></span></h2>
+  <h2>Latest releases <span class="muted">· <a href="/rc/platforms/by-date/">all platforms by date</a></span></h2>
   <table>
     <tr><th class="num">Released</th><th>Release</th><th>Status</th></tr>
     {latest.map((r) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; return <tr><td class="num">{dateText(r)}</td>
       <td><span class="muted" title={kitTypeOne[cat ?? 'car']}>{r.art ? <ReleaseArt id={r.id} category={cat} art={r.art} size="1em" /> : <Icon name={kitTypeIcon(cat)} label={kitTypeOne[cat ?? 'car'] ?? cat} size="1em" />}</span> <a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a>
-        {k && <><br /><span class="muted">kit <a href={url.kit(r.kit)}>{k.name}</a></span></>}</td><td class="muted">{r.status}</td></tr>; })}
+        {k && <><br /><span class="muted">platform <a href={url.platform(r.kit)}>{k.name}</a></span></>}</td><td class="muted">{r.status}</td></tr>; })}
   </table>
 
   <p><a href="/rc/">Browse RC cars</a> · <a href="/rc/compare/">Compare two releases</a> · <a href="/rc/categories/">Part categories</a> · <a href="/rc/specs/">Generic specs</a> · <a href="/rc/servos/">Compare servos</a></p>

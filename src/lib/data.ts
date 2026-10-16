@@ -156,7 +156,7 @@ export const byPartNo = (a: Part, b: Part) => (a.number ? 0 : 1) - (b.number ? 0
 export const key = (id: string) => id.split('/').slice(1);
 export const url = {
   brand: (id: string) => `/rc/brands/${key(id)[0]}/`,
-  kit: (id: string) => `/rc/kits/${key(id).join('/')}/`,
+  platform: (id: string) => `/rc/platforms/${key(id).join('/')}/`,
   release: (id: string) => `/rc/releases/${key(id).join('/')}/`,
   part: (id: string) => `/rc/parts/${key(id).join('/')}/`,
   spec: (id: string) => `/rc/specs/${key(id).join('/')}/`,
@@ -216,7 +216,7 @@ export const conversionsForRelease = (r: Release) => uniq([...(requiredBy.get(r.
 // what a required id is called: "Traxxas Slash 2WD" for a kit, "1RC Racing 1/18 Sprint Car (1RC1095)" for a release
 export function requiredName(id: string): { name: string; href: string } | undefined {
   const k = db.kit.get(id);
-  if (k) return { name: `${brandName(k.brand)} ${k.name}`, href: url.kit(id) };
+  if (k) return { name: `${brandName(k.brand)} ${k.name}`, href: url.platform(id) };
   const r = db.release.get(id);
   if (r) return { name: `${brandName(r.brand)} ${r.name}${r.number ? ` (${r.number})` : ''}`, href: url.release(id) };
   return undefined;

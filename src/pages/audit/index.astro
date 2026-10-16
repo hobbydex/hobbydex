@@ -18,7 +18,7 @@ const overall = [
   ['Parts without a category', uncategorised.length, parts.length],
   ['Releases without contents', empty.length, db.releases.length],
   ['Releases with an unknown year', noYear.length, db.releases.length],
-  ['Kits without a release', lonelyKits.length, db.kits.length],
+  ['Platforms without a release', lonelyKits.length, db.kits.length],
 ] as const;
 // key field coverage per category, overall and per brand
 const coverage = Object.entries(columns).map(([cat, cols]) => {

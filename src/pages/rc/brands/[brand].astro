@@ -32,7 +32,7 @@ const ownerHref = ownerDoc ? ownerDoc.page ?? ownerDoc.url : brand.owner_source;
 const sisters = owner ? (db.brandsByOwner.get(owner.id) ?? []).filter((b) => b.id !== brand.id).sort((a, b) => a.name.localeCompare(b.name)) : [];
 const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length ?? 0] as const).filter(([, n]) => n > 0);
 ---
-<Base title={brand.name} description={`${brand.name}: kits and parts in Hobbydex.`} kind="brand">
+<Base title={brand.name} description={`${brand.name}: platforms and parts in Hobbydex.`} kind="brand">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / {brand.name}</div>
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brand.name}</h1>
   <dl class="facts">
@@ -44,17 +44,17 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
     <dt>Status</dt><dd>{brand.status}</dd>
   </dl>
   {brand.notes && <p class="muted">{brand.notes}</p>}
-  {kits.length > MANY && <><h2>Kits <span class="muted">({kits.length})</span></h2>
+  {kits.length > MANY && <><h2>Platforms <span class="muted">({kits.length})</span></h2>
   <div class="kitfilter" data-pagefind-ignore>
-    <input type="search" class="search-box" placeholder={`Filter ${brand.name} kits by name, scale or drive`} aria-label="Filter kits" autocomplete="off" />
+    <input type="search" class="search-box" placeholder={`Filter ${brand.name} platforms by name, scale or drive`} aria-label="Filter platforms" autocomplete="off" />
     <p class="muted">By type: {kitGroups.map(([t, rs], i) => <>{i > 0 && ' · '}<a href={`#type-${t}`}><Icon name={kitTypeIcon(t)} /> {kitTypeLabel[t] ?? t}</a> <span class="muted">{rs.length}</span></>)}</p>
   </div>
   {kitGroups.map(([t, rs]) => <section class="kitgroup" id={`type-${t}`}>
-    <h3><Icon name={kitTypeIcon(t)} size="1.5rem" /> <a href={`/rc/kits/types/${t}/`}>{kitTypeLabel[t] ?? t}</a> <span class="muted">({rs.length})</span></h3>
-    <table class="kits">
-      <thead><tr><th class="artcol"></th><th>Kit</th><th>Scale</th><th>Drive</th><th>Power</th><th class="num">Releases</th><th>Years</th></tr></thead>
+    <h3><Icon name={kitTypeIcon(t)} size="1.5rem" /> <a href={`/rc/platforms/types/${t}/`}>{kitTypeLabel[t] ?? t}</a> <span class="muted">({rs.length})</span></h3>
+    <table class="releases">
+      <thead><tr><th>Platform</th><th>Scale</th><th>Drive</th><th>Power</th><th class="num">Releases</th><th>Years</th></tr></thead>
       <tbody>{rs.map((r) => <tr data-q={[r.k.name, r.k.scale, r.k.drive, driveLabel(r.k.drive), r.k.power, kitTypeOne[t] ?? t].filter(Boolean).join(' ').toLowerCase()}>
-        <td class="artcol"><a href={url.kit(r.k.id)} tabindex="-1" aria-hidden="true">{r.k.art ? <ReleaseArt id={r.k.id} category={r.k.category} kitArt={r.k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(r.k.category)} label={kitTypeOne[r.k.category ?? 'car'] ?? r.k.category} size="1.3em" />}</a></td><td><a href={url.kit(r.k.id)}>{r.k.name}</a></td><td>{r.k.scale}</td><td>{driveLabel(r.k.drive)}</td><td>{r.k.power}</td><td class="num">{r.n || ''}</td><td>{years(r)}</td></tr>)}</tbody>
+        <td class="name">{r.k.art ? <ReleaseArt id={r.k.id} category={r.k.category} kitArt={r.k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(r.k.category)} label={kitTypeOne[r.k.category ?? 'car'] ?? r.k.category} size="1.3em" />} <a href={url.platform(r.k.id)}>{r.k.name}</a></td><td data-label="Scale">{r.k.scale}</td><td data-label="Drive">{driveLabel(r.k.drive)}</td><td data-label="Power">{r.k.power}</td><td class="num" data-label="Releases">{r.n || ''}</td><td data-label="Years">{years(r)}</td></tr>)}</tbody>
     </table>
   </section>)}
   <script>
@@ -70,8 +70,8 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
       });
     }
   </script></>}
-  {kits.length > 0 && kits.length <= MANY && <><h2>Kits</h2>
-  <ul class="cards">{kits.map((k) => <li class="kitcard"><a href={`/rc/kits/types/${k.category || 'car'}/`} title={kitTypeOne[k.category ?? 'car'] ?? k.category}>{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="2rem" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="2rem" />}</a><span><a href={url.kit(k.id)}><b>{k.name}</b></a><br /><span class="muted">{[k.scale, kitTypeOne[k.category ?? 'car'] ?? k.category, driveLabel(k.drive), k.power].filter(Boolean).join(' · ')}</span></span></li>)}</ul></>}
+  {kits.length > 0 && kits.length <= MANY && <><h2>Platforms</h2>
+  <ul class="cards">{kits.map((k) => <li class="kitcard"><a href={`/rc/platforms/types/${k.category || 'car'}/`} title={kitTypeOne[k.category ?? 'car'] ?? k.category}>{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="2rem" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="2rem" />}</a><span><a href={url.platform(k.id)}><b>{k.name}</b></a><br /><span class="muted">{[k.scale, kitTypeOne[k.category ?? 'car'] ?? k.category, driveLabel(k.drive), k.power].filter(Boolean).join(' · ')}</span></span></li>)}</ul></>}
   <h2>Parts <span class="muted">({parts.length})</span></h2>
   {cats.length > 0 && <p data-pagefind-ignore class="bycat">By category: {cats.map(([c, n], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${c}/${key(brand.id)[0]}/`}><Icon name={c} /> {catName(c)}</a> <span class="muted">{n}</span></>)}</p>}
   {parts.length > 0 && <div class="brandsearch" data-pagefind-ignore data-src={`/rc/brands/${key(brand.id)[0]}/parts.json`} data-base={`/rc/parts/${key(brand.id)[0]}/`} data-cats={JSON.stringify(Object.fromEntries(cats.map(([c]) => [c, catName(c)])))}>
@@ -111,6 +111,3 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
     }
   </script>
 </Base>
-<style>
-  .artcol { width: 3.2em; padding-right: 0 !important; }
-</style>

@@ -32,7 +32,7 @@ export function findKey(dir) {
   return null;
 }
 
-// site paths ("/rc/kits/") of every page in the built sitemaps
+// site paths ("/rc/platforms/") of every page in the built sitemaps
 export function sitemapPaths(dist) {
   const paths = [];
   for (const f of readdirSync(dist).filter((f) => /^sitemap-\d+\.xml$/.test(f))) {

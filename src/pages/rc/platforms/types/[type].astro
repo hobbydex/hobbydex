@@ -20,8 +20,8 @@ const onOther = db.releases.filter((r) => r.category === type && (db.kit.get(r.k
   .sort((a, b) => brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
 const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scaleKey(a || undefined) - scaleKey(b || undefined));
 ---
-<Base title={label} description={`${label}: ${kits.length} RC kits in Hobbydex, by scale and brand.`}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/kits/">Kits</a> / {label}</div>
+<Base title={label} description={`${label}: ${kits.length} RC platforms in Hobbydex, by scale and brand.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/platforms/">Platforms</a> / {label}</div>
   <h1><Icon name={kitTypeIcon(type)} size="1.4em" /> {label} <span class="muted">({kits.length + onOther.length})</span></h1>
   {kitTypeAbout[type] && <p class="about">{kitTypeAbout[type]}</p>}
   {scales.length > 1 && <p class="muted" data-pagefind-ignore>{scales.map((sc, i) => <>{i > 0 && ' · '}<a href={`#scale-${sc ? sc.replace('/', '-') : 'unknown'}`}>{sc || 'scale unknown'}</a> ({kits.filter((k) => (k.scale ?? '') === sc).length})</>)}</p>}
@@ -29,19 +29,19 @@ const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scale
   {scales.map((sc) => { const ks = kits.filter((k) => (k.scale ?? '') === sc); return <section class="drivegroup">
     <h2 id={`scale-${sc ? sc.replace('/', '-') : 'unknown'}`}>{sc || 'Scale unknown'} <span class="muted">({ks.length})</span></h2>
     <table class="releases">
-      <tr><th>Kit</th><th>Brand</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
+      <tr><th>Platform</th><th>Brand</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
       {ks.map((k) => <tr data-drive={k.drive ?? ''}>
-        <td class="name">{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="1.3em" />} <a href={url.kit(k.id)}>{k.name}</a></td>
+        <td class="name">{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="1.3em" />} <a href={url.platform(k.id)}>{k.name}</a></td>
         <td data-label="Brand"><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td>
         <td data-label="Drive">{driveLabel(k.drive)}</td><td data-label="Power">{k.power ?? ''}</td><td class="num" data-label="Releases">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
       </tr>)}
     </table></section>; })}
   {onOther.length > 0 && <>
     <h2>On another chassis <span class="muted">({onOther.length})</span></h2>
-    <p class="muted">Releases of this type built on a kit of another type.</p>
+    <p class="muted">Releases of this type built on a platform of another type.</p>
     <table class="releases">
-      <tr><th>Release</th><th>Brand</th><th>Kit</th><th class="num">Year</th></tr>
-      {onOther.map((r) => <tr><td class="name"><a href={url.release(r.id)}>{r.name}</a></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td data-label="Kit"><a href={url.kit(r.kit)}>{db.kit.get(r.kit)?.name}</a></td><td class="num" data-label="Year">{yearText(r)}</td></tr>)}
+      <tr><th>Release</th><th>Brand</th><th>Platform</th><th class="num">Year</th></tr>
+      {onOther.map((r) => <tr><td class="name"><a href={url.release(r.id)}>{r.name}</a></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td data-label="Platform"><a href={url.platform(r.kit)}>{db.kit.get(r.kit)?.name}</a></td><td class="num" data-label="Year">{yearText(r)}</td></tr>)}
     </table></>}
   <style>.about { max-width: 46rem; font-size: 1.05rem; }</style>
 </Base>
