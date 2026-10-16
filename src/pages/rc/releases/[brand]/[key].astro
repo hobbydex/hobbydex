@@ -59,7 +59,7 @@ const bearingKits = bearingFits.here
 const screwFits = fitsForRelease(kit.id, release.id, (p) => p.category === 'screw' && p.brand !== kit.brand && /\b(screw|hardware|fastener|bolt)s?\s+(kit|set)\b/i.test(p.name));
 screwFits.here.sort(byPartNo);
 // the sets made for other cars of the kit, with the cars they are listed for
-const otherCars = (o: { part: Part; releases: string[] }[]) => o.map((x) => ({ p: x.part, cars: x.releases.map((r) => db.release.get(r)).filter((r) => r !== undefined) }))
+const otherCars = (o: { part: Part; releases: string[]; cars: string[] }[]) => o.map((x) => ({ p: x.part, named: x.cars, cars: x.releases.map((r) => db.release.get(r)).filter((r) => r !== undefined) }))
   .sort((a, b) => byPartNo(a.p, b.p));
 const otherBearing = otherCars(bearingFits.other), otherScrew = otherCars(screwFits.other);
 const copyText = bearings ? bearings.lines.map((l) => `${l.qty !== undefined ? `${l.qty}x ` : ''}${l.name}`).join('\n') : '';
