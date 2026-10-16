@@ -1,7 +1,7 @@
 ---
 import Standards from '../../../../components/Standards.astro';
 import { shownNote } from '../../../../lib/notes';
-import { gtinLabel } from '../../../../lib/gtin';
+import { gtinLabel, gtinJsonld } from '../../../../lib/gtin';
 import WebSearch from '../../../../components/WebSearch.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
@@ -61,7 +61,7 @@ const wheelFacts = [part.wheel_size && `${part.wheel_size} rim`, part.compound &
   part.offset_mm !== undefined && `offset ${part.offset_mm > 0 ? '+' : ''}${part.offset_mm} mm`, part.beadlock && 'beadlock'].filter((x): x is string | { dot: string; text: string } => !!x);
 const drawing = partDrawing(part);
 const drawStd = drawing?.standard ? db.standardByCode.get(drawing.standard) : undefined;
-const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, ...(part.number && { mpn: part.number, sku: part.number }), brand: { '@type': 'Brand', name: brand?.name } };
+const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, ...(part.number && { mpn: part.number, sku: part.number }), ...gtinJsonld(part.gtin), brand: { '@type': 'Brand', name: brand?.name } };
 // a part of a brand that prints no item numbers has none: the name is its title, there is no number to copy
 const numName = part.number ? `${part.number} ${part.name}` : part.name;
 // unloaded speed of a brushless motor: kV x nominal LiPo voltage, for the cells the maker states (else 2S and 3S)
