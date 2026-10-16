@@ -1,5 +1,6 @@
 ---
-// A release drawn as its own outline (`art`), else its kit's (`kitArt`), else its kit type's icon, in the
+// A release drawn as its own outline (`art`), else its kit type's icon (a release never borrows its kit's
+// outline: on a chassis platform that is another car), in the
 // release's colour(s): one colour fills the shape, two or three stand side by side as vertical bands; metals
 // get a sheen, see-through colours a light fill. White, see-through and very dark colours get a thin outline
 // so they read on a light and a dark page alike. No colour (or an unknown word) draws the shape in the
@@ -7,6 +8,7 @@
 import { wideIcons } from '../lib/wideIcons';
 import { colourShades } from '../lib/colourDot';
 import { kitTypeIcon, kitTypeOne } from '../lib/kitTypes';
+// kit pages and lists draw the kit itself by passing its outline as `kitArt`
 interface Props { category?: string; color?: string; size?: string; id: string; class?: string; art?: string; kitArt?: string }
 const { category, color, size = '1.4em', id, class: cls, art, kitArt } = Astro.props;
 const shape = art || kitArt;
