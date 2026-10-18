@@ -34,11 +34,14 @@ const { title, description, jsonld, kind, sub } = Astro.props;
       <button type="button" class="theme" aria-label="Theme: auto" title="Theme: auto (follows the system)"><svg class="icon"><use href="/icons.svg#theme-auto" /></svg></button>
       <script src="/theme.js" defer></script>
     </header>
-    {/* SIZE: the built site is kept small for GitHub Pages (about 1 GB soft limit; 1.1 GB in 2026-10): shared
-        scripts are external cached files (public/theme.js and astro.config.mjs assetsInlineLimit) rather than
-        inline on each of 115k pages. Measured 2026-10-13: the pagefind index is ~55 MB in real bytes and taking
-        the tables out of it would save only ~13 MB, so tables stay searchable; part pages (~5.8 KB each) are the
-        bulk. Only kits, releases, parts, specs and brands are searchable; list pages are not. */}
+    {/* SEARCH: tables on release and platform pages are excluded from the index (data-pagefind-ignore on their
+        parts tables, lists and sections, and on the KitSets and OtherCarSets components). Their part lists made
+        every release of a car match on a bearing size or a part name, so a release or platform is found by its own
+        name, number, brand and description. Part pages keep everything, tables included (fits, used-in lists), so a
+        part still matches by the platform it fits. SIZE: the built site is kept small for GitHub Pages (about 1 GB
+        soft limit; 1.1 GB in 2026-10): shared scripts are external cached files (public/theme.js and
+        astro.config.mjs assetsInlineLimit) rather than inline on each of 115k pages. Part pages (~5.8 KB each) are
+        the bulk of the index. Only kits, releases, parts, specs and brands are searchable; list pages are not. */}
     <main data-pagefind-body={kind ? "" : undefined}>
       {kind && <span hidden data-pagefind-meta={`type:${kind}`} data-pagefind-filter={`type:${kind}`} />}
       {sub && <span hidden data-pagefind-meta={`sub:${sub}`} />}
