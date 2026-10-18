@@ -2,7 +2,7 @@
 import Standards from '../../../../components/Standards.astro';
 import { shownNote, isSourceNote } from '../../../../lib/notes';
 import SourceNote from '../../../../components/SourceNote.astro';
-import { gtinLabel, gtinJsonld } from '../../../../lib/gtin';
+import { gtinLabel } from '../../../../lib/gtin';
 import WebSearch from '../../../../components/WebSearch.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
@@ -65,7 +65,6 @@ const wheelFacts = [part.wheel_size && `${part.wheel_size} rim`, part.compound &
   part.offset_mm !== undefined && `offset ${part.offset_mm > 0 ? '+' : ''}${part.offset_mm} mm`, part.beadlock && 'beadlock'].filter((x): x is string | { dot: string; text: string } => !!x);
 const drawing = partDrawing(part);
 const drawStd = drawing?.standard ? db.standardByCode.get(drawing.standard) : undefined;
-const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, ...(part.number && { mpn: part.number, sku: part.number }), ...gtinJsonld(part.gtin), brand: { '@type': 'Brand', name: brand?.name } };
 // a part of a brand that prints no item numbers has none: the name is its title, there is no number to copy
 const numName = part.number ? `${part.number} ${part.name}` : part.name;
 // unloaded speed of a brushless motor: kV x nominal LiPo voltage, for the cells the maker states (else 2S and 3S)
@@ -79,7 +78,7 @@ const noLoad = (kv: number, cells?: number[]) => {
 const motorCan = part.category === 'motor' ? canDiameter(part) : undefined;
 const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
 ---
-<Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
+<Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a> / {partLabel(part)}</div>
   {part.category && <span hidden data-pagefind-filter={`category:${catName(part.category)}`} />}
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</h1>
