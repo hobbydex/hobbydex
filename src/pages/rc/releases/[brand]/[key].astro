@@ -26,6 +26,9 @@ export function getStaticPaths() {
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const release = Astro.props.release!;   // set on every page that is not a redirect
 const kit = db.kit.get(release.kit)!;
+// successor links (supersedes): the newer releases that replace this one, and the older one this one replaces
+const replacedByReleases = db.releaseReplacedBy.get(release.id) ?? [];
+const replaces = release.supersedes ? db.release.get(release.supersedes) : undefined;
 const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d !== undefined);
 // the maker's pages for this release's files, as rows of the facts list: only documents with a maker page, so the
 // prominent link is never the file itself (every document, file links included, stays listed under Sources)
@@ -112,6 +115,8 @@ const conversions = conversionsForRelease(release);
     {fileRows.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
     <dt>Build</dt><dd>{buildLabel(release.kind)}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
+    {replacedByReleases.length > 0 && <><dt>Replaced by</dt><dd>{replacedByReleases.map((r, i) => <>{i > 0 && ' · '}<a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a></>)}</dd></>}
+    {replaces && <><dt>Replaces</dt><dd><a href={url.release(replaces.id)}>{brandName(replaces.brand)} {replaces.name}</a></dd></>}
   </dl>
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} size="12rem" class="hero" /></span>
   </div>
