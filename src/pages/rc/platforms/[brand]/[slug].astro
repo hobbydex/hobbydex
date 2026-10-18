@@ -8,7 +8,8 @@ import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
-import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt, docPage, type Doc, type Release } from '../../../../lib/data';
+import { FILE_KINDS, fileRows } from '../../../../lib/docFacts';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 import Icon from '../../../../components/Icon.astro';
@@ -63,6 +64,15 @@ const byCat = <T,>(rows: T[], cat: (r: T) => string | undefined) => [...new Set(
 const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => byPartNo(a.p, b.p));
 const conversions = conversionsForKit(kit.id);
 import SeenNote from '../../../../components/SeenNote.astro';
+// each document of the releases once, with the releases that have it (a body manual may be the car's alone, a chassis manual shared)
+const docRels = new Map<string, Release[]>();
+for (const r of releases) for (const id of r.documents ?? []) if (db.doc.get(id)) docRels.set(id, [...(docRels.get(id) ?? []), r]);
+const allDocs = [...docRels.keys()].map((id) => db.doc.get(id)!);
+// the maker's manuals, parts lists and exploded views, and the supplements, by kind; the product pages are the sources
+const fileKinds = { ...FILE_KINDS, supplement: 'Supplement' };
+const files = fileRows(allDocs.filter((d) => d.page && d.kind in fileKinds), fileKinds);
+const webLink = (d: Doc) => docPage(d, docRels.get(d.id)?.[0]?.released);
+const sources = allDocs.filter((d) => d.kind === 'product_page');
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="platform" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
@@ -87,6 +97,11 @@ import SeenNote from '../../../../components/SeenNote.astro';
         {r.link.parts && <span class="muted"> · parts {r.link.parts}</span>}{r.link.notes && <span class="muted"> · {r.link.notes}</span>}
       </li>; })}
     </ul></>}
+  {files.length > 0 && <>
+    <h2>Manuals and parts lists</h2>
+    <dl class="facts">
+      {files.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => { const rs = docRels.get(d.id)!; return <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{d.title.replace(/^.*?: /, '')}</a>{rs.length < releases.length && <span class="muted"> ({rs.length <= 3 ? rs.map((r) => r.name).join(', ') : `${rs.length} of ${releases.length} releases`})</span>}</>; })}</dd></>)}
+    </dl></>}
   <h2>Releases</h2>
   {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
   {(() => {
@@ -139,6 +154,8 @@ import SeenNote from '../../../../components/SeenNote.astro';
           {rows.map(({ part, fit }) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
         </table></div>)}</>; })()}
   </section>}
+  {sources.length > 0 && <><h2>Sources</h2>
+    <ul>{sources.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></>}
   <style>
     .catgroup table { table-layout: fixed; width: 100%; }
     .catgroup td.num { white-space: normal; overflow-wrap: anywhere; }
