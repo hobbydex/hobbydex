@@ -166,6 +166,8 @@ export const url = {
 // Real vehicle makes (release and body shell `depicts`): "Mercedes-Benz" -> "mercedes-benz", "Land Rover" -> "land-rover"
 export const makeSlug = (make: string) => make.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 /** "Porsche 911 Carrera RSR 2.8 (1973)" */
+// one key per model however a maker spells it: case, spaces and hyphens do not count ("4x4 Pick Up" = "4x4 Pick-Up")
+export const modelKey = (model: string) => model.toLowerCase().replace(/[^a-z0-9]+/g, '');
 export const depictsText = (d: Depicts) => `${d.make} ${d.model}${d.year ? ` (${d.year})` : ''}`;
 export const releasesByMake = group(raw.releases.filter((r) => r.depicts), (r) => r.depicts!.make);
 export const bodiesByMake = group(raw.parts.filter((p) => p.depicts && p.category === 'body'), (p) => p.depicts!.make);
