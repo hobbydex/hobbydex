@@ -1,10 +1,10 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import { url, brandName, releasesByMake, bodiesByMake } from '../../../lib/data';
+import { url, brandName, releasesByMake, bodiesByMake, modelKey } from '../../../lib/data';
 // every make a release or body shell depicts, with how many models, releases and RC brands
 const makes = [...new Set([...releasesByMake.keys(), ...bodiesByMake.keys()])].sort((a, b) => a.localeCompare(b)).map((make) => {
   const rs = releasesByMake.get(make) ?? [], bs = bodiesByMake.get(make) ?? [];
-  return { make, models: new Set([...rs, ...bs].map((x) => x.depicts!.model)).size, releases: rs.length, bodies: bs.length,
+  return { make, models: new Set([...rs, ...bs].map((x) => modelKey(x.depicts!.model))).size, releases: rs.length, bodies: bs.length,
     brands: [...new Set(rs.map((r) => r.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b))) };
 });
 ---
