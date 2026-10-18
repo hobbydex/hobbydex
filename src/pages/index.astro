@@ -3,7 +3,7 @@ import Icon from '../components/Icon.astro';
 import ReleaseArt from '../components/ReleaseArt.astro';
 import { kitTypeIcon, kitTypeOne } from '../lib/kitTypes';
 import Base from '../layouts/Base.astro';
-import { db, url, brandName, dateKey, dateText } from '../lib/data';
+import { db, url, brandName, dateKey, dateText, releasesByMake, bodiesByMake } from '../lib/data';
 import { catName } from '../lib/categories';
 
 const top = <T,>(m: Map<T, number>, n: number) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
@@ -106,6 +106,7 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
     <a class="stat" href="/rc/brands/"><b>{db.brands.length}</b> brands</a>
     <a class="stat" href="/rc/platforms/"><b>{db.kits.length}</b> platforms</a>
     <a class="stat" href="/rc/releases/"><b>{db.releases.length}</b> releases</a>
+    <a class="stat" href="/rc/makes/"><b>{new Set([...releasesByMake.keys(), ...bodiesByMake.keys()]).size}</b> car makes</a>
     <a class="stat" href="/search/?type=part"><b>{db.parts.length}</b> parts</a>
     <a class="stat" href="/rc/categories/"><b>{byCat.size}</b> part categories</a>
     <a class="stat" href="/rc/specs/"><b>{db.specs.length}</b> generic specs</a>
