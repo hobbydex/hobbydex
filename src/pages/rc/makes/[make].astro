@@ -32,7 +32,6 @@ const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
   {models.map((m) => { const rs = releases.filter((r) => famKey(r.depicts!.model) === m.toLowerCase()).sort(byBrandYear); const bs = bodies.filter((p) => famKey(p.depicts!.model) === m.toLowerCase()).sort(byBrandNo); return <section>
     <h2 id={anchor(m)}>{make} {m} <span class="muted">({rs.length + bs.length})</span></h2>
     {rs.length > 0 && <>
-      {bs.length > 0 && <h3>{make} {m} releases <span class="muted">({rs.length})</span></h3>}
       <table class="releases">
       <tr><th>Release</th><th>Model</th><th>Brand</th><th class="num">Vehicle year</th><th class="num">Released</th></tr>
       {rs.map((r) => { const k = db.kit.get(r.kit); return <tr>
@@ -43,9 +42,8 @@ const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
       </tr>; })}
       </table></>}
     {bs.length > 0 && <>
-      <h3>{make} {m} body shells <span class="muted">({bs.length})</span></h3>
-      <table class="releases">
-      <tr><th>Body shell</th><th>Model</th><th>Brand</th><th>Fits</th><th class="num">Released</th></tr>
+      <table class="releases bodies">
+      <tr><th>Body</th><th>Model</th><th>Brand</th><th>Fits</th><th class="num">Released</th></tr>
       {bs.map((p) => { const fits = [...new Set((p.fits ?? []).map((f) => f.kit).filter((k): k is string => !!k))].map((k) => db.kit.get(k)).filter((k) => !!k); return <tr>
         <td class="name"><a href={url.part(p.id)}>{p.name}</a>{p.number && <span class="muted"> {p.number}</span>}</td>
         <td data-label="Model">{p.depicts!.model}</td>
@@ -57,6 +55,7 @@ const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
   </section>; })}
   <style>
     .toc { line-height: 1.8; }
+    table.bodies { margin-top: 0.75em; }
     /* phones: the labelled cells wrap as whole boxes, five of them do not fit one line */
     @media (max-width: 600px) { table.releases td[data-label]:not(:empty) { display: inline-block; white-space: normal; } }
   </style>
