@@ -70,7 +70,12 @@ for (const r of releases) for (const id of r.documents ?? []) if (db.doc.get(id)
 const allDocs = [...docRels.keys()].map((id) => db.doc.get(id)!);
 // the maker's manuals, parts lists and exploded views, and the supplements, by kind; the product pages are the sources
 const fileKinds = { ...FILE_KINDS, supplement: 'Supplement' };
-const files = fileRows(allDocs.filter((d) => d.page && d.kind in fileKinds), fileKinds);
+const fileDocs = allDocs.filter((d) => d.page && d.kind in fileKinds);
+// the platform's own documents: held by two or more releases, or all of them when the platform has one release;
+// the rest are on the release pages, most of them under their one release
+const own = (d: Doc) => releases.length === 1 || docRels.get(d.id)!.length > 1;
+const files = fileRows(fileDocs.filter(own), fileKinds).map(([label, ds]) => [label, [...ds].sort((a, b) => docRels.get(b.id)!.length - docRels.get(a.id)!.length)] as const);
+const moreFiles = fileDocs.length - fileDocs.filter(own).length;
 const webLink = (d: Doc) => docPage(d, docRels.get(d.id)?.[0]?.released);
 const sources = allDocs.filter((d) => d.kind === 'product_page');
 ---
@@ -97,11 +102,11 @@ const sources = allDocs.filter((d) => d.kind === 'product_page');
         {r.link.parts && <span class="muted"> · parts {r.link.parts}</span>}{r.link.notes && <span class="muted"> · {r.link.notes}</span>}
       </li>; })}
     </ul></>}
-  {files.length > 0 && <>
+  {(files.length > 0 || moreFiles > 0) && <>
     <h2>Manuals and parts lists</h2>
-    <dl class="facts">
-      {files.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => { const rs = docRels.get(d.id)!; return <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{d.title.replace(/^.*?: /, '')}</a>{rs.length < releases.length && <span class="muted"> ({rs.length <= 3 ? rs.map((r) => r.name).join(', ') : `${rs.length} of ${releases.length} releases`})</span>}</>; })}</dd></>)}
-    </dl></>}
+    {files.map(([label, ds]) => <><h3>{label}</h3>
+      <ul>{ds.map((d) => { const n = docRels.get(d.id)!.length; return <li><a href={d.page} rel="nofollow">{d.title}</a>{n < releases.length && <span class="muted"> ({n} of {releases.length} releases)</span>}</li>; })}</ul></>)}
+    {moreFiles > 0 && <p class="muted">{moreFiles} more on the release pages</p>}</>}
   <h2>Releases</h2>
   {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
   {(() => {
