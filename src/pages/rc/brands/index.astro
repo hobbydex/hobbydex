@@ -1,6 +1,6 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import { db, url } from '../../../lib/data';
+import { db, url, countryName } from '../../../lib/data';
 const brands = [...db.brands].sort((a, b) => a.name.localeCompare(b.name));
 const releaseCount = (id: string) => (db.kitsByBrand.get(id) ?? []).reduce((n, k) => n + (db.releasesByKit.get(k.id)?.length ?? 0), 0);
 ---
@@ -10,7 +10,7 @@ const releaseCount = (id: string) => (db.kitsByBrand.get(id) ?? []).reduce((n, k
   <table class="sortable">
     <thead><tr><th aria-sort="ascending">Brand</th><th>Country</th><th>Owned by</th><th class="num">Platforms</th><th class="num">Releases</th><th class="num">Parts</th></tr></thead>
     <tbody>{brands.map((b) => <tr>
-      <td><a href={url.brand(b.id)}>{b.name}</a></td><td>{b.country ?? ''}</td><td>{(b.owner && db.company.get(b.owner)?.name) ?? ''}</td>
+      <td><a href={url.brand(b.id)}>{b.name}</a></td><td>{b.country ? countryName(b.country) : ''}</td><td>{(b.owner && db.company.get(b.owner)?.name) ?? ''}</td>
       <td class="num">{db.kitsByBrand.get(b.id)?.length || ''}</td><td class="num">{releaseCount(b.id) || ''}</td><td class="num">{db.partsByBrand.get(b.id)?.length || ''}</td>
     </tr>)}</tbody>
   </table>

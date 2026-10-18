@@ -1,6 +1,6 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import { db, key, url } from '../../../lib/data';
+import { db, key, url, countryName } from '../../../lib/data';
 import { catName } from '../../../lib/categories';
 import Icon from '../../../components/Icon.astro';
 import ReleaseArt from '../../../components/ReleaseArt.astro';
@@ -37,9 +37,9 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brand.name}</h1>
   <dl class="facts">
     {brand.legal_name && <><dt>Legal name</dt><dd>{brand.legal_name}</dd></>}
-    {owner && <><dt>Owned by</dt><dd>{owner.brand && owner.brand !== brand.id ? <a href={url.brand(owner.brand)}>{owner.name}</a> : owner.name}{owner.country && <span class="muted"> ({owner.country})</span>}{brand.owner_since && <span class="muted">, since {brand.owner_since}</span>} {ownerHref && <a class="muted" href={ownerHref} rel="nofollow" title={ownerDoc?.title}>source</a>}</dd></>}
+    {owner && <><dt>Owned by</dt><dd>{owner.brand && owner.brand !== brand.id ? <a href={url.brand(owner.brand)}>{owner.name}</a> : owner.name}{owner.country && <span class="muted"> ({countryName(owner.country)})</span>}{brand.owner_since && <span class="muted">, since {brand.owner_since}</span>} {ownerHref && <a class="muted" href={ownerHref} rel="nofollow" title={ownerDoc?.title}>source</a>}</dd></>}
     {sisters.length > 0 && <><dt>Sister brands</dt><dd>{sisters.map((b, i) => <>{i > 0 && ', '}<a href={url.brand(b.id)}>{b.name}</a></>)}</dd></>}
-    {brand.country && <><dt>Country</dt><dd>{brand.country}</dd></>}
+    {brand.country && <><dt>Country</dt><dd>{countryName(brand.country)}</dd></>}
     {brand.website && <><dt>Website</dt><dd><a href={brand.website} rel="nofollow">{brand.website}</a></dd></>}
     <dt>Status</dt><dd>{brand.status}</dd>
   </dl>
