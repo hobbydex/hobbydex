@@ -4,6 +4,7 @@ import { shownNote, isSourceNote } from '../../../../lib/notes';
 import SourceNote from '../../../../components/SourceNote.astro';
 import { gtinLabel } from '../../../../lib/gtin';
 import WebSearch from '../../../../components/WebSearch.astro';
+import CopyButton from '../../../../components/CopyButton.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, partLabel, yearText, byReleaseDate, dateText, docPage, dateSource, heatsinksByCan, canDiameter, depictsText, type Fits } from '../../../../lib/data';
@@ -15,8 +16,12 @@ import { colourDot } from '../../../../lib/colourDot';
 import { partDrawing } from '../../../../lib/specDrawings';
 import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
 export function getStaticPaths() {
-  // a former id (renamed or corrected) keeps working: its page redirects to the current one
-  const moved = db.parts.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(x.id) } })));
+  // a former id (renamed or corrected) or another number the part is sold under (numbers) keeps working:
+  // its page redirects to the current one; a number listed twice is one route
+  const taken = new Set(db.parts.map((p) => p.id));
+  const moved = db.parts.flatMap((x) => [...(x.former_ids ?? []), ...(x.numbers ?? []).map((n) => `part/${key(x.brand)[0]}/${n}`)]
+    .map((f) => ({ f, to: x.id }))).filter(({ f }) => !taken.has(f) && taken.add(f))
+    .map(({ f, to }) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(to) } }));
   return [...db.parts.map((p) => ({ params: { brand: key(p.id)[0], number: key(p.id)[1] }, props: { part: p } })), ...moved];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
@@ -87,7 +92,7 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
     {part.depicts && <><dt>Real vehicle</dt><dd><a href={url.make(part.depicts.make)}>{part.depicts.make}</a> {depictsText(part.depicts).slice(part.depicts.make.length + 1)}<span hidden data-pagefind-filter={`make:${part.depicts.make}`} /></dd></>}
-    {part.number && <><dt>Part number</dt><dd>{part.number}</dd></>}
+    {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <> <span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span></dd></>}
     {(part.links ?? []).filter((l) => l.kind !== 'fan-site').length > 0 && <><dt>Product page</dt><dd>{(part.links ?? []).filter((l) => l.kind !== 'fan-site').map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
     {part.released && <><dt>Released</dt><dd>{dateText(part)}{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
