@@ -125,7 +125,7 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
       <h2>Most upgraded platforms <span class="muted">· parts from other brands that fit</span></h2>
       <ul class="hbars">
         {upgraded.map(([k, n]) => { const kit = db.kit.get(k)!; const nb = upgradeBrands.get(k)!.size; return <li><a href={url.platform(k)}>{brandName(kit.brand)} {kit.name}</a>
-          <span class="bar" style={`width:${(n / max(upgraded)) * 100}%`} title={`${brandName(kit.brand)} ${kit.name}: ${n} parts from ${nb} other brands`}></span><span class="v">{n} <span class="muted">· {nb} brands</span></span></li>; })}
+          <span class="bar" style={`width:${(n / max(upgraded)) * 100}%`} title={`${brandName(kit.brand)} ${kit.name}: ${n} parts from ${nb} other brands`}></span><span class="v">{n}</span></li>; })}
       </ul>
     </section>
     <section>
