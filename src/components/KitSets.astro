@@ -14,7 +14,7 @@ const groups = makers.map((m) => {
 });
 const total = new Set(rows.map((r) => r.part.id)).size;
 ---
-{total > 0 && <details class="kitsets">
+{total > 0 && <details class="kitsets" data-pagefind-ignore>
   <summary>{total} {kind}{total > 1 ? 's' : ''} from {makers.length} maker{makers.length > 1 ? 's' : ''} for {kitName} cars</summary>
   {groups.map((g) => <><h4>{brandName(g.m)} <span class="muted">({g.n})</span></h4>
     <ul>{g.cars.map(({ c, parts }) => <li>{c}<ul>{parts.map((p) => <li><a href={url.part(p.id)}>{partLabel(p)}</a>{p.number && <span class="muted"> {p.name}</span>}</li>)}</ul></li>)}</ul></>)}
