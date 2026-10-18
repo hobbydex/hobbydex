@@ -211,9 +211,6 @@ table.sortable th[aria-sort="descending"] .sortbtn::after { content: " \2193"; }
 .srcnote > span { display: block; color: var(--muted); font-size: 0.85em; font-weight: 400; }
 /* per-car sets of other makers on a kit page (KitSets.astro), one collapsed line per kind */
 .kitsets { margin: 0.4rem 0; }
-details.discontinued { margin-top: 0.75rem; }
-details.discontinued > summary { cursor: pointer; color: var(--muted); padding: 0.25rem 0; }
-details.discontinued[open] > summary { margin-bottom: 0.5rem; }
 .kitsets > summary { cursor: pointer; color: var(--muted); }
 .kitsets h4 { margin: 0.6rem 0 0.2rem; }
 

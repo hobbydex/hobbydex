@@ -25,7 +25,7 @@ export function getStaticPaths() {
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const kit = Astro.props.kit!;   // set on every page that is not a redirect
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort(byReleaseDate);
-// the list: current releases (on sale or announced) first, then the discontinued ones in a collapsed group;
+// the list: current releases (on sale or announced) first, then the discontinued ones;
 // newest first in each, dated before undated (undated ones by item number, higher numbers being newer)
 const dateKey = (r: (typeof releases)[number]) => r.released ?? (yearOf(r) ? String(yearOf(r)) : '');
 const newestFirst = (a: (typeof releases)[number], b: (typeof releases)[number]) =>
@@ -86,18 +86,18 @@ const conversions = conversionsForKit(kit.id);
     </ul></>}
   <h2>Releases</h2>
   {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
-  {[{ rows: current, group: false }, { rows: discontinued, group: current.length > 0 }].filter((t) => t.rows.length).map(({ rows, group }) => {
-    const status = show.status && rows === current;
-    const table = <table class="releases">
-      <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{status && <th>Status</th>}</tr>
-      {rows.map((r) => <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
-        <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{status && <td data-label="Status" class="muted">{r.status}</td>}
-      </tr>)}
-    </table>;
-    // every release discontinued: one plain list, said so above it
-    return group ? <details class="discontinued" data-discontinued><summary>Discontinued <span class="muted">({rows.length})</span></summary>{table}</details>
-      : rows === discontinued ? <><p class="muted">Every release is discontinued.</p>{table}</> : table;
-  })}
+  {(() => {
+    // one table: current releases first, then the discontinued ones; "Hide discontinued" hides those rows
+    const rows = [...current, ...discontinued];
+    return <>
+      {current.length === 0 && <p class="muted">Every release is discontinued.</p>}
+      <table class="releases">
+        <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
+        {rows.map((r) => <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
+          <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status === 'discontinued' ? '' : r.status}</td>}
+        </tr>)}
+      </table></>;
+  })()}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
     <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a><Discontinued item={c} />{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
   {gearings.size > 0 && <section data-pagefind-ignore>
