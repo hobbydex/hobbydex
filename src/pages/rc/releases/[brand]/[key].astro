@@ -4,6 +4,7 @@ import { colourDot } from '../../../../lib/colourDot';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { paintChip } from '../../../../lib/paintSwatch';
 import WebSearch from '../../../../components/WebSearch.astro';
+import FanLinks from '../../../../components/FanLinks.astro';
 import CopyButton from '../../../../components/CopyButton.astro';
 import OtherCarSets from '../../../../components/OtherCarSets.astro';
 import { gtinLabel } from '../../../../lib/gtin';
@@ -111,6 +112,7 @@ const conversions = conversionsForRelease(release);
   </dl>
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} size="12rem" class="hero" /></span>
   </div>
+  <FanLinks links={release.links} />
   {rows.length > 0 && <p data-pagefind-ignore><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p>}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
     <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a><Discontinued item={c} />{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
