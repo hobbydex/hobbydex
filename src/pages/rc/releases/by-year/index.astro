@@ -1,0 +1,16 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import { db, yearOf } from '../../../../lib/data';
+// every release with a known year, one page per year (one table of all releases is too big for a page)
+const counts = [...db.releases.reduce((m, r) => (r.year ? m.set(r.year, (m.get(r.year) ?? 0) + 1) : m), new Map<number, number>())].sort((a, b) => b[0] - a[0]);
+const dated = counts.reduce((s, [, n]) => s + n, 0);
+---
+<Base title="Releases by year" description="Every RC release in Hobbydex with a known release year, newest year first.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / by year</div>
+  <h1>Releases by year</h1>
+  <p class="muted">{dated} of {db.releases.length} releases have a known release year; the others are on their <a href="/rc/releases/">brand's release list</a>.</p>
+  <table>
+    <tr><th>Year</th><th class="num">Releases</th></tr>
+    {counts.map(([y, n]) => <tr><td><a href={`/rc/releases/by-year/${y}/`}>{y}</a></td><td class="num">{n}</td></tr>)}
+  </table>
+</Base>
