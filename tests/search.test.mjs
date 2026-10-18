@@ -7,7 +7,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, extname, resolve } from 'node:path';
-import { rankHits } from '../public/search-rank.js';
+import { rankHits, rankedSearch } from '../public/search-rank.js';
 
 const d = (type, title, sub = '', category) => ({ meta: { type, title, sub }, filters: category ? { category: [category] } : {} });
 const order = (text, datas) => rankHits(text, datas).map((i) => datas[i].meta.title);
@@ -69,13 +69,9 @@ before(async () => {
   const pf = await import(join(DIST, 'pagefind', 'pagefind.js'));
   await pf.options({ basePath: `http://127.0.0.1:${server.address().port}/pagefind/` });
   await pf.init();
-  search = async (text) => {
-    const r = await pf.search(text), platforms = (await pf.search(text, { filters: { type: 'platform' } })).results.slice(0, 50);
-    const seen = new Set(platforms.map((h) => h.id));   // as /search/ does: platforms always join the ranked candidates
-    const top = [...platforms, ...r.results.filter((h) => !seen.has(h.id)).slice(0, 300)], datas = [];
-    for (let k = 0; k < top.length; k += 50) datas.push(...await Promise.all(top.slice(k, k + 50).map((h) => h.data())));
-    return rankHits(text, datas).map((i) => datas[i]);
-  };
+  // as /search/ does
+  const platforms = JSON.parse(await readFile(join(DIST, 'search-platforms.json'), 'utf8'));
+  search = async (text) => (await rankedSearch(pf, text, platforms)).datas;
 });
 after(() => server && server.close());
 const withIndex = (fn) => fn(search);
