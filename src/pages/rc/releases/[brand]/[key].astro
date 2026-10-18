@@ -100,15 +100,15 @@ const conversions = conversionsForRelease(release);
   {rows.length > 0 && <p data-pagefind-ignore><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p>}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
     <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a>{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
-  {gear && <>
+  {gear && <section data-pagefind-ignore>
     <h2>Stock gearing</h2>
     <div class="gearing">
       <span set:html={gear.svg} />
       <p><span class="ratio">{gear.ratio.toFixed(2)} : 1</span><br />
         <a href={url.part(gear.spur.id)}>{gear.zs}T spur</a> / <a href={url.part(gear.pinion.id)}>{gear.zp}T pinion</a>{gear.pitch && <span class="muted"> · {gear.pitch}</span>}<br />
         <span class="muted">Spur/pinion ratio of the gears in the box. The transmission's internal ratio is not in our data, so this is not the final drive ratio.</span></p>
-    </div></>}
-  {bearings && <>
+    </div></section>}
+  {bearings && <section data-pagefind-ignore>
     <h2>Bearings <span class="muted">({bearings.lines.length} {bearings.lines.length === 1 ? 'size' : 'sizes'})</span> <CopyButton text={copyText} label="Copy bearing list" class="inline" /></h2>
     <p class="muted">{bearings.counted ? 'Counts per car, from the build manual.' : 'Sizes of the bearings in the box; the count per car is not in our source for this release.'}{bearings.lines.some((l) => l.bushing) && ' A bushing is listed with the ball bearing that replaces it.'}</p>
     <table>
@@ -124,17 +124,17 @@ const conversions = conversionsForRelease(release);
           <td>{b.missing.length === 0 && b.short.length === 0 ? (bearings.counted ? 'every size, enough of each' : 'every size') : <span class="muted">{b.missing.length > 0 && `misses ${b.missing.map((l) => l.name).join(', ')}`}{b.missing.length > 0 && b.short.length > 0 && '; '}{b.short.length > 0 && `too few ${b.short.map((l) => l.name).join(', ')}`}</span>}</td></tr>)}
       </table>}
       <OtherCarSets items={otherBearing} kitName={kit.name} /></>}
-    </>}
-  {!bearings && (bearingKits.length > 0 || otherBearing.length > 0) && <>
+    </section>}
+  {!bearings && (bearingKits.length > 0 || otherBearing.length > 0) && <section data-pagefind-ignore>
     <h2>Bearing kits for this car <span class="muted">({bearingKits.length})</span></h2>
     {bearingKits.length > 0 && <>
       <p class="muted">The bearings in the box are not in our data for this release, so the kits are not checked against it.</p>
       <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> <span class="muted">{b.p.number && b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span></li>)}</ul></>}
-    <OtherCarSets items={otherBearing} kitName={kit.name} /></>}
-  {(screwFits.here.length > 0 || otherScrew.length > 0) && <>
+    <OtherCarSets items={otherBearing} kitName={kit.name} /></section>}
+  {(screwFits.here.length > 0 || otherScrew.length > 0) && <section data-pagefind-ignore>
     <h2>Screw kits for this car <span class="muted">({screwFits.here.length})</span></h2>
     {screwFits.here.length > 0 && <ul>{screwFits.here.map((p) => <li><a href={url.part(p.id)}>{brandName(p.brand)} {partLabel(p)}</a> {p.number && <span class="muted">{p.name}</span>}</li>)}</ul>}
-    <OtherCarSets items={otherScrew} kitName={kit.name} /></>}
+    <OtherCarSets items={otherScrew} kitName={kit.name} /></section>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
   {boxCats.length > 1 && <nav class="boxgrid" aria-label="In the box by category" data-pagefind-ignore>
@@ -142,7 +142,7 @@ const conversions = conversionsForRelease(release);
     <ul>{boxCats.map(({ g, n }) => <li><a href={`#kit-${g || 'other'}`} title={`${n} ${g ? catName(g) : 'other'} part number${n > 1 ? 's' : ''}`}>{g ? <Icon name={g} size="1.6rem" /> : <span class="noicon" />}<b>{n}</b><span>{g ? catName(g) : 'Other'}</span></a></li>)}</ul>
   </nav>}
   {(cats.length > 1 || hasStep) && <p data-pagefind-ignore>{cats.length > 1 && <label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label>}{hasStep && <label class="steptoggle"><input type="checkbox" id="showsteps" /> Build steps</label>}</p>}
-  {(() => { const shown = sections.map(([role, label]) => ({ role, label, rows: section(role) })).filter((x) => x.rows.length > 0); return shown.length > 0 && <>
+  {(() => { const shown = sections.map(([role, label]) => ({ role, label, rows: section(role) })).filter((x) => x.rows.length > 0); return shown.length > 0 && <div data-pagefind-ignore>
     {shown.length > 1 && <div class="tabs" role="tablist" data-pagefind-ignore>{shown.map((x, i) => <button type="button" role="tab" class="tab" data-tab={x.role} aria-selected={i === 0 ? 'true' : 'false'}>{({ kit: 'In the box', option: 'Options', listed: 'Also listed' } as Record<string, string>)[x.role] ?? x.label} <span class="muted">({x.rows.length})</span></button>)}</div>}
     {shown.map((x) => { const groups = [...new Set(x.rows.map((c) => c.p.category ?? ''))].sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))); return <section class="tabpanel" data-panel={x.role}>
       <h2 class="panelhead">{x.label} <span class="muted">({x.rows.length})</span></h2>
@@ -152,7 +152,7 @@ const conversions = conversionsForRelease(release);
           <tr><th class="num numcol" style={`--numn:${numW}`}>Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand c-brand">Brand</th>{hasStep && <th class="w-step c-step">Step</th>}</tr>
           {gr.map((c) => <tr><td class="num">{c.p.number && <a href={url.part(c.p.id)}>{c.p.number}</a>}</td><td><Fragment set:html={c.p.category === 'paint' ? (paintChip(c.p, 14, 'circle') ?? '') : colourDot(c.p.color)} />{c.p.number ? c.p.name : <a href={url.part(c.p.id)}>{c.p.name}</a>}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted c-step">{c.step ?? ''}</td>}</tr>)}
         </table></div>; })}
-    </section>; })}</>; })()}
+    </section>; })}</div>; })()}
   <script>
     // build steps column: off by default, the choice remembered per viewer
     const st = document.getElementById('showsteps') as HTMLInputElement | null;
