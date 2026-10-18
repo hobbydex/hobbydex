@@ -29,7 +29,8 @@ import Base from '../layouts/Base.astro';
       // listing every part (130,000+) without a query takes a long time: ask for a query instead
       const browseAll = (t, c) => t === 'part' && !c;
       if (params.get('q') || params.get('category') || (params.get('type') && !browseAll(params.get('type'), params.get('category')))) status.textContent = 'Searching...';
-      const { rankHits } = await import('/search-rank.js');   // shared with tests/search.test.mjs
+      const [{ rankedSearch }, platforms] = await Promise.all([import('/search-rank.js'),   // shared with tests/search.test.mjs
+        fetch('/search-platforms.json').then((r) => r.json()).catch(() => [])]);
       try {
         pagefind = await import('/pagefind/pagefind.js');
         await pagefind.options({ ranking: { termSimilarity: 9, termFrequency: 0.2, termSaturation: 1.2, pageLength: 0.5 } });
@@ -38,22 +39,24 @@ import Base from '../layouts/Base.astro';
         status.textContent = 'Search index failed to load: ' + (e && e.message ? e.message : e);
         return;
       }
-      let type = '', cat = '', drive = '', make = '', hits = [], shown = 0, seq = 0;
+      let type = '', cat = '', drive = '', make = '', hits = [], shown = 0, listed = new Set();
       const catSel = document.getElementById('cat'), driveSel = document.getElementById('drive'), makeSel = document.getElementById('make');
       const DRIVES = ['2WD', '4WD', 'FWD', '6WD', '8WD', 'Tracks'];
-      try {
-        const f = await pagefind.filters();
-        for (const [name, n] of Object.entries(f.category || {}).sort((a, b) => a[0].localeCompare(b[0]))) {
-          const o = document.createElement('option'); o.value = name; o.textContent = `${name} (${n})`; catSel.appendChild(o);
-        }
-        for (const [name, n] of Object.entries(f.drive || {}).sort((a, b) => (DRIVES.indexOf(a[0]) + 1 || 99) - (DRIVES.indexOf(b[0]) + 1 || 99))) {
-          const o = document.createElement('option'); o.value = name; o.textContent = `${name} (${n})`; driveSel.appendChild(o);
-        }
-        // real vehicle makes a release or body shell replicates
-        for (const [name, n] of Object.entries(f.make || {}).sort((a, b) => a[0].localeCompare(b[0]))) {
-          const o = document.createElement('option'); o.value = name; o.textContent = `${name} (${n})`; makeSel.appendChild(o);
-        }
-      } catch (e) {}
+      // the filter lists (a few hundred KB) load after the first search, not before it
+      async function loadFilters() {
+        try {
+          const f = await pagefind.filters();
+          const fill = (sel, counts, order) => {
+            for (const [name, n] of Object.entries(counts || {}).sort(order)) {
+              const o = document.createElement('option'); o.value = name; o.textContent = `${name} (${n})`; sel.appendChild(o);
+            }
+          };
+          fill(catSel, f.category, (a, b) => a[0].localeCompare(b[0]));
+          fill(driveSel, f.drive, (a, b) => (DRIVES.indexOf(a[0]) + 1 || 99) - (DRIVES.indexOf(b[0]) + 1 || 99));
+          fill(makeSel, f.make, (a, b) => a[0].localeCompare(b[0]));   // real vehicle makes a release or body shell replicates
+          catSel.value = cat; driveSel.value = drive; makeSel.value = make;
+        } catch (e) {}
+      }
       const filt = () => { const f = {}; if (type) f.type = type; if (cat) { f.category = cat; f.type = 'part'; } if (drive) { f.drive = drive; f.type = 'platform'; } if (make) f.make = make; return f; };
       const PAGE = 20;
       const labels = { part: 'part', spec: 'spec', release: 'release', platform: 'platform', brand: 'brand' };
@@ -68,6 +71,8 @@ import Base from '../layouts/Base.astro';
         const batch = hits.slice(shown, shown + PAGE);
         const data = await Promise.all(batch.map((h) => h.data()));
         for (const d of data) {
+          if (listed.has(d.url)) continue;   // a platform matched by title can come again in pagefind's tail
+          listed.add(d.url);
           const li = document.createElement('li');
           const t = d.meta.type || '';
           li.innerHTML = `<span class="badge">${esc(labels[t] || t)}</span><a href="${esc(d.url)}">${mark(d.meta.title || d.url, terms)}</a>` + (d.meta.sub ? `<span class="sub">${esc(d.meta.sub)}</span>` : '');
@@ -76,41 +81,39 @@ import Base from '../layouts/Base.astro';
         shown += batch.length;
         more.hidden = shown >= hits.length;
       }
+      // one search at a time: pagefind's worker runs them in turn, so typing would queue up a search per
+      // keystroke; a query typed meanwhile runs when the current one ends, and only the newest one
+      let running = false, again = false;
       async function search() {
-        const my = ++seq, text = q.value.trim();
-        results.innerHTML = ''; shown = 0; more.hidden = true;
+        if (running) { again = true; return; }
+        running = true;
+        try { await runSearch(); } finally { running = false; }
+        if (again) { again = false; search(); }
+      }
+      async function runSearch() {
+        const text = q.value.trim(), stale = () => again;   // a newer query is waiting
         const qs = new URLSearchParams(); if (text) qs.set('q', text); if (type) qs.set('type', type); if (cat) qs.set('category', cat); if (drive) qs.set('drive', drive); if (make) qs.set('make', make);
         history.replaceState(null, '', qs.toString() ? `?${qs}` : location.pathname);
-        if (!text && !type && !cat && !drive && !make) { status.textContent = ''; hits = []; return; }
-        if (!text && !make && browseAll(type, cat)) { status.textContent = 'Type a part number or name to search the parts, or pick a category.'; hits = []; q.focus(); return; }
+        const clear = () => { results.innerHTML = ''; shown = 0; more.hidden = true; hits = []; listed = new Set(); };
+        if (!text && !type && !cat && !drive && !make) { clear(); status.textContent = ''; return; }
+        if (!text && !make && browseAll(type, cat)) { clear(); status.textContent = 'Type a part number or name to search the parts, or pick a category.'; q.focus(); return; }
         status.textContent = 'Searching...';
-        let r;
+        let found;
         try {
-          // empty query with a type selected: list every page of that type, by title
-          r = text ? await pagefind.search(text, { filters: filt() })
-                   : await pagefind.search(null, { filters: filt(), sort: { title: 'asc' } });
+          // a plain query: re-ranked (see search-rank.js); with a filter, pagefind's order;
+          // an empty query with a type selected lists every page of that type, by title
+          found = text && !type && !cat && !drive && !make ? (await rankedSearch(pagefind, text, platforms, stale))?.hits
+            : (text ? await pagefind.search(text, { filters: filt() }) : await pagefind.search(null, { filters: filt(), sort: { title: 'asc' } })).results;
         }
         catch (e) { status.textContent = 'Search failed: ' + (e && e.message ? e.message : e); return; }
-        if (my !== seq) return;
-        hits = r.results;
-        // ranking: an exact platform or release name, then platforms, releases and parts whose title holds every word
-        // (shortest title first; bodies before generic parts), then pages that only mention the words
-        if (text && !type && !cat && !drive && !make) {
-          // platforms are few and can sit far down pagefind's order behind hundreds of a chassis's releases
-          // and parts ("TT-02"): they always join the ranked candidates
-          const platforms = (await pagefind.search(text, { filters: { type: 'platform' } })).results.slice(0, 50);
-          if (my !== seq) return;
-          const seen = new Set(platforms.map((h) => h.id)), rest = hits.filter((h) => !seen.has(h.id));
-          const top = [...platforms, ...rest.slice(0, 300)], datas = [];
-          for (let k = 0; k < top.length; k += 50) datas.push(...await Promise.all(top.slice(k, k + 50).map((h) => h.data())));
-          if (my !== seq) return;
-          const ranked = rankHits(text, datas).map((i) => ({ h: top[i] }));
-          hits = [...ranked.map((x) => x.h), ...rest.slice(300)];
-        }
+        if (!found || stale()) return;
+        // the old results stay until the new ones are in
+        clear(); hits = found;
         status.textContent = hits.length ? `${hits.length} ${text ? 'result' : labels[type || (drive ? 'platform' : '')] || 'page'}${hits.length === 1 ? '' : 's'}` : 'No results';
         await render();
       }
-      let timer; q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(search, 120); });
+      // a search starts once typing pauses: one started mid-word cannot be stopped and delays the next
+      let timer; q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(search, 250); });
       moreBtn.addEventListener('click', render);
       filters.addEventListener('click', (e) => {
         const b = e.target.closest('button'); if (!b) return;
@@ -126,7 +129,9 @@ import Base from '../layouts/Base.astro';
       if (params.get('make')) { make = params.get('make'); makeSel.value = make; }
       // ?type=kit: links from before kits were called platforms
       if (params.get('type')) { type = params.get('type') === 'kit' ? 'platform' : params.get('type'); for (const x of filters.querySelectorAll('button')) x.setAttribute('aria-pressed', String(x.dataset.type === type)); }
-      if (params.get('q') || cat || drive || make || type) search();
+      // a query typed while the index loaded counts too
+      if (q.value.trim() || cat || drive || make || type) await search();
+      loadFilters();
     })();
   </script>
 </Base>

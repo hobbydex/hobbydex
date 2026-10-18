@@ -18,3 +18,31 @@ export function rankHits(text, datas) {
     return { i, tier, len: name.length };
   }).sort((a, b) => a.tier - b.tier || (a.tier <= 4 ? a.len - b.len : 0) || a.i - b.i).map((x) => x.i);
 }
+
+// How many of pagefind's hits are re-ranked: each needs its fragment fetched (one request per page), so
+// the candidates are kept few. Pagefind already weights titles, so title matches sit near its top.
+export const PLATFORM_CANDIDATES = 10, OTHER_CANDIDATES = 60;
+// Platforms are few and can sit far down pagefind's order behind hundreds of a chassis's releases and
+// parts ("TT-02"): the platforms whose title holds every word (shortest first) always join the
+// candidates. They come from `platforms`, the [title, brand, url] rows of /search-platforms.json.
+export function platformHits(text, platforms) {
+  const words = norm(text).split(' ').filter(Boolean);
+  if (!words.length) return [];
+  return platforms.filter(([title]) => { const t = norm(title); return words.every((w) => t.includes(w)); })
+    .sort((a, b) => a[0].length - b[0].length).slice(0, PLATFORM_CANDIDATES)
+    .map(([title, sub, url]) => { const d = { url, meta: { type: 'platform', title, sub }, filters: {} }; return { id: url, data: async () => d }; });
+}
+// A plain query (no filters): pagefind's hits re-ranked by rankHits, with the platform title matches
+// joined in. Returns { hits, datas } (datas[i] belongs to hits[i] for the ranked head; the rest of
+// pagefind's hits follow unranked), or null when `stale()` turns true meanwhile.
+export async function rankedSearch(pagefind, text, platforms, stale = () => false) {
+  const own = platformHits(text, platforms), seen = new Set(own.map((h) => h.id));
+  const all = (await pagefind.search(text)).results;
+  if (stale()) return null;
+  const head = all.slice(0, OTHER_CANDIDATES), loaded = await Promise.all(head.map((h) => h.data()));
+  if (stale()) return null;
+  const keep = head.map((_, i) => i).filter((i) => !seen.has(loaded[i].url));
+  const top = [...own, ...keep.map((i) => head[i])], datas = [...await Promise.all(own.map((h) => h.data())), ...keep.map((i) => loaded[i])];
+  const order = rankHits(text, datas);
+  return { hits: [...order.map((i) => top[i]), ...all.slice(OTHER_CANDIDATES)], datas: order.map((i) => datas[i]) };
+}
