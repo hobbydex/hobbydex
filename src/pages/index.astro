@@ -4,12 +4,20 @@ import ReleaseArt from '../components/ReleaseArt.astro';
 import { kitTypeIcon, kitTypeOne } from '../lib/kitTypes';
 import Base from '../layouts/Base.astro';
 import { db, url, brandName, dateKey, dateText, releasesByMake, bodiesByMake } from '../lib/data';
-import { catName } from '../lib/categories';
 
 const top = <T,>(m: Map<T, number>, n: number) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
 const byCat = new Map<string, number>();
 for (const p of db.parts) if (p.category) byCat.set(p.category, (byCat.get(p.category) ?? 0) + 1);
-const cats = top(byCat, 12);
+// platforms by how many parts of other brands are made to fit them: what Hobbydex adds over a maker's own site
+const upgrades = new Map<string, number>(), upgradeBrands = new Map<string, Set<string>>();
+for (const p of db.parts) for (const k of new Set((p.fits ?? []).map((f) => f.kit))) {
+  const kit = db.kit.get(k);
+  if (!kit || kit.brand === p.brand) continue;
+  upgrades.set(k, (upgrades.get(k) ?? 0) + 1);
+  if (!upgradeBrands.has(k)) upgradeBrands.set(k, new Set());
+  upgradeBrands.get(k)!.add(p.brand);
+}
+const upgraded = top(upgrades, 12);
 // car makers by how many releases (kits and RTRs) we have: part counts favour sellers of per-car bearing or screw kits
 const byBrand = new Map<string, number>();
 for (const r of db.releases) byBrand.set(r.brand, (byBrand.get(r.brand) ?? 0) + 1);
@@ -114,10 +122,10 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 
   <div class="home-grid">
     <section>
-      <h2>Parts by category <span class="muted">· <a href="/rc/categories/">all {byCat.size} categories</a></span></h2>
+      <h2>Most upgraded platforms <span class="muted">· parts from other brands that fit</span></h2>
       <ul class="hbars">
-        {cats.map(([c, n]) => <li><a href={`/rc/categories/${c}/`}>{catName(c)}</a>
-          <span class="bar" style={`width:${(n / max(cats)) * 100}%`} title={`${catName(c)}: ${n} parts`}></span><span class="v">{n}</span></li>)}
+        {upgraded.map(([k, n]) => { const kit = db.kit.get(k)!; const nb = upgradeBrands.get(k)!.size; return <li><a href={url.platform(k)}>{brandName(kit.brand)} {kit.name}</a>
+          <span class="bar" style={`width:${(n / max(upgraded)) * 100}%`} title={`${brandName(kit.brand)} ${kit.name}: ${n} parts from ${nb} other brands`}></span><span class="v">{n} <span class="muted">· {nb} brands</span></span></li>; })}
       </ul>
     </section>
     <section>
