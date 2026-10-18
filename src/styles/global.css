@@ -219,3 +219,8 @@ details.discontinued[open] > summary { margin-bottom: 0.5rem; }
 /* homepage latest releases: the platform follows the name on a wide screen, on its own line on a phone */
 .relplat::before { content: " \00b7  "; }
 @media (max-width: 600px) { .relplat { display: block; } .relplat::before { content: none; } }
+/* discontinued: a muted slashed circle after the name; rows stay as they are, the toggle hides them */
+.disc { color: var(--muted); display: inline-block; margin-left: 0.3em; vertical-align: -0.15em; }
+.disc .icon { width: 1em; height: 1em; vertical-align: 0; }
+html.hide-discontinued [data-discontinued] { display: none !important; }
+.hidedisc { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0; cursor: pointer; }

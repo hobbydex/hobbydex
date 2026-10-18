@@ -1,5 +1,7 @@
 ---
 import Base from '../../../layouts/Base.astro';
+import Discontinued from '../../../components/Discontinued.astro';
+import HideDiscontinued from '../../../components/HideDiscontinued.astro';
 import ReleaseArt from '../../../components/ReleaseArt.astro';
 import { db, url, brandName, yearText, yearOf, makeSlug, countryName, releasesByMake, bodiesByMake, partLabel, type Release, type Part } from '../../../lib/data';
 export function getStaticPaths() {
@@ -18,8 +20,10 @@ const famKey = (m: string) => family(m).toLowerCase();
 const models = [...new Map([...releases, ...bodies].map((x) => [famKey(x.depicts!.model), family(x.depicts!.model)])).values()]
   .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 const anchor = (m: string) => 'model-' + m.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-const byBrandYear = (a: Release, b: Release) => brandName(a.brand).localeCompare(brandName(b.brand)) || yearOf(a) - yearOf(b) || a.name.localeCompare(b.name);
-const byBrandNo = (a: Part, b: Part) => brandName(a.brand).localeCompare(brandName(b.brand)) || partLabel(a).localeCompare(partLabel(b), undefined, { numeric: true });
+// by brand; within a brand, current before discontinued, then by year (or by part label)
+const byBrandYear = (a: Release, b: Release) => brandName(a.brand).localeCompare(brandName(b.brand)) || (a.status === 'discontinued' ? 1 : 0) - (b.status === 'discontinued' ? 1 : 0) || yearOf(a) - yearOf(b) || a.name.localeCompare(b.name);
+const byBrandNo = (a: Part, b: Part) => brandName(a.brand).localeCompare(brandName(b.brand)) || (a.status === 'discontinued' ? 1 : 0) - (b.status === 'discontinued' ? 1 : 0) || partLabel(a).localeCompare(partLabel(b), undefined, { numeric: true });
+const hasDisc = [...releases, ...bodies].some((x) => x.status === 'discontinued');
 const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
 ---
 <Base title={`${make} RC cars`} description={`${make} RC replicas: ${releases.length} ${releases.length === 1 ? 'release' : 'releases'}${bodies.length ? ` and ${bodies.length} body shells` : ''}, by model.${info ? ` ${info.notes}` : ''}`}>
@@ -29,13 +33,14 @@ const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
   {info && <p>{info.notes}</p>}
   <p class="muted">{make} is a trademark of its owner; no logos are shown.</p>
   {models.length > 1 && <p class="toc" data-pagefind-ignore>{models.map((m, i) => <>{i > 0 && ' · '}<a href={`#${anchor(m)}`}>{m}</a></>)}</p>}
+  {hasDisc && <HideDiscontinued />}
   {models.map((m) => { const rs = releases.filter((r) => famKey(r.depicts!.model) === m.toLowerCase()).sort(byBrandYear); const bs = bodies.filter((p) => famKey(p.depicts!.model) === m.toLowerCase()).sort(byBrandNo); return <section>
     <h2 id={anchor(m)}>{make} {m} <span class="muted">({rs.length + bs.length})</span></h2>
     {rs.length > 0 && <>
       <table class="releases">
       <tr><th>Release</th><th>Model</th><th>Brand</th><th class="num">Vehicle year</th><th class="num">Released</th></tr>
-      {rs.map((r) => { const k = db.kit.get(r.kit); return <tr>
-        <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a>{r.number && <span class="muted"> {r.number}</span>}</td>
+      {rs.map((r) => { const k = db.kit.get(r.kit); return <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
+        <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} />{r.number && <span class="muted"> {r.number}</span>}</td>
         <td data-label="Model">{r.depicts!.model}</td>
         <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
         <td class="num" data-label="Vehicle year">{vyear(r)}</td><td class="num" data-label="Released">{r.year || r.model_year ? yearText(r) : ''}</td>
@@ -44,8 +49,8 @@ const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
     {bs.length > 0 && <>
       <table class="releases bodies">
       <tr><th>Body</th><th>Model</th><th>Brand</th><th>Fits</th><th class="num">Released</th></tr>
-      {bs.map((p) => { const fits = [...new Set((p.fits ?? []).map((f) => f.kit).filter((k): k is string => !!k))].map((k) => db.kit.get(k)).filter((k) => !!k); return <tr>
-        <td class="name"><a href={url.part(p.id)}>{p.name}</a>{p.number && <span class="muted"> {p.number}</span>}</td>
+      {bs.map((p) => { const fits = [...new Set((p.fits ?? []).map((f) => f.kit).filter((k): k is string => !!k))].map((k) => db.kit.get(k)).filter((k) => !!k); return <tr data-discontinued={p.status === 'discontinued' ? '' : undefined}>
+        <td class="name"><a href={url.part(p.id)}>{p.name}</a><Discontinued item={p} />{p.number && <span class="muted"> {p.number}</span>}</td>
         <td data-label="Model">{p.depicts!.model}</td>
         <td data-label="Brand"><a href={url.brand(p.brand)}>{brandName(p.brand)}</a></td>
         <td data-label="Fits">{fits.map((k, i) => <>{i > 0 && ', '}<a href={url.platform(k!.id)}>{k!.name}</a></>)}</td>

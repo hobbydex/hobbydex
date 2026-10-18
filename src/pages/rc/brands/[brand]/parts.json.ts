@@ -6,6 +6,7 @@ export function getStaticPaths() {
 }
 
 export function GET({ props }: { props: { id: string } }) {
-  const rows = (db.partsByBrand.get(props.id) ?? []).map((p) => [key(p.id)[1], p.name, p.category ?? '']);
+  // a fourth value, 1, marks a discontinued part (the search row shows the mark)
+  const rows = (db.partsByBrand.get(props.id) ?? []).map((p) => [key(p.id)[1], p.name, p.category ?? '', ...(p.status === 'discontinued' ? [1] : [])]);
   return new Response(JSON.stringify(rows), { headers: { 'Content-Type': 'application/json' } });
 }

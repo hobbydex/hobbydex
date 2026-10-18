@@ -2,6 +2,7 @@
 import { colourDot } from '../../../../lib/colourDot';
 import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
+import Discontinued from '../../../../components/Discontinued.astro';
 import PartTable from '../../../../components/PartTable.astro';
 import { db, brandName, byPartNo, key, url } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
@@ -20,6 +21,6 @@ const parts = [...byCategory.get(category)!.get(brandId)!].sort(byPartNo);
   {columns[category] ? <PartTable category={category} parts={parts} showBrand={false} /> :
   <table>
     <tr><th>Part</th><th>Name</th><th class="num">Releases</th></tr>
-    {parts.map((p) => <tr><td>{p.number && <a href={url.part(p.id)}>{p.number}</a>}</td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.number ? p.name : <a href={url.part(p.id)}>{p.name}</a>}</td><td class="num">{new Set((db.usesByPart.get(p.id) ?? []).map((u) => u.release.id)).size || ''}</td></tr>)}
+    {parts.map((p) => <tr><td>{p.number && <a href={url.part(p.id)}>{p.number}</a>}</td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.number ? p.name : <a href={url.part(p.id)}>{p.name}</a>}<Discontinued item={p} /></td><td class="num">{new Set((db.usesByPart.get(p.id) ?? []).map((u) => u.release.id)).size || ''}</td></tr>)}
   </table>}
 </Base>

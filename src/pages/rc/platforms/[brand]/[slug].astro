@@ -6,6 +6,8 @@ import SourceNote from '../../../../components/SourceNote.astro';
 import KitSets from '../../../../components/KitSets.astro';
 import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
+import Discontinued from '../../../../components/Discontinued.astro';
+import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
 import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit } from '../../../../lib/data';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -35,7 +37,8 @@ const show = { number: releases.some((r) => r.number), edition: releases.some((r
 // the compare link takes the two newest dated releases (undated ones sort last)
 const dated = releases.filter((r) => r.released || yearOf(r));
 const pair = (dated.length >= 2 ? dated : releases).slice(-2);
-const allFits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => byPartNo(a.part, b.part));
+// current parts before discontinued ones, each group in part-number order
+const allFits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => (a.part.status === 'discontinued' ? 1 : 0) - (b.part.status === 'discontinued' ? 1 : 0) || byPartNo(a.part, b.part));
 // other makers' per-car bearing and screw sets (Fast Eddy, RCScrewZ...) would crowd out the option parts:
 // they get one collapsed line each; single bearings and the kit maker's own sets stay in the list
 const bearingSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.category === 'bearing'
@@ -80,27 +83,28 @@ const conversions = conversionsForKit(kit.id);
       </li>; })}
     </ul></>}
   <h2>Releases</h2>
+  {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
   {[{ rows: current, group: false }, { rows: discontinued, group: current.length > 0 }].filter((t) => t.rows.length).map(({ rows, group }) => {
     const status = show.status && rows === current;
     const table = <table class="releases">
       <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{status && <th>Status</th>}</tr>
-      {rows.map((r) => <tr>
-        <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{status && <td data-label="Status" class="muted">{r.status}</td>}
+      {rows.map((r) => <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
+        <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{status && <td data-label="Status" class="muted">{r.status}</td>}
       </tr>)}
     </table>;
     // every release discontinued: one plain list, said so above it
-    return group ? <details class="discontinued"><summary>Discontinued <span class="muted">({rows.length})</span></summary>{table}</details>
+    return group ? <details class="discontinued" data-discontinued><summary>Discontinued <span class="muted">({rows.length})</span></summary>{table}</details>
       : rows === discontinued ? <><p class="muted">Every release is discontinued.</p>{table}</> : table;
   })}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
-    <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a>{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
+    <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a><Discontinued item={c} />{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
   {gearings.size > 0 && <section data-pagefind-ignore>
     <h2>Stock gearing</h2>
     {[...gearings.values()].map(({ g, rels }) => <div class="gearing">
       <span set:html={g.svg} />
       <p><span class="ratio">{g.ratio.toFixed(2)} : 1</span><br />
         <a href={url.part(g.spur.id)}>{g.zs}T spur</a> / <a href={url.part(g.pinion.id)}>{g.zp}T pinion</a>{g.pitch && <span class="muted"> · {g.pitch}</span>}<br />
-        <span class="muted">{rels.length === releases.length ? (releases.length > 1 ? 'Every release' : 'In the box') : rels.map((r, i) => <>{i > 0 && ', '}<a href={url.release(r.id)}>{r.name}</a></>)}</span></p>
+        <span class="muted">{rels.length === releases.length ? (releases.length > 1 ? 'Every release' : 'In the box') : rels.map((r, i) => <>{i > 0 && ', '}<a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></>)}</span></p>
     </div>)}
     <p class="muted">Spur/pinion ratio of the gears in the box. The transmission's internal ratio is not in our data, so this is not the final drive ratio.</p></section>}
   {pair.length > 1 && <p><a href={`/rc/compare/?a=${encodeURIComponent(pair[0].id)}&b=${encodeURIComponent(pair[1].id)}`}>Compare the last two releases</a> <span class="muted">or any two releases on the compare page</span></p>}
@@ -111,11 +115,12 @@ const conversions = conversionsForKit(kit.id);
       <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
       <table>
         <tr><th class="num numcol" style={`--numn:${Math.max(5, ...borrowedUnique.map((x) => partNo(x.p).length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-from">From</th></tr>
-        {rows.map(({ rel, p }) => <tr><td class="num">{p.number && <a href={url.part(p.id)}>{p.number}</a>}</td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.number ? p.name : <a href={url.part(p.id)}>{p.name}</a>}</td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a></td></tr>)}
+        {rows.map(({ rel, p }) => <tr data-discontinued={p.status === 'discontinued' ? '' : undefined}><td class="num">{p.number && <a href={url.part(p.id)}>{p.number}</a>}</td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.number ? p.name : <a href={url.part(p.id)}>{p.name}</a>}<Discontinued item={p} /></td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a><Discontinued item={rel} /></td></tr>)}
       </table></div>)}
   </section>}
   {(fits.length > 0 || bearingSets.length > 0 || screwSets.length > 0) && <section data-pagefind-ignore>
     <h2>Option parts listed as fitting <span class="muted">({new Set(fits.map((x) => x.part.id)).size})</span></h2>
+    {fits.some((x) => x.part.status === 'discontinued') && <HideDiscontinued />}
     <KitSets rows={bearingSets} kind="bearing kit" kitName={kit.name} />
     <KitSets rows={screwSets} kind="screw kit" kitName={kit.name} />
     {(() => { const groups = byCat(fits, (x) => x.part.category); return <>
@@ -124,7 +129,7 @@ const conversions = conversionsForKit(kit.id);
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
         <table>
           <tr><th class="num numcol" style={`--numn:${Math.max(5, ...fits.map((x) => partNo(x.part).length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
-          {rows.map(({ part, fit }) => <tr><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td>{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
+          {rows.map(({ part, fit }) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td>{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
         </table></div>)}</>; })()}
   </section>}
   <style>

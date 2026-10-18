@@ -1,0 +1,20 @@
+---
+// "Hide discontinued" checkbox for a list with discontinued rows (tr or details marked data-discontinued).
+// The setting is one class on <html> (hide-discontinued), kept in localStorage when it is available; every such
+// checkbox on the page follows it. Filters that set rows' own hidden state are left alone; they listen for the
+// 'discontinued-toggle' event to recount.
+---
+<label class="hidedisc"><input type="checkbox" data-hide-discontinued /> Hide discontinued</label>
+<script>
+  const KEY = 'hobbydex-hide-discontinued';
+  const load = () => { try { return localStorage.getItem(KEY) === '1'; } catch { return false; } };
+  const save = (on: boolean) => { try { localStorage.setItem(KEY, on ? '1' : '0'); } catch { /* storage blocked: the setting lasts for this page only */ } };
+  const boxes = () => [...document.querySelectorAll<HTMLInputElement>('input[data-hide-discontinued]')];
+  const apply = (on: boolean) => {
+    document.documentElement.classList.toggle('hide-discontinued', on);
+    for (const b of boxes()) b.checked = on;
+    window.dispatchEvent(new Event('discontinued-toggle'));
+  };
+  apply(load());
+  for (const b of boxes()) b.addEventListener('change', () => { save(b.checked); apply(b.checked); });
+</script>

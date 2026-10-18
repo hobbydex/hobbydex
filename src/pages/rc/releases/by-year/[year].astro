@@ -1,6 +1,7 @@
 ---
 import { buildLabel } from '../../../../lib/build';
 import Base from '../../../../layouts/Base.astro';
+import Discontinued from '../../../../components/Discontinued.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { db, url, brandName, dateKey, dateText } from '../../../../lib/data';
 export function getStaticPaths() {
@@ -9,7 +10,7 @@ export function getStaticPaths() {
 const { year } = Astro.props;
 // newest first: by the day or month where a source gives it, releases dated only by the year last
 const rs = db.releases.filter((r) => r.year === year)
-  .sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
+  .sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || (a.status === 'discontinued' ? 1 : 0) - (b.status === 'discontinued' ? 1 : 0) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
 const years = [...new Set(db.releases.filter((r) => r.year).map((r) => r.year!))].sort((a, b) => b - a);
 const i = years.indexOf(year), newer = years[i - 1], older = years[i + 1];
 ---
@@ -21,7 +22,7 @@ const i = years.indexOf(year), newer = years[i - 1], older = years[i + 1];
     <tr><th class="num">Released</th><th>Release</th><th>Brand</th><th class="num">Item no.</th><th>Build</th></tr>
     {rs.map((r) => { const k = db.kit.get(r.kit); return <tr>
       <td class="num">{dateText(r)}</td>
-      <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a></td>
+      <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>
       <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
       <td class="num" data-label="Item no.">{r.number ?? ''}</td><td data-label="Build">{buildLabel(r.kind)}</td>
     </tr>; })}

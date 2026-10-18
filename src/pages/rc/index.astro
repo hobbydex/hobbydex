@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Discontinued from '../../components/Discontinued.astro';
 import { db, url } from '../../lib/data';
 import { driveLabel } from '../../lib/drive';
 ---
@@ -28,7 +29,7 @@ import { driveLabel } from '../../lib/drive';
         <td><a href={url.brand(k.brand)}>{db.brand.get(k.brand)?.name}</a></td>
         <td><a href={url.platform(k.id)}>{k.name}</a></td>
         <td>{k.category}</td><td>{k.scale}</td><td>{driveLabel(k.drive)}</td>
-        <td>{(db.releasesByKit.get(k.id) ?? []).map((r, i) => <>{i > 0 && ', '}<a href={url.release(r.id)}>{r.name}</a></>)}</td>
+        <td>{(db.releasesByKit.get(k.id) ?? []).map((r, i) => <>{i > 0 && ', '}<a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></>)}</td>
       </tr>
     ))}
   </table>

@@ -1,6 +1,7 @@
 ---
 import { buildLabel } from '../../../lib/build';
 import Base from '../../../layouts/Base.astro';
+import Discontinued from '../../../components/Discontinued.astro';
 import { db, url, key, brandName, dateKey, dateText } from '../../../lib/data';
 // The newest releases with a known date, and every brand's full release list on its own page
 // (/rc/releases/<brand>/): one table of all 5,500 releases was 1.3 MB.
@@ -23,7 +24,7 @@ const byBrand = [...db.releases.reduce((m, r) => m.set(r.brand, (m.get(r.brand) 
   <table>
     <tr><th class="num">Released</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr>
     {dated.map((r) => <tr>
-      <td class="num">{dateText(r)}</td><td><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td><a href={url.release(r.id)}>{r.name}</a></td>
+      <td class="num">{dateText(r)}</td><td><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>
       <td class="num">{r.number ?? ''}</td><td>{buildLabel(r.kind)}</td><td class="num">{r.contains?.length ?? 0}</td>
     </tr>)}
   </table>
