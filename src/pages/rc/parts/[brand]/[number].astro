@@ -4,6 +4,7 @@ import { shownNote, isSourceNote } from '../../../../lib/notes';
 import SourceNote from '../../../../components/SourceNote.astro';
 import { gtinLabel } from '../../../../lib/gtin';
 import WebSearch from '../../../../components/WebSearch.astro';
+import FanLinks from '../../../../components/FanLinks.astro';
 import CopyButton from '../../../../components/CopyButton.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
@@ -140,6 +141,7 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
+  <FanLinks links={part.links} />
   {drawing && <figure class="drawing" data-pagefind-ignore>
     <Fragment set:html={drawing.svg} />
     <figcaption class="muted">{drawing.spec ? <>{part.category === 'nut' && drawing.approximate ? 'Drawn' : 'To scale'}, from the generic size <a href={url.spec(drawing.spec.id)}>{drawing.spec.name}</a>{part.category === 'bearing' && part.seal && part.seal !== 'open' && ', with the shields or seals this part lists'}{part.category === 'screw' && (drawStd ? <>; head and socket sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : '; head proportions as usual for this type')}.</>
