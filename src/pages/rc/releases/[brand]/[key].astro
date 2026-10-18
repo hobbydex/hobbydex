@@ -10,7 +10,7 @@ import OtherCarSets from '../../../../components/OtherCarSets.astro';
 import { gtinLabel } from '../../../../lib/gtin';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
-import { db, key, url, brandName, byPartNo, partLabel, partNo, yearOf, yearText, dateText, docPage, dateSource, requiredName, depictsText, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partLabel, partRest, partNo, yearOf, yearText, dateText, docPage, dateSource, requiredName, depictsText, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -49,6 +49,9 @@ const productPages = docs.filter((d) => d.kind === 'product_page' && webLink(d))
 const makerLinks = ownLinks.length > 0 ? ownLinks : productPages;
 const mainDocs = docs.filter((d) => d.kind !== 'setup_sheet');
 const fileRows = Object.entries(FILE_KINDS).map(([k, label]) => [label, docs.filter((d) => d.kind === k && d.page)] as const).filter(([, ds]) => ds.length > 0);
+// what the buyer must get separately: a part (its page) or a generic item (a plain label)
+const ITEM_LABEL: Record<string, string> = { radio: 'Radio', receiver: 'Receiver', servo: 'Servo', esc: 'ESC', motor: 'Motor', engine: 'Engine', battery: 'Battery', charger: 'Charger', pinion: 'Pinion', tyres: 'Tyres', wheels: 'Wheels', body: 'Body', paint: 'Paint', glue: 'Glue', fuel: 'Fuel', 'glow-starter': 'Glow starter', tools: 'Tools' };
+const needs = (release.needs ?? []).map((n) => ({ ...n, p: n.part ? db.part.get(n.part) : undefined })).filter((n) => !n.part || n.p);
 const rows = (release.contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
 // current parts before discontinued ones, each group in part-number order
 const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b) => (a.p.status === 'discontinued' ? 1 : 0) - (b.p.status === 'discontinued' ? 1 : 0) || byPartNo(a.p, b.p));
@@ -169,6 +172,10 @@ const conversions = conversionsForRelease(release);
           {gr.map((c) => <tr><td class="num">{c.p.number && <a href={url.part(c.p.id)}>{c.p.number}</a>}</td><td><Fragment set:html={c.p.category === 'paint' ? (paintChip(c.p, 14, 'circle') ?? '') : colourDot(c.p.color)} />{c.p.number ? c.p.name : <a href={url.part(c.p.id)}>{c.p.name}</a>}<Discontinued item={c.p} /></td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted c-step">{c.step ?? ''}</td>}</tr>)}
         </table></div>; })}
     </section>; })}</div>; })()}
+  {needs.length > 0 && <section data-pagefind-ignore class="needs">
+    <h2>You also need</h2>
+    <ul>{needs.map((n) => <li>{n.p ? <><a href={url.part(n.p.id)}>{partLabel(n.p)}</a>{partRest(n.p) && <span class="muted"> {partRest(n.p)}</span>}{n.p.brand !== release.brand && <span class="muted"> · {brandName(n.p.brand)}</span>}<Discontinued item={n.p} /></> : ITEM_LABEL[n.item!] ?? n.item}{n.qty && n.qty > 1 && <span class="muted"> × {n.qty}</span>}{n.note && <span class="muted"> · {n.note}</span>}</li>)}</ul>
+  </section>}
   <script>
     // build steps column: off by default, the choice remembered per viewer
     const st = document.getElementById('showsteps') as HTMLInputElement | null;
