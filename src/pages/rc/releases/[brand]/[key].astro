@@ -33,6 +33,18 @@ const sheets = docs.filter((d) => d.kind === 'setup_sheet');
 // a catalogue paged by month links the month that lists this release (docPage)
 const webLink = (d: { page?: string; url?: string; kind?: string }) => docPage(d, release.released);
 const dated = dateSource(release);
+// the maker's page for this release: its own links (not fan sites), else its product_page documents (the maker page
+// that lists it), English first; a page's label is its language when the path names one, else its host
+const pageLabel = (u: string) => {
+  const h = new URL(u);
+  if (/\/(english|en)\//.test(h.pathname)) return 'English';
+  if (/\/(japanese|jp|ja)\//.test(h.pathname) || /\.jp$/.test(h.hostname)) return 'Japanese';
+  return h.hostname.replace(/^www\./, '');
+};
+const ownLinks = (release.links ?? []).filter((l) => l.kind !== 'fan-site');
+const productPages = docs.filter((d) => d.kind === 'product_page' && webLink(d)).map((d) => ({ site: pageLabel(webLink(d)!), url: webLink(d)! }))
+  .sort((a, b) => Number(b.site === 'English') - Number(a.site === 'English'));
+const makerLinks = ownLinks.length > 0 ? ownLinks : productPages;
 const mainDocs = docs.filter((d) => d.kind !== 'setup_sheet');
 const fileRows = Object.entries(FILE_KINDS).map(([k, label]) => [label, docs.filter((d) => d.kind === k && d.page)] as const).filter(([, ds]) => ds.length > 0);
 const rows = (release.contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
@@ -90,7 +102,7 @@ const conversions = conversionsForRelease(release);
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
-    {(release.links ?? []).filter((l) => l.kind !== 'fan-site').length > 0 && <><dt>Product page</dt><dd>{(release.links ?? []).filter((l) => l.kind !== 'fan-site').map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
+    {makerLinks.length > 0 && <><dt>Product page</dt><dd>{makerLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
     {fileRows.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
     <dt>Build</dt><dd>{buildLabel(release.kind)}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
