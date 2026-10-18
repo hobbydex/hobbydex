@@ -87,7 +87,7 @@ const conversions = conversionsForKit(kit.id);
   <h2>Releases</h2>
   {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
   {(() => {
-    // one table: current releases first, then the discontinued ones; "Hide discontinued" hides those rows
+    // one table: current releases first, then the discontinued ones; unchecking "Show discontinued" hides those rows
     const rows = [...current, ...discontinued];
     return <>
       {current.length === 0 && <p class="muted">Every release is discontinued.</p>}
