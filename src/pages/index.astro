@@ -27,9 +27,81 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
   <h1 class="sr-only">Hobbydex</h1>
   <p>Which parts are in my car, what fits it, and what is it equivalent to? An open, cross-brand parts database, starting with RC cars.</p>
   <form class="home-search" action="/search/" method="get" role="search">
-    <input type="search" name="q" placeholder="Part number, part name, platform or brand" aria-label="Search" />
+    <div class="ac">
+      <input type="search" name="q" id="home-q" placeholder="Part number, part name, platform or brand" aria-label="Search"
+        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="home-ac" autocomplete="off" />
+      <div class="ac-pop" id="home-pop" hidden>
+        <div class="ac-status" id="home-ac-status" role="status"></div>
+        <ul class="ac-list" id="home-ac" role="listbox" aria-label="Suggestions"></ul>
+        <a class="ac-all" id="home-ac-all" href="/search/">All results</a>
+      </div>
+    </div>
     <button type="submit">Search</button>
   </form>
+  <script is:inline>
+    // suggestions as you type: the best few results of the /search/ ranking under the box. Arrow keys pick one,
+    // Enter opens it; Enter without a pick (or the button) opens the full search page, as before.
+    (() => {
+      const q = document.getElementById('home-q'), pop = document.getElementById('home-pop'), list = document.getElementById('home-ac');
+      const status = document.getElementById('home-ac-status'), all = document.getElementById('home-ac-all');
+      const SHOW = 8, labels = { part: 'part', spec: 'spec', release: 'release', platform: 'platform', brand: 'brand' };
+      const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      let ready, active = -1, running = false, again = false, timer;
+      // the index loads on the first focus, so it is usually in by the time the first word is typed
+      const load = () => ready ??= (async () => {
+        const [{ rankedSearch }, platforms, pagefind] = await Promise.all([import('/search-rank.js'),
+          fetch('/search-platforms.json').then((r) => r.json()).catch(() => []), import('/pagefind/pagefind.js')]);
+        await pagefind.options({ ranking: { termSimilarity: 9, termFrequency: 0.2, termSaturation: 1.2, pageLength: 0.5 } });
+        await pagefind.init();
+        return (text, stale) => rankedSearch(pagefind, text, platforms, stale);
+      })();
+      const open = (on) => { pop.hidden = !on; q.setAttribute('aria-expanded', String(on && list.children.length > 0)); if (!on) pick(-1); };
+      const pick = (i) => {
+        const items = list.children; active = i;
+        for (let k = 0; k < items.length; k++) items[k].setAttribute('aria-selected', String(k === i));
+        if (i >= 0) { q.setAttribute('aria-activedescendant', items[i].id); items[i].scrollIntoView({ block: 'nearest' }); } else q.removeAttribute('aria-activedescendant');
+      };
+      async function suggest() {
+        if (running) { again = true; return; }
+        running = true;
+        try { await run(); } catch (e) { status.textContent = 'Search failed to load: ' + (e && e.message ? e.message : e); list.innerHTML = ''; }
+        running = false;
+        if (again) { again = false; suggest(); }
+      }
+      async function run() {
+        const text = q.value.trim();
+        all.href = '/search/' + (text ? '?q=' + encodeURIComponent(text) : ''); all.textContent = text ? `All results for "${text}"` : 'All results';
+        if (!text) { list.innerHTML = ''; open(false); return; }
+        open(true);
+        status.textContent = ready ? 'Searching...' : 'Loading the search index...';
+        const search = await load();
+        if (again) return;
+        status.textContent = 'Searching...';
+        const r = await search(text, () => again);
+        if (!r || again) return;
+        const words = text.toLowerCase().split(/\s+/).filter((w) => w.length > 1).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const re = words.length ? new RegExp('(' + words.join('|') + ')', 'ig') : null;
+        list.innerHTML = r.datas.slice(0, SHOW).map((d, i) => { const t = d.meta.type || '';
+          return `<li role="option" id="home-ac-${i}" aria-selected="false"><a href="${esc(d.url)}" tabindex="-1"><span class="badge">${esc(labels[t] || t)}</span>`
+            + `<span class="t">${re ? esc(d.meta.title || d.url).replace(re, '<mark>$1</mark>') : esc(d.meta.title || d.url)}</span>`
+            + (d.meta.sub ? `<span class="sub">${esc(d.meta.sub)}</span>` : '') + '</a></li>'; }).join('');
+        status.textContent = r.hits.length ? `${r.hits.length} result${r.hits.length === 1 ? '' : 's'}` : 'No results';
+        active = -1; open(document.activeElement === q);
+      }
+      q.addEventListener('focus', () => { load().catch(() => {}); if (q.value.trim() && list.children.length) open(true); });
+      q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(suggest, 150); });
+      q.addEventListener('keydown', (e) => {
+        const n = list.children.length;
+        if (e.key === 'ArrowDown' && n) { e.preventDefault(); if (pop.hidden) open(true); pick((active + 1) % n); }
+        else if (e.key === 'ArrowUp' && n) { e.preventDefault(); pick(active <= 0 ? n - 1 : active - 1); }
+        else if (e.key === 'Escape' && !pop.hidden) { e.preventDefault(); open(false); }
+        else if (e.key === 'Enter' && active >= 0 && !pop.hidden) { e.preventDefault(); location.href = list.children[active].querySelector('a').href; }
+      });
+      // a click in the list lands before the box loses focus
+      pop.addEventListener('mousedown', (e) => e.preventDefault());
+      q.addEventListener('blur', () => open(false));
+    })();
+  </script>
   <div class="stats">
     <a class="stat" href="/rc/brands/"><b>{db.brands.length}</b> brands</a>
     <a class="stat" href="/rc/platforms/"><b>{db.kits.length}</b> platforms</a>
