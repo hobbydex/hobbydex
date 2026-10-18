@@ -6,7 +6,7 @@ import { paintChip } from '../../../../lib/paintSwatch';
 import WebSearch from '../../../../components/WebSearch.astro';
 import CopyButton from '../../../../components/CopyButton.astro';
 import OtherCarSets from '../../../../components/OtherCarSets.astro';
-import { gtinLabel, gtinJsonld } from '../../../../lib/gtin';
+import { gtinLabel } from '../../../../lib/gtin';
 import Base from '../../../../layouts/Base.astro';
 import { db, key, url, brandName, byPartNo, partLabel, partNo, yearOf, yearText, dateText, docPage, dateSource, requiredName, depictsText, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
@@ -24,7 +24,6 @@ export function getStaticPaths() {
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const release = Astro.props.release!;   // set on every page that is not a redirect
 const kit = db.kit.get(release.kit)!;
-const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: `${brandName(release.brand)} ${release.name}`, ...(release.number && { mpn: release.number, sku: release.number }), ...gtinJsonld(release.gtin), brand: { '@type': 'Brand', name: brandName(release.brand) } };
 const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d !== undefined);
 // the maker's pages for this release's files, as rows of the facts list: only documents with a maker page, so the
 // prominent link is never the file itself (every document, file links included, stays listed under Sources)
@@ -74,7 +73,7 @@ const boxCats = [...new Set(boxRows.map((c) => c.p.category ?? ''))].map((g) => 
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 const conversions = conversionsForRelease(release);
 ---
-<Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} jsonld={jsonld} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
+<Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a> / <a href={url.platform(kit.id)}>{kit.name}</a> / {release.name}</div>
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(release.brand)} {release.name}{release.color && <Fragment set:html={' ' + colourDot(release.color)} />}</h1>
   <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
