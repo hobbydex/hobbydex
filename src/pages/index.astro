@@ -137,7 +137,7 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
     </section>
   </div>
 
-  <h2>Latest releases <span class="muted">· <a href="/rc/platforms/by-date/">all platforms by date</a></span></h2>
+  <h2>Latest releases <span class="muted">· <a href="/rc/releases/by-year/">all releases by date</a></span></h2>
   <table>
     <tr><th class="num">Released</th><th>Release</th><th>Status</th></tr>
     {latest.map((r) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; return <tr><td class="num">{dateText(r)}</td>

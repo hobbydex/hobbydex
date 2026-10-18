@@ -19,7 +19,7 @@ const byBrand = [...db.releases.reduce((m, r) => m.set(r.brand, (m.get(r.brand) 
     <tbody>{byBrand.map(([b, n]) => <tr><td><a href={`/rc/releases/${key(b)[0]}/`}>{brandName(b)}</a></td><td class="num">{n}</td></tr>)}</tbody>
   </table>
   <script src="/sort-table.js" defer></script>
-  <h2>Newest</h2>
+  <h2>Newest <span class="muted">· <a href="/rc/releases/by-year/">all releases by year</a></span></h2>
   <table>
     <tr><th class="num">Released</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr>
     {dated.map((r) => <tr>
