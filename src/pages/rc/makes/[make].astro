@@ -30,7 +30,9 @@ const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
   {models.length > 1 && <p class="toc" data-pagefind-ignore>{models.map((m, i) => <>{i > 0 && ' · '}<a href={`#${anchor(m)}`}>{m}</a></>)}</p>}
   {models.map((m) => { const rs = releases.filter((r) => famKey(r.depicts!.model) === m.toLowerCase()).sort(byBrandYear); const bs = bodies.filter((p) => famKey(p.depicts!.model) === m.toLowerCase()).sort(byBrandNo); return <section>
     <h2 id={anchor(m)}>{make} {m} <span class="muted">({rs.length + bs.length})</span></h2>
-    {rs.length > 0 && <table class="releases">
+    {rs.length > 0 && <>
+      {bs.length > 0 && <h3>{make} {m} releases <span class="muted">({rs.length})</span></h3>}
+      <table class="releases">
       <tr><th>Release</th><th>Model</th><th>Brand</th><th class="num">Vehicle year</th><th class="num">Released</th></tr>
       {rs.map((r) => { const k = db.kit.get(r.kit); return <tr>
         <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a>{r.number && <span class="muted"> {r.number}</span>}</td>
@@ -38,10 +40,19 @@ const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
         <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
         <td class="num" data-label="Vehicle year">{vyear(r)}</td><td class="num" data-label="Released">{r.year || r.model_year ? yearText(r) : ''}</td>
       </tr>; })}
-    </table>}
+      </table></>}
     {bs.length > 0 && <>
-      <h3>Body shells <span class="muted">({bs.length})</span></h3>
-      <ul>{bs.map((p) => <li><a href={url.part(p.id)}>{brandName(p.brand)} {partLabel(p)}</a>{p.number && <span class="muted"> {p.name}</span>} <span class="muted">· {p.depicts!.model}</span></li>)}</ul></>}
+      <h3>{make} {m} body shells <span class="muted">({bs.length})</span></h3>
+      <table class="releases">
+      <tr><th>Body shell</th><th>Model</th><th>Brand</th><th>Fits</th><th class="num">Released</th></tr>
+      {bs.map((p) => { const fits = [...new Set((p.fits ?? []).map((f) => f.kit).filter((k): k is string => !!k))].map((k) => db.kit.get(k)).filter((k) => !!k); return <tr>
+        <td class="name"><a href={url.part(p.id)}>{p.name}</a>{p.number && <span class="muted"> {p.number}</span>}</td>
+        <td data-label="Model">{p.depicts!.model}</td>
+        <td data-label="Brand"><a href={url.brand(p.brand)}>{brandName(p.brand)}</a></td>
+        <td data-label="Fits">{fits.map((k, i) => <>{i > 0 && ', '}<a href={url.platform(k!.id)}>{k!.name}</a></>)}</td>
+        <td class="num" data-label="Released">{p.released ? p.released.slice(0, 4) : ''}</td>
+      </tr>; })}
+      </table></>}
   </section>; })}
   <style>
     .toc { line-height: 1.8; }
