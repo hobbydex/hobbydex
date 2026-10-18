@@ -215,3 +215,7 @@ details.discontinued > summary { cursor: pointer; color: var(--muted); padding: 
 details.discontinued[open] > summary { margin-bottom: 0.5rem; }
 .kitsets > summary { cursor: pointer; color: var(--muted); }
 .kitsets h4 { margin: 0.6rem 0 0.2rem; }
+
+/* homepage latest releases: the platform follows the name on a wide screen, on its own line on a phone */
+.relplat::before { content: " \00b7  "; }
+@media (max-width: 600px) { .relplat { display: block; } .relplat::before { content: none; } }
