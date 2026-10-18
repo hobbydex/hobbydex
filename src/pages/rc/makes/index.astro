@@ -11,7 +11,7 @@ const makes = [...new Set([...releasesByMake.keys(), ...bodiesByMake.keys()])].s
 <Base title="Car makes" description="Real car and truck makes replicated by RC cars: every Porsche, Ford or Toyota across RC brands.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Makes</div>
   <h1>Car makes <span class="muted">({makes.length})</span></h1>
-  <p class="about">The real cars and trucks RC releases replicate, by make, read from the RC makers' product names. A make page lists every release of that make across RC brands, and the body shells sold for it. Names only: the makes' logos and trademarks belong to their owners.</p>
+  <p class="about">The real cars and trucks that RC releases replicate, by make. A make page lists every release of that make and the body shells sold for it. Names only: the makes' logos and trademarks belong to their owners.</p>
   <table class="sortable releases">
     <thead><tr><th aria-sort="ascending">Make</th><th class="num">Models</th><th class="num">Releases</th><th class="num">Body shells</th><th>RC brands</th></tr></thead>
     <tbody>{makes.map((m) => <tr>
