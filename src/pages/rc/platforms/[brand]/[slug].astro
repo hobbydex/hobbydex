@@ -71,9 +71,9 @@ const allDocs = [...docRels.keys()].map((id) => db.doc.get(id)!);
 // the maker's manuals, parts lists and exploded views, and the supplements, by kind; the product pages are the sources
 const fileKinds = { ...FILE_KINDS, supplement: 'Supplement' };
 const fileDocs = allDocs.filter((d) => d.page && d.kind in fileKinds);
-// the platform's own documents: held by two or more releases, or all of them when the platform has one release;
-// the rest are on the release pages, most of them under their one release
-const own = (d: Doc) => releases.length === 1 || docRels.get(d.id)!.length > 1;
+// the platform's own documents: held by three or more releases, or all of them when the platform has two releases or fewer;
+// the rest are on the release pages (a body set's manual is held by the kit and its built XB twin: two)
+const own = (d: Doc) => releases.length <= 2 || docRels.get(d.id)!.length > 2;
 const files = fileRows(fileDocs.filter(own), fileKinds).map(([label, ds]) => [label, [...ds].sort((a, b) => docRels.get(b.id)!.length - docRels.get(a.id)!.length)] as const);
 const moreFiles = fileDocs.length - fileDocs.filter(own).length;
 const webLink = (d: Doc) => docPage(d, docRels.get(d.id)?.[0]?.released);
