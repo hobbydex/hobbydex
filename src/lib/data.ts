@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 
 export type Brand = { id: string; name: string; legal_name?: string; country?: string; website?: string; kind?: string; status: string; item_numbers?: boolean; notes?: string; owner?: string; owner_source?: string; owner_since?: number };
 // A company that owns brands (hobbydex-rc docs/schema.md "company"); brand: the brand that carries its own range, when it has one.
+export type Make = { id: string; name: string; country: string; notes: string; toml_path?: string };   // a real vehicle make (data/makes); name as the make spells itself
 export type Company = { id: string; name: string; legal_name?: string; country?: string; website?: string; status?: string; brand?: string; parent?: string; notes?: string };
 export type Link = { site: string; url: string; kind?: 'fan-site' };
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
@@ -21,7 +22,7 @@ export type Doc = { id: string; brand?: string; kind: string; title: string; ver
 export type KeyField = { field: string; label: string; from: 'part' | 'spec'; unit?: string; format?: string; compare_only?: boolean };
 export type Standard = { id: string; code: string; title: string; url?: string; replaced_by?: string; notes?: string };
 export type Category = { id: string; name: string; summary?: string; description?: string; spec_type?: string; key_fields?: KeyField[] };
-export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[]; companies?: Company[] };
+export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[]; companies?: Company[]; makes?: Make[] };
 
 const path = process.env.HOBBYDEX_DATA ?? 'data/hobbydex-rc.json';
 const raw: Dataset = JSON.parse(readFileSync(path, 'utf8'));
@@ -125,6 +126,7 @@ export const db = {
   partsBySpec,
   brand: byId(raw.brands),
   company: byId(raw.companies ?? []),
+  makeByName: new Map((raw.makes ?? []).map((m) => [m.name, m])),
   brandsByOwner: group(raw.brands.filter((b) => b.owner), (b) => b.owner!),
   kit: byId(raw.kits),
   release: byId(raw.releases),
@@ -165,6 +167,8 @@ export const url = {
 };
 // Real vehicle makes (release and body shell `depicts`): "Mercedes-Benz" -> "mercedes-benz", "Land Rover" -> "land-rover"
 export const makeSlug = (make: string) => make.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+// ISO 3166 alpha-2 code -> English country name ("DE" -> "Germany"); the code itself when the runtime has no name for it
+export const countryName = (code: string) => new Intl.DisplayNames(['en'], { type: 'region' }).of(code) ?? code;
 /** "Porsche 911 Carrera RSR 2.8 (1973)" */
 // one key per model however a maker spells it: case, spaces and hyphens do not count ("4x4 Pick Up" = "4x4 Pick-Up")
 export const modelKey = (model: string) => model.toLowerCase().replace(/[^a-z0-9]+/g, '');
