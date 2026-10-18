@@ -22,8 +22,16 @@ export function getStaticPaths() {
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const kit = Astro.props.kit!;   // set on every page that is not a redirect
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort(byReleaseDate);
+// the list: current releases (on sale or announced) first, then the discontinued ones in a collapsed group;
+// newest first in each, dated before undated (undated ones by item number, higher numbers being newer)
+const dateKey = (r: (typeof releases)[number]) => r.released ?? (yearOf(r) ? String(yearOf(r)) : '');
+const newestFirst = (a: (typeof releases)[number], b: (typeof releases)[number]) =>
+  (dateKey(a) ? 0 : 1) - (dateKey(b) ? 0 : 1) || dateKey(b).localeCompare(dateKey(a))
+  || (a.number ? 0 : 1) - (b.number ? 0 : 1) || (b.number ?? '').localeCompare(a.number ?? '', undefined, { numeric: true }) || a.name.localeCompare(b.name);
+const current = releases.filter((r) => r.status !== 'discontinued').sort(newestFirst);
+const discontinued = releases.filter((r) => r.status === 'discontinued').sort(newestFirst);
 const show = { number: releases.some((r) => r.number), edition: releases.some((r) => r.edition), surface: releases.some((r) => r.surface),
-  status: new Set(releases.map((r) => r.status)).size > 1 };   // the column only when the releases differ in status
+  status: new Set(current.map((r) => r.status)).size > 1 };   // the column only when the current releases differ in status
 // the compare link takes the two newest dated releases (undated ones sort last)
 const dated = releases.filter((r) => r.released || yearOf(r));
 const pair = (dated.length >= 2 ? dated : releases).slice(-2);
@@ -72,12 +80,18 @@ const conversions = conversionsForKit(kit.id);
       </li>; })}
     </ul></>}
   <h2>Releases</h2>
-  <table class="releases">
-    <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
-    {releases.map((r) => <tr>
-      <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status}</td>}
-    </tr>)}
-  </table>
+  {[{ rows: current, group: false }, { rows: discontinued, group: current.length > 0 }].filter((t) => t.rows.length).map(({ rows, group }) => {
+    const status = show.status && rows === current;
+    const table = <table class="releases">
+      <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{status && <th>Status</th>}</tr>
+      {rows.map((r) => <tr>
+        <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{status && <td data-label="Status" class="muted">{r.status}</td>}
+      </tr>)}
+    </table>;
+    // every release discontinued: one plain list, said so above it
+    return group ? <details class="discontinued"><summary>Discontinued <span class="muted">({rows.length})</span></summary>{table}</details>
+      : rows === discontinued ? <><p class="muted">Every release is discontinued.</p>{table}</> : table;
+  })}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
     <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a>{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
   {gearings.size > 0 && <>
