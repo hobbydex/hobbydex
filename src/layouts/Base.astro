@@ -26,18 +26,22 @@ const { title, description, jsonld, kind, sub } = Astro.props;
       <a class="logo" href="/"><img src="/favicon.svg" alt="" width="22" height="22" /> Hobbydex</a>
       <nav>
         <a href="/rc/">RC cars</a>
-        <a href="/rc/kits/">Kits</a>
+        <a href="/rc/platforms/">Platforms</a>
         <a href="/search/">Search</a>
+        <a href="/faq/">FAQ</a>
         <a class="gh" href="https://github.com/hobbydex">GitHub</a>
       </nav>
       <button type="button" class="theme" aria-label="Theme: auto" title="Theme: auto (follows the system)"><svg class="icon"><use href="/icons.svg#theme-auto" /></svg></button>
       <script src="/theme.js" defer></script>
     </header>
-    {/* SIZE: the built site is kept small for GitHub Pages (about 1 GB soft limit; 1.1 GB in 2026-10): shared
-        scripts are external cached files (public/theme.js and astro.config.mjs assetsInlineLimit) rather than
-        inline on each of 115k pages. Measured 2026-10-13: the pagefind index is ~55 MB in real bytes and taking
-        the tables out of it would save only ~13 MB, so tables stay searchable; part pages (~5.8 KB each) are the
-        bulk. Only kits, releases, parts, specs and brands are searchable; list pages are not. */}
+    {/* SEARCH: tables on release and platform pages are excluded from the index (data-pagefind-ignore on their
+        parts tables, lists and sections, and on the KitSets and OtherCarSets components). Their part lists made
+        every release of a car match on a bearing size or a part name, so a release or platform is found by its own
+        name, number, brand and description. Part pages keep everything, tables included (fits, used-in lists), so a
+        part still matches by the platform it fits. SIZE: the built site is kept small for GitHub Pages (about 1 GB
+        soft limit; 1.1 GB in 2026-10): shared scripts are external cached files (public/theme.js and
+        astro.config.mjs assetsInlineLimit) rather than inline on each of 115k pages. Part pages (~5.8 KB each) are
+        the bulk of the index. Only kits, releases, parts, specs and brands are searchable; list pages are not. */}
     <main data-pagefind-body={kind ? "" : undefined}>
       {kind && <span hidden data-pagefind-meta={`type:${kind}`} data-pagefind-filter={`type:${kind}`} />}
       {sub && <span hidden data-pagefind-meta={`sub:${sub}`} />}
@@ -45,8 +49,8 @@ const { title, description, jsonld, kind, sub } = Astro.props;
     </main>
     <footer class="site" data-pagefind-ignore>
       Open hobby parts database. Facts only: part numbers, names and fitment with their source; no prices, stock or images.
-      Data and corrections: <a href="https://github.com/hobbydex/hobbydex-rc">hobbydex/hobbydex-rc</a> · <a href="https://github.com/hobbydex/hobbydex-rc/issues/new">report an issue</a>.
-      Download everything as one file: <a href="/data/rc.json">rc.json</a> (CC0). <a href="/stats/">Statistics</a> · <a href="/audit/">Data audit</a>.
+      The data is maintained by the project, not crowdsourced: tell us about an error, a missing brand or a better source by <a href="https://github.com/hobbydex/hobbydex-rc/issues/new">opening an issue</a>; see the <a href="/faq/">FAQ</a>.
+      The data is public on <a href="https://github.com/hobbydex/hobbydex-rc">GitHub</a> and as one file: <a href="/data/rc.json">rc.json</a>. <a href="/stats/">Statistics</a> · <a href="/audit/">Data audit</a>.
     </footer>
   </body>
 </html>

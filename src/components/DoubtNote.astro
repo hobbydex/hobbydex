@@ -1,0 +1,6 @@
+---
+// The footnote for the "?" dates on a page; renders nothing when the page shows none.
+interface Props { on: boolean }
+const { on } = Astro.props;
+---
+{on && <p class="muted doubtnote">? a date we are not sure of; hover it for the reason.</p>}

@@ -1,48 +1,167 @@
 ---
 import Base from '../../layouts/Base.astro';
+import { categoryLabel } from '../../lib/categories';
+// The compare page: two to four releases side by side as one matrix, parts down the side grouped by category,
+// one marker column per release (the header stays in view while scrolling). Releases are picked by typing.
+const SLOTS = ['a', 'b', 'c', 'd'];
 ---
-<Base title="Compare releases" description="Compare the parts of any two RC releases: what is only in one, only in the other, and what both share.">
+<Base title="Compare releases" description="Compare the parts of two to four RC releases side by side: what each has in the box, as an option, or not at all.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Compare</div>
   <h1>Compare releases</h1>
-  <p class="muted">Pick two releases, of the same kit or of different kits and brands. Shared parts show where a part number is used in both.</p>
-  <form id="cmp" class="websearch" data-pagefind-ignore>
-    <label>A <select id="a" required></select></label>
-    <label>B <select id="b" required></select></label>
-    <label><input type="checkbox" id="boxonly" /> In the box only</label>
+  <p class="muted">Pick two to four releases, of the same platform or of different platforms and brands: type part of the brand, name, item number or platform. A part shared between releases is the same part number in each.</p>
+  <form id="cmp" class="cmpform" data-pagefind-ignore onsubmit="return false" data-cats={JSON.stringify(categoryLabel)}>
+    {SLOTS.map((k, i) => <div class="combo-row" data-slot={k} hidden={i > 1}><b>{k.toUpperCase()}</b><div class="combo"><input id={k} type="text" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls={`${k}-list`} autocomplete="off" spellcheck="false" placeholder="Type a release: brand, name, item number or platform" disabled /><ul id={`${k}-list`} role="listbox" hidden></ul></div>{i > 1 && <button type="button" class="rm" data-rm={k} aria-label={`Remove release ${k.toUpperCase()}`}>×</button>}</div>)}
+    <p class="cmpopts"><button type="button" id="add" class="btn">+ add a release</button>
+      <label><input type="checkbox" id="boxonly" /> In the box only</label>
+      <label><input type="checkbox" id="diffonly" /> Only differences</label>
+      <label>Category <select id="catsel"><option value="">all</option></select></label></p>
   </form>
+  <p class="muted legend" data-pagefind-ignore><span class="mk k">●</span> in the box · <span class="mk o">○</span> option · <span class="mk l">·</span> listed · empty: not in that release. Rows shaded are not in every release.</p>
   <div id="out"><p class="muted">Loading releases...</p></div>
   <script>
-    type Data = { parts: [string, string, string, string][]; releases: { id: string; label: string; kit: string; url: string; rows: [number, string][] }[] };
+    type Rel = { id: string; label: string; number: string; kit: string; url: string; disc?: boolean; rows: [number, string][] };
+    type Data = { parts: [string, string, string, string, number?][]; releases: Rel[] };
+    const SLOTS = ['a', 'b', 'c', 'd'] as const;
+    type Slot = typeof SLOTS[number];
+    const MARK: Record<string, string> = { k: '●', o: '○', l: '·' };
     const ROLE: Record<string, string> = { k: 'in the box', o: 'option', l: 'listed' };
     const $ = (id: string) => document.getElementById(id)!;
     const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+    const norm = (s: string) => s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const CATS: Record<string, string> = JSON.parse(($('cmp') as HTMLElement).dataset.cats || '{}');
+    const catLabel = (c: string) => (c ? CATS[c] ?? c : 'Other');
+    const MAX = 50;
+    const DISC = '<span class="disc" title="Discontinued"><svg class="icon" aria-hidden="true"><use href="/icons.svg#discontinued"/></svg><span class="sr-only"> discontinued</span></span>';
+
     fetch('/rc/compare.json').then((r) => r.json()).then((d: Data) => {
-      const a = $('a') as HTMLSelectElement, b = $('b') as HTMLSelectElement, box = $('boxonly') as HTMLInputElement;
-      const opts = '<option value="">choose a release</option>' + d.releases.map((r, i) => `<option value="${i}">${esc(r.label)}</option>`).join('');
-      a.innerHTML = opts; b.innerHTML = opts;
+      const box = $('boxonly') as HTMLInputElement, diff = $('diffonly') as HTMLInputElement, catsel = $('catsel') as HTMLSelectElement;
+      const hay = d.releases.map((r) => ({ text: norm(`${r.label} ${r.number} ${r.kit}`), num: norm(r.number), lab: norm(r.label) }));
+      const chosen: Record<Slot, number> = { a: -1, b: -1, c: -1, d: -1 };
+      const shown = (k: Slot) => !(document.querySelector(`[data-slot="${k}"]`) as HTMLElement).hidden;
+
+      // every word typed must appear; an item number typed in full ranks first, then labels starting with the words
+      const search = (q: string) => {
+        const words = norm(q).split(' ').filter(Boolean);
+        if (!words.length) return [];
+        const hits: [number, number][] = [];
+        for (let i = 0; i < hay.length; i++) {
+          const h = hay[i];
+          if (!words.every((w) => h.text.includes(w))) continue;
+          hits.push([(words.some((w) => w === h.num) ? 0 : 2) + (h.lab.startsWith(words[0]) ? 0 : 1) + (d.releases[i].rows.length ? 0 : 3), i]);
+        }
+        return hits.sort((x, y) => x[0] - y[0] || x[1] - y[1]).map(([, i]) => i);
+      };
+
+      const picker = (key: Slot) => {
+        const input = $(key) as HTMLInputElement, list = $(`${key}-list`) as HTMLUListElement;
+        let opts: number[] = [], active = -1;
+        const close = () => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); active = -1; };
+        const mark = (n: number) => {
+          active = n;
+          [...list.children].forEach((li, j) => li.setAttribute('aria-selected', String(j === n)));
+          const li = list.children[n] as HTMLElement | undefined;
+          if (li) { input.setAttribute('aria-activedescendant', li.id); li.scrollIntoView({ block: 'nearest' }); }
+        };
+        const open = () => {
+          const all = search(input.value);
+          opts = all.slice(0, MAX);
+          list.innerHTML = opts.length
+            ? opts.map((i, j) => { const r = d.releases[i]; const n = r.rows.length;
+                return `<li id="${key}-opt-${j}" role="option" data-i="${i}"><span>${esc(r.label)}${r.disc ? DISC : ''}${r.number ? ` <span class="muted">${esc(r.number)}</span>` : ''}</span><span class="muted">${n ? `${n} parts` : 'no parts list'}</span></li>`; }).join('')
+              + (all.length > MAX ? `<li class="empty" role="presentation">${all.length - MAX} more: type more to narrow down</li>` : '')
+            : `<li class="empty" role="presentation">${input.value.trim() ? 'No release matches' : 'Type to search'}</li>`;
+          list.hidden = false; input.setAttribute('aria-expanded', 'true');
+          mark(opts.length ? 0 : -1);
+        };
+        const pick = (i: number) => { chosen[key] = i; input.value = d.releases[i].label; close(); render(); };
+        input.addEventListener('input', () => { chosen[key] = -1; open(); });
+        input.addEventListener('focus', () => { if (chosen[key] >= 0) input.select(); else if (input.value) open(); });
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); if (list.hidden) open(); else if (opts.length) mark((active + 1) % opts.length); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); if (opts.length) mark((active - 1 + opts.length) % opts.length); }
+          else if (e.key === 'Enter') { e.preventDefault(); if (!list.hidden && active >= 0) pick(opts[active]); }
+          else if (e.key === 'Escape') { close(); if (chosen[key] >= 0) input.value = d.releases[chosen[key]].label; }
+        });
+        // mousedown, not click: it fires before the input loses focus and closes the list
+        list.addEventListener('mousedown', (e) => {
+          const li = (e.target as HTMLElement).closest('li[data-i]') as HTMLElement | null;
+          if (li) { e.preventDefault(); pick(+li.dataset.i!); }
+        });
+        input.addEventListener('blur', () => { close(); if (chosen[key] >= 0) input.value = d.releases[chosen[key]].label; });
+        return (i: number) => { chosen[key] = i; input.value = d.releases[i].label; };
+      };
+
+      const setters = Object.fromEntries(SLOTS.map((k) => [k, picker(k)])) as Record<Slot, (i: number) => void>;
+      const slotRow = (k: Slot) => document.querySelector(`[data-slot="${k}"]`) as HTMLElement;
+      const addBtn = $('add') as HTMLButtonElement;
+      const syncAdd = () => { addBtn.hidden = SLOTS.every(shown); };
+      addBtn.addEventListener('click', () => { const k = SLOTS.find((s) => !shown(s)); if (k) { slotRow(k).hidden = false; ($(k) as HTMLInputElement).focus(); } syncAdd(); });
+      for (const b of document.querySelectorAll<HTMLButtonElement>('[data-rm]')) b.addEventListener('click', () => {
+        const k = b.dataset.rm as Slot; chosen[k] = -1; ($(k) as HTMLInputElement).value = ''; slotRow(k).hidden = true; syncAdd(); render();
+      });
+
+      // a part without a number (a brand that prints none) links its name instead
+      const partCells = (i: number) => { const p = d.parts[i];
+        const dsc = p[4] ? DISC : '';
+        return p[0] ? `<td class="num"><a href="${p[2]}">${esc(p[0])}</a></td><td>${esc(p[1])}${dsc}</td>` : `<td class="num"></td><td><a href="${p[2]}">${esc(p[1])}</a>${dsc}</td>`; };
+      const render = () => {
+        const sel = SLOTS.filter((k) => shown(k) && chosen[k] >= 0).map((k) => ({ k, r: d.releases[chosen[k]] }));
+        history.replaceState(null, '', sel.length ? `?${sel.map(({ k, r }) => `${k}=${encodeURIComponent(r.id)}`).join('&')}${location.hash}` : location.pathname);
+        if (sel.length < 2) { $('out').innerHTML = '<p class="muted">Choose at least two releases.</p>'; return; }
+        const maps = sel.map(({ r }) => new Map(r.rows.filter(([, role]) => !box.checked || role === 'k')));
+        const all = [...new Set(maps.flatMap((m) => [...m.keys()]))];
+        const cats = [...new Set(all.map((i) => d.parts[i][3]))].sort((x, y) => (x ? 0 : 1) - (y ? 0 : 1) || catLabel(x).localeCompare(catLabel(y)));
+        const keepCat = catsel.value;
+        const val = (c: string) => c || '-';   // parts without a category get "-", so they never collide with "all" ("")
+        catsel.innerHTML = '<option value="">all</option>' + cats.map((c) => `<option value="${esc(val(c))}"${val(c) === keepCat ? ' selected' : ''}>${esc(catLabel(c))}</option>`).join('');
+        const inAll = (i: number) => maps.every((m) => m.has(i));
+        const rowsOf = (c: string) => all.filter((i) => d.parts[i][3] === c && (!diff.checked || !inAll(i)))
+          .sort((x, y) => d.parts[x][0].localeCompare(d.parts[y][0]) || d.parts[x][1].localeCompare(d.parts[y][1]));
+        const shared = all.filter(inAll).length;
+        const none = sel.filter(({ r }) => !r.rows.length).map(({ r }) => `<a href="${r.url}">${esc(r.label)}</a>`);
+        const head = `<thead><tr><th class="num">Number</th><th>Name</th>${sel.map(({ k, r }) => `<th class="mkcol" title="${esc(r.label)}"><a href="${r.url}">${k.toUpperCase()}</a><span class="relname">${esc(r.label)}</span>${r.disc ? DISC : ''}</th>`).join('')}</tr></thead>`;
+        const body = cats.filter((c) => !keepCat || val(c) === keepCat).map((c) => {
+          const rs = rowsOf(c);
+          if (!rs.length) return '';
+          return `<tbody><tr class="grp"><th colspan="${2 + sel.length}">${esc(catLabel(c))} <span class="muted">(${rs.length})</span></th></tr>`
+            + rs.map((i) => `<tr${inAll(i) ? '' : ' class="diff"'}>${partCells(i)}${maps.map((m) => { const role = m.get(i); return `<td class="mk ${role ?? ''}" title="${role ? ROLE[role] : 'not in this release'}">${role ? MARK[role] : ''}</td>`; }).join('')}</tr>`).join('')
+            + '</tbody>';
+        }).join('');
+        $('out').innerHTML = (none.length ? `<p class="muted">We have no parts list for ${none.join(' or ')} yet, so the comparison is one-sided.</p>` : '')
+          + `<p>${all.length} part numbers, ${shared} in every release, ${all.length - shared} not.</p>`
+          + `<table class="cmpmatrix">${head}${body}</table>`;
+      };
+
       const q = new URLSearchParams(location.search);
       const find = (id: string | null) => d.releases.findIndex((r) => r.id === id);
-      if (find(q.get('a')) >= 0) a.value = String(find(q.get('a')));
-      if (find(q.get('b')) >= 0) b.value = String(find(q.get('b')));
-      const table = (id: string, title: string, rows: string[]) => rows.length === 0 ? '' :
-        `<h2 id="${id}">${title} <span class="muted">(${rows.length})</span></h2><table><tr><th class="num">Number</th><th>Name</th><th>Category</th><th>Role</th></tr>${rows.join('')}</table>`;
-      const row = (i: number, role: string) => { const p = d.parts[i]; return `<tr><td class="num"><a href="${p[2]}">${esc(p[0])}</a></td><td>${esc(p[1])}</td><td class="muted">${esc(p[3])}</td><td>${role}</td></tr>`; };
-      const render = () => {
-        if (a.value === '' || b.value === '') { $('out').innerHTML = '<p class="muted">Choose two releases.</p>'; return; }
-        const A = d.releases[+a.value], B = d.releases[+b.value];
-        history.replaceState(null, '', `?a=${encodeURIComponent(A.id)}&b=${encodeURIComponent(B.id)}${location.hash}`);
-        const keep = (rows: [number, string][]) => new Map(rows.filter(([, r]) => !box.checked || r === 'k'));
-        const ma = keep(A.rows), mb = keep(B.rows);
-        const byNum = (x: number, y: number) => d.parts[x][0].localeCompare(d.parts[y][0]);
-        const onlyA = [...ma.keys()].filter((i) => !mb.has(i)).sort(byNum).map((i) => row(i, ROLE[ma.get(i)!]));
-        const onlyB = [...mb.keys()].filter((i) => !ma.has(i)).sort(byNum).map((i) => row(i, ROLE[mb.get(i)!]));
-        const both = [...ma.keys()].filter((i) => mb.has(i)).sort(byNum).map((i) => row(i, ma.get(i) === mb.get(i) ? ROLE[ma.get(i)!] : `${ROLE[ma.get(i)!]} / ${ROLE[mb.get(i)!]}`));
-        const jump = (id: string, n: number, label: string) => n ? `<a href="#${id}">${n} ${label}</a>` : `0 ${label}`;
-        $('out').innerHTML = `<p><a href="${A.url}">${esc(A.label)}</a> and <a href="${B.url}">${esc(B.label)}</a>: ${jump('both', both.length, 'shared')}, ${jump('only-a', onlyA.length, 'only in A')}, ${jump('only-b', onlyB.length, 'only in B')}.</p>`
-          + table('only-a', `Only in ${esc(A.label)}`, onlyA) + table('only-b', `Only in ${esc(B.label)}`, onlyB) + table('both', 'In both', both);
-      };
-      a.addEventListener('change', render); b.addEventListener('change', render); box.addEventListener('change', render);
+      for (const k of SLOTS) { const i = find(q.get(k)); if (i >= 0) { slotRow(k).hidden = false; setters[k](i); } }
+      for (const k of SLOTS) ($(k) as HTMLInputElement).disabled = false;
+      syncAdd();
+      for (const el of [box, diff, catsel]) el.addEventListener('change', render);
       render();
     });
   </script>
 </Base>
+<style>
+  .cmpform { margin: 0.5rem 0 0.25rem; }
+  .cmpform [hidden] { display: none !important; }
+  .cmpform .combo-row { margin-bottom: 0.4rem; }
+  .cmpform .rm { border: none; background: none; font-size: 1.2rem; cursor: pointer; color: var(--muted); padding: 0 0.3rem; }
+  .cmpopts { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
+  .cmpopts .btn { font-size: 0.85rem; padding: 0.25rem 0.7rem; border-radius: 6px; cursor: pointer; background: var(--surface); }
+  .legend .mk { font-weight: 600; }
+  :global(.cmpmatrix) { table-layout: auto; overflow: visible; }
+  :global(.cmpmatrix thead th) { position: sticky; top: 0; z-index: 2; background: var(--surface); }
+  :global(.cmpmatrix .mkcol) { text-align: center; width: 4.5rem; vertical-align: bottom; }
+  :global(.cmpmatrix .mkcol a) { font-weight: 700; display: block; }
+  :global(.cmpmatrix .relname) { display: block; font-weight: 400; font-size: 0.72rem; line-height: 1.2; color: var(--muted); max-width: 9rem; white-space: normal; }
+  :global(.cmpmatrix td.mk) { text-align: center; font-size: 1.05rem; }
+  :global(.cmpmatrix td.mk.o) { color: var(--muted); }
+  :global(.cmpmatrix tr.grp th) { position: static; text-align: left; background: var(--bg); padding-top: 0.9rem; font-size: 0.95rem; }
+  :global(.cmpmatrix tr.diff td) { background: var(--surface); }
+  @media (max-width: 40rem) {
+    :global(.cmpmatrix .relname) { display: none; }
+    :global(.cmpmatrix .mkcol) { width: 2.2rem; }
+    :global(.cmpmatrix th, .cmpmatrix td) { padding-left: 0.35rem; padding-right: 0.35rem; }
+  }
+</style>

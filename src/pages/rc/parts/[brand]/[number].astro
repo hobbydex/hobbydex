@@ -1,34 +1,51 @@
 ---
 import Standards from '../../../../components/Standards.astro';
+import { shownNote, isSourceNote } from '../../../../lib/notes';
+import SourceNote from '../../../../components/SourceNote.astro';
+import DateDoubt from '../../../../components/DateDoubt.astro';
+import DoubtNote from '../../../../components/DoubtNote.astro';
+import { gtinLabel } from '../../../../lib/gtin';
 import WebSearch from '../../../../components/WebSearch.astro';
+import FanLinks from '../../../../components/FanLinks.astro';
+import CopyButton from '../../../../components/CopyButton.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName, yearOf, yearText } from '../../../../lib/data';
+import Discontinued from '../../../../components/Discontinued.astro';
+import { db, key, url, brandName, partLabel, yearText, byReleaseDate, dateText, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, depictsText, type Fits , yearDoubt } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
+import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
 import { colourDot } from '../../../../lib/colourDot';
 import { partDrawing } from '../../../../lib/specDrawings';
+import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
+import { fileRows, makerOwnLinks, listedBelow } from '../../../../lib/docFacts';
 export function getStaticPaths() {
-  // a former id (renamed or corrected) keeps working: its page redirects to the current one
-  const moved = db.parts.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(x.id) } })));
+  // a former id (renamed or corrected) or another number the part is sold under (numbers) keeps working:
+  // its page redirects to the current one; a number listed twice is one route
+  const taken = new Set(db.parts.map((p) => p.id));
+  const moved = db.parts.flatMap((x) => [...(x.former_ids ?? []), ...(x.numbers ?? []).map((n) => `part/${key(x.brand)[0]}/${n}`)]
+    .map((f) => ({ f, to: x.id }))).filter(({ f }) => !taken.has(f) && taken.add(f))
+    .map(({ f, to }) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(to) } }));
   return [...db.parts.map((p) => ({ params: { brand: key(p.id)[0], number: key(p.id)[1] }, props: { part: p } })), ...moved];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const part = Astro.props.part!;   // set on every page that is not a redirect
 const brand = db.brand.get(part.brand);
-const uses = [...(db.usesByPart.get(part.id) ?? [])].sort((a, b) => yearOf(a.release) - yearOf(b.release) || a.release.name.localeCompare(b.release.name));
+const uses = [...(db.usesByPart.get(part.id) ?? [])].sort((a, b) => byReleaseDate(a.release, b.release));
 // every kit this part belongs to: through a release's contents or the brand's fitment lists
-const kitMap = new Map<string, { roles: Set<string>; releases: number; fit?: string }>();
+const kitMap = new Map<string, { roles: Set<string>; releases: number; fits: Fits[] }>();
 for (const u of uses) {
-  const k = kitMap.get(u.release.kit) ?? { roles: new Set<string>(), releases: 0 };
+  const k = kitMap.get(u.release.kit) ?? { roles: new Set<string>(), releases: 0, fits: [] };
   k.roles.add(u.role === 'kit' ? 'in the box' : u.role); k.releases++; kitMap.set(u.release.kit, k);
 }
 for (const f of part.fits ?? []) {
-  const k = kitMap.get(f.kit) ?? { roles: new Set<string>(), releases: 0 };
-  k.fit = f.type; kitMap.set(f.kit, k);
+  const k = kitMap.get(f.kit) ?? { roles: new Set<string>(), releases: 0, fits: [] };
+  k.fits.push(f); kitMap.set(f.kit, k);
 }
+// the date's source: the month page of a catalogue of new items, when one dates this part
+const dated = dateSource(part);
 const kitsOf = [...kitMap.entries()].map(([id, v]) => ({ id, kit: db.kit.get(id), ...v })).sort((a, b) => (a.kit?.name ?? a.id).localeCompare(b.kit?.name ?? b.id));
 const replacedBy = db.replacedBy.get(part.id) ?? [];
 const replaces = part.supersedes ? db.part.get(part.supersedes) : undefined;
@@ -59,26 +76,45 @@ const wheelFacts = [part.wheel_size && `${part.wheel_size} rim`, part.compound &
   part.offset_mm !== undefined && `offset ${part.offset_mm > 0 ? '+' : ''}${part.offset_mm} mm`, part.beadlock && 'beadlock'].filter((x): x is string | { dot: string; text: string } => !!x);
 const drawing = partDrawing(part);
 const drawStd = drawing?.standard ? db.standardByCode.get(drawing.standard) : undefined;
-const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: part.name, mpn: part.number, sku: part.number, brand: { '@type': 'Brand', name: brand?.name } };
+// a part of a brand that prints no item numbers has none: the name is its title, there is no number to copy
+const numName = part.number ? `${part.number} ${part.name}` : part.name;
+// unloaded speed of a brushless motor: kV x nominal LiPo voltage, for the cells the maker states (else 2S and 3S)
+const noLoad = (kv: number, cells?: number[]) => {
+  const [lo, hi] = cells?.length === 2 ? cells : [2, 3];
+  const list = [];
+  for (let c = lo; c <= Math.min(hi, lo + 5); c++) { const v = Math.round(c * 3.7 * 10) / 10; list.push([c, v, Math.round((kv * v) / 100) * 100] as [number, number, number]); }
+  return list;
+};
+// a motor: the clamp-on heat sinks and fan mounts for its can, any brand; a heat sink: the can it takes
+const motorCan = part.category === 'motor' ? canDiameter(part) : undefined;
+const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
+// the maker's pages for the part's manual, parts list and exploded view, as on a release; its own links (not fan sites)
+const partFiles = fileRows((part.documents ?? []).map((id) => db.doc.get(id)).filter((d) => d !== undefined));
+const partLinks = makerOwnLinks(part.links);
 ---
-<Base title={`${part.number} ${part.name}`} description={`${brand?.name} ${part.number} ${part.name}: which kits use it.`} jsonld={jsonld} kind="part" sub={brand?.name}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a> / {part.number}</div>
+<Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
   {part.category && <span hidden data-pagefind-filter={`category:${catName(part.category)}`} />}
-  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number} <span class="muted">·</span> {part.name}</h1>
+  <h1><span data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</span>{part.status === 'discontinued' && <span hidden data-pagefind-filter="status:discontinued" />}<Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
   {(part as { name_source?: string }).name_source === 'ocr' && <p class="muted ocrname" data-pagefind-ignore>This name was read by OCR from a scanned manual and is not checked yet; it may contain reading errors.</p>}
-  <WebSearch query={`"${part.number}" ${brand?.name ?? ''}`.trim()} copy={part.number} links={part.links} />
+  <WebSearch query={`"${part.number ?? part.name}" ${brand?.name ?? ''}`.trim()} copy={part.number} links={part.links} />
+  <div class="factsrow">
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
-    <dt>Part number</dt><dd>{part.number}</dd>
+    {part.depicts && <><dt>Real vehicle</dt><dd><a href={url.make(part.depicts.make)}>{part.depicts.make}</a> {depictsText(part.depicts).slice(part.depicts.make.length + 1)}<span hidden data-pagefind-filter={`make:${part.depicts.make}`} /></dd></>}
+    {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <> <span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span></dd></>}
-    {part.released && <><dt>Released</dt><dd>{part.released}</dd></>}
-    {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{replaces.number}</a> {replaces.name}</dd></>}
-    {rebrandOf.length > 0 && <><dt>Rebrand of</dt><dd>{rebrandOf.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {r.number}</a> {r.name}</>)}</dd></>}
-    {relGroups.map((g) => <><dt>{g.label}</dt><dd>{g.parts.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>)}
-    {soldAs.length > 0 && <><dt>Also sold as</dt><dd>{soldAs.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {r.number}</a> {r.name}</>)}</dd></>}
-    {upgradeFor.length > 0 && <><dt>Upgrade for</dt><dd>{upgradeFor.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>}
-    {replacedBy.length > 0 && <><dt>Replaced by</dt><dd>{replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{r.number}</a> {r.name}</>)}</dd></>}
+    {partLinks.length > 0 && <><dt>Product page</dt><dd>{partLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
+    {partFiles.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
+    {part.released && <><dt>Released</dt><dd>{dateText(part)}<DateDoubt reason={dateDoubt(part)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
+    {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{partLabel(replaces)}</a> {replaces.number && replaces.name}<Discontinued item={replaces} /></dd></>}
+    {rebrandOf.length > 0 && <><dt>Rebrand of</dt><dd>{rebrandOf.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
+    {relGroups.map((g) => <><dt>{g.label}</dt><dd>{g.parts.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>)}
+    {soldAs.length > 0 && <><dt>Also sold as</dt><dd>{soldAs.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
+    {upgradeFor.length > 0 && <><dt>Upgrade for</dt><dd>{upgradeFor.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
+    {replacedBy.length > 0 && <><dt>Replaced by</dt><dd>{replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
     {part.pack_qty && <><dt>Pack</dt><dd>{part.pack_qty} pcs</dd></>}
+    {part.gtin && <><dt>{gtinLabel(part.gtin)}</dt><dd><Icon name="barcode" /> {part.gtin}</dd></>}
     {part.former_names && part.former_names.length > 0 && <><dt>Formerly listed as</dt><dd>{part.former_names.join('; ')}</dd></>}
     {part.material && <><dt>Material</dt><dd>{part.material === 'carbon' ? 'carbon fibre' : part.material}{part.material_grade && ` ${part.material_grade}`}{part.strength_class && ` ${part.strength_class}`}{part.finish && `, ${part.finish}`}</dd></>}
     {part.thread_type && <><dt>Thread</dt><dd>{part.thread_type}</dd></>}
@@ -97,10 +133,15 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.output_hp && <><dt>Output</dt><dd>{part.output_hp} hp{part.output_rpm && ` at ${part.output_rpm.toLocaleString('en')} rpm`}</dd></>}
     {part.rpm_range && <><dt>Practical rpm</dt><dd>{part.rpm_range.map((r) => r.toLocaleString('en')).join(' - ')} rpm</dd></>}
     {part.capacity_mah && <><dt>Battery</dt><dd>{part.chemistry?.toUpperCase()} {part.cells}S {part.capacity_mah} mAh{part.c_rating && ` ${part.c_rating}C`}{part.case && `, ${part.case} case`}</dd></>}
-    {part.dimensions_mm && <><dt>Size</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
-    {part.weight_g && <><dt>Weight</dt><dd>{part.weight_g} g</dd></>}
+    {part.radio_unit && <><dt>Radio</dt><dd>{radioUnitLabel[part.radio_unit] ?? part.radio_unit}</dd></>}
+    {part.dimensions_mm && <><dt>{figureLabel(part, 'size')}</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
+    {part.weight_g && <><dt>{figureLabel(part, 'weight')}</dt><dd>{part.weight_g} g</dd></>}
     {part.connector && <><dt>Plug</dt><dd>{part.connector}</dd></>}
-    {(part.kv || part.turns) && <><dt>Motor</dt><dd>{[part.kv && `${part.kv} kV`, part.turns && `${part.turns}T`, part.diameter_mm && part.length_mm && `${part.diameter_mm} x ${part.length_mm} mm`, part.shaft_mm && `${part.shaft_mm} mm shaft`].filter(Boolean).join(', ')}</dd></>}
+    {(part.kv || part.turns) && <><dt>Motor</dt><dd title="kV: rpm per volt without load. T: turns of wire per pole, fewer is faster.">{[part.kv && `${part.kv} kV`, part.turns && `${part.turns}T`, part.diameter_mm && part.length_mm && `${part.diameter_mm} x ${part.length_mm} mm`, part.shaft_mm && `${part.shaft_mm} mm shaft`].filter(Boolean).join(', ')}</dd></>}
+    {part.kv && part.category === 'motor' && <><dt>No-load rpm</dt><dd title="kV x nominal LiPo voltage (3.7 V per cell), without load; under load a motor turns slower.">{noLoad(part.kv, part.lipo_cells).map(([c, v, r]) => `${c}S (${v} V): about ${r.toLocaleString('en-US')} rpm`).join(' · ')}</dd></>}
+    {part.motor_can_mm && <><dt>Motor can</dt><dd>{part.motor_can_mm} mm diameter <span class="muted">(clamps on a motor of this size)</span></dd></>}
+    {part.mount_holes?.length && <><dt>Mounting holes</dt><dd>{part.mount_holes.map((h) => h.count ? `${h.count} x ${h.thread} on a ${h.circle_mm} mm bolt circle` : `${h.thread} on a ${h.circle_mm} mm bolt circle (number of holes not stated)`).join(', ')}</dd></>}
+    {part.sensored !== undefined && <><dt>{part.category === 'motor' ? 'Sensors' : 'Sensor port'}</dt><dd>{part.category === 'motor' ? (part.sensored ? 'sensored' : 'sensorless') : (part.sensored ? 'yes, runs sensored motors' : 'no, sensorless motors only')}</dd></>}
     {part.current_a && <><dt>ESC</dt><dd>{part.current_a} A{part.peak_current_a && ` (${part.peak_current_a} A peak)`}</dd></>}
     {part.lipo_cells && <><dt>LiPo</dt><dd>{part.lipo_cells[0] === part.lipo_cells[1] ? `${part.lipo_cells[0]}S` : `${part.lipo_cells[0]}-${part.lipo_cells[1]}S`}</dd></>}
     {part.torque_kgcm && <><dt>Servo</dt><dd>{part.torque_kgcm} kg/cm{part.speed_s && `, ${part.speed_s} s/60°`}{part.voltage && ` at ${part.voltage} V`}{part.motor && `, ${part.motor}`}{part.gear_material && `, ${part.gear_material} gears`}</dd></>}
@@ -109,6 +150,10 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
+  {part.art && <span class="typeicon"><ReleaseArt id={part.id} category={part.category} color={part.color} art={part.art} size="12rem" class="hero" /></span>}
+  </div>
+  <DoubtNote on={!!dateDoubt(part)} />
+  <FanLinks links={part.links} />
   {drawing && <figure class="drawing" data-pagefind-ignore>
     <Fragment set:html={drawing.svg} />
     <figcaption class="muted">{drawing.spec ? <>{part.category === 'nut' && drawing.approximate ? 'Drawn' : 'To scale'}, from the generic size <a href={url.spec(drawing.spec.id)}>{drawing.spec.name}</a>{part.category === 'bearing' && part.seal && part.seal !== 'open' && ', with the shields or seals this part lists'}{part.category === 'screw' && (drawStd ? <>; head and socket sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : '; head proportions as usual for this type')}.</>
@@ -118,36 +163,32 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     <h2>Upgrades for this part <span class="muted">({upgrades.length})</span></h2>
     <table>
       <tr><th class="num">Number</th><th>Name</th><th>Material</th></tr>
-      {upgrades.map((u) => <tr><td class="num"><a href={url.part(u.id)}>{u.number}</a></td><td>{u.category && <a class="caticon" href={`/rc/categories/${u.category}/`} title={catName(u.category)}><Icon name={u.category} /></a>} {u.name}</td><td>{u.material === 'carbon' ? 'carbon fibre' : (u.material ?? '')}{u.material_grade && ` ${u.material_grade}`}</td></tr>)}
+      {upgrades.map((u) => <tr><td class="num">{u.number && <a href={url.part(u.id)}>{u.number}</a>}</td><td>{u.category && <a class="caticon" href={`/rc/categories/${u.category}/`} title={catName(u.category)}><Icon name={u.category} /></a>} {u.number ? u.name : <a href={url.part(u.id)}>{u.name}</a>}<Discontinued item={u} /></td><td>{u.material === 'carbon' ? 'carbon fibre' : (u.material ?? '')}{u.material_grade && ` ${u.material_grade}`}</td></tr>)}
     </table></>}
-  {part.documents && part.documents.length > 0 && <>
+  {(() => { const below = (part.documents ?? []).filter((id) => { const d = db.doc.get(id); return !d || listedBelow([d]).length > 0; }); return below.length > 0 && <>
     <h2>Documents</h2>
-    <ul>{part.documents.map((id) => { const d = db.doc.get(id); return <li>{d?.url ? <a href={d.url} rel="nofollow">{d.title}</a> : (d?.title ?? id)}{d?.date && <span class="muted"> · {d.date}</span>}</li>; })}</ul></>}
+    <ul>{below.map((id) => { const d = db.doc.get(id); const w = d && docPage(d, part.released); return <li>{w ? <a href={w} rel="nofollow">{d!.title}</a> : (d?.title ?? id)}{d && !w && d.url && <span class="muted"> · {new URL(d.url).hostname}</span>}{d?.date && <span class="muted"> · {d.date}</span>}</li>; })}</ul></>; })()}
   {part.includes && part.includes.length > 0 && <>
     <h2>Includes <span class="muted">({part.includes.reduce((n, i) => n + (i.qty ?? 1), 0)} pcs)</span></h2>
     <table>
       <tr><th class="num">Qty</th><th>Item</th><th>Spec</th><th>Notes</th><th>Source</th></tr>
       {part.includes.map((i) => { const p = i.part ? db.part.get(i.part) : undefined; const sp = db.spec.get(i.spec ?? p?.equivalent_to?.[0]?.spec ?? ''); const d = i.source ? db.doc.get(i.source) : undefined; return <tr>
         <td class="num">{i.qty ?? ''}</td>
-        <td>{i.part ? <a href={url.part(i.part)}>{p ? `${p.number} ${p.name}` : i.part}</a> : (i.notes ?? sp?.name ?? i.spec)}</td>
+        <td>{i.part ? <><a href={url.part(i.part)}>{p ? (p.number ? `${p.number} ${p.name}` : p.name) : i.part}</a>{p && <Discontinued item={p} />}</> : (i.notes ?? sp?.name ?? i.spec)}</td>
         <td>{sp ? <a href={url.spec(sp.id)}>{sp.name}</a> : ''}</td><td class="muted">{i.part ? (i.notes ?? '') : ''}</td><td class="muted">{d?.title ?? i.source ?? ''}</td>
       </tr>; })}
     </table></>}
-  {kitsOf.length > 1 && <>
-    <h2>Fits these kits <span class="muted">({kitsOf.length})</span></h2>
+  {(kitsOf.length > 1 || (part.fits?.length ?? 0) > 0) && <>
+    <h2>Fits these platforms <span class="muted">({kitsOf.length})</span></h2>
     <table>
-      <tr><th>Kit</th><th>How</th></tr>
-      {kitsOf.map((k) => <tr><td><a href={url.kit(k.id)}>{k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : k.id}</a></td>
-        <td class="muted">{[...k.roles].join(', ')}{k.releases > 0 && ` (${k.releases} release${k.releases > 1 ? 's' : ''})`}{k.fit && `${k.releases > 0 ? '; ' : ''}fitment list: ${k.fit}`}</td></tr>)}
+      <tr><th>Platform</th><th>How</th><th>Source</th></tr>
+      {kitsOf.map((k) => <tr><td><a href={url.platform(k.id)}>{k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : k.id}</a></td>
+        <td>{[...k.roles].join(', ')}{k.releases > 0 && ` (${k.releases} release${k.releases > 1 ? 's' : ''})`}{k.fits.map((f, i) => { const n = shownNote(f.notes); return <>{(k.releases > 0 || i > 0) && '; '}fitment list: {f.type}{n && (isSourceNote(n) ? <> <SourceNote text={n} /></> : <span class="muted"> · {n}</span>)}</>; })}</td>
+        <td class="muted">{[...new Set(k.fits.map((f) => (f.source && db.doc.get(f.source)?.title) ?? f.source ?? ''))].filter(Boolean).join('; ')}</td></tr>)}
     </table></>}
-  {part.fits && part.fits.length > 0 && <>
-    <h2>Fits <span class="muted">({part.fits.length} chassis)</span></h2>
-    <table>
-      <tr><th>Kit</th><th>Fit</th><th>Source</th></tr>
-      {part.fits.map((f) => { const k = db.kit.get(f.kit); const d = f.source ? db.doc.get(f.source) : undefined; return <tr>
-        <td><a href={url.kit(f.kit)}>{k ? `${brandName(k.brand)} ${k.name}` : f.kit}</a></td><td>{f.type}{f.notes && <span class="muted"> · {f.notes}</span>}</td><td class="muted">{d?.title ?? f.source ?? ''}</td>
-      </tr>; })}
-    </table></>}
+  {sinks.length > 0 && <><h2>Heat sinks and fan mounts for a {motorCan} mm can <span class="muted">({sinks.length}, any brand)</span></h2>
+    <p class="muted">Clamp-on heat sinks and motor fan mounts whose maker states this can diameter; check the length and the fan size on the part's page.</p>
+    <ul>{sinks.map((h) => <li><a href={url.part(h.id)}>{brandName(h.brand)} {partLabel(h)}</a>{h.number && <span class="muted"> {h.name}</span>}<Discontinued item={h} /></li>)}</ul></>}
   {part.equivalent_to && part.equivalent_to.length > 0 && <>
     <h2>Equivalent to</h2>
     <table>
@@ -160,19 +201,20 @@ const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: par
     <table>
       <tr><th class="num">Number</th><th>Name</th><th>Rate</th><th class="num">Wire mm</th><th class="num">Length mm</th></tr>
       {[part, ...range].sort((a, b) => String(a.free_length_mm ?? '').localeCompare(String(b.free_length_mm ?? ''), undefined, { numeric: true }) || (a.wire_mm ?? a.rate_n_mm ?? a.rate_lb_in ?? 0) - (b.wire_mm ?? b.rate_n_mm ?? b.rate_lb_in ?? 0)).map((o) => <tr>
-        <td class="num">{o.id === part.id ? <strong>{o.number}</strong> : <a href={url.part(o.id)}>{o.number}</a>}</td><td>{o.name}</td>
+        <td class="num">{o.number && (o.id === part.id ? <strong>{o.number}</strong> : <a href={url.part(o.id)}>{o.number}</a>)}</td><td>{o.number || o.id === part.id ? o.name : <a href={url.part(o.id)}>{o.name}</a>}<Discontinued item={o} /></td>
         <td>{[o.rate, o.rate_n_mm && `${o.rate_n_mm} N/mm`, o.rate_lb_in && `${o.rate_lb_in} lb/in`].filter(Boolean).join(', ')}</td><td class="num">{o.wire_mm ?? ''}</td><td class="num">{o.free_length_mm ?? ''}</td></tr>)}
     </table></>}
   {range.length > 0 && !part.range?.endsWith('-springs') && <><h2>{part.range?.endsWith('-colours') ? 'Other colours' : <>Other versions <span class="muted">· same range</span></>}</h2>
-    <ul>{range.map((o) => <li>{o.category !== 'paint' && <Fragment set:html={colourDot(o.color)} />}<a href={url.part(o.id)}>{o.number}</a> {o.name}<span class="muted">{o.turns && ` · ${o.turns}T`}{o.kv && ` · ${o.kv} kV`}</span></li>)}</ul></>}
+    <ul>{range.map((o) => <li>{o.category !== 'paint' && <Fragment set:html={colourDot(o.color)} />}<a href={url.part(o.id)}>{partLabel(o)}</a> {o.number && o.name}<Discontinued item={o} /><span class="muted">{o.turns && ` · ${o.turns}T`}{o.kv && ` · ${o.kv} kV`}</span></li>)}</ul></>}
   {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
-    <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {o.number}</a> {shortName(o)}<span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
+    <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {partLabel(o)}</a> {shortName(o)}<Discontinued item={o} /><span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
   <h2>Used in</h2>
   {uses.length === 0 ? <p class="muted">No release lists this part yet.</p> :
   <table>
     <tr><th class="num">Year</th><th>Release</th><th>Role</th></tr>
-    {uses.map((u) => <tr><td class="num">{yearText(u.release)}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
-  </table>}
+    {uses.map((u) => <tr><td class="num">{yearText(u.release)}<DateDoubt reason={yearDoubt(u.release)} /></td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a><Discontinued item={u.release} /></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
+  </table>
+  <DoubtNote on={uses.some((u) => !!yearDoubt(u.release))} />}
   <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p>
   <DataLink path={part.toml_path} id={part.id} />
 </Base>

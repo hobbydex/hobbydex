@@ -1,15 +1,27 @@
 ---
+import { buildLabel } from '../../../../lib/build';
 import { colourDot } from '../../../../lib/colourDot';
+import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { paintChip } from '../../../../lib/paintSwatch';
 import WebSearch from '../../../../components/WebSearch.astro';
+import FanLinks from '../../../../components/FanLinks.astro';
+import CopyButton from '../../../../components/CopyButton.astro';
+import OtherCarSets from '../../../../components/OtherCarSets.astro';
+import { gtinLabel } from '../../../../lib/gtin';
 import Base from '../../../../layouts/Base.astro';
-import { db, key, url, brandName, yearOf, yearText, dateText } from '../../../../lib/data';
+import Discontinued from '../../../../components/Discontinued.astro';
+import DateDoubt from '../../../../components/DateDoubt.astro';
+import DoubtNote from '../../../../components/DoubtNote.astro';
+import { db, key, url, brandName, byPartNo, partLabel, partRest, partNo, yearOf, yearText, dateText, dateDoubt, brandGone, docPage, dateSource, requiredName, depictsText, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
+import CategoryBoxes from '../../../../components/CategoryBoxes.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
+import { driveLabel } from '../../../../lib/drive';
 import { bearingList } from '../../../../lib/bearingList';
 import { gearing } from '../../../../lib/gearing';
+import { fileRows, pageLabel, makerOwnLinks } from '../../../../lib/docFacts';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.releases.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], key: key(f)[1] }, props: { redirect: url.release(x.id) } })));
@@ -18,19 +30,41 @@ export function getStaticPaths() {
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const release = Astro.props.release!;   // set on every page that is not a redirect
 const kit = db.kit.get(release.kit)!;
+// successor links (supersedes): the newer releases that replace this one, and the older one this one replaces
+const replacedByReleases = db.releaseReplacedBy.get(release.id) ?? [];
+const replaces = release.supersedes ? db.release.get(release.supersedes) : undefined;
 const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d !== undefined);
+// setup sheets (dozens on a race car) are folded into one collapsed line under Sources
+const sheets = docs.filter((d) => d.kind === 'setup_sheet');
+// a catalogue paged by month links the month that lists this release (docPage)
+const webLink = (d: { page?: string; url?: string; kind?: string }) => docPage(d, release.released);
+const dated = dateSource(release);
+// the maker's page for this release: its own links (not fan sites), else its product_page documents (the maker page
+// that lists it), English first
+const ownLinks = makerOwnLinks(release.links);
+const productPages = docs.filter((d) => d.kind === 'product_page' && webLink(d)).map((d) => ({ site: pageLabel(webLink(d)!), url: webLink(d)! }))
+  .sort((a, b) => Number(b.site === 'English') - Number(a.site === 'English'));
+const makerLinks = ownLinks.length > 0 ? ownLinks : productPages;
+const mainDocs = docs.filter((d) => d.kind !== 'setup_sheet');
+const files = fileRows(docs);
+// what the buyer must get separately: a part (its page) or a generic item (a plain label)
+const ITEM_LABEL: Record<string, string> = { radio: 'Radio', receiver: 'Receiver', servo: 'Servo', esc: 'ESC', motor: 'Motor', engine: 'Engine', battery: 'Battery', charger: 'Charger', pinion: 'Pinion', tyres: 'Tyres', wheels: 'Wheels', body: 'Body', paint: 'Paint', glue: 'Glue', fuel: 'Fuel', 'glow-starter': 'Glow starter', tools: 'Tools' };
+const needs = (release.needs ?? []).map((n) => ({ ...n, p: n.part ? db.part.get(n.part) : undefined })).filter((n) => !n.part || n.p);
 const rows = (release.contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
-const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b) => a.p.number.localeCompare(b.p.number));
+// current parts before discontinued ones, each group in part-number order
+const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b) => (a.p.status === 'discontinued' ? 1 : 0) - (b.p.status === 'discontinued' ? 1 : 0) || byPartNo(a.p, b.p));
 const hasSplit = rows.some((c) => c.role !== 'listed');
 const hasQty = rows.some((c) => c.qty !== undefined);
 const hasStep = rows.some((c) => c.step !== undefined);
 const cats = [...new Set(rows.map((c) => c.p.category).filter((c): c is string => !!c))].sort((a, b) => catName(a).localeCompare(catName(b)));
 const related = (db.kitRelations.get(kit.id) ?? []).map((r) => ({ ...r, k: db.kit.get(r.other) })).filter((r) => r.k);
 const bearings = bearingList(release);
-const numW = String(Math.max(5, ...rows.map((c) => c.p.number.length)));   // characters in the page's longest part number; CSS turns it into a width and caps it on phones
-// bearing kits sold for this car, checked against the sizes (and counts) in the box
-const bearingKits = (db.fitsByKit.get(kit.id) ?? []).map((x) => x.part).filter((p) => p.category === 'bearing' && (p.includes ?? []).some((i) => i.spec?.startsWith('spec/bearing/')))
-  .sort((a, b) => a.number.localeCompare(b.number)).map((p) => {
+const numW = String(Math.max(5, ...rows.map((c) => partNo(c.p).length)));   // characters in the page's longest part number; CSS turns it into a width and caps it on phones
+// bearing kits sold for this car, checked against the sizes (and counts) in the box; a set a shop lists for another
+// car of the kit (a Fast Eddy kit for the Ford GT Mk II on a TT-02) goes in one collapsed line below
+const bearingFits = fitsForRelease(kit.id, release.id, (p) => p.category === 'bearing' && (p.includes ?? []).some((i) => i.spec?.startsWith('spec/bearing/')));
+const bearingKits = bearingFits.here
+  .sort(byPartNo).map((p) => {
     const inc = new Map((p.includes ?? []).filter((i) => i.spec).map((i) => [i.spec!, i.qty]));
     const need = bearings?.lines ?? [];
     const missing = need.filter((l) => !inc.has(l.spec));
@@ -38,6 +72,14 @@ const bearingKits = (db.fitsByKit.get(kit.id) ?? []).map((x) => x.part).filter((
     const total = [...inc.values()].reduce((n: number, q) => n + (q ?? 0), 0);
     return { p, missing, short, total };
   });
+// screw kits sold for this car by aftermarket brands (RCScrewZ and others list one per car; their contents are
+// not itemised); the maker's own small screw sets are spare parts, not kits for the car
+const screwFits = fitsForRelease(kit.id, release.id, (p) => p.category === 'screw' && p.brand !== kit.brand && /\b(screw|hardware|fastener|bolt)s?\s+(kit|set)\b/i.test(p.name));
+screwFits.here.sort(byPartNo);
+// the sets made for other cars of the kit, with the cars they are listed for
+const otherCars = (o: { part: Part; releases: string[]; cars: string[] }[]) => o.map((x) => ({ p: x.part, named: x.cars, cars: x.releases.map((r) => db.release.get(r)).filter((r) => r !== undefined) }))
+  .sort((a, b) => byPartNo(a.p, b.p));
+const otherBearing = otherCars(bearingFits.other), otherScrew = otherCars(screwFits.other);
 const copyText = bearings ? bearings.lines.map((l) => `${l.qty !== undefined ? `${l.qty}x ` : ''}${l.name}`).join('\n') : '';
 const gear = gearing(release);
 // the box at a glance: part numbers per category, each linking to its group in the table
@@ -45,85 +87,104 @@ const boxRows = section('kit');
 const boxCats = [...new Set(boxRows.map((c) => c.p.category ?? ''))].map((g) => ({ g, n: boxRows.filter((c) => (c.p.category ?? '') === g).length }))
   .sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1) || catName(a.g).localeCompare(catName(b.g)));
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
+const conversions = conversionsForRelease(release);
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a> / <a href={url.kit(kit.id)}>{kit.name}</a> / {release.name}</div>
-  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(release.brand)} {release.name}{release.color && <Fragment set:html={' ' + colourDot(release.color)} />}</h1>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a>{brandGone(release.brand) && <span class="muted"> (brand defunct)</span>} / {kit.placeholder ? <span>Chassis not yet known</span> : <a href={url.platform(kit.id)}>{kit.name}</a>} / {release.name}</div>
+  <h1><span data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(release.brand)} {release.name}</span>{release.status === 'discontinued' && <span hidden data-pagefind-filter="status:discontinued" />}<Discontinued item={release} />{release.color && <Fragment set:html={' ' + colourDot(release.color)} />}</h1>
   <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
   <div class="factsrow">
   <dl class="facts">
-    <dt>Kit</dt><dd><a href={url.kit(kit.id)}>{kit.name}</a></dd>
+    {kit.placeholder ? <><dt>Chassis</dt><dd>not yet known</dd></> : <><dt>Platform</dt><dd><a href={url.platform(kit.id)}>{kit.name}</a></dd></>}
+    {release.depicts && <><dt>Real vehicle</dt><dd><a href={url.make(release.depicts.make)}>{release.depicts.make}</a> {depictsText(release.depicts).slice(release.depicts.make.length + 1)}{release.depicts.licensed && <span class="muted"> · officially licensed, according to {brandName(release.brand)}</span>}<span hidden data-pagefind-filter={`make:${release.depicts.make}`} /></dd></>}
+    {release.requires?.length && <><dt>Needs</dt><dd>{release.requires.length > 1 && 'one of: '}{release.requires.map((id, i) => { const n = requiredName(id); return <>{i > 0 && (i === release.requires!.length - 1 ? ' or ' : ', ')}{n ? <a href={n.href}>{n.name}</a> : id}</>; })}<span class="muted"> (not included: this is a conversion kit)</span></dd></>}
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
-    {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{kit.category && <><a href={`/rc/kits/types/${kit.category}/`}>{kitTypeOne[kit.category] ?? kit.category}</a>{(kit.drive || kit.power) && ' · '}</>}{[kit.drive, kit.power].filter(Boolean).join(' · ')}</dd></>}
-    {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && ' · '}<a href={url.kit(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
+    {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{kit.category && <><a href={`/rc/platforms/types/${kit.category}/`}>{kitTypeOne[kit.category] ?? kit.category}</a>{(kit.drive || kit.power) && ' · '}</>}{[driveLabel(kit.drive), kit.power].filter(Boolean).join(' · ')}</dd></>}
+    {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && ' · '}<a href={url.platform(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
-    {release.released ? <><dt>Released</dt><dd>{dateText(release)}</dd></> : <><dt>Year</dt><dd>{yearText(release)}</dd></>}
+    {release.released ? <><dt>Released</dt><dd>{dateText(release)}<DateDoubt reason={dateDoubt(release)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></> : <><dt>Year</dt><dd>{yearText(release)}<DateDoubt reason={dateDoubt(release)} /></dd></>}
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
-    <dt>Kind</dt><dd>{release.kind}</dd>
+    {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
+    {makerLinks.length > 0 && <><dt>Product page</dt><dd>{makerLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
+    {files.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
+    <dt>Build</dt><dd>{buildLabel(release.kind)}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
+    {replacedByReleases.length > 0 && <><dt>Replaced by</dt><dd>{replacedByReleases.map((r, i) => <>{i > 0 && ' · '}<a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a></>)}</dd></>}
+    {replaces && <><dt>Replaces</dt><dd><a href={url.release(replaces.id)}>{brandName(replaces.brand)} {replaces.name}</a></dd></>}
   </dl>
-    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><Icon name={kitTypeIcon(release.category ?? kit.category)} size="5rem" /></span>
+  <DoubtNote on={!!dateDoubt(release)} />
+    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} size="12rem" class="hero" /></span>
   </div>
-  {gear && <>
+  <FanLinks links={release.links} />
+  {rows.length > 0 && <p data-pagefind-ignore><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p>}
+  {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
+    <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a><Discontinued item={c} />{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
+  {gear && <section data-pagefind-ignore>
     <h2>Stock gearing</h2>
     <div class="gearing">
       <span set:html={gear.svg} />
       <p><span class="ratio">{gear.ratio.toFixed(2)} : 1</span><br />
         <a href={url.part(gear.spur.id)}>{gear.zs}T spur</a> / <a href={url.part(gear.pinion.id)}>{gear.zp}T pinion</a>{gear.pitch && <span class="muted"> · {gear.pitch}</span>}<br />
         <span class="muted">Spur/pinion ratio of the gears in the box. The transmission's internal ratio is not in our data, so this is not the final drive ratio.</span></p>
-    </div></>}
-  {docs.length > 0 && <><h2>Sources</h2>
-    {docs.length <= 4 || new Set(docs.map((d) => d.url)).size === docs.length
-      ? <ul>{docs.map((d) => <li>{d.url ? <a href={d.url} rel="nofollow">{d.title}</a> : d.title}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
-      : <ul>{[...new Set(docs.map((d) => d.url ?? ''))].map((u) => { const ds = docs.filter((d) => (d.url ?? '') === u); return <li>
-          {u ? <a href={u} rel="nofollow">{new URL(u).hostname}{new URL(u).pathname.length > 1 ? new URL(u).pathname : ''}</a> : 'Documents'} <span class="muted">· {ds.length} documents</span>
-          <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
-        </li>; })}</ul>}
-    <p><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p></>}
-  {bearings && <>
-    <h2>Bearings <span class="muted">({bearings.lines.length} {bearings.lines.length === 1 ? 'size' : 'sizes'})</span></h2>
+    </div></section>}
+  {bearings && <section data-pagefind-ignore>
+    <h2>Bearings <span class="muted">({bearings.lines.length} {bearings.lines.length === 1 ? 'size' : 'sizes'})</span> <CopyButton text={copyText} label="Copy bearing list" class="inline" /></h2>
     <p class="muted">{bearings.counted ? 'Counts per car, from the build manual.' : 'Sizes of the bearings in the box; the count per car is not in our source for this release.'}{bearings.lines.some((l) => l.bushing) && ' A bushing is listed with the ball bearing that replaces it.'}</p>
     <table>
       <tr><th>Size</th>{bearings.counted && <th class="num">Qty</th>}<th>Parts</th></tr>
-      {bearings.lines.map((l) => <tr><td><a href={url.spec(l.spec)}>{l.name}</a></td>{bearings.counted && <td class="num">{l.qty}</td>}<td>{l.parts.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{p.number}</a></>)}{l.bushing && <span class="muted"> · bushing in the kit</span>}</td></tr>)}
+      {bearings.lines.map((l) => <tr><td><a href={url.spec(l.spec)}>{l.name}</a></td>{bearings.counted && <td class="num">{l.qty}</td>}<td>{l.parts.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{partLabel(p)}</a><Discontinued item={p} /></>)}{l.bushing && <span class="muted"> · bushing in the kit</span>}</td></tr>)}
     </table>
-    {bearings.unsized.length > 0 && <p class="muted">Also {bearings.unsized.length} bearing {bearings.unsized.length === 1 ? 'part' : 'parts'} of unknown size: {bearings.unsized.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{p.number}</a></>)}.</p>}
-    <p><button type="button" class="copybtn" data-copy={copyText}>Copy bearing list</button></p>
-    {bearingKits.length > 0 && <>
+    {bearings.unsized.length > 0 && <p class="muted">Also {bearings.unsized.length} bearing {bearings.unsized.length === 1 ? 'part' : 'parts'} of unknown size: {bearings.unsized.map((p, i) => <>{i > 0 && ', '}<a href={url.part(p.id)}>{partLabel(p)}</a></>)}.</p>}
+    {(bearingKits.length > 0 || otherBearing.length > 0) && <>
       <h3>Bearing kits for this car</h3>
-      <table>
+      {bearingKits.length > 0 && <table>
         <tr><th>Kit</th><th class="num">Bearings</th><th>Against the box</th></tr>
-        {bearingKits.map((b) => <tr><td><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {b.p.number}</a> <span class="muted">{b.p.name}</span></td><td class="num">{b.total || ''}</td>
+        {bearingKits.map((b) => <tr><td><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> {b.p.number && <span class="muted">{b.p.name}</span>}<Discontinued item={b.p} /></td><td class="num">{b.total || ''}</td>
           <td>{b.missing.length === 0 && b.short.length === 0 ? (bearings.counted ? 'every size, enough of each' : 'every size') : <span class="muted">{b.missing.length > 0 && `misses ${b.missing.map((l) => l.name).join(', ')}`}{b.missing.length > 0 && b.short.length > 0 && '; '}{b.short.length > 0 && `too few ${b.short.map((l) => l.name).join(', ')}`}</span>}</td></tr>)}
-      </table></>}
-    <script>
-      for (const b of document.querySelectorAll<HTMLButtonElement>('button[data-copy]')) b.addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(b.dataset.copy ?? ''); b.textContent = 'Copied'; setTimeout(() => (b.textContent = 'Copy bearing list'), 1500); } catch {}
-      });
-    </script></>}
-  {!bearings && bearingKits.length > 0 && <>
+      </table>}
+      <OtherCarSets items={otherBearing} kitName={kit.name} /></>}
+    </section>}
+  {!bearings && (bearingKits.length > 0 || otherBearing.length > 0) && <section data-pagefind-ignore>
     <h2>Bearing kits for this car <span class="muted">({bearingKits.length})</span></h2>
-    <p class="muted">The bearings in the box are not in our data for this release, so the kits are not checked against it.</p>
-    <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {b.p.number}</a> <span class="muted">{b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span></li>)}</ul></>}
+    {bearingKits.length > 0 && <>
+      <p class="muted">The bearings in the box are not in our data for this release, so the kits are not checked against it.</p>
+      <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> <span class="muted">{b.p.number && b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span><Discontinued item={b.p} /></li>)}</ul></>}
+    <OtherCarSets items={otherBearing} kitName={kit.name} /></section>}
+  {(screwFits.here.length > 0 || otherScrew.length > 0) && <section data-pagefind-ignore>
+    <h2>Screw kits for this car <span class="muted">({screwFits.here.length})</span></h2>
+    {screwFits.here.length > 0 && <ul>{screwFits.here.map((p) => <li><a href={url.part(p.id)}>{brandName(p.brand)} {partLabel(p)}</a> {p.number && <span class="muted">{p.name}</span>}<Discontinued item={p} /></li>)}</ul>}
+    <OtherCarSets items={otherScrew} kitName={kit.name} /></section>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
-  {boxCats.length > 1 && <nav class="boxgrid" aria-label="In the box by category" data-pagefind-ignore>
+  {boxCats.length > 1 && <CategoryBoxes label="In the box by category" items={boxCats.map(({ g, n }) => ({ category: g, n, href: `#kit-${g || 'other'}`, title: `${n} ${g ? catName(g) : 'other'} part number${n > 1 ? 's' : ''}` }))}>
     <h2>In the box <span class="muted">({boxRows.length} part numbers)</span></h2>
-    <ul>{boxCats.map(({ g, n }) => <li><a href={`#kit-${g || 'other'}`} title={`${n} ${g ? catName(g) : 'other'} part number${n > 1 ? 's' : ''}`}>{g ? <Icon name={g} size="1.6rem" /> : <span class="noicon" />}<b>{n}</b><span>{g ? catName(g) : 'Other'}</span></a></li>)}</ul>
-  </nav>}
-  {cats.length > 1 && <p data-pagefind-ignore><label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label></p>}
-  {(() => { const shown = sections.map(([role, label]) => ({ role, label, rows: section(role) })).filter((x) => x.rows.length > 0); return shown.length > 0 && <>
+  </CategoryBoxes>}
+  {(cats.length > 1 || hasStep) && <p data-pagefind-ignore>{cats.length > 1 && <label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label>}{hasStep && <label class="steptoggle"><input type="checkbox" id="showsteps" /> Build steps</label>}</p>}
+  {(() => { const shown = sections.map(([role, label]) => ({ role, label, rows: section(role) })).filter((x) => x.rows.length > 0); return shown.length > 0 && <div data-pagefind-ignore>
     {shown.length > 1 && <div class="tabs" role="tablist" data-pagefind-ignore>{shown.map((x, i) => <button type="button" role="tab" class="tab" data-tab={x.role} aria-selected={i === 0 ? 'true' : 'false'}>{({ kit: 'In the box', option: 'Options', listed: 'Also listed' } as Record<string, string>)[x.role] ?? x.label} <span class="muted">({x.rows.length})</span></button>)}</div>}
     {shown.map((x) => { const groups = [...new Set(x.rows.map((c) => c.p.category ?? ''))].sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))); return <section class="tabpanel" data-panel={x.role}>
       <h2 class="panelhead">{x.label} <span class="muted">({x.rows.length})</span></h2>
       {groups.map((g) => { const gr = x.rows.filter((c) => (c.p.category ?? '') === g); return <div class="catgroup" data-cat={g} id={`${x.role}-${g || 'other'}`}>
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({gr.length})</span></h3>
         <table>
-          <tr><th class="num numcol" style={`--numn:${numW}`}>Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand c-brand">Brand</th>{hasStep && <th class="w-step">Step</th>}</tr>
-          {gr.map((c) => <tr><td class="num"><a href={url.part(c.p.id)}>{c.p.number}</a></td><td><Fragment set:html={c.p.category === 'paint' ? (paintChip(c.p, 14, 'circle') ?? '') : colourDot(c.p.color)} />{c.p.name}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted">{c.step ?? ''}</td>}</tr>)}
+          <tr><th class="num numcol" style={`--numn:${numW}`}>Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand c-brand">Brand</th>{hasStep && <th class="w-step c-step">Step</th>}</tr>
+          {gr.map((c) => <tr><td class="num">{c.p.number && <a href={url.part(c.p.id)}>{c.p.number}</a>}</td><td><Fragment set:html={c.p.category === 'paint' ? (paintChip(c.p, 14, 'circle') ?? '') : colourDot(c.p.color)} />{c.p.number ? c.p.name : <a href={url.part(c.p.id)}>{c.p.name}</a>}<Discontinued item={c.p} /></td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted c-step">{c.step ?? ''}</td>}</tr>)}
         </table></div>; })}
-    </section>; })}</>; })()}
+    </section>; })}</div>; })()}
+  {needs.length > 0 && <section data-pagefind-ignore class="needs">
+    <h2>You also need</h2>
+    <ul>{needs.map((n) => <li>{n.p ? <><a href={url.part(n.p.id)}>{partLabel(n.p)}</a>{partRest(n.p) && <span class="muted"> {partRest(n.p)}</span>}{n.p.brand !== release.brand && <span class="muted"> · {brandName(n.p.brand)}</span>}<Discontinued item={n.p} /></> : ITEM_LABEL[n.item!] ?? n.item}{n.qty && n.qty > 1 && <span class="muted"> × {n.qty}</span>}{n.note && <span class="muted"> · {n.note}</span>}</li>)}</ul>
+  </section>}
+  <script>
+    // build steps column: off by default, the choice remembered per viewer
+    const st = document.getElementById('showsteps') as HTMLInputElement | null;
+    if (st) {
+      try { st.checked = localStorage.getItem('hobbydex-steps') === '1'; } catch (e) {}
+      const apply = () => { document.body.classList.toggle('steps-on', st.checked); try { localStorage.setItem('hobbydex-steps', st.checked ? '1' : '0'); } catch (e) {} };
+      st.addEventListener('change', apply); apply();
+    }
+  </script>
   <script>
     // tabs: one role at a time, remembered in the address (#option); without script every section shows
     const tabs = [...document.querySelectorAll<HTMLButtonElement>('.tab')];
@@ -148,6 +209,15 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
       for (const g of document.querySelectorAll<HTMLElement>('.catgroup')) g.hidden = !!sel.value && g.dataset.cat !== sel.value;
     });
   </script>
+    {sheets.length > 0 && <><h2>Setup sheets <span class="muted">({sheets.length})</span></h2><details class="sheets"><summary class="muted">{sheets.length === 1 ? "the sheet" : "all sheets"}</summary><ul>{sheets.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details></>}
+  {mainDocs.length > 0 && <><h2>Sources</h2>
+    {mainDocs.length <= 4 || new Set(mainDocs.map((d) => d.url)).size === mainDocs.length
+      ? <ul>{mainDocs.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{!webLink(d) && d.url && <span class="muted"> · {new URL(d.url).hostname}</span>}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
+      : <ul>{[...new Set(mainDocs.map((d) => d.page ?? d.url ?? ''))].map((u) => { const ds = mainDocs.filter((d) => (d.page ?? d.url ?? '') === u); const pg = webLink(ds[0]); return <li>
+          {pg ? <a href={pg} rel="nofollow">{new URL(pg).hostname}{new URL(pg).pathname.length > 1 ? new URL(pg).pathname : ''}</a> : u ? new URL(u).hostname : 'Documents'} <span class="muted">· {ds.length} documents</span>
+          <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
+        </li>; })}</ul>}
+    </>}
   <style>
     .tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; border-bottom: 1px solid var(--border, #8884); margin: 1.5rem 0 0.5rem; }
     .tab { font: inherit; background: none; border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; padding: 0.4rem 0.8rem; cursor: pointer; color: inherit; }
@@ -156,19 +226,13 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
     .catgroup table { table-layout: fixed; width: 100%; }
     .catgroup td.num { white-space: normal; overflow-wrap: anywhere; }
     .w-qty { width: 4rem; } .w-brand { width: 8rem; } .w-step { width: 9rem; }
+    /* the manual's build step per part: hidden until asked for, the column is wide on race kits */
+    :global(body:not(.steps-on)) .c-step { display: none; }
+    .steptoggle { margin-left: 1rem; }
     /* phones: the name column needs the room; the brand is nearly always the kit's own */
     @media (max-width: 40rem) { .catgroup th, .catgroup td { padding-left: 0.4rem; padding-right: 0.4rem; } .w-qty { width: 3rem; } .w-step { width: 4.5rem; } .c-brand { display: none; } .catgroup td { overflow-wrap: anywhere; } }
     .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
     .catgroup { scroll-margin-top: 0.5rem; }
-    .boxgrid ul { list-style: none; padding: 0; margin: 0.75rem 0 1rem; display: grid; gap: 0.4rem; grid-template-columns: repeat(auto-fill, minmax(6.75rem, 1fr)); }
-    .boxgrid a { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.1rem 0.4rem; height: 100%; padding: 0.45rem 0.4rem; text-align: center;
-      background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); }
-    .boxgrid a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
-    .boxgrid .noicon { display: inline-block; }
-    .boxgrid a :global(.icon), .boxgrid .noicon { color: var(--muted); width: 1.6rem; height: 1.6rem; }
-    .boxgrid a:hover :global(.icon) { color: var(--accent); }
-    .boxgrid b { font-size: 1.1rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
-    .boxgrid span:last-child { flex-basis: 100%; font-size: 0.75rem; line-height: 1.25; color: var(--muted); hyphens: auto; }
     .gearing { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; }
     .gearing p { margin: 0; flex: 1 1 14rem; }
     .gearing .ratio { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }

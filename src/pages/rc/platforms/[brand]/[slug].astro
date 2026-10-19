@@ -1,0 +1,164 @@
+---
+import { colourDot } from '../../../../lib/colourDot';
+import ReleaseArt from '../../../../components/ReleaseArt.astro';
+import { shownNote, isSourceNote } from '../../../../lib/notes';
+import SourceNote from '../../../../components/SourceNote.astro';
+import KitSets from '../../../../components/KitSets.astro';
+import { paintChip } from '../../../../lib/paintSwatch';
+import Base from '../../../../layouts/Base.astro';
+import Discontinued from '../../../../components/Discontinued.astro';
+import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
+import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit , yearDoubt } from '../../../../lib/data';
+import DateDoubt from '../../../../components/DateDoubt.astro';
+import DoubtNote from '../../../../components/DoubtNote.astro';
+import Icon from '../../../../components/Icon.astro';
+import DataLink from '../../../../components/DataLink.astro';
+import WebSearch from '../../../../components/WebSearch.astro';
+import FanLinks from '../../../../components/FanLinks.astro';
+import { catName } from '../../../../lib/categories';
+import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
+import { driveLabel } from '../../../../lib/drive';
+import { gearing, type Gearing } from '../../../../lib/gearing';
+export function getStaticPaths() {
+  // a former id (renamed or corrected) keeps working: its page redirects to the current one
+  const moved = db.kits.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], slug: key(f)[1] }, props: { redirect: url.platform(x.id) } })));
+  return [...db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } })), ...moved];
+}
+if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
+const kit = Astro.props.kit!;   // set on every page that is not a redirect
+const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort(byReleaseDate);
+// the list: current releases (on sale or announced) first, then the discontinued ones;
+// newest first in each, dated before undated (undated ones by item number, higher numbers being newer)
+const dateKey = (r: (typeof releases)[number]) => r.released ?? (yearOf(r) ? String(yearOf(r)) : '');
+const newestFirst = (a: (typeof releases)[number], b: (typeof releases)[number]) =>
+  (dateKey(a) ? 0 : 1) - (dateKey(b) ? 0 : 1) || dateKey(b).localeCompare(dateKey(a))
+  || (a.number ? 0 : 1) - (b.number ? 0 : 1) || (b.number ?? '').localeCompare(a.number ?? '', undefined, { numeric: true }) || a.name.localeCompare(b.name);
+const current = releases.filter((r) => r.status !== 'discontinued').sort(newestFirst);
+const discontinued = releases.filter((r) => r.status === 'discontinued').sort(newestFirst);
+const show = { number: releases.some((r) => r.number), edition: releases.some((r) => r.edition), surface: releases.some((r) => r.surface),
+  status: new Set(current.map((r) => r.status)).size > 1 };   // the column only when the current releases differ in status
+// the compare link takes the two newest dated releases (undated ones sort last)
+const dated = releases.filter((r) => r.released || yearOf(r));
+const pair = (dated.length >= 2 ? dated : releases).slice(-2);
+// current parts before discontinued ones, each group in part-number order
+const allFits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => (a.part.status === 'discontinued' ? 1 : 0) - (b.part.status === 'discontinued' ? 1 : 0) || byPartNo(a.part, b.part));
+// other makers' per-car bearing and screw sets (Fast Eddy, RCScrewZ...) would crowd out the option parts:
+// they get one collapsed line each; single bearings and the kit maker's own sets stay in the list
+const bearingSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.category === 'bearing'
+  && ((p.includes ?? []).some((i) => i.spec?.startsWith('spec/bearing/')) || /\b(kit|set)\b|bearings\b/i.test(p.name)));
+const screwSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.category === 'screw' && /\b(screw|hardware|fastener|bolt)s?\s+(kit|set)\b/i.test(p.name));
+const fits = allFits.filter((x) => !bearingSets.includes(x) && !screwSets.includes(x));
+const relations = db.kitRelations.get(kit.id) ?? [];
+// parts of interchangeable rebrands, for kits whose own releases list none
+const ownParts = releases.reduce((n, r) => n + (r.contains?.length ?? 0), 0);
+const borrowed = ownParts > 0 ? [] : relations.filter((r) => r.link.parts === 'interchangeable').flatMap((r) =>
+  (db.releasesByKit.get(r.other) ?? []).flatMap((rel) => (rel.contains ?? []).map((c) => ({ c, rel, p: db.part.get(c.part)! })))).filter((x) => x.p);
+// stock gearing of the releases, one entry per spur/pinion pair
+const gearings = new Map<string, { g: Gearing; rels: typeof releases }>();
+for (const r of releases) { const g = gearing(r); if (!g) continue; const k = `${g.zs}/${g.zp}`; if (!gearings.has(k)) gearings.set(k, { g, rels: [] }); gearings.get(k)!.rels.push(r); }
+const seen = new Set<string>();
+// rows grouped by part category, named categories alphabetically, uncategorised last
+const byCat = <T,>(rows: T[], cat: (r: T) => string | undefined) => [...new Set(rows.map((r) => cat(r) ?? ''))]
+  .sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))).map((g) => ({ g, rows: rows.filter((r) => (cat(r) ?? '') === g) }));
+const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => byPartNo(a.p, b.p));
+const conversions = conversionsForKit(kit.id);
+---
+<Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="platform" sub={brandName(kit.brand)}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
+  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(kit.brand)} {kit.name}</h1>
+  <WebSearch query={`${brandName(kit.brand)} ${kit.name}`} links={kit.links} />
+  <div class="factsrow">
+  <dl class="facts">
+    <dt>Category</dt><dd><a href={`/rc/platforms/types/${kit.category || 'car'}/`}>{kitTypeOne[kit.category ?? 'car'] ?? kit.category}</a>{isSourceNote(kit.notes) && <> <SourceNote text={kit.notes!} /></>}</dd>
+    {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
+    {kit.drive && <><dt>Drive</dt><dd>{driveLabel(kit.drive)}<span hidden data-pagefind-filter={`drive:${driveLabel(kit.drive)}`} /></dd></>}
+    {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
+  </dl>
+    <span class="typeicon" title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}>{kit.art ? <ReleaseArt id={kit.id} category={kit.category} kitArt={kit.art} size="5rem" /> : <Icon name={kitTypeIcon(kit.category)} label={kitTypeOne[kit.category ?? 'car'] ?? kit.category} size="5rem" />}</span>
+  </div>
+  <FanLinks links={kit.links} />
+  {kit.notes && !isSourceNote(kit.notes) && <p class="muted">{kit.notes}</p>}
+  {relations.length > 0 && <>
+    <h2>Same car or platform</h2>
+    <ul>
+      {relations.map((r) => { const o = db.kit.get(r.other); const label = r.relation === 'rebrand' ? (r.reverse ? 'Also sold as' : 'Rebrand of') : 'Shares its platform with'; return <li>
+        {label} <a href={url.platform(r.other)}>{o ? `${brandName(o.brand)} ${o.name}` : r.other}</a>
+        {r.link.parts && <span class="muted"> · parts {r.link.parts}</span>}{r.link.notes && <span class="muted"> · {r.link.notes}</span>}
+      </li>; })}
+    </ul></>}
+  <h2>Releases</h2>
+  {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
+  {(() => {
+    // one table: current releases first, then the discontinued ones; unchecking "Show discontinued" hides those rows
+    const rows = [...current, ...discontinued];
+    return <>
+      {current.length === 0 && <p class="muted">Every release is discontinued.</p>}
+      <table class="releases">
+        <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
+        {rows.map((r) => <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
+          <td class="num" data-label="Year">{yearText(r)}<DateDoubt reason={yearDoubt(r)} /></td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status === 'discontinued' ? '' : r.status}</td>}
+        </tr>)}
+      </table>
+  <DoubtNote on={releases.some((r) => !!yearDoubt(r))} /></>;
+  })()}
+  {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
+    <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a><Discontinued item={c} />{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
+  {gearings.size > 0 && <section data-pagefind-ignore>
+    <h2>Stock gearing</h2>
+    {[...gearings.values()].map(({ g, rels }) => <div class="gearing">
+      <span set:html={g.svg} />
+      <p><span class="ratio">{g.ratio.toFixed(2)} : 1</span><br />
+        <a href={url.part(g.spur.id)}>{g.zs}T spur</a> / <a href={url.part(g.pinion.id)}>{g.zp}T pinion</a>{g.pitch && <span class="muted"> · {g.pitch}</span>}<br />
+        <span class="muted">{rels.length === releases.length ? (releases.length > 1 ? 'Every release' : 'In the box') : rels.map((r, i) => <>{i > 0 && ', '}<a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></>)}</span></p>
+    </div>)}
+    <p class="muted">Spur/pinion ratio of the gears in the box. The transmission's internal ratio is not in our data, so this is not the final drive ratio.</p></section>}
+  {pair.length > 1 && <p><a href={`/rc/compare/?a=${encodeURIComponent(pair[0].id)}&b=${encodeURIComponent(pair[1].id)}`}>Compare the last two releases</a> <span class="muted">or any two releases on the compare page</span></p>}
+  {borrowedUnique.length > 0 && <section data-pagefind-ignore>
+    <h2>Parts, from the interchangeable rebrand <span class="muted">({borrowedUnique.length})</span></h2>
+    <p class="muted">No parts list for this platform itself; these come from the rebrand above, whose parts interchange.</p>
+    {byCat(borrowedUnique, (x) => x.p.category).map(({ g, rows }) => <div class="catgroup">
+      <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
+      <table>
+        <tr><th class="num numcol" style={`--numn:${Math.max(5, ...borrowedUnique.map((x) => partNo(x.p).length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-from">From</th></tr>
+        {rows.map(({ rel, p }) => <tr data-discontinued={p.status === 'discontinued' ? '' : undefined}><td class="num">{p.number && <a href={url.part(p.id)}>{p.number}</a>}</td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.number ? p.name : <a href={url.part(p.id)}>{p.name}</a>}<Discontinued item={p} /></td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a><Discontinued item={rel} /></td></tr>)}
+      </table></div>)}
+  </section>}
+  {(fits.length > 0 || bearingSets.length > 0 || screwSets.length > 0) && <section data-pagefind-ignore>
+    <h2>Option parts listed as fitting <span class="muted">({new Set(fits.map((x) => x.part.id)).size})</span></h2>
+    {fits.some((x) => x.part.status === 'discontinued') && <HideDiscontinued />}
+    <KitSets rows={bearingSets} kind="bearing kit" kitName={kit.name} />
+    <KitSets rows={screwSets} kind="screw kit" kitName={kit.name} />
+    {(() => { const groups = byCat(fits, (x) => x.part.category); return <>
+      {groups.length > 2 && <p class="muted" data-pagefind-ignore>{groups.map(({ g, rows }, i) => <>{i > 0 && ' · '}<a href={`#cat-${g || 'other'}`}>{g ? catName(g) : 'Other'}</a> ({rows.length})</>)}</p>}
+      {groups.map(({ g, rows }) => <div class="catgroup" id={`cat-${g || 'other'}`}>
+        <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
+        <table>
+          <tr><th class="num numcol" style={`--numn:${Math.max(5, ...fits.map((x) => partNo(x.part).length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
+          {rows.map(({ part, fit }) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
+        </table></div>)}</>; })()}
+  </section>}
+  <style>
+    .catgroup table { table-layout: fixed; width: 100%; }
+    .catgroup td.num { white-space: normal; overflow-wrap: anywhere; }
+    .w-brand { width: 9rem; } .w-from { width: 14rem; } .w-fit { width: 12rem; }
+    /* phones: one line per part (number, name) with the brand and fit in small print under it, instead of four narrow columns */
+    @media (max-width: 40rem) {
+      .catgroup table, .catgroup tbody, .catgroup tr { display: block; }
+      .catgroup tr:first-child { display: none; }
+      .catgroup tr { padding: 0.4rem 0.6rem; border-top: 1px solid var(--border-muted); }
+      .catgroup tr:nth-child(2) { border-top: 0; }
+      .catgroup td { display: inline; padding: 0; border: 0; background: none; white-space: normal; overflow-wrap: anywhere; }
+      .catgroup td.num { white-space: nowrap; margin-right: 0.4rem; }
+      .catgroup td.num:empty { display: none; }   /* a part without a number: the name is the link */
+      .catgroup td:nth-child(3), .catgroup td:nth-child(4) { display: inline; font-size: 0.8rem; color: var(--muted); }
+      .catgroup td:nth-child(3)::before { content: ''; display: block; }
+      .catgroup td:nth-child(4)::before { content: ' · '; }
+    }
+    .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
+    .gearing { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; margin: 0.5rem 0; }
+    .gearing p { margin: 0; flex: 1 1 14rem; }
+    .gearing .ratio { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .gearing :global(svg) { display: block; max-width: 100%; height: auto; }
+  </style>
+  <DataLink path={kit.toml_path} id={kit.id} />
+</Base>

@@ -1,0 +1,40 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Discontinued from '../../../components/Discontinued.astro';
+import { db, url, brandName, dateKey, dateText, dateDoubt } from '../../../lib/data';
+import DateDoubt from '../../../components/DateDoubt.astro';
+import DoubtNote from '../../../components/DoubtNote.astro';
+import Icon from '../../../components/Icon.astro';
+import ReleaseArt from '../../../components/ReleaseArt.astro';
+import { kitTypeIcon, kitTypeOne } from '../../../lib/kitTypes';
+// every kit by its newest release, newest first; discontinued kits last within a year
+const rows = db.kits.map((k) => {
+  const rs = (db.releasesByKit.get(k.id) ?? []).filter((r) => r.year);   // unknown years cannot be placed
+  const newest = [...rs].sort((a, b) => dateKey(b).localeCompare(dateKey(a)))[0];
+  return { k, newest, first: rs.length ? Math.min(...rs.map((r) => r.year!)) : undefined, count: rs.length };
+}).filter((x) => x.newest).sort((a, b) => dateKey(b.newest!).localeCompare(dateKey(a.newest!)) || a.k.name.localeCompare(b.k.name));
+const PAGE = 50;
+---
+<Base title="Platforms by date" description="Every RC platform in Hobbydex, newest first, by the year of its latest release.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/platforms/">Platforms</a> / by date</div>
+  <h1>Platforms by date</h1>
+  <p class="muted">{rows.length} platforms, newest first by the date of their latest release (the day or month where a source gives it, else the year); platforms whose release years are unknown are left out. <a href="/rc/platforms/">Platforms by type</a></p>
+  <table id="kits">
+    <tr><th class="num">Released</th><th>Platform</th><th>Type</th><th>Scale</th><th>Newest release</th><th class="num">Releases</th></tr>
+    {rows.map(({ k, newest, first, count }, i) => <tr hidden={i >= PAGE}>
+      <td class="num">{dateText(newest!)}<DateDoubt reason={dateDoubt(newest!)} /></td><td><a href={url.platform(k.id)}><span class="muted" title={kitTypeOne[k.category ?? 'car']}>{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1em" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="1em" />}</span> {brandName(k.brand)} {k.name}</a></td><td><a href={`/rc/platforms/types/${k.category || 'car'}/`}>{kitTypeOne[k.category ?? 'car'] ?? k.category}</a></td><td>{k.scale ?? ''}</td>
+      <td><a href={url.release(newest!.id)}>{newest!.name}</a><Discontinued item={newest!} />{newest!.status !== 'released' && <span class="muted"> · {newest!.status}</span>}</td>
+      <td class="num">{count}{first !== undefined && first !== newest!.year && <span class="muted"> since {first}</span>}</td>
+    </tr>)}
+  </table>
+  <DoubtNote on={rows.some((x) => !!dateDoubt(x.newest!))} />
+  {rows.length > PAGE && <div class="search-more"><button id="more" type="button">Show more</button></div>}
+  <script>
+    const rows = [...document.querySelectorAll<HTMLTableRowElement>('#kits tr[hidden]')];
+    const btn = document.getElementById('more');
+    btn?.addEventListener('click', () => {
+      for (const tr of rows.splice(0, 50)) tr.hidden = false;
+      if (!rows.length) btn.remove();
+    });
+  </script>
+</Base>

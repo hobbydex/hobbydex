@@ -1,0 +1,7 @@
+---
+// Fan and community sites are courtesy links, not sources: one small line under the page's properties
+import type { Link } from '../lib/data';
+interface Props { links?: Link[] }
+const fans = (Astro.props.links ?? []).filter((l) => l.kind === 'fan-site');
+---
+{fans.length > 0 && <p class="courtesy muted" data-pagefind-ignore>Also on {fans.map((l, i) => <>{i > 0 && ', '}<a href={l.url} rel="noopener" target="_blank">{l.site}</a></>)} (fan site, not a source).</p>}

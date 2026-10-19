@@ -1,0 +1,13 @@
+---
+// One collapsed line under a release's bearing or screw kits: the per-car sets a shop lists for other cars of the
+// same kit (a Fast Eddy set for the Ford GT Mk II, seen on another TT-02 car), with the cars each is listed for:
+// releases of the kit (linked) or a car not in the data, as the shop names it.
+import { url, brandName, partLabel, type Part, type Release } from '../lib/data';
+import Discontinued from './Discontinued.astro';
+interface Props { items: { p: Part; cars: Release[]; named: string[] }[]; kitName: string }
+const { items, kitName } = Astro.props;
+---
+{items.length > 0 && <details class="othersets" data-pagefind-ignore>
+  <summary class="muted">{items.length} more made for other cars on the {kitName}</summary>
+  <ul>{items.map((x) => <li><a href={url.part(x.p.id)}>{brandName(x.p.brand)} {partLabel(x.p)}</a><Discontinued item={x.p} /> <span class="muted">{x.p.number && `${x.p.name} · `}for {x.cars.map((r, i) => <>{i > 0 && ', '}<a href={url.release(r.id)}>{r.name}</a></>)}{x.cars.length > 0 && x.named.length > 0 && ', '}{x.named.join(', ')}</span></li>)}</ul>
+</details>}

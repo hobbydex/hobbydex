@@ -1,0 +1,55 @@
+---
+import DateDoubt from '../../../../components/DateDoubt.astro';
+import DoubtNote from '../../../../components/DoubtNote.astro';
+import Base from '../../../../layouts/Base.astro';
+import Discontinued from '../../../../components/Discontinued.astro';
+import Icon from '../../../../components/Icon.astro';
+import ReleaseArt from '../../../../components/ReleaseArt.astro';
+import { db, url, brandName, yearText , yearDoubt } from '../../../../lib/data';
+import { kitTypeLabel, kitTypeIcon, kitTypeOne, kitTypeAbout } from '../../../../lib/kitTypes';
+import DriveFilter from '../../../../components/DriveFilter.astro';
+import { driveLabel } from '../../../../lib/drive';
+export function getStaticPaths() {
+  return [...new Set([...db.kits.map((k) => k.category || 'car'), ...db.releases.flatMap((r) => (r.category ? [r.category] : []))])].map((type) => ({ params: { type } }));
+}
+const { type } = Astro.params;
+const label = kitTypeLabel[type] ?? type;
+const scaleKey = (s?: string) => (s ? Number(s.split('/')[1]) : 999);
+const kits = db.kits.filter((k) => (k.category || 'car') === type)
+  .sort((a, b) => scaleKey(a.scale) - scaleKey(b.scale) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
+// one table per scale, largest models first (1/5 before 1/10); kits without a scale last
+// releases of this type on another type's chassis (Tamiya race trucks on the TT-01E touring car kit)
+const onOther = db.releases.filter((r) => r.category === type && (db.kit.get(r.kit)?.category || 'car') !== type)
+  .sort((a, b) => brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
+const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scaleKey(a || undefined) - scaleKey(b || undefined));
+---
+<Base title={label} description={`${label}: ${kits.length} RC platforms in Hobbydex, by scale and brand.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/platforms/">Platforms</a> / {label}</div>
+  <h1><Icon name={kitTypeIcon(type)} size="1.4em" /> {label} <span class="muted">({kits.length + onOther.length})</span></h1>
+  {kitTypeAbout[type] && <p class="about">{kitTypeAbout[type]}</p>}
+  {scales.length > 1 && <p class="muted" data-pagefind-ignore>{scales.map((sc, i) => <>{i > 0 && ' · '}<a href={`#scale-${sc ? sc.replace('/', '-') : 'unknown'}`}>{sc || 'scale unknown'}</a> ({kits.filter((k) => (k.scale ?? '') === sc).length})</>)}</p>}
+  <DriveFilter drives={kits.map((k) => k.drive)} />
+  {scales.map((sc) => { const ks = kits.filter((k) => (k.scale ?? '') === sc); return <section class="drivegroup">
+    <h2 id={`scale-${sc ? sc.replace('/', '-') : 'unknown'}`}>{sc || 'Scale unknown'} <span class="muted">({ks.length})</span></h2>
+    <table class="releases">
+      <tr><th>Platform</th><th>Brand</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
+      {ks.map((k) => <tr data-drive={k.drive ?? ''}>
+        <td class="name">{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="1.3em" />} <a href={url.platform(k.id)}>{k.name}</a></td>
+        <td data-label="Brand"><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td>
+        <td data-label="Drive">{driveLabel(k.drive)}</td><td data-label="Power">{k.power ?? ''}</td><td class="num" data-label="Releases">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
+      </tr>)}
+    </table></section>; })}
+  {onOther.length > 0 && <>
+    <h2>On another chassis <span class="muted">({onOther.length})</span></h2>
+    <p class="muted">Releases of this type built on a platform of another type.</p>
+    <table class="releases">
+      <tr><th>Release</th><th>Brand</th><th>Platform</th><th class="num">Year</th></tr>
+      {onOther.map((r) => <tr><td class="name"><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td data-label="Platform"><a href={url.platform(r.kit)}>{db.kit.get(r.kit)?.name}</a></td><td class="num" data-label="Year">{yearText(r)}<DateDoubt reason={yearDoubt(r)} /></td></tr>)}
+    </table>
+  <DoubtNote on={onOther.some((r) => !!yearDoubt(r))} /></>}
+  <style>.about { max-width: 46rem; font-size: 1.05rem; }</style>
+</Base>
+<style>
+  .artcol { width: 3.2em; padding-right: 0 !important; }
+  .artcol a { color: var(--fg); }
+</style>

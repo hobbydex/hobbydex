@@ -1,0 +1,36 @@
+---
+import { buildLabel } from '../../../../lib/build';
+import Base from '../../../../layouts/Base.astro';
+import Discontinued from '../../../../components/Discontinued.astro';
+import ReleaseArt from '../../../../components/ReleaseArt.astro';
+import { db, url, brandName, dateKey, dateText, dateDoubt } from '../../../../lib/data';
+import DateDoubt from '../../../../components/DateDoubt.astro';
+import DoubtNote from '../../../../components/DoubtNote.astro';
+export function getStaticPaths() {
+  return [...new Set(db.releases.filter((r) => r.year).map((r) => r.year!))].map((y) => ({ params: { year: String(y) }, props: { year: y } }));
+}
+const { year } = Astro.props;
+// newest first: by the day or month where a source gives it, releases dated only by the year last
+const rs = db.releases.filter((r) => r.year === year)
+  .sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || (a.status === 'discontinued' ? 1 : 0) - (b.status === 'discontinued' ? 1 : 0) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
+const years = [...new Set(db.releases.filter((r) => r.year).map((r) => r.year!))].sort((a, b) => b - a);
+const i = years.indexOf(year), newer = years[i - 1], older = years[i + 1];
+---
+<Base title={`RC releases of ${year}`} description={`${rs.length} RC kit and RTR releases from ${year} in Hobbydex, newest first.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / <a href="/rc/releases/by-year/">by year</a> / {year}</div>
+  <h1>Releases of {year} <span class="muted">({rs.length})</span></h1>
+  <p class="muted" data-pagefind-ignore>{newer && <a href={`/rc/releases/by-year/${newer}/`}>{newer}</a>}{newer && older && ' · '}{older && <a href={`/rc/releases/by-year/${older}/`}>{older}</a>}</p>
+  <table class="releases">
+    <tr><th class="num">Released</th><th>Release</th><th>Brand</th><th class="num">Item no.</th><th>Build</th></tr>
+    {rs.map((r) => { const k = db.kit.get(r.kit); return <tr>
+      <td class="num">{dateText(r)}<DateDoubt reason={dateDoubt(r)} /></td>
+      <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>
+      <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
+      <td class="num" data-label="Item no.">{r.number ?? ''}</td><td data-label="Build">{buildLabel(r.kind)}</td>
+    </tr>; })}
+  </table>
+  <DoubtNote on={rs.some((r) => !!dateDoubt(r))} />
+  <style>
+    @media (max-width: 600px) { table.releases td[data-label]:not(:empty) { display: inline-block; white-space: normal; } }
+  </style>
+</Base>

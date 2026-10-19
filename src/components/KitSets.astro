@@ -1,0 +1,22 @@
+---
+// One collapsed line on a kit page for the per-car sets other makers sell for its cars (Fast Eddy bearing kits,
+// RCScrewZ screw kits): "152 bearing kits from 4 makers for TT-02 cars", opening to the sets grouped by maker
+// and by the car each is listed for (a release of the kit, a car the shop names, or every car of the kit).
+import { db, url, brandName, partLabel, byPartNo, type Part, type Fits } from '../lib/data';
+import Discontinued from './Discontinued.astro';
+interface Props { rows: { part: Part; fit: Fits }[]; kind: string; kitName: string }
+const { rows, kind, kitName } = Astro.props;
+const carOf = (f: Fits) => f.releases?.length ? f.releases.map((r) => db.release.get(r)?.name ?? r).join(', ') : f.car ?? `every ${kitName}`;
+const makers = [...new Set(rows.map((r) => r.part.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));
+const groups = makers.map((m) => {
+  const mine = rows.filter((r) => r.part.brand === m);
+  const cars = [...new Set(mine.map((r) => carOf(r.fit)))].sort((a, b) => (a.startsWith('every ') ? 1 : 0) - (b.startsWith('every ') ? 1 : 0) || a.localeCompare(b));
+  return { m, n: new Set(mine.map((r) => r.part.id)).size, cars: cars.map((c) => ({ c, parts: [...new Map(mine.filter((r) => carOf(r.fit) === c).map((r) => [r.part.id, r.part])).values()].sort(byPartNo) })) };
+});
+const total = new Set(rows.map((r) => r.part.id)).size;
+---
+{total > 0 && <details class="kitsets" data-pagefind-ignore>
+  <summary>{total} {kind}{total > 1 ? 's' : ''} from {makers.length} maker{makers.length > 1 ? 's' : ''} for {kitName} cars</summary>
+  {groups.map((g) => <><h4>{brandName(g.m)} <span class="muted">({g.n})</span></h4>
+    <ul>{g.cars.map(({ c, parts }) => <li>{c}<ul>{parts.map((p) => <li><a href={url.part(p.id)}>{partLabel(p)}</a>{p.number && <span class="muted"> {p.name}</span>}<Discontinued item={p} /></li>)}</ul></li>)}</ul></>)}
+</details>}

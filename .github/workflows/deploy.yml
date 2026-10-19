@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false   # a running deploy always finishes; GitHub keeps only the newest waiting one
 
 jobs:
   build:
@@ -47,6 +47,18 @@ jobs:
         run: npm test
       - name: Type check
         run: npm run check
+      # IndexNow: compare page hashes with the live manifest; adds dist/indexnow-manifest.json.gz
+      - name: IndexNow - list changed pages
+        continue-on-error: true
+        run: node tools/indexnow.mjs plan --dist dist --out indexnow-plan.json
+      - name: IndexNow - keep the list for after the deploy
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: indexnow-plan
+          path: indexnow-plan.json
+          if-no-files-found: ignore
+          retention-days: 7
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
@@ -59,3 +71,20 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+  # tells IndexNow search engines which pages changed; never fails the deploy
+  indexnow:
+    needs: deploy
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: tools/indexnow.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: indexnow-plan
+      - name: Submit changed pages
+        run: node tools/indexnow.mjs submit --plan indexnow-plan.json || true

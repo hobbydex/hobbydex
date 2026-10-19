@@ -7,18 +7,18 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, extname, resolve } from 'node:path';
-import { rankHits } from '../public/search-rank.js';
+import { rankHits, rankedSearch } from '../public/search-rank.js';
 
 const d = (type, title, sub = '', category) => ({ meta: { type, title, sub }, filters: category ? { category: [category] } : {} });
 const order = (text, datas) => rankHits(text, datas).map((i) => datas[i].meta.title);
 
-test('an exact kit name comes first, then longer kit names, then releases, then parts', () => {
+test('an exact platform name comes first, then longer platform names, then releases, then parts', () => {
   const datas = [
     d('release', 'Tamiya Lamborghini Countach 5000S (TT-02)', 'Tamiya · 2026'),
     d('part', '22023 · TT-02 Chassis Cover Set', 'Tamiya', 'Chassis and mounts'),
-    d('kit', 'Tamiya TT-02 TYPE-S', 'Tamiya'),
-    d('kit', 'Tamiya TT-02B', 'Tamiya'),
-    d('kit', 'Tamiya TT-02', 'Tamiya'),
+    d('platform', 'Tamiya TT-02 TYPE-S', 'Tamiya'),
+    d('platform', 'Tamiya TT-02B', 'Tamiya'),
+    d('platform', 'Tamiya TT-02', 'Tamiya'),
   ];
   assert.deepEqual(order('TT-02', datas), [
     'Tamiya TT-02', 'Tamiya TT-02B', 'Tamiya TT-02 TYPE-S',
@@ -36,7 +36,7 @@ test('bodies come before generic parts such as bearing kits', () => {
 
 test('a page that only mentions the words comes after every title match', () => {
   const datas = [
-    d('kit', 'Tamiya XV-01', 'Tamiya'),   // mentions "lancia delta" only in its body list
+    d('platform', 'Tamiya XV-01', 'Tamiya'),   // mentions "lancia delta" only in its body list
     d('part', 'TFE857 · Tamiya Lancia Delta Sealed Bearing Kit', 'Fast Eddy Bearings', 'Bearings and bushings'),
   ];
   assert.deepEqual(order('lancia delta', datas), ['TFE857 · Tamiya Lancia Delta Sealed Bearing Kit', 'Tamiya XV-01']);
@@ -53,7 +53,7 @@ test('a release whose name holds the words comes before parts', () => {
 // ---- the built index ----
 const DIST = resolve('dist');
 const built = existsSync(join(DIST, 'pagefind', 'pagefind.js'));
-const TYPES = new Set(['kit', 'release', 'part', 'spec', 'brand']);
+const TYPES = new Set(['platform', 'release', 'part', 'spec', 'brand']);
 
 let server, search;
 before(async () => {
@@ -69,20 +69,16 @@ before(async () => {
   const pf = await import(join(DIST, 'pagefind', 'pagefind.js'));
   await pf.options({ basePath: `http://127.0.0.1:${server.address().port}/pagefind/` });
   await pf.init();
-  search = async (text) => {
-    const r = await pf.search(text), kits = (await pf.search(text, { filters: { type: 'kit' } })).results.slice(0, 50);
-    const seen = new Set(kits.map((h) => h.id));   // as /search/ does: kits always join the ranked candidates
-    const top = [...kits, ...r.results.filter((h) => !seen.has(h.id)).slice(0, 300)], datas = [];
-    for (let k = 0; k < top.length; k += 50) datas.push(...await Promise.all(top.slice(k, k + 50).map((h) => h.data())));
-    return rankHits(text, datas).map((i) => datas[i]);
-  };
+  // as /search/ does
+  const platforms = JSON.parse(await readFile(join(DIST, 'search-platforms.json'), 'utf8'));
+  search = async (text) => (await rankedSearch(pf, text, platforms)).datas;
 });
 after(() => server && server.close());
 const withIndex = (fn) => fn(search);
 
-test('index: "TT-02" finds the Tamiya TT-02 kit first', { skip: !built && 'no build' }, () => withIndex(async (search) => {
+test('index: "TT-02" finds the Tamiya TT-02 platform first', { skip: !built && 'no build' }, () => withIndex(async (search) => {
   const r = await search('TT-02');
-  assert.equal(r[0].meta.type, 'kit');
+  assert.equal(r[0].meta.type, 'platform');
   assert.equal(r[0].meta.title, 'Tamiya TT-02');
 }));
 
@@ -94,7 +90,7 @@ test('index: a Lancia Delta body ranks above every bearing kit', { skip: !built 
   assert.ok(bearing < 0 || body < bearing, 'the body comes before the bearing kits');
 }));
 
-test('index: only kits, releases, parts, specs and brands are searchable', { skip: !built && 'no build' }, () => withIndex(async (search) => {
+test('index: only platforms, releases, parts, specs and brands are searchable', { skip: !built && 'no build' }, () => withIndex(async (search) => {
   for (const text of ['comic', 'buggy', 'bearing']) {
     const r = await search(text);
     assert.ok(r.length > 0, `${text}: some results`);

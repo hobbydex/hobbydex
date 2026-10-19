@@ -1,17 +1,24 @@
 ---
 // A filterable, sortable table of parts with their category's key spec columns.
 // Ticked rows can be shown side by side.
-import { url, brandName, type Part } from '../lib/data';
+import { db, url, brandName, byPartNo, partLabel, partRest, type Part } from '../lib/data';
+import Discontinued from './Discontinued.astro';
+import HideDiscontinued from './HideDiscontinued.astro';
 import { columns, specOf } from '../lib/categoryColumns';
 import { paintChip } from '../lib/paintSwatch';
 import { colourDot } from '../lib/colourDot';
 interface Props { category: string; parts: Part[]; showBrand?: boolean }
 const { category, parts, showBrand = true } = Astro.props;
-const cols = columns[category] ?? [];
-const short = (p: Part) => (p.name.startsWith(p.number) ? p.name.slice(p.number.length).trim() : p.name === p.number ? '' : p.name);
-const rows = parts.map((p) => { const s = specOf(p); return { p, vals: cols.map((c) => c.get(p, s)) }; })
-  // brand, then part number (natural order: PS-2 before PS-10); a column header click re-sorts
-  .sort((a, b) => brandName(a.p.brand).localeCompare(brandName(b.p.brand)) || a.p.number.localeCompare(b.p.number, undefined, { numeric: true }));
+const all = columns[category] ?? [];
+const isDisc = (p: Part) => p.status === 'discontinued';
+const raw = parts.map((p) => { const s = specOf(p); return { p, vals: all.map((c) => c.get(p, s)) }; });
+// a column none of these parts has a value for is left out (the Radio column on an ESC maker's page)
+const keep = all.map((_, i) => raw.some((r) => r.vals[i] !== undefined));
+const cols = all.filter((_, i) => keep[i]);
+const rows = raw.map(({ p, vals }) => ({ p, vals: vals.filter((_, i) => keep[i]) }))
+  // brand, then current before discontinued, then part number (natural order: PS-2 before PS-10); a column header click re-sorts
+  .sort((a, b) => brandName(a.p.brand).localeCompare(brandName(b.p.brand)) || (isDisc(a.p) ? 1 : 0) - (isDisc(b.p) ? 1 : 0) || byPartNo(a.p, b.p));
+const hasDisc = parts.some(isDisc);
 const brands = [...new Set(parts.map((p) => p.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));
 // a dropdown for each text column with a short list of values (mounting, rim size, vehicle, ...)
 const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only ? [] : [...new Set(rows.map((r) => r.vals[i]).filter((v) => v !== undefined))].sort() as string[] }))
@@ -23,6 +30,7 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
     {showBrand && brands.length > 1 && <select class="brand" aria-label="Brand"><option value="">every brand</option>{brands.map((b) => <option value={b}>{brandName(b)}</option>)}</select>}
     {picks.map(({ c, i, choices }) => <select class="pick" data-col={i} data-key={c.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} aria-label={c.label}><option value="">any {c.label.toLowerCase()}</option>{choices.map((v) => <option>{v}</option>)}</select>)}
     {cols.length > 0 && <label><input type="checkbox" class="known" /> only with specs</label>}
+    {hasDisc && <HideDiscontinued />}
     <button type="button" class="btn cmp" disabled>Compare ticked</button>
     <button type="button" class="btn clear" hidden>Clear ticks</button>
     <span class="muted count"></span>
@@ -31,9 +39,9 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
   <table>
     <thead><tr><th></th><th data-k="text">Part</th>{cols.map((c) => <th data-k={c.num ? 'num' : 'text'} class={`${c.num ? 'num' : ''}${c.field.compare_only ? ' conly' : ''}`}>{c.label}</th>)}</tr></thead>
     <tbody>
-      {rows.map(({ p, vals }) => <tr data-brand={p.brand} data-known={vals.some((v) => v !== undefined) ? '1' : ''}>
-        <td><input type="checkbox" autocomplete="off" aria-label={`Compare ${p.number}`} /></td>
-        <td><a href={url.part(p.id)}>{showBrand && `${brandName(p.brand)} `}{p.number}</a>{short(p) && <span class="muted"> {short(p)}</span>}</td>
+      {rows.map(({ p, vals }) => <tr data-brand={p.brand} data-known={vals.some((v) => v !== undefined) ? '1' : ''} data-discontinued={isDisc(p) ? '' : undefined}>
+        <td><input type="checkbox" autocomplete="off" aria-label={`Compare ${partLabel(p)}`} /></td>
+        <td><a href={url.part(p.id)}>{showBrand && `${brandName(p.brand)} `}{partLabel(p)}</a>{partRest(p) && <span class="muted"> {partRest(p)}</span>}<Discontinued item={p} />{isDisc(p) && (db.replacedBy.get(p.id) ?? []).map((r) => <span class="muted"> replaced by <a href={url.part(r.id)}>{partLabel(r)}</a></span>)}</td>
         {vals.map((v, i) => { const f = cols[i].field.field, paint = p.category === 'paint';
           const sw = f === 'color' && paint ? paintChip(p, 22, 'circle') : undefined;
           // a named colour (not a paint): a dot from the fixed palette
@@ -74,7 +82,8 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
     const filter = () => {
       remember();
       let shown = 0;
-      for (const tr of body.rows) { tr.hidden = !passes(tr, null); if (!tr.hidden) shown++; }
+      const off = document.documentElement.classList.contains('hide-discontinued');
+      for (const tr of body.rows) { tr.hidden = !passes(tr, null); if (!tr.hidden && !(off && tr.dataset.discontinued !== undefined)) shown++; }
       count.textContent = `${shown} of ${body.rows.length}`;
       // cascade: a brushed motor's size filter offers brushed sizes only (the chosen value always stays)
       for (const s of [brand, ...picks]) {
@@ -84,6 +93,7 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
       }
     };
     for (const el of [q, brand, ...picks, known]) el?.addEventListener(el === q ? 'input' : 'change', filter);
+    window.addEventListener('discontinued-toggle', filter);
     filter();
     table.tHead!.querySelectorAll<HTMLTableCellElement>('th[data-k]').forEach((th) => {
       let dir = -1; th.style.cursor = 'pointer';

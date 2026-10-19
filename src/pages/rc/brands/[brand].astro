@@ -1,15 +1,24 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import { db, key, url } from '../../../lib/data';
+import { db, key, url, countryName, dateText, sourceHref, yearDoubt } from '../../../lib/data';
+import DateDoubt from '../../../components/DateDoubt.astro';
+import Discontinued from '../../../components/Discontinued.astro';
+import DoubtNote from '../../../components/DoubtNote.astro';
 import { catName } from '../../../lib/categories';
 import Icon from '../../../components/Icon.astro';
+import CategoryBoxes from '../../../components/CategoryBoxes.astro';
+import ReleaseArt from '../../../components/ReleaseArt.astro';
 import { kitTypeIcon, kitTypeOne, kitTypeLabel, kitTypeOrder } from '../../../lib/kitTypes';
 import { byCategory, categories } from '../../../lib/categoryIndex';
+import { driveLabel } from '../../../lib/drive';
 export function getStaticPaths() {
   return db.brands.map((b) => ({ params: { brand: key(b.id)[0] }, props: { brand: b } }));
 }
 const { brand } = Astro.props;
 const kits = db.kitsByBrand.get(brand.id) ?? [];
+// releases on a placeholder kit (no chassis named by a source): listed by name, not as a platform
+const chassisless = db.releases.filter((r) => r.brand === brand.id && db.kit.get(r.kit)?.placeholder)
+  .sort((a, b) => (a.number ?? a.name).localeCompare(b.number ?? b.name, undefined, { numeric: true }) || a.name.localeCompare(b.name, undefined, { numeric: true }));
 const parts = db.partsByBrand.get(brand.id) ?? [];
 // many kits: one table per kit type, with the years the kit's releases span
 const MANY = 12;
@@ -22,29 +31,48 @@ const kitGroups = kitTypeOrder.concat([...new Set(kits.map((k) => k.category ?? 
   .map((t) => [t, kitRows.filter((r) => (r.k.category ?? 'car') === t).sort((a, b) => a.k.name.localeCompare(b.k.name, undefined, { numeric: true }))] as const)
   .filter(([, rs]) => rs.length > 0);
 const years = (r: { from?: number; to?: number }) => (r.from === undefined ? '' : r.from === r.to ? `${r.from}` : `${r.from}-${r.to}`);
+// the company that owns the brand, and its other brands
+const owner = brand.owner ? db.company.get(brand.owner) : undefined;
+// owner_source: the page that states it, or a document of the brand (linked by the maker page that lists it)
+const ownerDoc = brand.owner_source?.startsWith('doc/') ? db.doc.get(brand.owner_source) : undefined;
+const ownerHref = ownerDoc ? ownerDoc.page ?? ownerDoc.url : brand.owner_source;
+const sisters = owner ? (db.brandsByOwner.get(owner.id) ?? []).filter((b) => b.id !== brand.id).sort((a, b) => a.name.localeCompare(b.name)) : [];
+// launched and ended: the dates as the status line words them (months when the source gives them), each linked to its source
+const launchedText = brand.launched ? dateText({ released: brand.launched }) : undefined;
+const endedText = brand.ended ? dateText({ released: brand.ended }) : undefined;
+// the footnote only when a marked date is on the page (launched shows for an active brand, and for a gone one with an end)
+const dateDoubtful = !!((brand.status === 'active' && launchedText && brand.launched_doubt) || (brand.status === 'gone' && endedText && ((launchedText && brand.launched_doubt) || brand.ended_doubt)));
 const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length ?? 0] as const).filter(([, n]) => n > 0);
 ---
-<Base title={brand.name} description={`${brand.name}: kits and parts in Hobbydex.`} kind="brand">
+<Base title={brand.name} description={`${brand.name}: platforms and parts in Hobbydex.`} kind="brand">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / {brand.name}</div>
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brand.name}</h1>
   <dl class="facts">
     {brand.legal_name && <><dt>Legal name</dt><dd>{brand.legal_name}</dd></>}
-    {brand.country && <><dt>Country</dt><dd>{brand.country}</dd></>}
+    {owner && <><dt>Owned by</dt><dd>{owner.brand && owner.brand !== brand.id ? <a href={url.brand(owner.brand)}>{owner.name}</a> : owner.name}{owner.country && <span class="muted"> ({countryName(owner.country)})</span>}{brand.owner_since && <span class="muted">, since {brand.owner_since}</span>} {ownerHref && <a class="muted" href={ownerHref} rel="nofollow" title={ownerDoc?.title}>source</a>}</dd></>}
+    {sisters.length > 0 && <><dt>Sister brands</dt><dd>{sisters.map((b, i) => <>{i > 0 && ', '}<a href={url.brand(b.id)}>{b.name}</a></>)}</dd></>}
+    {brand.country && <><dt>Country</dt><dd>{countryName(brand.country)}</dd></>}
     {brand.website && <><dt>Website</dt><dd><a href={brand.website} rel="nofollow">{brand.website}</a></dd></>}
-    <dt>Status</dt><dd>{brand.status}</dd>
+    <dt>Status</dt><dd>
+      {brand.status === 'active' && <>Active{launchedText && <> since {sourceHref(brand.launched_source) ? <a href={sourceHref(brand.launched_source)} rel="nofollow">{launchedText}</a> : launchedText}<DateDoubt reason={brand.launched_doubt} /></>}</>}
+      {brand.status === 'dormant' && 'Inactive: no new products'}
+      {brand.status === 'gone' && <>Defunct{endedText && <> ({launchedText && <>{sourceHref(brand.launched_source) ? <a href={sourceHref(brand.launched_source)} rel="nofollow">{launchedText}</a> : launchedText}<DateDoubt reason={brand.launched_doubt} />&ndash;</>}{!launchedText && 'until '}{sourceHref(brand.ended_source) ? <a href={sourceHref(brand.ended_source)} rel="nofollow">{endedText}</a> : endedText}<DateDoubt reason={brand.ended_doubt} />)</>}</>}
+      {!['active', 'dormant', 'gone'].includes(brand.status) && brand.status}
+    </dd>
   </dl>
+  <DoubtNote on={dateDoubtful} />
   {brand.notes && <p class="muted">{brand.notes}</p>}
-  {kits.length > MANY && <><h2>Kits <span class="muted">({kits.length})</span></h2>
+  {kits.length > MANY && <><h2>Platforms <span class="muted">({kits.length})</span></h2>
   <div class="kitfilter" data-pagefind-ignore>
-    <input type="search" class="search-box" placeholder={`Filter ${brand.name} kits by name, scale or drive`} aria-label="Filter kits" autocomplete="off" />
+    <input type="search" class="search-box" placeholder={`Filter ${brand.name} platforms by name, scale or drive`} aria-label="Filter platforms" autocomplete="off" />
     <p class="muted">By type: {kitGroups.map(([t, rs], i) => <>{i > 0 && ' · '}<a href={`#type-${t}`}><Icon name={kitTypeIcon(t)} /> {kitTypeLabel[t] ?? t}</a> <span class="muted">{rs.length}</span></>)}</p>
   </div>
   {kitGroups.map(([t, rs]) => <section class="kitgroup" id={`type-${t}`}>
-    <h3><Icon name={kitTypeIcon(t)} size="1.5rem" /> <a href={`/rc/kits/types/${t}/`}>{kitTypeLabel[t] ?? t}</a> <span class="muted">({rs.length})</span></h3>
-    <table class="kits">
-      <thead><tr><th>Kit</th><th>Scale</th><th>Drive</th><th>Power</th><th class="num">Releases</th><th>Years</th></tr></thead>
-      <tbody>{rs.map((r) => <tr data-q={[r.k.name, r.k.scale, r.k.drive, r.k.power, kitTypeOne[t] ?? t].filter(Boolean).join(' ').toLowerCase()}>
-        <td><a href={url.kit(r.k.id)}>{r.k.name}</a></td><td>{r.k.scale}</td><td>{r.k.drive}</td><td>{r.k.power}</td><td class="num">{r.n || ''}</td><td>{years(r)}</td></tr>)}</tbody>
+    <h3><Icon name={kitTypeIcon(t)} size="1.5rem" /> <a href={`/rc/platforms/types/${t}/`}>{kitTypeLabel[t] ?? t}</a> <span class="muted">({rs.length})</span></h3>
+    <table class="releases">
+      <thead><tr><th>Platform</th><th>Scale</th><th>Drive</th><th>Power</th><th class="num">Releases</th><th>Years</th></tr></thead>
+      <tbody>{rs.map((r) => <tr data-q={[r.k.name, r.k.scale, r.k.drive, driveLabel(r.k.drive), r.k.power, kitTypeOne[t] ?? t].filter(Boolean).join(' ').toLowerCase()}>
+        <td class="name">{r.k.art ? <ReleaseArt id={r.k.id} category={r.k.category} kitArt={r.k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(r.k.category)} label={kitTypeOne[r.k.category ?? 'car'] ?? r.k.category} size="1.3em" />} <a href={url.platform(r.k.id)}>{r.k.name}</a></td><td data-label="Scale">{r.k.scale}</td><td data-label="Drive">{driveLabel(r.k.drive)}</td><td data-label="Power">{r.k.power}</td><td class="num" data-label="Releases">{r.n || ''}</td><td data-label="Years">{years(r)}</td></tr>)}</tbody>
     </table>
   </section>)}
   <script>
@@ -60,10 +88,10 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
       });
     }
   </script></>}
-  {kits.length > 0 && kits.length <= MANY && <><h2>Kits</h2>
-  <ul class="cards">{kits.map((k) => <li class="kitcard"><a href={`/rc/kits/types/${k.category || 'car'}/`} title={kitTypeOne[k.category ?? 'car'] ?? k.category}><Icon name={kitTypeIcon(k.category)} size="2rem" /></a><span><a href={url.kit(k.id)}><b>{k.name}</b></a><br /><span class="muted">{[k.scale, kitTypeOne[k.category ?? 'car'] ?? k.category, k.drive, k.power].filter(Boolean).join(' · ')}</span></span></li>)}</ul></>}
+  {kits.length > 0 && kits.length <= MANY && <><h2>Platforms</h2>
+  <ul class="cards">{kits.map((k) => <li class="kitcard"><a href={`/rc/platforms/types/${k.category || 'car'}/`} title={kitTypeOne[k.category ?? 'car'] ?? k.category}>{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="2rem" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="2rem" />}</a><span><a href={url.platform(k.id)}><b>{k.name}</b></a><br /><span class="muted">{[k.scale, kitTypeOne[k.category ?? 'car'] ?? k.category, driveLabel(k.drive), k.power].filter(Boolean).join(' · ')}</span></span></li>)}</ul></>}
   <h2>Parts <span class="muted">({parts.length})</span></h2>
-  {cats.length > 0 && <p data-pagefind-ignore class="bycat">By category: {cats.map(([c, n], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${c}/${key(brand.id)[0]}/`}><Icon name={c} /> {catName(c)}</a> <span class="muted">{n}</span></>)}</p>}
+  {cats.length > 0 && <CategoryBoxes label={`${brand.name} parts by category`} items={cats.map(([c, n]) => ({ category: c, n, href: `/rc/categories/${c}/${key(brand.id)[0]}/`, title: `${n} ${brand.name} ${catName(c).toLowerCase()} part${n > 1 ? 's' : ''}` }))} />}
   {parts.length > 0 && <div class="brandsearch" data-pagefind-ignore data-src={`/rc/brands/${key(brand.id)[0]}/parts.json`} data-base={`/rc/parts/${key(brand.id)[0]}/`} data-cats={JSON.stringify(Object.fromEntries(cats.map(([c]) => [c, catName(c)])))}>
     <input type="search" class="search-box" placeholder={`Find a ${brand.name} part by number or name`} aria-label="Find a part" autocomplete="off" />
     <p class="muted status"></p>
@@ -71,10 +99,11 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   </div>}
   <script>
     const MAX = 30;
+    const DISC = '<span class="disc" title="Discontinued"><svg class="icon" aria-hidden="true"><use href="/icons.svg#discontinued"/></svg><span class="sr-only"> discontinued</span></span>';
     for (const box of document.querySelectorAll<HTMLElement>('.brandsearch')) {
       const input = box.querySelector('input')!, table = box.querySelector('table')!, list = table.tBodies[0], status = box.querySelector<HTMLElement>('.status')!;
       const cats: Record<string, string> = JSON.parse(box.dataset.cats ?? '{}');
-      let rows: [string, string, string][] | null = null, loading: Promise<void> | null = null;
+      let rows: [string, string, string, number?][] | null = null, loading: Promise<void> | null = null;
       const load = () => (loading ??= fetch(box.dataset.src!).then((r) => r.json()).then((d) => { rows = d; }));
       const href = (n: string) => box.dataset.base + n.split('/').map(encodeURIComponent).join('/') + '/';
       const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -87,9 +116,9 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
         const hits = rows!.filter(([n, name]) => { const t = `${n} ${name}`.toLowerCase(); return terms.every((w) => t.includes(w)); })
           .sort((a, b) => Number(!a[0].toLowerCase().startsWith(terms[0])) - Number(!b[0].toLowerCase().startsWith(terms[0])) || a[0].localeCompare(b[0], undefined, { numeric: true }));
         status.textContent = hits.length > MAX ? `${hits.length} matches, showing the first ${MAX}: keep typing to narrow down.` : `${hits.length} match${hits.length === 1 ? '' : 'es'}.`;
-        for (const [n, name, cat] of hits.slice(0, MAX)) {
+        for (const [n, name, cat, disc] of hits.slice(0, MAX)) {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td class="num"><a href="${esc(href(n))}">${esc(n)}</a></td><td>${esc(name)}</td><td class="muted">`
+          tr.innerHTML = `<td class="num"><a href="${esc(href(n))}">${esc(n)}</a></td><td>${esc(name)}${disc ? DISC : ''}</td><td class="muted">`
             + (cat ? `<svg class="icon" aria-hidden="true"><use href="/icons.svg#${esc(cat)}"/></svg> ${esc(cats[cat] ?? cat)}` : '') + '</td>';
           list.appendChild(tr);
         }
@@ -100,4 +129,19 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const a = list.querySelector('a'); if (a) location.href = a.href; } });
     }
   </script>
+  {chassisless.length > 0 && <details class="chassisless">
+    <summary>Chassis not yet known <span class="muted">({chassisless.length})</span></summary>
+    <p class="muted">No source names the chassis of these releases yet; they are not platforms.</p>
+    <ul>{chassisless.map((r) => <li><a href={url.release(r.id)}>{r.number ?? r.name}</a>{r.number && r.name !== r.number && <span class="muted"> {r.name}</span>}{r.year && <span class="muted"> {r.year}</span>}<DateDoubt reason={yearDoubt(r)} /><Discontinued item={r} /></li>)}</ul>
+  </details>}
 </Base>
+
+<style>
+  details.chassisless { margin: 1.5rem 0 1rem; }
+  details.chassisless > summary { cursor: pointer; font-size: 1.25rem; font-weight: 600; padding: 0.4rem 0; border-bottom: 1px solid var(--border-muted); }
+  details.chassisless > summary .muted { font-weight: 400; }
+  details.chassisless > p { margin: 0.6rem 0 0.4rem; }
+  details.chassisless ul { list-style: none; padding: 0; margin: 0.5rem 0 0; columns: 13rem; column-gap: 1.5rem; }
+  details.chassisless li { break-inside: avoid; padding: 0.1rem 0; }
+  @media (max-width: 40em) { details.chassisless ul { columns: 1; } }
+</style>

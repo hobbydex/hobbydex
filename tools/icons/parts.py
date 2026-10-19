@@ -81,6 +81,10 @@ S["tool"] = "M15.2 2.3A5.3 5.3 0 0 0 9.6 9.6L2.8 16.4A2.4 2.4 0 0 0 6.2 19.8L13 
 S["theme-auto"] = "M12 2.5A9.5 9.5 0 1 0 12 21.5A9.5 9.5 0 1 0 12 2.5ZM12 4.5A7.5 7.5 0 0 1 12 19.5Z"
 S["theme-light"] = circ(12, 12, 4.8) + "".join(rot(rrect(11, 0.8, 2, 4, 1), 45*i)[0] for i in range(1))
 S["theme-dark"] = "M20.5 14.3A8.8 8.8 0 0 1 9.7 3.5A8.8 8.8 0 1 0 20.5 14.3Z"
+# UI: a copy button (two sheets, the front one a frame) and its "copied" state
+S["copy"] = "M5 2.5h9.5a2.5 2.5 0 0 1 2.5 2.5v1.5h-2V5H5v10h1.5v2H5a2.5 2.5 0 0 1-2.5-2.5V5A2.5 2.5 0 0 1 5 2.5Z" + rrect(8, 8, 13.5, 13.5, 2.5) + rrect(10, 10, 9.5, 9.5, 1)
+S["check"] = poly([(3.2, 12.8), (5.4, 10.6), (9.4, 14.6), (18.6, 5.4), (20.8, 7.6), (9.4, 19.0)])
+S["barcode"] = "".join(rect(x, 4, w, 17.5 if g else 15) for x, w, g in [(2, 1.5, True), (4.5, 1, False), (6.5, 2, False), (9.5, 1, False), (11.5, 1.5, True), (14, 1, False), (16, 2, False), (19, 1, False), (21, 1.5, True)])   # EAN-like: longer guard bars
 
 rays = "".join(f'<rect x="11" y="0.8" width="2" height="4" rx="1" transform="rotate({45*i} 12 12)"/>' for i in range(8))
 out = ['<svg xmlns="http://www.w3.org/2000/svg">\n<!-- Hobbydex icons: 24x24 filled silhouettes in currentColor (follow the light and dark themes).\n     Used as <svg class="icon"><use href="/icons.svg#id"/></svg>. Generated; holes use fill-rule evenodd. -->']
