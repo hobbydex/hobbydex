@@ -16,6 +16,7 @@ import DoubtNote from '../../../../components/DoubtNote.astro';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import WebSearch from '../../../../components/WebSearch.astro';
+import Videos from '../../../../components/Videos.astro';
 import FanLinks from '../../../../components/FanLinks.astro';
 import { catName } from '../../../../lib/categories';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
@@ -70,6 +71,8 @@ const byCat = <T,>(rows: T[], cat: (r: T) => string | undefined) => [...new Set(
   .sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))).map((g) => ({ g, rows: rows.filter((r) => (cat(r) ?? '') === g) }));
 const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => byPartNo(a.p, b.p));
 const conversions = conversionsForKit(kit.id);
+// the maker's videos of the whole kit, then those of its releases
+const videos = [...new Set([...(db.videosByKit.get(kit.id) ?? []), ...releases.flatMap((r) => db.videosByRelease.get(r.id) ?? [])])];
 // parts listed by dealers for a kit that shares this platform (same_platform_as, either direction): the parts whose fits
 // name that kit as a whole or one of its releases, minus those already listed above as fitting this kit
 const listedHere = new Set(allFits.map((x) => x.part.id));
@@ -159,6 +162,7 @@ const sources = allDocs.filter((d) => d.kind === 'product_page');
         <span class="muted">{rels.length === releases.length ? (releases.length > 1 ? 'Every release' : 'In the box') : rels.map((r, i) => <>{i > 0 && ', '}<a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></>)}</span></p>
     </div>)}
     <p class="muted">Spur/pinion ratio of the gears in the box. The transmission's internal ratio is not in our data, so this is not the final drive ratio.</p></section>}
+  <Videos videos={videos} />
   {pair.length > 1 && <p><a href={`/rc/compare/?a=${encodeURIComponent(pair[0].id)}&b=${encodeURIComponent(pair[1].id)}`}>Compare the last two releases</a> <span class="muted">or any two releases on the compare page</span></p>}
   {borrowedUnique.length > 0 && <section data-pagefind-ignore>
     <h2>Parts, from the interchangeable rebrand <span class="muted">({borrowedUnique.length})</span></h2>

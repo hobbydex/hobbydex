@@ -20,7 +20,7 @@ export type MountHoles = { thread: string; count?: number; circle_mm: number }; 
 export type Part = { id: string; status?: string; depicts?: Depicts; toml_path?: string; gtin?: string; former_ids?: string[]; brand: string; number?: string; numbers?: string[]; name: string; category?: string; art?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string | string[]; paint_type?: string; thread_type?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; released_doubt?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; sensored?: boolean; mount_holes?: MountHoles[]; motor_can_mm?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; radio_unit?: 'transmitter' | 'receiver' | 'set'; torque_kgcm?: number; speed_s?: number; bearings?: number; bearing_kind?: 'ball' | 'bushing'; dead_band_us?: number; frequency_hz?: number | [number, number]; voltage?: number; gear_material?: string; motor?: string; range?: string; displacement_cc?: number; engine_class?: string; stroke_mm?: number; output_hp?: number; output_rpm?: number; rpm_range?: number[]; fuel?: string };
 export type Includes = { part?: string; spec?: string; qty?: number; source?: string; notes?: string };
 export type Spec = { id: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
-export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; page?: string; releases?: string[] };
+export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; page?: string; releases?: string[]; kits?: string[]; parts?: string[]; channel?: string; duration_s?: number };
 export type KeyField = { field: string; label: string; from: 'part' | 'spec'; unit?: string; format?: string; compare_only?: boolean };
 export type Standard = { id: string; code: string; title: string; url?: string; replaced_by?: string; notes?: string };
 export type Category = { id: string; name: string; summary?: string; description?: string; spec_type?: string; key_fields?: KeyField[]; terms?: { term: string; text: string }[] };
@@ -104,6 +104,16 @@ export function fitsForRelease(kitId: string, releaseId: string, keep: (p: Part)
   return { here: [...here.values()], other: [...other.values()] };
 }
 
+// the makers' own videos (documents of kind video) by what they show: a release, a whole kit, a part; newest first
+const videos = raw.documents.filter((d) => d.kind === 'video');
+const videosBy = (f: (d: Doc) => string[] | undefined) => {
+  const m = new Map<string, Doc[]>();
+  for (const d of videos) for (const x of f(d) ?? []) { if (!m.has(x)) m.set(x, []); m.get(x)!.push(d); }
+  for (const ds of m.values()) ds.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || a.title.localeCompare(b.title));
+  return m;
+};
+const videosByRelease = videosBy((d) => d.releases), videosByKit = videosBy((d) => d.kits), videosByPart = videosBy((d) => d.parts);
+
 const fitsByKit = new Map<string, { part: Part; fit: Fits }[]>();
 for (const p of raw.parts) for (const f of p.fits ?? []) {
   if (!fitsByKit.has(f.kit)) fitsByKit.set(f.kit, []);
@@ -148,6 +158,9 @@ export const db = {
   relatedTo,
   setsBySpec,
   doc: byId(raw.documents),
+  videosByRelease,
+  videosByKit,
+  videosByPart,
   kitsByBrand: group(raw.kits.filter((k) => !k.placeholder), (k) => k.brand),
   releasesByKit: group(raw.releases, (r) => r.kit),
   releasesBySeries: group(raw.releases.filter((r) => r.series), (r) => `${r.brand}|${r.series}`),
