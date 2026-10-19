@@ -2,6 +2,8 @@
 import Standards from '../../../../components/Standards.astro';
 import { shownNote, isSourceNote } from '../../../../lib/notes';
 import SourceNote from '../../../../components/SourceNote.astro';
+import DateDoubt from '../../../../components/DateDoubt.astro';
+import DoubtNote from '../../../../components/DoubtNote.astro';
 import { gtinLabel } from '../../../../lib/gtin';
 import WebSearch from '../../../../components/WebSearch.astro';
 import FanLinks from '../../../../components/FanLinks.astro';
@@ -9,7 +11,7 @@ import CopyButton from '../../../../components/CopyButton.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
-import { db, key, url, brandName, partLabel, yearText, byReleaseDate, dateText, docPage, dateSource, heatsinksByCan, canDiameter, depictsText, type Fits } from '../../../../lib/data';
+import { db, key, url, brandName, partLabel, yearText, byReleaseDate, dateText, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, depictsText, type Fits , yearDoubt } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -86,7 +88,7 @@ const motorCan = part.category === 'motor' ? canDiameter(part) : undefined;
 const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
 ---
 <Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a> / {partLabel(part)}</div>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
   {part.category && <span hidden data-pagefind-filter={`category:${catName(part.category)}`} />}
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}<Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
   {(part as { name_source?: string }).name_source === 'ocr' && <p class="muted ocrname" data-pagefind-ignore>This name was read by OCR from a scanned manual and is not checked yet; it may contain reading errors.</p>}
@@ -97,7 +99,7 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
     {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <> <span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span></dd></>}
     {(part.links ?? []).filter((l) => l.kind !== 'fan-site').length > 0 && <><dt>Product page</dt><dd>{(part.links ?? []).filter((l) => l.kind !== 'fan-site').map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
-    {part.released && <><dt>Released</dt><dd>{dateText(part)}{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
+    {part.released && <><dt>Released</dt><dd>{dateText(part)}<DateDoubt reason={dateDoubt(part)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{partLabel(replaces)}</a> {replaces.number && replaces.name}<Discontinued item={replaces} /></dd></>}
     {rebrandOf.length > 0 && <><dt>Rebrand of</dt><dd>{rebrandOf.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
     {relGroups.map((g) => <><dt>{g.label}</dt><dd>{g.parts.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>)}
@@ -141,6 +143,7 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
+  <DoubtNote on={!!dateDoubt(part)} />
   <FanLinks links={part.links} />
   {drawing && <figure class="drawing" data-pagefind-ignore>
     <Fragment set:html={drawing.svg} />
@@ -200,8 +203,9 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
   {uses.length === 0 ? <p class="muted">No release lists this part yet.</p> :
   <table>
     <tr><th class="num">Year</th><th>Release</th><th>Role</th></tr>
-    {uses.map((u) => <tr><td class="num">{yearText(u.release)}</td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a><Discontinued item={u.release} /></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
-  </table>}
+    {uses.map((u) => <tr><td class="num">{yearText(u.release)}<DateDoubt reason={yearDoubt(u.release)} /></td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a><Discontinued item={u.release} /></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
+  </table>
+  <DoubtNote on={uses.some((u) => !!yearDoubt(u.release))} />}
   <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p>
   <DataLink path={part.toml_path} id={part.id} />
 </Base>

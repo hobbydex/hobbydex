@@ -8,7 +8,9 @@ import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
-import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit , yearDoubt } from '../../../../lib/data';
+import DateDoubt from '../../../../components/DateDoubt.astro';
+import DoubtNote from '../../../../components/DoubtNote.astro';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import WebSearch from '../../../../components/WebSearch.astro';
@@ -94,9 +96,10 @@ const conversions = conversionsForKit(kit.id);
       <table class="releases">
         <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
         {rows.map((r) => <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
-          <td class="num" data-label="Year">{yearText(r)}</td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status === 'discontinued' ? '' : r.status}</td>}
+          <td class="num" data-label="Year">{yearText(r)}<DateDoubt reason={yearDoubt(r)} /></td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status === 'discontinued' ? '' : r.status}</td>}
         </tr>)}
-      </table></>;
+      </table>
+  <DoubtNote on={releases.some((r) => !!yearDoubt(r))} /></>;
   })()}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
     <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a><Discontinued item={c} />{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
