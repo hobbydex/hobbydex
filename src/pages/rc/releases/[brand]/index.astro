@@ -14,7 +14,7 @@ const { brand } = Astro.props as { brand: string };
 const releases = db.releases.filter((r) => r.brand === brand)
   .sort((a, b) => (yearOf(b) || -1) - (yearOf(a) || -1) || (a.status === 'discontinued' ? 1 : 0) - (b.status === 'discontinued' ? 1 : 0) || a.name.localeCompare(b.name));
 const hasDisc = releases.some((r) => r.status === 'discontinued');
-const kitName = (id: string) => db.kit.get(id)?.name ?? '';
+const kitName = (id: string) => (db.kit.get(id)?.placeholder ? 'Chassis not yet known' : db.kit.get(id)?.name ?? '');
 ---
 <Base title={`${brandName(brand)} releases`} description={`Every ${brandName(brand)} kit and RTR release in Hobbydex, newest first.`}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / {brandName(brand)}</div>
@@ -24,7 +24,7 @@ const kitName = (id: string) => db.kit.get(id)?.name ?? '';
   <table class="sortable">
     <thead><tr><th class="num">Year</th><th>Release</th><th>Platform</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr></thead>
     <tbody>{releases.map((r) => <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
-      <td class="num">{yearText(r)}<DateDoubt reason={yearDoubt(r)} /></td><td><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td><a href={url.platform(r.kit)}>{kitName(r.kit)}</a></td>
+      <td class="num">{yearText(r)}<DateDoubt reason={yearDoubt(r)} /></td><td><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td>{db.kit.get(r.kit)?.placeholder ? kitName(r.kit) : <a href={url.platform(r.kit)}>{kitName(r.kit)}</a>}</td>
       <td class="num">{r.number ?? ''}</td><td>{buildLabel(r.kind)}</td><td class="num">{r.contains?.length ?? 0}</td>
     </tr>)}</tbody>
   </table>
