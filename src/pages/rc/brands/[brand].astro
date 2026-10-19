@@ -5,6 +5,7 @@ import DateDoubt from '../../../components/DateDoubt.astro';
 import DoubtNote from '../../../components/DoubtNote.astro';
 import { catName } from '../../../lib/categories';
 import Icon from '../../../components/Icon.astro';
+import CategoryBoxes from '../../../components/CategoryBoxes.astro';
 import ReleaseArt from '../../../components/ReleaseArt.astro';
 import { kitTypeIcon, kitTypeOne, kitTypeLabel, kitTypeOrder } from '../../../lib/kitTypes';
 import { byCategory, categories } from '../../../lib/categoryIndex';
@@ -92,7 +93,7 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   {kits.length > 0 && kits.length <= MANY && <><h2>Platforms</h2>
   <ul class="cards">{kits.map((k) => <li class="kitcard"><a href={`/rc/platforms/types/${k.category || 'car'}/`} title={kitTypeOne[k.category ?? 'car'] ?? k.category}>{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="2rem" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="2rem" />}</a><span><a href={url.platform(k.id)}><b>{k.name}</b></a><br /><span class="muted">{[k.scale, kitTypeOne[k.category ?? 'car'] ?? k.category, driveLabel(k.drive), k.power].filter(Boolean).join(' · ')}</span></span></li>)}</ul></>}
   <h2>Parts <span class="muted">({parts.length})</span></h2>
-  {cats.length > 0 && <p data-pagefind-ignore class="bycat">By category: {cats.map(([c, n], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${c}/${key(brand.id)[0]}/`}><Icon name={c} /> {catName(c)}</a> <span class="muted">{n}</span></>)}</p>}
+  {cats.length > 0 && <CategoryBoxes label={`${brand.name} parts by category`} items={cats.map(([c, n]) => ({ category: c, n, href: `/rc/categories/${c}/${key(brand.id)[0]}/`, title: `${n} ${brand.name} ${catName(c).toLowerCase()} part${n > 1 ? 's' : ''}` }))} />}
   {parts.length > 0 && <div class="brandsearch" data-pagefind-ignore data-src={`/rc/brands/${key(brand.id)[0]}/parts.json`} data-base={`/rc/parts/${key(brand.id)[0]}/`} data-cats={JSON.stringify(Object.fromEntries(cats.map(([c]) => [c, catName(c)])))}>
     <input type="search" class="search-box" placeholder={`Find a ${brand.name} part by number or name`} aria-label="Find a part" autocomplete="off" />
     <p class="muted status"></p>
