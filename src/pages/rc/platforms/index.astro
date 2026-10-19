@@ -46,7 +46,7 @@ const cats = [...new Set([...byCat.keys(), ...onOther.keys()])].sort((a, b) => (
         <table>
           <tr><th>Scale</th><th>Brand</th><th>Release</th><th>Platform</th></tr>
           {[...onOther.get(c)!].sort((a, b) => brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name)).map((r) => { const k = db.kit.get(r.kit); return <tr>
-            <td>{k?.scale ?? ''}</td><td><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td>{k && <a href={url.platform(k.id)}>{k.name}</a>}</td>
+            <td>{r.scale ?? k?.scale ?? ''}</td><td><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td>{k && <a href={url.platform(k.id)}>{k.name}</a>}</td>
           </tr>; })}
         </table>
       </>}
