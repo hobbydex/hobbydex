@@ -1,0 +1,23 @@
+---
+// A grid of category boxes: icon, count and name, each a link. The release page uses it for what is in the box,
+// the brand page for its parts by category.
+import Icon from './Icon.astro';
+import { catName } from '../lib/categories';
+interface Props { label: string; items: { category: string; n: number; href: string; title?: string }[] }
+const { label, items } = Astro.props;
+---
+<nav class="boxgrid" aria-label={label} data-pagefind-ignore>
+  <slot />
+  <ul>{items.map(({ category: g, n, href, title }) => <li><a href={href} title={title}>{g ? <Icon name={g} size="1.6rem" /> : <span class="noicon" />}<b>{n}</b><span>{g ? catName(g) : 'Other'}</span></a></li>)}</ul>
+</nav>
+<style>
+  .boxgrid ul { list-style: none; padding: 0; margin: 0.75rem 0 1rem; display: grid; gap: 0.4rem; grid-template-columns: repeat(auto-fill, minmax(6.75rem, 1fr)); }
+  .boxgrid a { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.1rem 0.4rem; height: 100%; padding: 0.45rem 0.4rem; text-align: center;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); }
+  .boxgrid a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+  .boxgrid .noicon { display: inline-block; }
+  .boxgrid a :global(.icon), .boxgrid .noicon { color: var(--muted); width: 1.6rem; height: 1.6rem; }
+  .boxgrid a:hover :global(.icon) { color: var(--accent); }
+  .boxgrid b { font-size: 1.1rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .boxgrid span:last-child { flex-basis: 100%; font-size: 0.75rem; line-height: 1.25; color: var(--muted); hyphens: auto; }
+</style>

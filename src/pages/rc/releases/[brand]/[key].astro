@@ -15,6 +15,7 @@ import DoubtNote from '../../../../components/DoubtNote.astro';
 import { db, key, url, brandName, byPartNo, partLabel, partRest, partNo, yearOf, yearText, dateText, dateDoubt, brandGone, docPage, dateSource, requiredName, depictsText, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
+import CategoryBoxes from '../../../../components/CategoryBoxes.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 import { driveLabel } from '../../../../lib/drive';
@@ -164,10 +165,9 @@ const conversions = conversionsForRelease(release);
     <OtherCarSets items={otherScrew} kitName={kit.name} /></section>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
-  {boxCats.length > 1 && <nav class="boxgrid" aria-label="In the box by category" data-pagefind-ignore>
+  {boxCats.length > 1 && <CategoryBoxes label="In the box by category" items={boxCats.map(({ g, n }) => ({ category: g, n, href: `#kit-${g || 'other'}`, title: `${n} ${g ? catName(g) : 'other'} part number${n > 1 ? 's' : ''}` }))}>
     <h2>In the box <span class="muted">({boxRows.length} part numbers)</span></h2>
-    <ul>{boxCats.map(({ g, n }) => <li><a href={`#kit-${g || 'other'}`} title={`${n} ${g ? catName(g) : 'other'} part number${n > 1 ? 's' : ''}`}>{g ? <Icon name={g} size="1.6rem" /> : <span class="noicon" />}<b>{n}</b><span>{g ? catName(g) : 'Other'}</span></a></li>)}</ul>
-  </nav>}
+  </CategoryBoxes>}
   {(cats.length > 1 || hasStep) && <p data-pagefind-ignore>{cats.length > 1 && <label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label>}{hasStep && <label class="steptoggle"><input type="checkbox" id="showsteps" /> Build steps</label>}</p>}
   {(() => { const shown = sections.map(([role, label]) => ({ role, label, rows: section(role) })).filter((x) => x.rows.length > 0); return shown.length > 0 && <div data-pagefind-ignore>
     {shown.length > 1 && <div class="tabs" role="tablist" data-pagefind-ignore>{shown.map((x, i) => <button type="button" role="tab" class="tab" data-tab={x.role} aria-selected={i === 0 ? 'true' : 'false'}>{({ kit: 'In the box', option: 'Options', listed: 'Also listed' } as Record<string, string>)[x.role] ?? x.label} <span class="muted">({x.rows.length})</span></button>)}</div>}
@@ -241,15 +241,6 @@ const conversions = conversionsForRelease(release);
     @media (max-width: 40rem) { .catgroup th, .catgroup td { padding-left: 0.4rem; padding-right: 0.4rem; } .w-qty { width: 3rem; } .w-step { width: 4.5rem; } .c-brand { display: none; } .catgroup td { overflow-wrap: anywhere; } }
     .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
     .catgroup { scroll-margin-top: 0.5rem; }
-    .boxgrid ul { list-style: none; padding: 0; margin: 0.75rem 0 1rem; display: grid; gap: 0.4rem; grid-template-columns: repeat(auto-fill, minmax(6.75rem, 1fr)); }
-    .boxgrid a { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.1rem 0.4rem; height: 100%; padding: 0.45rem 0.4rem; text-align: center;
-      background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); }
-    .boxgrid a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
-    .boxgrid .noicon { display: inline-block; }
-    .boxgrid a :global(.icon), .boxgrid .noicon { color: var(--muted); width: 1.6rem; height: 1.6rem; }
-    .boxgrid a:hover :global(.icon) { color: var(--accent); }
-    .boxgrid b { font-size: 1.1rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
-    .boxgrid span:last-child { flex-basis: 100%; font-size: 0.75rem; line-height: 1.25; color: var(--muted); hyphens: auto; }
     .gearing { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; }
     .gearing p { margin: 0; flex: 1 1 14rem; }
     .gearing .ratio { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
