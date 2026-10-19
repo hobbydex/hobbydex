@@ -224,3 +224,12 @@ table.sortable th[aria-sort="descending"] .sortbtn::after { content: " \2193"; }
 .disc .icon { width: 1em; height: 1em; vertical-align: 0; }
 html.hide-discontinued [data-discontinued] { display: none !important; }
 .hidedisc { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0; cursor: pointer; }
+/* The "?" and "*" date markers: the note shows on hover, focus or tap (tabindex makes the tap focus it). */
+abbr.doubt { position: relative; cursor: help; }
+abbr.doubt:is(:hover, :focus, :focus-visible)::after {
+  content: attr(data-tip); position: absolute; left: 0; top: 1.5em; z-index: 10;
+  width: max-content; max-width: min(16rem, calc(100vw - 2rem)); white-space: normal;
+  padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface);
+  color: var(--fg); font-size: 0.8rem; font-weight: 400; line-height: 1.35; text-align: left; box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+}
+abbr.doubt.flip::after { left: auto; right: 0; }
