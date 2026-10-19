@@ -1,0 +1,8 @@
+---
+// A date column cell: the date text, plus a "*" that shows the SEEN_NOTE on hover, focus or tap (abbr.doubt in
+// global.css) when only a seen_by bound dates the release. `year` shows the year text (yearTextPlain) instead.
+import { SEEN_NOTE, dateTextPlain, seenOnly, yearTextPlain } from '../lib/data';
+interface Props { r: { year?: number; released?: string; announced?: string; seen_by?: string; model_year?: number }; year?: boolean }
+const { r, year } = Astro.props;
+---
+{year ? yearTextPlain(r) : dateTextPlain(r)}{seenOnly(r) && <abbr class="doubt seen" tabindex="0" title={SEEN_NOTE} data-tip={SEEN_NOTE} aria-label={SEEN_NOTE}>*</abbr>}

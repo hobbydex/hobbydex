@@ -2,7 +2,8 @@
 import Base from '../../../../layouts/Base.astro';
 import Standards from '../../../../components/Standards.astro';
 import { specDrawing } from '../../../../lib/specDrawings';
-import { db, key, url, brandName, partLabel, yearOf, yearText, heatsinksByCan, canDiameter , yearDoubt } from '../../../../lib/data';
+import { db, key, url, brandName, partLabel, yearOf, heatsinksByCan, canDiameter , yearDoubt } from '../../../../lib/data';
+import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -68,7 +69,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
   {uses.length === 0 ? <p class="muted">No release lists a matching part yet.</p> :
   <table>
     <tr><th class="num">Year</th><th>Release</th><th>As part</th><th>Role</th></tr>
-    {uses.map((u) => <tr><td class="num">{yearText(u.release)}<DateDoubt reason={yearDoubt(u.release)} /></td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><a href={url.part(u.part.id)}>{partLabel(u.part)}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
+    {uses.map((u) => <tr><td class="num"><DateText r={u.release} year /><DateDoubt reason={yearDoubt(u.release)} /></td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a></td><td><a href={url.part(u.part.id)}>{partLabel(u.part)}</a></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
   </table>
   <DoubtNote on={uses.some((u) => !!yearDoubt(u.release))} />
   <SeenNote rows={uses.map((u) => u.release)} />}
