@@ -3,7 +3,7 @@ import type { Doc, Link } from './data';
 // the facts rows for a record's files (a release's or a part's): the maker's page for each manual, parts list and
 // exploded view, only documents with a maker page (`page`), so the prominent link is never the file itself
 export const FILE_KINDS: Record<string, string> = { manual: 'Manual', part_list: 'Parts list', exploded_view: 'Exploded view' };
-export const fileRows = (docs: Doc[]) => Object.entries(FILE_KINDS).map(([k, label]) => [label, docs.filter((d) => d.kind === k && d.page)] as const)
+export const fileRows = (docs: Doc[], kinds: Record<string, string> = FILE_KINDS) => Object.entries(kinds).map(([k, label]) => [label, docs.filter((d) => d.kind === k && d.page)] as const)
   .filter(([, ds]) => ds.length > 0);
 
 // a maker page's label: its language when the path names one, else its host
