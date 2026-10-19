@@ -4,4 +4,4 @@ import Icon from './Icon.astro';
 interface Props { item: { status?: string } }
 const { item } = Astro.props;
 ---
-{item.status === 'discontinued' && <span class="disc" title="Discontinued"><Icon name="discontinued" size="1em" /><span class="sr-only">discontinued</span></span>}
+{item.status === 'discontinued' && <span class="disc" title="Discontinued"><Icon name="discontinued" size="1em" /><span class="sr-only"> discontinued</span></span>}

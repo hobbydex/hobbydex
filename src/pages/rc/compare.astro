@@ -31,7 +31,7 @@ const SLOTS = ['a', 'b', 'c', 'd'];
     const CATS: Record<string, string> = JSON.parse(($('cmp') as HTMLElement).dataset.cats || '{}');
     const catLabel = (c: string) => (c ? CATS[c] ?? c : 'Other');
     const MAX = 50;
-    const DISC = '<span class="disc" title="Discontinued"><svg class="icon" aria-hidden="true"><use href="/icons.svg#discontinued"/></svg><span class="sr-only">discontinued</span></span>';
+    const DISC = '<span class="disc" title="Discontinued"><svg class="icon" aria-hidden="true"><use href="/icons.svg#discontinued"/></svg><span class="sr-only"> discontinued</span></span>';
 
     fetch('/rc/compare.json').then((r) => r.json()).then((d: Data) => {
       const box = $('boxonly') as HTMLInputElement, diff = $('diffonly') as HTMLInputElement, catsel = $('catsel') as HTMLSelectElement;

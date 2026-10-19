@@ -134,7 +134,7 @@ const conversions = conversionsForKit(kit.id);
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
         <table>
           <tr><th class="num numcol" style={`--numn:${Math.max(5, ...fits.map((x) => partNo(x.part).length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
-          {rows.map(({ part, fit }) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td>{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
+          {rows.map(({ part, fit }) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
         </table></div>)}</>; })()}
   </section>}
   <style>
