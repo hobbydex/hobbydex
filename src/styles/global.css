@@ -164,17 +164,19 @@ a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
 }
 .tablescroll { overflow-x: auto; }
 .hbars.years li { grid-template-columns: 3rem 1fr 3rem; }
-/* phones: a kit's releases (and a kit type's kits) stack one per block (name first, then the numbers with their labels) instead of a six-column table */
+/* phones: a kit's releases (and a kit type's kits) stack one per block (name first, then the numbers with their labels) instead of a six-column table;
+   the same goes for the servo tables (class stacked), whose header row is hidden and whose cells carry data-label */
 @media (max-width: 600px) {
-  table.releases, table.releases tbody, table.releases tr { display: block; }
-  table.releases tr:first-child { display: none; }
-  table.releases tr { padding: 0.5rem 0.75rem; border-top: 1px solid var(--border-muted); }
-  table.releases tr:nth-child(2) { border-top: 0; }
-  table.releases td { display: inline; padding: 0; border: 0; white-space: normal; background: none; }
-  table.releases td.name { display: block; margin-bottom: 0.15rem; }
-  table.releases td:empty { display: none; }
-  table.releases td[data-label] { margin-right: 0.9rem; font-size: 0.8rem; white-space: nowrap; }
-  table.releases td[data-label]::before { content: attr(data-label) " "; color: var(--muted); }
+  table:is(.releases, .stacked), table:is(.releases, .stacked) tbody, table:is(.releases, .stacked) tr { display: block; }
+  table:is(.releases, .stacked) tr:first-child { display: none; }
+  table:is(.releases, .stacked) tr { padding: 0.5rem 0.75rem; border-top: 1px solid var(--border-muted); }
+  table:is(.releases, .stacked) tr:nth-child(2) { border-top: 0; }
+  table:is(.releases, .stacked) td { display: inline; padding: 0; border: 0; white-space: normal; background: none; }
+  table:is(.releases, .stacked) td.name { display: block; margin-bottom: 0.15rem; }
+  table:is(.releases, .stacked) td:empty { display: none; }
+  table:is(.releases, .stacked) td[data-label] { margin-right: 0.9rem; font-size: 0.8rem; white-space: nowrap; }
+  table.stacked td[data-label]:not(:empty) { display: inline-block; }   /* boxes, not inline runs, so a row of labelled values can wrap between them */
+  table:is(.releases, .stacked) td[data-label]::before { content: attr(data-label) " "; color: var(--muted); }
   table.releases tr[hidden] { display: none; }   /* rows a filter hides stay hidden as blocks */
   table.releases thead { display: none; }   /* a table with a thead (the brand page): its first body row is a row, not the header */
   table.releases thead + tbody tr:first-child:not([hidden]) { display: block; border-top: 0; }
