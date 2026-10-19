@@ -14,6 +14,7 @@ import Discontinued from '../../../../components/Discontinued.astro';
 import { db, key, url, brandName, partLabel, yearText, byReleaseDate, dateText, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, depictsText, type Fits , yearDoubt } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
+import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
 import { colourDot } from '../../../../lib/colourDot';
@@ -93,6 +94,7 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}<Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
   {(part as { name_source?: string }).name_source === 'ocr' && <p class="muted ocrname" data-pagefind-ignore>This name was read by OCR from a scanned manual and is not checked yet; it may contain reading errors.</p>}
   <WebSearch query={`"${part.number ?? part.name}" ${brand?.name ?? ''}`.trim()} copy={part.number} links={part.links} />
+  <div class="factsrow">
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
     {part.depicts && <><dt>Real vehicle</dt><dd><a href={url.make(part.depicts.make)}>{part.depicts.make}</a> {depictsText(part.depicts).slice(part.depicts.make.length + 1)}<span hidden data-pagefind-filter={`make:${part.depicts.make}`} /></dd></>}
@@ -143,6 +145,8 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
+  {part.art && <span class="typeicon"><ReleaseArt id={part.id} category={part.category} color={part.color} art={part.art} size="12rem" class="hero" /></span>}
+  </div>
   <DoubtNote on={!!dateDoubt(part)} />
   <FanLinks links={part.links} />
   {drawing && <figure class="drawing" data-pagefind-ignore>
