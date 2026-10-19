@@ -20,6 +20,7 @@ import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
 import { colourDot } from '../../../../lib/colourDot';
 import { partDrawing } from '../../../../lib/specDrawings';
 import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
+import { fileRows, makerOwnLinks, listedBelow } from '../../../../lib/docFacts';
 export function getStaticPaths() {
   // a former id (renamed or corrected) or another number the part is sold under (numbers) keeps working:
   // its page redirects to the current one; a number listed twice is one route
@@ -87,6 +88,9 @@ const noLoad = (kv: number, cells?: number[]) => {
 // a motor: the clamp-on heat sinks and fan mounts for its can, any brand; a heat sink: the can it takes
 const motorCan = part.category === 'motor' ? canDiameter(part) : undefined;
 const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
+// the maker's pages for the part's manual, parts list and exploded view, as on a release; its own links (not fan sites)
+const partFiles = fileRows((part.documents ?? []).map((id) => db.doc.get(id)).filter((d) => d !== undefined));
+const partLinks = makerOwnLinks(part.links);
 ---
 <Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
@@ -100,7 +104,8 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
     {part.depicts && <><dt>Real vehicle</dt><dd><a href={url.make(part.depicts.make)}>{part.depicts.make}</a> {depictsText(part.depicts).slice(part.depicts.make.length + 1)}<span hidden data-pagefind-filter={`make:${part.depicts.make}`} /></dd></>}
     {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <> <span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span></dd></>}
-    {(part.links ?? []).filter((l) => l.kind !== 'fan-site').length > 0 && <><dt>Product page</dt><dd>{(part.links ?? []).filter((l) => l.kind !== 'fan-site').map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
+    {partLinks.length > 0 && <><dt>Product page</dt><dd>{partLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
+    {partFiles.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
     {part.released && <><dt>Released</dt><dd>{dateText(part)}<DateDoubt reason={dateDoubt(part)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{partLabel(replaces)}</a> {replaces.number && replaces.name}<Discontinued item={replaces} /></dd></>}
     {rebrandOf.length > 0 && <><dt>Rebrand of</dt><dd>{rebrandOf.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
@@ -160,9 +165,9 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
       <tr><th class="num">Number</th><th>Name</th><th>Material</th></tr>
       {upgrades.map((u) => <tr><td class="num">{u.number && <a href={url.part(u.id)}>{u.number}</a>}</td><td>{u.category && <a class="caticon" href={`/rc/categories/${u.category}/`} title={catName(u.category)}><Icon name={u.category} /></a>} {u.number ? u.name : <a href={url.part(u.id)}>{u.name}</a>}<Discontinued item={u} /></td><td>{u.material === 'carbon' ? 'carbon fibre' : (u.material ?? '')}{u.material_grade && ` ${u.material_grade}`}</td></tr>)}
     </table></>}
-  {part.documents && part.documents.length > 0 && <>
+  {(() => { const below = (part.documents ?? []).filter((id) => { const d = db.doc.get(id); return !d || listedBelow([d]).length > 0; }); return below.length > 0 && <>
     <h2>Documents</h2>
-    <ul>{part.documents.map((id) => { const d = db.doc.get(id); const w = d && docPage(d, part.released); return <li>{w ? <a href={w} rel="nofollow">{d!.title}</a> : (d?.title ?? id)}{d && !w && d.url && <span class="muted"> · {new URL(d.url).hostname}</span>}{d?.date && <span class="muted"> · {d.date}</span>}</li>; })}</ul></>}
+    <ul>{below.map((id) => { const d = db.doc.get(id); const w = d && docPage(d, part.released); return <li>{w ? <a href={w} rel="nofollow">{d!.title}</a> : (d?.title ?? id)}{d && !w && d.url && <span class="muted"> · {new URL(d.url).hostname}</span>}{d?.date && <span class="muted"> · {d.date}</span>}</li>; })}</ul></>; })()}
   {part.includes && part.includes.length > 0 && <>
     <h2>Includes <span class="muted">({part.includes.reduce((n, i) => n + (i.qty ?? 1), 0)} pcs)</span></h2>
     <table>
