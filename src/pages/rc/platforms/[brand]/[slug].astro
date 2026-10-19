@@ -8,7 +8,7 @@ import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
-import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt, seriesMates, docPage, type Doc, type Release } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt, seriesMates, docPage, type Doc, type Part, type Release } from '../../../../lib/data';
 import { FILE_KINDS, fileRows } from '../../../../lib/docFacts';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
@@ -69,6 +69,23 @@ const byCat = <T,>(rows: T[], cat: (r: T) => string | undefined) => [...new Set(
   .sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))).map((g) => ({ g, rows: rows.filter((r) => (cat(r) ?? '') === g) }));
 const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => byPartNo(a.p, b.p));
 const conversions = conversionsForKit(kit.id);
+// parts listed by dealers for a kit that shares this platform (same_platform_as, either direction): the parts whose fits
+// name that kit as a whole or one of its releases, minus those already listed above as fitting this kit
+const listedHere = new Set(allFits.map((x) => x.part.id));
+const partsWord = { interchangeable: 'interchangeable', partly: 'partly shared', unknown: 'not confirmed' } as const;
+const relatedFits = relations.filter((r, i) => r.relation === 'platform' && db.kit.has(r.other) && relations.findIndex((x) => x.other === r.other) === i).map((r) => {
+  const o = db.kit.get(r.other)!;
+  const relNames = new Map((db.releasesByKit.get(o.id) ?? []).map((x) => [x.id, x.name]));
+  const byPart = new Map<string, { part: Part; rels: string[] }>();   // rels: the related kit's releases it is listed for; none for the whole kit
+  for (const { part, fit } of db.fitsByKit.get(o.id) ?? []) {
+    if (fit.car || listedHere.has(part.id)) continue;
+    if (fit.releases && !fit.releases.some((id) => relNames.has(id))) continue;
+    const e = byPart.get(part.id) ?? { part, rels: [] };
+    for (const id of fit.releases ?? []) if (relNames.has(id) && !e.rels.includes(relNames.get(id)!)) e.rels.push(relNames.get(id)!);
+    byPart.set(part.id, e);
+  }
+  return { o, link: r.link, rows: [...byPart.values()].sort((a, b) => byPartNo(a.part, b.part)) };
+}).filter((x) => x.rows.length > 0);
 import SeenNote from '../../../../components/SeenNote.astro';
 // each document of the releases once, with the releases that have it (a body manual may be the car's alone, a chassis manual shared)
 const docRels = new Map<string, Release[]>();
@@ -166,6 +183,16 @@ const sources = allDocs.filter((d) => d.kind === 'product_page');
           {rows.map(({ part, fit }) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
         </table></div>)}</>; })()}
   </section>}
+  {relatedFits.map(({ o, link, rows }) => <details class="kitsets relatedfits" data-pagefind-ignore>
+    <summary>Listed for the related {brandName(o.brand)} {o.name} <span class="muted">({rows.length})</span></summary>
+    <p class="muted">Listed by dealers for the {brandName(o.brand)} {o.name}; parts {partsWord[link.parts ?? 'unknown']} with this platform</p>
+    {byCat(rows, (x) => x.part.category).map(({ g, rows: grp }) => <div class="relatedgroup">
+      <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({grp.length})</span></h3>
+      <table class="stacked">
+        <tr><th class="num numcol" style={`--numn:${Math.max(5, ...rows.map((x) => partNo(x.part).length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Listed for</th></tr>
+        {grp.map(({ part, rels }) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td data-label="Brand">{brandName(part.brand)}</td><td data-label="Listed for">{rels.length > 0 ? rels.join(', ') : `Whole ${o.name}`}</td></tr>)}
+      </table></div>)}
+  </details>)}
   {sources.length > 0 && <><h2>Sources</h2>
     <ul>{sources.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></>}
   <style>
