@@ -197,7 +197,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 export const isoText = (iso: string) => {
   const m = iso.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/);
   if (!m) return iso;
-  return [m[3] && String(Number(m[3])), m[2] && MONTHS[Number(m[2]) - 1], m[1]].filter(Boolean).join(' ');
+  return [m[1], m[2] && MONTHS[Number(m[2]) - 1], m[3] && String(Number(m[3]))].filter(Boolean).join(' ');
 };
 /** The release date a source states: released, else the year. */
 export const releasedOf = (r: { year?: number; released?: string }) => r.released ?? (r.year ? String(r.year) : undefined);
@@ -205,11 +205,15 @@ export const releasedOf = (r: { year?: number; released?: string }) => r.release
 export const hasDate = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => !!(releasedOf(r) || r.announced || r.seen_by);
 /** Only the seen_by bound: no date a source states. */
 export const seenOnly = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => !releasedOf(r) && !r.announced && !!r.seen_by;
-// Sort key: '2025-03-22' > '2025-03' > '2025'; an announced date sorts as a real date, and a seen_by
-// bound sorts after every real date of its year ('2019~-03' > '2019-12-31').
+// Sort key: '2025-03-22' > '2025-03' > '2025'; an announced date and a seen_by bound sort among the real dates.
 export const dateKey = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) =>
-  releasedOf(r) ?? r.announced ?? (r.seen_by ? `${r.seen_by.slice(0, 4)}~${r.seen_by.slice(4)}` : '');
-/** The date column: "2012", "May 2012", "1 May 2012"; "announced May 2012"; "May 2012*" for seen_by alone (see SEEN_NOTE). */
+  releasedOf(r) ?? r.announced ?? r.seen_by ?? '';
+/** The year a release is listed under by year: its own, else the year of its announcement or seen_by bound. */
+export const listYear = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => {
+  const k = dateKey(r);
+  return k ? Number(k.slice(0, 4)) : undefined;
+};
+/** The date column: "2012", "2012 May", "2012 May 1"; "announced 2012 May"; "2012 May*" for seen_by alone (see SEEN_NOTE). */
 export const dateText = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => {
   const real = releasedOf(r);
   if (real) return isoText(real);

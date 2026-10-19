@@ -3,17 +3,17 @@ import { buildLabel } from '../../../../lib/build';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
-import { db, url, brandName, dateKey, dateText, dateDoubt } from '../../../../lib/data';
+import { db, url, brandName, dateKey, dateText, dateDoubt, listYear } from '../../../../lib/data';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 export function getStaticPaths() {
-  return [...new Set(db.releases.flatMap((r) => (r.year ? [r.year] : r.seen_by && !r.released && !r.announced ? [Number(r.seen_by.slice(0, 4))] : [])))].map((y) => ({ params: { year: String(y) }, props: { year: y } }));
+  return [...new Set(db.releases.flatMap((r) => listYear(r) ?? []))].map((y) => ({ params: { year: String(y) }, props: { year: y } }));
 }
 const { year } = Astro.props;
-// newest first: by the day or month where a source gives it, releases dated only by the year last
-const rs = db.releases.filter((r) => r.year === year || (!r.year && !r.released && !r.announced && r.seen_by && Number(r.seen_by.slice(0, 4)) === year))
+// newest first: by the day or month where a source gives it (seen_by bounds among them), releases dated only by the year last
+const rs = db.releases.filter((r) => listYear(r) === year)
   .sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || (a.status === 'discontinued' ? 1 : 0) - (b.status === 'discontinued' ? 1 : 0) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
-const years = [...new Set(db.releases.filter((r) => r.year).map((r) => r.year!))].sort((a, b) => b - a);
+const years = [...new Set(db.releases.flatMap((r) => listYear(r) ?? []))].sort((a, b) => b - a);
 const i = years.indexOf(year), newer = years[i - 1], older = years[i + 1];
 import SeenNote from '../../../../components/SeenNote.astro';
 ---
