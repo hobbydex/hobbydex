@@ -7,14 +7,15 @@ import { db, url, brandName, dateKey, dateText, dateDoubt } from '../../../../li
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 export function getStaticPaths() {
-  return [...new Set(db.releases.filter((r) => r.year).map((r) => r.year!))].map((y) => ({ params: { year: String(y) }, props: { year: y } }));
+  return [...new Set(db.releases.flatMap((r) => (r.year ? [r.year] : r.seen_by && !r.released && !r.announced ? [Number(r.seen_by.slice(0, 4))] : [])))].map((y) => ({ params: { year: String(y) }, props: { year: y } }));
 }
 const { year } = Astro.props;
 // newest first: by the day or month where a source gives it, releases dated only by the year last
-const rs = db.releases.filter((r) => r.year === year)
+const rs = db.releases.filter((r) => r.year === year || (!r.year && !r.released && !r.announced && r.seen_by && Number(r.seen_by.slice(0, 4)) === year))
   .sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || (a.status === 'discontinued' ? 1 : 0) - (b.status === 'discontinued' ? 1 : 0) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
 const years = [...new Set(db.releases.filter((r) => r.year).map((r) => r.year!))].sort((a, b) => b - a);
 const i = years.indexOf(year), newer = years[i - 1], older = years[i + 1];
+import SeenNote from '../../../../components/SeenNote.astro';
 ---
 <Base title={`RC releases of ${year}`} description={`${rs.length} RC kit and RTR releases from ${year} in Hobbydex, newest first.`}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / <a href="/rc/releases/by-year/">by year</a> / {year}</div>
@@ -30,6 +31,7 @@ const i = years.indexOf(year), newer = years[i - 1], older = years[i + 1];
     </tr>; })}
   </table>
   <DoubtNote on={rs.some((r) => !!dateDoubt(r))} />
+  <SeenNote rows={rs} />
   <style>
     @media (max-width: 600px) { table.releases td[data-label]:not(:empty) { display: inline-block; white-space: normal; } }
   </style>

@@ -8,7 +8,7 @@ import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
-import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit , yearDoubt } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt } from '../../../../lib/data';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 import Icon from '../../../../components/Icon.astro';
@@ -29,7 +29,7 @@ const kit = Astro.props.kit!;   // set on every page that is not a redirect
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort(byReleaseDate);
 // the list: current releases (on sale or announced) first, then the discontinued ones;
 // newest first in each, dated before undated (undated ones by item number, higher numbers being newer)
-const dateKey = (r: (typeof releases)[number]) => r.released ?? (yearOf(r) ? String(yearOf(r)) : '');
+const dateKey = (r: (typeof releases)[number]) => dateKeyOf(r) || (yearOf(r) ? String(yearOf(r)) : '');
 const newestFirst = (a: (typeof releases)[number], b: (typeof releases)[number]) =>
   (dateKey(a) ? 0 : 1) - (dateKey(b) ? 0 : 1) || dateKey(b).localeCompare(dateKey(a))
   || (a.number ? 0 : 1) - (b.number ? 0 : 1) || (b.number ?? '').localeCompare(a.number ?? '', undefined, { numeric: true }) || a.name.localeCompare(b.name);
@@ -62,6 +62,7 @@ const byCat = <T,>(rows: T[], cat: (r: T) => string | undefined) => [...new Set(
   .sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))).map((g) => ({ g, rows: rows.filter((r) => (cat(r) ?? '') === g) }));
 const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => byPartNo(a.p, b.p));
 const conversions = conversionsForKit(kit.id);
+import SeenNote from '../../../../components/SeenNote.astro';
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="platform" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
@@ -99,6 +100,7 @@ const conversions = conversionsForKit(kit.id);
           <td class="num" data-label="Year">{yearText(r)}<DateDoubt reason={yearDoubt(r)} /></td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status === 'discontinued' ? '' : r.status}</td>}
         </tr>)}
       </table>
+  <SeenNote rows={releases} />
   <DoubtNote on={releases.some((r) => !!yearDoubt(r))} /></>;
   })()}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
