@@ -14,6 +14,9 @@ export function getStaticPaths() {
 }
 const { brand } = Astro.props;
 const kits = db.kitsByBrand.get(brand.id) ?? [];
+// releases on a placeholder kit (no chassis named by a source): listed by name, not as a platform
+const chassisless = db.releases.filter((r) => r.brand === brand.id && db.kit.get(r.kit)?.placeholder)
+  .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 const parts = db.partsByBrand.get(brand.id) ?? [];
 // many kits: one table per kit type, with the years the kit's releases span
 const MANY = 12;
@@ -57,6 +60,9 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   </dl>
   <DoubtNote on={dateDoubtful} />
   {brand.notes && <p class="muted">{brand.notes}</p>}
+  {chassisless.length > 0 && <><h2>Chassis not yet known <span class="muted">({chassisless.length})</span></h2>
+  <p class="muted">No source names the chassis of these releases yet; they are not platforms.</p>
+  <ul>{chassisless.map((r) => <li><a href={url.release(r.id)}>{r.name}</a>{r.number && <span class="muted"> {r.number}</span>}</li>)}</ul></>}
   {kits.length > MANY && <><h2>Platforms <span class="muted">({kits.length})</span></h2>
   <div class="kitfilter" data-pagefind-ignore>
     <input type="search" class="search-box" placeholder={`Filter ${brand.name} platforms by name, scale or drive`} aria-label="Filter platforms" autocomplete="off" />

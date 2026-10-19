@@ -89,12 +89,12 @@ const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option 
 const conversions = conversionsForRelease(release);
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a>{brandGone(release.brand) && <span class="muted"> (brand defunct)</span>} / <a href={url.platform(kit.id)}>{kit.name}</a> / {release.name}</div>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a>{brandGone(release.brand) && <span class="muted"> (brand defunct)</span>} / {kit.placeholder ? <span>Chassis not yet known</span> : <a href={url.platform(kit.id)}>{kit.name}</a>} / {release.name}</div>
   <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(release.brand)} {release.name}<Discontinued item={release} />{release.color && <Fragment set:html={' ' + colourDot(release.color)} />}</h1>
   <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
   <div class="factsrow">
   <dl class="facts">
-    <dt>Platform</dt><dd><a href={url.platform(kit.id)}>{kit.name}</a></dd>
+    {kit.placeholder ? <><dt>Chassis</dt><dd>not yet known</dd></> : <><dt>Platform</dt><dd><a href={url.platform(kit.id)}>{kit.name}</a></dd></>}
     {release.depicts && <><dt>Real vehicle</dt><dd><a href={url.make(release.depicts.make)}>{release.depicts.make}</a> {depictsText(release.depicts).slice(release.depicts.make.length + 1)}{release.depicts.licensed && <span class="muted"> · officially licensed, according to {brandName(release.brand)}</span>}<span hidden data-pagefind-filter={`make:${release.depicts.make}`} /></dd></>}
     {release.requires?.length && <><dt>Needs</dt><dd>{release.requires.length > 1 && 'one of: '}{release.requires.map((id, i) => { const n = requiredName(id); return <>{i > 0 && (i === release.requires!.length - 1 ? ' or ' : ', ')}{n ? <a href={n.href}>{n.name}</a> : id}</>; })}<span class="muted"> (not included: this is a conversion kit)</span></dd></>}
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
