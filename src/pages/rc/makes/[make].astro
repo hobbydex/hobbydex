@@ -1,11 +1,12 @@
 ---
+import DateText from '../../../components/DateText.astro';
 import DateDoubt from '../../../components/DateDoubt.astro';
 import DoubtNote from '../../../components/DoubtNote.astro';
 import Base from '../../../layouts/Base.astro';
 import Discontinued from '../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../components/HideDiscontinued.astro';
 import ReleaseArt from '../../../components/ReleaseArt.astro';
-import { db, url, brandName, yearText, yearOf, makeSlug, countryName, releasesByMake, bodiesByMake, partLabel, type Release, type Part , yearDoubt, hasDate } from '../../../lib/data';
+import { db, url, brandName, yearOf, makeSlug, countryName, releasesByMake, bodiesByMake, partLabel, type Release, type Part , yearDoubt, hasDate } from '../../../lib/data';
 export function getStaticPaths() {
   return [...new Set([...releasesByMake.keys(), ...bodiesByMake.keys()])].map((make) => ({ params: { make: makeSlug(make) }, props: { make } }));
 }
@@ -46,7 +47,7 @@ import SeenNote from '../../../components/SeenNote.astro';
         <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} />{r.number && <span class="muted"> {r.number}</span>}</td>
         <td data-label="Model">{r.depicts!.model}</td>
         <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
-        <td class="num" data-label="Vehicle year">{vyear(r)}</td><td class="num" data-label="Released">{hasDate(r) || r.model_year ? yearText(r) : ''}<DateDoubt reason={yearDoubt(r)} /></td>
+        <td class="num" data-label="Vehicle year">{vyear(r)}</td><td class="num" data-label="Released">{hasDate(r) || r.model_year ? <DateText r={r} year /> : ''}<DateDoubt reason={yearDoubt(r)} /></td>
       </tr>; })}
       </table>
   <DoubtNote on={releases.some((r) => !!yearDoubt(r))} /></>}

@@ -2,6 +2,7 @@
 import Standards from '../../../../components/Standards.astro';
 import { shownNote, isSourceNote } from '../../../../lib/notes';
 import SourceNote from '../../../../components/SourceNote.astro';
+import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 import { gtinLabel } from '../../../../lib/gtin';
@@ -11,7 +12,7 @@ import CopyButton from '../../../../components/CopyButton.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
-import { db, key, url, brandName, partLabel, yearText, byReleaseDate, dateText, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, depictsText, type Fits , yearDoubt } from '../../../../lib/data';
+import { db, key, url, brandName, partLabel, byReleaseDate, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, depictsText, type Fits , yearDoubt } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
@@ -107,7 +108,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span></dd></>}
     {partLinks.length > 0 && <><dt>Product page</dt><dd>{partLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
     {partFiles.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
-    {part.released && <><dt>Released</dt><dd>{dateText(part)}<DateDoubt reason={dateDoubt(part)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
+    {part.released && <><dt>Released</dt><dd><DateText r={part} /><DateDoubt reason={dateDoubt(part)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{partLabel(replaces)}</a> {replaces.number && replaces.name}<Discontinued item={replaces} /></dd></>}
     {rebrandOf.length > 0 && <><dt>Rebrand of</dt><dd>{rebrandOf.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
     {relGroups.map((g) => <><dt>{g.label}</dt><dd>{g.parts.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>)}
@@ -216,7 +217,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
   {uses.length === 0 ? <p class="muted">No release lists this part yet.</p> :
   <table>
     <tr><th class="num">Year</th><th>Release</th><th>Role</th></tr>
-    {uses.map((u) => <tr><td class="num">{yearText(u.release)}<DateDoubt reason={yearDoubt(u.release)} /></td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a><Discontinued item={u.release} /></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
+    {uses.map((u) => <tr><td class="num"><DateText r={u.release} year /><DateDoubt reason={yearDoubt(u.release)} /></td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a><Discontinued item={u.release} /></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
   </table>
   <DoubtNote on={uses.some((u) => !!yearDoubt(u.release))} />
   <SeenNote rows={uses.map((u) => u.release)} />}

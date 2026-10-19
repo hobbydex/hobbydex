@@ -8,8 +8,9 @@ import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
-import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt, seriesMates, docPage, type Doc, type Part, type Release } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partNo, yearOf, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt, seriesMates, docPage, type Doc, type Part, type Release } from '../../../../lib/data';
 import { FILE_KINDS, fileRows } from '../../../../lib/docFacts';
+import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 import Icon from '../../../../components/Icon.astro';
@@ -141,7 +142,7 @@ const sources = allDocs.filter((d) => d.kind === 'product_page');
       <table class="releases">
         <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
         {rows.map((r) => <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
-          <td class="num" data-label="Year">{yearText(r)}<DateDoubt reason={yearDoubt(r)} /></td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status === 'discontinued' ? '' : r.status}</td>}
+          <td class="num" data-label="Year"><DateText r={r} year /><DateDoubt reason={yearDoubt(r)} /></td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status === 'discontinued' ? '' : r.status}</td>}
         </tr>)}
       </table>
   <SeenNote rows={releases} />

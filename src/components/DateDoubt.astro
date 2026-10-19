@@ -1,7 +1,7 @@
 ---
-// The "?" after a date the record marks as not sure (released_doubt, year_doubt, launched_doubt...): the reason shows on hover.
-// Renders nothing when there is no reason.
+// The "?" after a date the record marks as not sure (released_doubt, year_doubt, launched_doubt...): the reason
+// shows on hover, on focus and in a tap-bubble (abbr.doubt in global.css). Renders nothing when there is no reason.
 interface Props { reason?: string }
 const { reason } = Astro.props;
 ---
-{reason && <abbr class="doubt" title={reason}>?</abbr>}
+{reason && <abbr class="doubt" tabindex="0" title={reason} data-tip={reason} aria-label={reason}>?</abbr>}

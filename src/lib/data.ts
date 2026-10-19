@@ -214,14 +214,17 @@ export const listYear = (r: { year?: number; released?: string; announced?: stri
   const k = dateKey(r);
   return k ? Number(k.slice(0, 4)) : undefined;
 };
-/** The date column: "2012", "2012 May", "2012 May 1"; "announced 2012 May"; "2012 May*" for seen_by alone (see SEEN_NOTE). */
-export const dateText = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => {
+/** The date column: "2012", "2012 May", "2012 May 1"; "announced 2012 May"; "2012 May" for seen_by alone. */
+export const dateTextPlain = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => {
   const real = releasedOf(r);
   if (real) return isoText(real);
   if (r.announced) return `announced ${isoText(r.announced)}`;
-  if (r.seen_by) return `${isoText(r.seen_by)}*`;
+  if (r.seen_by) return isoText(r.seen_by);
   return 'unknown';
 };
+/** dateTextPlain with the "*" for seen_by alone (see SEEN_NOTE), for a plain-text context. */
+export const dateText = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) =>
+  dateTextPlain(r) + (seenOnly(r) ? '*' : '');
 export const SEEN_NOTE = "* not the release date: the first time the maker's page for it was archived, so it was on sale by then.";
 // The reason the date dateText shows is doubtful (released_doubt, or year_doubt when only the year is shown); undefined when it is sure.
 export const dateDoubt = (r: { year?: number; released?: string; year_doubt?: string; released_doubt?: string }) =>
@@ -261,8 +264,11 @@ export const byReleaseDate = (a: Release, b: Release) => {
   return (ka ? 0 : 1) - (kb ? 0 : 1) || ka.localeCompare(kb)
     || (a.number ? 0 : 1) - (b.number ? 0 : 1) || (a.number ?? '').localeCompare(b.number ?? '', undefined, { numeric: true }) || a.name.localeCompare(b.name);
 };
+export const yearTextPlain = (r: { year?: number; released?: string; announced?: string; seen_by?: string; model_year?: number }) =>
+  hasDate(r) ? dateTextPlain(r) : r.model_year ? `${r.model_year} model` : 'unknown';
+/** yearTextPlain with the "*" for seen_by alone, for a plain-text context. */
 export const yearText = (r: { year?: number; released?: string; announced?: string; seen_by?: string; model_year?: number }) =>
-  hasDate(r) ? dateText(r) : r.model_year ? `${r.model_year} model` : 'unknown';
+  yearTextPlain(r) + (seenOnly(r) ? '*' : '');
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
 
 // Conversion kits: a release whose `requires` names a kit or release (the car it needs). For a kit, the

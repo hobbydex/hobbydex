@@ -1,11 +1,12 @@
 ---
+import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import Icon from '../../../../components/Icon.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
-import { db, url, brandName, yearText , yearDoubt } from '../../../../lib/data';
+import { db, url, brandName, yearDoubt } from '../../../../lib/data';
 import { kitTypeLabel, kitTypeIcon, kitTypeOne, kitTypeAbout } from '../../../../lib/kitTypes';
 import DriveFilter from '../../../../components/DriveFilter.astro';
 import { driveLabel } from '../../../../lib/drive';
@@ -44,7 +45,7 @@ const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scale
     <p class="muted">Releases of this type built on a platform of another type.</p>
     <table class="releases">
       <tr><th>Release</th><th>Brand</th><th>Platform</th><th class="num">Year</th></tr>
-      {onOther.map((r) => <tr><td class="name"><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td data-label="Platform"><a href={url.platform(r.kit)}>{db.kit.get(r.kit)?.name}</a></td><td class="num" data-label="Year">{yearText(r)}<DateDoubt reason={yearDoubt(r)} /></td></tr>)}
+      {onOther.map((r) => <tr><td class="name"><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td data-label="Platform"><a href={url.platform(r.kit)}>{db.kit.get(r.kit)?.name}</a></td><td class="num" data-label="Year"><DateText r={r} year /><DateDoubt reason={yearDoubt(r)} /></td></tr>)}
     </table>
   <DoubtNote on={onOther.some((r) => !!yearDoubt(r))} /></>}
   <style>.about { max-width: 46rem; font-size: 1.05rem; }</style>
