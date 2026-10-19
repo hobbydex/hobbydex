@@ -1,7 +1,8 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import { db, key, url, countryName, dateText, sourceHref } from '../../../lib/data';
+import { db, key, url, countryName, dateText, sourceHref, yearDoubt } from '../../../lib/data';
 import DateDoubt from '../../../components/DateDoubt.astro';
+import Discontinued from '../../../components/Discontinued.astro';
 import DoubtNote from '../../../components/DoubtNote.astro';
 import { catName } from '../../../lib/categories';
 import Icon from '../../../components/Icon.astro';
@@ -17,7 +18,7 @@ const { brand } = Astro.props;
 const kits = db.kitsByBrand.get(brand.id) ?? [];
 // releases on a placeholder kit (no chassis named by a source): listed by name, not as a platform
 const chassisless = db.releases.filter((r) => r.brand === brand.id && db.kit.get(r.kit)?.placeholder)
-  .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  .sort((a, b) => (a.number ?? a.name).localeCompare(b.number ?? b.name, undefined, { numeric: true }) || a.name.localeCompare(b.name, undefined, { numeric: true }));
 const parts = db.partsByBrand.get(brand.id) ?? [];
 // many kits: one table per kit type, with the years the kit's releases span
 const MANY = 12;
@@ -61,9 +62,6 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   </dl>
   <DoubtNote on={dateDoubtful} />
   {brand.notes && <p class="muted">{brand.notes}</p>}
-  {chassisless.length > 0 && <><h2>Chassis not yet known <span class="muted">({chassisless.length})</span></h2>
-  <p class="muted">No source names the chassis of these releases yet; they are not platforms.</p>
-  <ul>{chassisless.map((r) => <li><a href={url.release(r.id)}>{r.name}</a>{r.number && <span class="muted"> {r.number}</span>}</li>)}</ul></>}
   {kits.length > MANY && <><h2>Platforms <span class="muted">({kits.length})</span></h2>
   <div class="kitfilter" data-pagefind-ignore>
     <input type="search" class="search-box" placeholder={`Filter ${brand.name} platforms by name, scale or drive`} aria-label="Filter platforms" autocomplete="off" />
@@ -131,4 +129,19 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const a = list.querySelector('a'); if (a) location.href = a.href; } });
     }
   </script>
+  {chassisless.length > 0 && <details class="chassisless">
+    <summary>Chassis not yet known <span class="muted">({chassisless.length})</span></summary>
+    <p class="muted">No source names the chassis of these releases yet; they are not platforms.</p>
+    <ul>{chassisless.map((r) => <li><a href={url.release(r.id)}>{r.number ?? r.name}</a>{r.number && r.name !== r.number && <span class="muted"> {r.name}</span>}{r.year && <span class="muted"> {r.year}</span>}<DateDoubt reason={yearDoubt(r)} /><Discontinued item={r} /></li>)}</ul>
+  </details>}
 </Base>
+
+<style>
+  details.chassisless { margin: 1.5rem 0 1rem; }
+  details.chassisless > summary { cursor: pointer; font-size: 1.25rem; font-weight: 600; padding: 0.4rem 0; border-bottom: 1px solid var(--border-muted); }
+  details.chassisless > summary .muted { font-weight: 400; }
+  details.chassisless > p { margin: 0.6rem 0 0.4rem; }
+  details.chassisless ul { list-style: none; padding: 0; margin: 0.5rem 0 0; columns: 13rem; column-gap: 1.5rem; }
+  details.chassisless li { break-inside: avoid; padding: 0.1rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 40em) { details.chassisless ul { columns: 1; } }
+</style>
