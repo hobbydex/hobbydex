@@ -26,6 +26,7 @@ const info = db.categories.find((c) => c.id === `category/${category}`);
   {info?.description && <p>{info.description}</p>}
   {category === 'motor' && <details class="muted"><summary>What kV and turns mean</summary>{MOTOR_SPEED_NOTE.map((t) => <p>{t}</p>)}</details>}
   {category === 'battery' && <details class="muted"><summary>Batteries explained: cells, voltage, C-rating, LiFe, charging and storing</summary>{BATTERY_NOTE.map(([h, t]) => <p><b>{h}.</b> {t}</p>)}</details>}
+  {info?.terms && <details class="muted"><summary>Terms explained</summary><dl class="terms">{info.terms.map((t) => <><dt>{t.term}</dt><dd>{t.text}</dd></>)}</dl></details>}
   <p class="muted">{countOf(category)} parts from {brands.length} brands.
     {specFor[category] && <> Brand-independent sizes: <a href={`/rc/specs/${specFor[category]}/`}>generic specs</a>.</>}
     {' '}<a href={`/search/?category=${encodeURIComponent(catName(category))}`}>Search in this category</a></p>
@@ -41,3 +42,8 @@ const info = db.categories.find((c) => c.id === `category/${category}`);
     </>}
   {table && <PartTable category={category} parts={parts} />}
 </Base>
+<style>
+  dl.terms { margin: 0.5rem 0 0; }
+  dl.terms dt { font-weight: 600; margin-top: 0.8rem; }
+  dl.terms dd { margin: 0.15rem 0 0; }
+</style>
