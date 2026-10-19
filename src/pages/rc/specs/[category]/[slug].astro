@@ -46,9 +46,9 @@ import SeenNote from '../../../../components/SeenNote.astro';
   <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>
   {spec.category === 'battery' && plugs.length > 1 && <p data-pagefind-ignore><label>Plug <select id="plugfilter"><option value="">any (plugs can be changed)</option>{plugs.map((c) => <option value={c}>{c}</option>)}</select></label></p>}
   {linked.length === 0 ? <p class="muted">None linked yet.</p> :
-  <table>
+  <table class={spec.category === 'servo' ? 'stacked' : undefined}>
     <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Material</th>{spec.category === 'bearing' && <th>Seal</th>}{spec.category === 'pinion' && <th class="num">Bore mm</th>}{spec.category === 'battery' && <><th class="num">C</th><th>Case</th><th>Size mm</th><th class="num">g</th><th>Plug</th></>}<th>Match</th></tr>
-    {linked.map(({ part, link }) => <tr data-plug={part.connector ?? ''}><td>{brandName(part.brand)}</td><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td>{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td class="num">{part.pack_qty ?? ''}</td><td>{part.material ?? ''}</td>{spec.category === 'bearing' && <td>{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num">{part.bore_mm ?? ''}</td>}{spec.category === 'battery' && <><td class="num">{part.c_rating ?? ''}</td><td>{part.case ?? ''}</td><td>{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num">{part.weight_g ?? ''}</td><td>{part.connector ?? ''}</td></>}<td>{link.match}</td></tr>)}
+    {linked.map(({ part, link }) => <tr data-plug={part.connector ?? ''}><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td class="num" data-label="Pack">{part.pack_qty ?? ''}</td><td data-label="Material">{part.material ?? ''}</td>{spec.category === 'bearing' && <td>{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num">{part.bore_mm ?? ''}</td>}{spec.category === 'battery' && <><td class="num">{part.c_rating ?? ''}</td><td>{part.case ?? ''}</td><td>{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num">{part.weight_g ?? ''}</td><td>{part.connector ?? ''}</td></>}<td data-label="Match">{link.match}</td></tr>)}
   </table>}
   {(db.setsBySpec.get(spec.id) ?? []).length > 0 && <>
     <h2>In sets</h2>
@@ -59,10 +59,10 @@ import SeenNote from '../../../../components/SeenNote.astro';
   {sameSize.length > 0 && <>
     <h2>All {String(spec.size_class).replace('-', ' ')} servos <span class="muted">({sameSize.length}, by case length then height)</span></h2>
     <p class="muted">Check the case size and the mounting holes before swapping: two servos of one size class do not always fit the same mount.</p>
-    <table>
+    <table class="stacked">
       <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th>Case mm (LxWxH)</th><th class="num">Spline</th><th class="num">kg/cm</th><th class="num">s/60°</th><th class="num">V</th><th class="num">g</th></tr>
-      {sameSize.map(({ part, spline }) => <tr><td>{brandName(part.brand)}</td><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td>{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td>
-        <td>{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num">{spline ? `${spline}T` : ''}</td><td class="num">{part.torque_kgcm ?? ''}</td><td class="num">{part.speed_s ?? ''}</td><td class="num">{part.voltage ?? ''}</td><td class="num">{part.weight_g ?? ''}</td></tr>)}
+      {sameSize.map(({ part, spline }) => <tr><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td>
+        <td data-label="Case mm (LxWxH)">{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num" data-label="Spline">{spline ? `${spline}T` : ''}</td><td class="num" data-label="kg/cm">{part.torque_kgcm ?? ''}</td><td class="num" data-label="s/60°">{part.speed_s ?? ''}</td><td class="num" data-label="V">{part.voltage ?? ''}</td><td class="num" data-label="g">{part.weight_g ?? ''}</td></tr>)}
     </table></>}
   <h2>Used in <span class="muted">(via those parts)</span></h2>
   {uses.length === 0 ? <p class="muted">No release lists a matching part yet.</p> :
