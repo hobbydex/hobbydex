@@ -1,6 +1,8 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import { db, key, url, countryName } from '../../../lib/data';
+import { db, key, url, countryName, dateText, sourceHref } from '../../../lib/data';
+import DateDoubt from '../../../components/DateDoubt.astro';
+import DoubtNote from '../../../components/DoubtNote.astro';
 import { catName } from '../../../lib/categories';
 import Icon from '../../../components/Icon.astro';
 import ReleaseArt from '../../../components/ReleaseArt.astro';
@@ -30,6 +32,11 @@ const owner = brand.owner ? db.company.get(brand.owner) : undefined;
 const ownerDoc = brand.owner_source?.startsWith('doc/') ? db.doc.get(brand.owner_source) : undefined;
 const ownerHref = ownerDoc ? ownerDoc.page ?? ownerDoc.url : brand.owner_source;
 const sisters = owner ? (db.brandsByOwner.get(owner.id) ?? []).filter((b) => b.id !== brand.id).sort((a, b) => a.name.localeCompare(b.name)) : [];
+// launched and ended: the dates as the status line words them (months when the source gives them), each linked to its source
+const launchedText = brand.launched ? dateText({ released: brand.launched }) : undefined;
+const endedText = brand.ended ? dateText({ released: brand.ended }) : undefined;
+// the footnote only when a marked date is on the page (launched shows for an active brand, and for a gone one with an end)
+const dateDoubtful = !!((brand.status === 'active' && launchedText && brand.launched_doubt) || (brand.status === 'gone' && endedText && ((launchedText && brand.launched_doubt) || brand.ended_doubt)));
 const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length ?? 0] as const).filter(([, n]) => n > 0);
 ---
 <Base title={brand.name} description={`${brand.name}: platforms and parts in Hobbydex.`} kind="brand">
@@ -41,8 +48,14 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
     {sisters.length > 0 && <><dt>Sister brands</dt><dd>{sisters.map((b, i) => <>{i > 0 && ', '}<a href={url.brand(b.id)}>{b.name}</a></>)}</dd></>}
     {brand.country && <><dt>Country</dt><dd>{countryName(brand.country)}</dd></>}
     {brand.website && <><dt>Website</dt><dd><a href={brand.website} rel="nofollow">{brand.website}</a></dd></>}
-    <dt>Status</dt><dd>{brand.status}</dd>
+    <dt>Status</dt><dd>
+      {brand.status === 'active' && <>Active{launchedText && <> since {sourceHref(brand.launched_source) ? <a href={sourceHref(brand.launched_source)} rel="nofollow">{launchedText}</a> : launchedText}<DateDoubt reason={brand.launched_doubt} /></>}</>}
+      {brand.status === 'dormant' && 'Inactive: no new products'}
+      {brand.status === 'gone' && <>Defunct{endedText && <> ({launchedText && <>{sourceHref(brand.launched_source) ? <a href={sourceHref(brand.launched_source)} rel="nofollow">{launchedText}</a> : launchedText}<DateDoubt reason={brand.launched_doubt} />&ndash;</>}{!launchedText && 'until '}{sourceHref(brand.ended_source) ? <a href={sourceHref(brand.ended_source)} rel="nofollow">{endedText}</a> : endedText}<DateDoubt reason={brand.ended_doubt} />)</>}</>}
+      {!['active', 'dormant', 'gone'].includes(brand.status) && brand.status}
+    </dd>
   </dl>
+  <DoubtNote on={dateDoubtful} />
   {brand.notes && <p class="muted">{brand.notes}</p>}
   {kits.length > MANY && <><h2>Platforms <span class="muted">({kits.length})</span></h2>
   <div class="kitfilter" data-pagefind-ignore>

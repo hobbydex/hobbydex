@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Discontinued from '../../components/Discontinued.astro';
+import HideDiscontinued from '../../components/HideDiscontinued.astro';
 import { db, url } from '../../lib/data';
 import { driveLabel } from '../../lib/drive';
 ---
@@ -8,9 +9,10 @@ import { driveLabel } from '../../lib/drive';
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / RC cars</div>
   <h1>RC cars</h1>
   <h2>Brands</h2>
+  {db.brands.some((b) => b.status === 'gone') && <HideDiscontinued />}
   <ul class="cards">
     {db.brands.map((b) => (
-      <li><a href={url.brand(b.id)}><b>{b.name}</b></a><br />
+      <li data-discontinued={b.status === 'gone' ? '' : undefined}><a href={url.brand(b.id)}><b>{b.name}</b></a><br />
         <span class="muted">{[[db.kitsByBrand.get(b.id)?.length ?? 0, 'platforms'], [db.partsByBrand.get(b.id)?.length ?? 0, 'parts']].filter(([n]) => n).map(([n, w]) => `${n} ${w}`).join(' · ')}</span></li>
     ))}
   </ul>

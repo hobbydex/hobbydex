@@ -3,7 +3,9 @@ import { buildLabel } from '../../../../lib/build';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
-import { db, url, key, brandName, yearOf, yearText } from '../../../../lib/data';
+import { db, url, key, brandName, yearOf, yearText , yearDoubt } from '../../../../lib/data';
+import DateDoubt from '../../../../components/DateDoubt.astro';
+import DoubtNote from '../../../../components/DoubtNote.astro';
 // one brand's releases, newest first (unknown years last), sortable by any column
 export function getStaticPaths() {
   return [...new Set(db.releases.map((r) => r.brand))].map((b) => ({ params: { brand: key(b)[0] }, props: { brand: b } }));
@@ -22,9 +24,10 @@ const kitName = (id: string) => db.kit.get(id)?.name ?? '';
   <table class="sortable">
     <thead><tr><th class="num">Year</th><th>Release</th><th>Platform</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr></thead>
     <tbody>{releases.map((r) => <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
-      <td class="num">{yearText(r)}</td><td><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td><a href={url.platform(r.kit)}>{kitName(r.kit)}</a></td>
+      <td class="num">{yearText(r)}<DateDoubt reason={yearDoubt(r)} /></td><td><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td><a href={url.platform(r.kit)}>{kitName(r.kit)}</a></td>
       <td class="num">{r.number ?? ''}</td><td>{buildLabel(r.kind)}</td><td class="num">{r.contains?.length ?? 0}</td>
     </tr>)}</tbody>
   </table>
+  <DoubtNote on={releases.some((r) => !!yearDoubt(r))} />
   <script src="/sort-table.js" defer></script>
 </Base>
