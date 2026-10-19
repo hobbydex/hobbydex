@@ -60,6 +60,8 @@ import Base from '../layouts/Base.astro';
       const filt = () => { const f = {}; if (type) f.type = type; if (cat) { f.category = cat; f.type = 'part'; } if (drive) { f.drive = drive; f.type = 'platform'; } if (make) f.make = make; return f; };
       const PAGE = 20;
       const labels = { part: 'part', spec: 'spec', release: 'release', platform: 'platform', brand: 'brand' };
+      // the same mark as Discontinued.astro, after the title of a discontinued part or release
+      const DISC = '<span class="disc" title="Discontinued"><svg class="icon" aria-hidden="true"><use href="/icons.svg#discontinued"/></svg><span class="sr-only"> discontinued</span></span>';
       const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
       const mark = (text, terms) => {
         let out = esc(text);
@@ -75,7 +77,8 @@ import Base from '../layouts/Base.astro';
           listed.add(d.url);
           const li = document.createElement('li');
           const t = d.meta.type || '';
-          li.innerHTML = `<span class="badge">${esc(labels[t] || t)}</span><a href="${esc(d.url)}">${mark(d.meta.title || d.url, terms)}</a>` + (d.meta.sub ? `<span class="sub">${esc(d.meta.sub)}</span>` : '');
+          const disc = d.filters && d.filters.status && d.filters.status.includes('discontinued') ? ' ' + DISC : '';
+          li.innerHTML = `<span class="badge">${esc(labels[t] || t)}</span><a href="${esc(d.url)}">${mark(d.meta.title || d.url, terms)}</a>${disc}` + (d.meta.sub ? `<span class="sub">${esc(d.meta.sub)}</span>` : '');
           results.appendChild(li);
         }
         shown += batch.length;

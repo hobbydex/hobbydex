@@ -95,6 +95,7 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
         list.innerHTML = r.datas.slice(0, SHOW).map((d, i) => { const t = d.meta.type || '';
           return `<li role="option" id="home-ac-${i}" aria-selected="false"><a href="${esc(d.url)}" tabindex="-1"><span class="badge">${esc(labels[t] || t)}</span>`
             + `<span class="t">${re ? esc(d.meta.title || d.url).replace(re, '<mark>$1</mark>') : esc(d.meta.title || d.url)}</span>`
+            + (d.filters && d.filters.status && d.filters.status.includes('discontinued') ? ' <span class="disc" title="Discontinued"><svg class="icon" aria-hidden="true"><use href="/icons.svg#discontinued"/></svg><span class="sr-only"> discontinued</span></span>' : '')
             + (d.meta.sub ? `<span class="sub">${esc(d.meta.sub)}</span>` : '') + '</a></li>'; }).join('');
         status.textContent = r.hits.length ? `${r.hits.length} result${r.hits.length === 1 ? '' : 's'}` : 'No results';
         active = -1; open(document.activeElement === q);
