@@ -146,6 +146,9 @@ import SeenNote from '../../../../components/SeenNote.astro';
     {part.current_a && <><dt>ESC</dt><dd>{part.current_a} A{part.peak_current_a && ` (${part.peak_current_a} A peak)`}</dd></>}
     {part.lipo_cells && <><dt>LiPo</dt><dd>{part.lipo_cells[0] === part.lipo_cells[1] ? `${part.lipo_cells[0]}S` : `${part.lipo_cells[0]}-${part.lipo_cells[1]}S`}</dd></>}
     {part.torque_kgcm && <><dt>Servo</dt><dd>{part.torque_kgcm} kg/cm{part.speed_s && `, ${part.speed_s} s/60°`}{part.voltage && ` at ${part.voltage} V`}{part.motor && `, ${part.motor}`}{part.gear_material && `, ${part.gear_material} gears`}</dd></>}
+    {(part.bearings || part.bearing_kind) && <><dt>Bearings</dt><dd>{`${part.bearings ?? ''}${part.bearing_kind ? ` ${part.bearing_kind}` : ''} bearings`.trim()}</dd></>}
+    {part.dead_band_us && <><dt>Dead band</dt><dd>{part.dead_band_us} µs</dd></>}
+    {part.frequency_hz && <><dt>PWM frequency</dt><dd>{Array.isArray(part.frequency_hz) ? `${part.frequency_hz[0]} to ${part.frequency_hz[1]} Hz` : `${part.frequency_hz} Hz`}</dd></>}
     {part.channels && <><dt>Channels</dt><dd>{part.channels}</dd></>}
     {part.protocol && <><dt>Protocol</dt><dd>{part.protocol}</dd></>}
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
