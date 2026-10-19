@@ -7,6 +7,7 @@ import WebSearch from '../../../../components/WebSearch.astro';
 import FanLinks from '../../../../components/FanLinks.astro';
 import CopyButton from '../../../../components/CopyButton.astro';
 import OtherCarSets from '../../../../components/OtherCarSets.astro';
+import Videos from '../../../../components/Videos.astro';
 import { gtinLabel } from '../../../../lib/gtin';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
@@ -92,6 +93,8 @@ const boxCats = [...new Set(boxRows.map((c) => c.p.category ?? ''))].map((g) => 
   .sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1) || catName(a.g).localeCompare(catName(b.g)));
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 const conversions = conversionsForRelease(release);
+// the maker's videos of this release, then those of the whole kit
+const videos = [...new Set([...(db.videosByRelease.get(release.id) ?? []), ...(db.videosByKit.get(kit.id) ?? [])])];
 import SeenNote from '../../../../components/SeenNote.astro';
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
@@ -217,6 +220,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
       for (const g of document.querySelectorAll<HTMLElement>('.catgroup')) g.hidden = !!sel.value && g.dataset.cat !== sel.value;
     });
   </script>
+    <Videos videos={videos} />
     {sheets.length > 0 && <><h2>Setup sheets <span class="muted">({sheets.length})</span></h2><details class="sheets"><summary class="muted">{sheets.length === 1 ? "the sheet" : "all sheets"}</summary><ul>{sheets.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details></>}
   {mainDocs.length > 0 && <><h2>Sources</h2>
     {mainDocs.length <= 4 || new Set(mainDocs.map((d) => d.url)).size === mainDocs.length

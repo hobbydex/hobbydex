@@ -1,0 +1,30 @@
+---
+// The maker's own videos of a release, kit or part (documents of kind video, from the maker's official YouTube
+// channel): a small thumbnail, the title as the channel gives it, the channel and the day. Nothing is embedded and
+// nothing is stored: the thumbnail is YouTube's own, hot-linked from i.ytimg.com, and both it and the title open
+// the video on YouTube in a new tab.
+import type { Doc } from '../lib/data';
+interface Props { videos: Doc[] }
+const { videos } = Astro.props;
+const vid = (d: Doc) => new URL(d.url!).searchParams.get('v') ?? '';
+const length = (s?: number) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '');
+---
+{videos.length > 0 && <>
+  <h2 id="videos">Videos <span class="muted">({videos.length})</span></h2>
+  <ul class="videos">{videos.map((d) => <li>
+    <a class="thumb" href={d.url} rel="nofollow noopener" target="_blank" tabindex="-1" aria-hidden="true"><img src={`https://i.ytimg.com/vi/${vid(d)}/mqdefault.jpg`} width="128" height="72" loading="lazy" decoding="async" referrerpolicy="no-referrer" alt={d.title} />{d.duration_s && <span class="len">{length(d.duration_s)}</span>}</a>
+    <span class="text"><a href={d.url} rel="nofollow noopener" target="_blank">{d.title}</a>
+      <span class="muted">{[d.channel ?? 'YouTube', d.date].filter(Boolean).join(' · ')}</span></span>
+  </li>)}</ul>
+</>}
+<style>
+  .videos { list-style: none; padding: 0; margin: 0.5rem 0 1rem; display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); }
+  .videos li { display: flex; gap: 0.6rem; align-items: flex-start; min-width: 0; }
+  .thumb { position: relative; flex: none; display: block; line-height: 0; }
+  /* overflow and the small font keep the alt text inside the box while the thumbnail loads or when it is blocked */
+  .thumb img { width: 128px; height: 72px; object-fit: cover; overflow: hidden; font-size: 0.65rem; color: var(--muted); border-radius: 4px; background: var(--surface); border: 1px solid var(--border-muted); }
+  .len { position: absolute; right: 4px; bottom: 4px; padding: 0 0.25rem; line-height: 1.3; font-size: 0.7rem; color: #fff; background: #000c; border-radius: 3px; }
+  .text { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; overflow-wrap: anywhere; line-height: 1.3; }
+  .text .muted { font-size: 0.8rem; }
+  @media (max-width: 40rem) { .videos { grid-template-columns: 1fr; } .thumb img { width: 112px; height: 63px; } }
+</style>

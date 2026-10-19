@@ -6,6 +6,7 @@ import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 import { gtinLabel } from '../../../../lib/gtin';
 import WebSearch from '../../../../components/WebSearch.astro';
+import Videos from '../../../../components/Videos.astro';
 import FanLinks from '../../../../components/FanLinks.astro';
 import CopyButton from '../../../../components/CopyButton.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
@@ -212,6 +213,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
     <ul>{range.map((o) => <li>{o.category !== 'paint' && <Fragment set:html={colourDot(o.color)} />}<a href={url.part(o.id)}>{partLabel(o)}</a> {o.number && o.name}<Discontinued item={o} /><span class="muted">{o.turns && ` · ${o.turns}T`}{o.kv && ` · ${o.kv} kV`}</span></li>)}</ul></>}
   {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
     <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {partLabel(o)}</a> {shortName(o)}<Discontinued item={o} /><span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
+  <Videos videos={db.videosByPart.get(part.id) ?? []} />
   <h2>Used in</h2>
   {uses.length === 0 ? <p class="muted">No release lists this part yet.</p> :
   <table>
