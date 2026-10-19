@@ -11,6 +11,7 @@ const NEWEST = 100;
 const dated = db.releases.filter((r) => dateKey(r)).sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name)).slice(0, NEWEST);
 const byBrand = [...db.releases.reduce((m, r) => m.set(r.brand, (m.get(r.brand) ?? 0) + 1), new Map<string, number>())]
   .sort((a, b) => b[1] - a[1] || brandName(a[0]).localeCompare(brandName(b[0])));
+import SeenNote from '../../../components/SeenNote.astro';
 ---
 <Base title="Releases" description="RC kit and RTR releases in Hobbydex: the newest, and every brand's releases on its own page.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Releases</div>
@@ -31,4 +32,5 @@ const byBrand = [...db.releases.reduce((m, r) => m.set(r.brand, (m.get(r.brand) 
     </tr>)}
   </table>
   <DoubtNote on={dated.some((r) => !!dateDoubt(r))} />
+  <SeenNote rows={dated} />
 </Base>

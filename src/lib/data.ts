@@ -13,7 +13,7 @@ export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source
 // What a buyer must get separately to complete a release (hobbydex-rc docs/schema.md "release", needs): a part, or a generic item
 export type Need = { part?: string; item?: string; source: string; qty?: number; note?: string };
 export type Depicts = { make: string; model: string; year?: number; licensed?: boolean };   // the real vehicle a release or body shell replicates
-export type Release = { id: string; depicts?: Depicts; toml_path?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
+export type Release = { id: string; depicts?: Depicts; toml_path?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; releases?: string[]; car?: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };   // releases: the cars of the kit the maker lists the part for; car: a car that is none of them; neither: every release
 export type MountHoles = { thread: string; count?: number; circle_mm: number };   // count left out: the maker gives thread and spacing only
@@ -188,14 +188,36 @@ export const releasesByMake = group(raw.releases.filter((r) => r.depicts), (r) =
 export const bodiesByMake = group(raw.parts.filter((p) => p.depicts && p.category === 'body'), (p) => p.depicts!.make);
 // Releases with an unknown year sort as oldest and show as 'unknown'.
 export const yearOf = (r: { year?: number; model_year?: number }) => r.year ?? r.model_year ?? 0;   // a model year sorts in place of an unknown release year
-// Sort key and label for a release date: '2025-03-22' > '2025-03' > '2025'.
-export const dateKey = (r: { year?: number; released?: string }) => r.released ?? (r.year ? String(r.year) : '');
+// Dates are ISO 8601 at the precision the source gives: "2012", "2012-05", "2012-05-01". A release's
+// date is released (or year, until released carries every year), then announced (the maker's
+// announcement, a real date), then seen_by: the first archived capture of the maker's page, an upper
+// bound that is not the release date and is marked with a *. The helpers below are the only place
+// that orders or words these.
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-export const dateText = (r: { year?: number; released?: string }) => {
-  const m = r.released?.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/);
-  if (!m) return r.year ? String(r.year) : 'unknown';
+export const isoText = (iso: string) => {
+  const m = iso.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/);
+  if (!m) return iso;
   return [m[3] && String(Number(m[3])), m[2] && MONTHS[Number(m[2]) - 1], m[1]].filter(Boolean).join(' ');
 };
+/** The release date a source states: released, else the year. */
+export const releasedOf = (r: { year?: number; released?: string }) => r.released ?? (r.year ? String(r.year) : undefined);
+/** Any date at all, the seen_by upper bound included. */
+export const hasDate = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => !!(releasedOf(r) || r.announced || r.seen_by);
+/** Only the seen_by bound: no date a source states. */
+export const seenOnly = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => !releasedOf(r) && !r.announced && !!r.seen_by;
+// Sort key: '2025-03-22' > '2025-03' > '2025'; an announced date sorts as a real date, and a seen_by
+// bound sorts after every real date of its year ('2019~-03' > '2019-12-31').
+export const dateKey = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) =>
+  releasedOf(r) ?? r.announced ?? (r.seen_by ? `${r.seen_by.slice(0, 4)}~${r.seen_by.slice(4)}` : '');
+/** The date column: "2012", "May 2012", "1 May 2012"; "announced May 2012"; "May 2012*" for seen_by alone (see SEEN_NOTE). */
+export const dateText = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => {
+  const real = releasedOf(r);
+  if (real) return isoText(real);
+  if (r.announced) return `announced ${isoText(r.announced)}`;
+  if (r.seen_by) return `${isoText(r.seen_by)}*`;
+  return 'unknown';
+};
+export const SEEN_NOTE = "* not the release date: the first time the maker's page for it was archived, so it was on sale by then.";
 // The reason the date dateText shows is doubtful (released_doubt, or year_doubt when only the year is shown); undefined when it is sure.
 export const dateDoubt = (r: { year?: number; released?: string; year_doubt?: string; released_doubt?: string }) =>
   r.released ? r.released_doubt : r.year ? r.year_doubt : undefined;
@@ -230,11 +252,12 @@ export const dateSource = (r: { released?: string; documents?: string[] }) => {
 };
 /** Oldest release first, by its date (or model year); undated releases last, in item-number order, then by name. */
 export const byReleaseDate = (a: Release, b: Release) => {
-  const ka = a.released ?? (yearOf(a) ? String(yearOf(a)) : ''), kb = b.released ?? (yearOf(b) ? String(yearOf(b)) : '');
+  const ka = dateKey(a) || (yearOf(a) ? String(yearOf(a)) : ''), kb = dateKey(b) || (yearOf(b) ? String(yearOf(b)) : '');
   return (ka ? 0 : 1) - (kb ? 0 : 1) || ka.localeCompare(kb)
     || (a.number ? 0 : 1) - (b.number ? 0 : 1) || (a.number ?? '').localeCompare(b.number ?? '', undefined, { numeric: true }) || a.name.localeCompare(b.name);
 };
-export const yearText = (r: { year?: number; model_year?: number }) =>(r.year ? String(r.year) : r.model_year ? `${r.model_year} model` : 'unknown');
+export const yearText = (r: { year?: number; released?: string; announced?: string; seen_by?: string; model_year?: number }) =>
+  hasDate(r) ? dateText(r) : r.model_year ? `${r.model_year} model` : 'unknown';
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
 
 // Conversion kits: a release whose `requires` names a kit or release (the car it needs). For a kit, the

@@ -91,6 +91,7 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
 // the maker's pages for the part's manual, parts list and exploded view, as on a release; its own links (not fan sites)
 const partFiles = fileRows((part.documents ?? []).map((id) => db.doc.get(id)).filter((d) => d !== undefined));
 const partLinks = makerOwnLinks(part.links);
+import SeenNote from '../../../../components/SeenNote.astro';
 ---
 <Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
@@ -214,7 +215,8 @@ const partLinks = makerOwnLinks(part.links);
     <tr><th class="num">Year</th><th>Release</th><th>Role</th></tr>
     {uses.map((u) => <tr><td class="num">{yearText(u.release)}<DateDoubt reason={yearDoubt(u.release)} /></td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a><Discontinued item={u.release} /></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
   </table>
-  <DoubtNote on={uses.some((u) => !!yearDoubt(u.release))} />}
+  <DoubtNote on={uses.some((u) => !!yearDoubt(u.release))} />
+  <SeenNote rows={uses.map((u) => u.release)} />}
   <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p>
   <DataLink path={part.toml_path} id={part.id} />
 </Base>

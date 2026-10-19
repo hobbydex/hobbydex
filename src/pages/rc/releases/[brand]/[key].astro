@@ -12,7 +12,7 @@ import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
-import { db, key, url, brandName, byPartNo, partLabel, partRest, partNo, yearOf, yearText, dateText, dateDoubt, brandGone, docPage, dateSource, requiredName, depictsText, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partLabel, partRest, partNo, yearOf, yearText, dateText, isoText, dateDoubt, brandGone, docPage, dateSource, requiredName, depictsText, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import CategoryBoxes from '../../../../components/CategoryBoxes.astro';
@@ -88,6 +88,7 @@ const boxCats = [...new Set(boxRows.map((c) => c.p.category ?? ''))].map((g) => 
   .sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1) || catName(a.g).localeCompare(catName(b.g)));
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 const conversions = conversionsForRelease(release);
+import SeenNote from '../../../../components/SeenNote.astro';
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a>{brandGone(release.brand) && <span class="muted"> (brand defunct)</span>} / {kit.placeholder ? <span>Chassis not yet known</span> : <a href={url.platform(kit.id)}>{kit.name}</a>} / {release.name}</div>
@@ -102,7 +103,7 @@ const conversions = conversionsForRelease(release);
     {(kit.category || kit.drive || kit.power) && <><dt>Type</dt><dd>{kit.category && <><a href={`/rc/platforms/types/${kit.category}/`}>{kitTypeOne[kit.category] ?? kit.category}</a>{(kit.drive || kit.power) && ' · '}</>}{[driveLabel(kit.drive), kit.power].filter(Boolean).join(' · ')}</dd></>}
     {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && ' · '}<a href={url.platform(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
-    {release.released ? <><dt>Released</dt><dd>{dateText(release)}<DateDoubt reason={dateDoubt(release)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></> : <><dt>Year</dt><dd>{yearText(release)}<DateDoubt reason={dateDoubt(release)} /></dd></>}
+    {release.released ? <><dt>Released</dt><dd>{dateText(release)}<DateDoubt reason={dateDoubt(release)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></> : release.year ? <><dt>Year</dt><dd>{yearText(release)}<DateDoubt reason={dateDoubt(release)} /></dd></> : release.announced ? <><dt>Released</dt><dd>{dateText(release)}</dd></> : release.seen_by ? <><dt>Released</dt><dd>on sale by {release.seen_by_source ? <a href={release.seen_by_source} rel="nofollow">{isoText(release.seen_by)}</a> : isoText(release.seen_by)}*</dd></> : <><dt>Year</dt><dd>{yearText(release)}</dd></>}
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
@@ -114,6 +115,7 @@ const conversions = conversionsForRelease(release);
     {replaces && <><dt>Replaces</dt><dd><a href={url.release(replaces.id)}>{brandName(replaces.brand)} {replaces.name}</a></dd></>}
   </dl>
   <DoubtNote on={!!dateDoubt(release)} />
+  <SeenNote rows={[release]} />
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} size="12rem" class="hero" /></span>
   </div>
   <FanLinks links={release.links} />

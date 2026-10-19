@@ -1,0 +1,9 @@
+---
+// The footnote for a seen_by date (the first archived capture of the maker's page): shown once under a
+// table or facts list when one of its rows carries only that bound. The asterisk in the date column
+// points here; the release page links the capture itself.
+import { SEEN_NOTE, seenOnly } from '../lib/data';
+interface Props { rows: { year?: number; released?: string; announced?: string; seen_by?: string }[] }
+const { rows } = Astro.props;
+---
+{rows.some(seenOnly) && <p class="muted seen-note">{SEEN_NOTE}</p>}
