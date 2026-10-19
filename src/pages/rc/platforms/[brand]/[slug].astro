@@ -8,7 +8,7 @@ import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
-import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt, docPage, type Doc, type Release } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partNo, yearOf, yearText, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt, seriesMates, docPage, type Doc, type Release } from '../../../../lib/data';
 import { FILE_KINDS, fileRows } from '../../../../lib/docFacts';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
@@ -50,6 +50,12 @@ const bearingSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.c
 const screwSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.category === 'screw' && /\b(screw|hardware|fastener|bolt)s?\s+(kit|set)\b/i.test(p.name));
 const fits = allFits.filter((x) => !bearingSets.includes(x) && !screwSets.includes(x));
 const relations = db.kitRelations.get(kit.id) ?? [];
+// car lines (series) this platform's releases belong to that run on other platforms too
+const seriesOn = [...new Set(releases.map((r) => r.series).filter((x): x is string => !!x))].map((series) => {
+  const others = new Map<string, string>();
+  for (const r of releases.filter((x) => x.series === series)) for (const m of seriesMates(r)) if (m.kit !== kit.id) others.set(m.kit, db.kit.get(m.kit)?.name ?? m.kit);
+  return { series, others: [...others] };
+}).filter((x) => x.others.length > 0);
 // parts of interchangeable rebrands, for kits whose own releases list none
 const ownParts = releases.reduce((n, r) => n + (r.contains?.length ?? 0), 0);
 const borrowed = ownParts > 0 ? [] : relations.filter((r) => r.link.parts === 'interchangeable').flatMap((r) =>
@@ -94,6 +100,7 @@ const sources = allDocs.filter((d) => d.kind === 'product_page');
   </div>
   <FanLinks links={kit.links} />
   {kit.notes && !isSourceNote(kit.notes) && <p class="muted">{kit.notes}</p>}
+  {seriesOn.map((x) => <p>Also in the {x.series} series on: {x.others.map(([id, name], i) => <>{i > 0 && ' · '}<a href={url.platform(id)}>{name}</a></>)}</p>)}
   {relations.length > 0 && <>
     <h2>Same car or platform</h2>
     <ul>

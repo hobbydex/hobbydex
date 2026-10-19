@@ -12,7 +12,7 @@ import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
-import { db, key, url, brandName, byPartNo, partLabel, partRest, partNo, yearOf, yearText, dateText, isoText, dateDoubt, brandGone, docPage, dateSource, requiredName, depictsText, conversionsForRelease, fitsForRelease, type Part } from '../../../../lib/data';
+import { db, key, url, brandName, byPartNo, partLabel, partRest, partNo, yearOf, yearText, dateText, isoText, dateDoubt, brandGone, docPage, dateSource, requiredName, depictsText, conversionsForRelease, fitsForRelease, seriesMates, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import CategoryBoxes from '../../../../components/CategoryBoxes.astro';
@@ -33,6 +33,10 @@ const kit = db.kit.get(release.kit)!;
 // successor links (supersedes): the newer releases that replace this one, and the older one this one replaces
 const replacedByReleases = db.releaseReplacedBy.get(release.id) ?? [];
 const replaces = release.supersedes ? db.release.get(release.supersedes) : undefined;
+// the car line (series): the other releases of it, grouped by platform in date order
+const seriesKits = new Map<string, typeof db.releases>();
+for (const x of seriesMates(release)) seriesKits.set(x.kit, [...(seriesKits.get(x.kit) ?? []), x]);
+const seriesByPlatform = [...seriesKits];
 const docs = (release.documents ?? []).map((d) => db.doc.get(d)).filter((d) => d !== undefined);
 // setup sheets (dozens on a race car) are folded into one collapsed line under Sources
 const sheets = docs.filter((d) => d.kind === 'setup_sheet');
@@ -120,6 +124,8 @@ import SeenNote from '../../../../components/SeenNote.astro';
   </div>
   <FanLinks links={release.links} />
   {rows.length > 0 && <p data-pagefind-ignore><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p>}
+  {seriesByPlatform.length > 0 && <><h2>{release.series} series <span class="muted">({seriesByPlatform.reduce((n, [, rs]) => n + rs.length, 0)})</span></h2>
+    <ul>{seriesByPlatform.map(([kitId, rs]) => <li><a href={url.platform(kitId)}>{db.kit.get(kitId)?.name ?? kitId}</a><span class="muted">:</span> {rs.map((x, i) => <>{i > 0 && ' · '}<a href={url.release(x.id)}>{x.name}</a></>)}</li>)}</ul></>}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
     <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a><Discontinued item={c} />{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
   {gear && <section data-pagefind-ignore>
