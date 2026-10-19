@@ -8,7 +8,7 @@ export type Make = { id: string; name: string; country: string; notes: string; t
 export type Company = { id: string; name: string; legal_name?: string; country?: string; website?: string; status?: string; brand?: string; parent?: string; notes?: string };
 export type Link = { site: string; url: string; kind?: 'fan-site' };
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
-export type Kit = { id: string; toml_path?: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; art?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[]; links?: Link[] };
+export type Kit = { id: string; placeholder?: boolean; toml_path?: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; art?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[]; links?: Link[] };
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
 // What a buyer must get separately to complete a release (hobbydex-rc docs/schema.md "release", needs): a part, or a generic item
 export type Need = { part?: string; item?: string; source: string; qty?: number; note?: string };
@@ -123,6 +123,8 @@ for (const k of raw.kits) {
 
 export const db = {
   ...raw,
+  // platforms: a placeholder kit (releases whose chassis no source names yet) is in no platform list, count or sitemap
+  kits: raw.kits.filter((k) => !k.placeholder),
   kitRelations,
   fitsByKit,
   categories: raw.categories ?? [],
@@ -146,7 +148,7 @@ export const db = {
   relatedTo,
   setsBySpec,
   doc: byId(raw.documents),
-  kitsByBrand: group(raw.kits, (k) => k.brand),
+  kitsByBrand: group(raw.kits.filter((k) => !k.placeholder), (k) => k.brand),
   releasesByKit: group(raw.releases, (r) => r.kit),
   partsByBrand: group(raw.parts, (p) => p.brand),
   usesByPart,

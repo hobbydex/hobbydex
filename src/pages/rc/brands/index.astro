@@ -3,7 +3,7 @@ import Base from '../../../layouts/Base.astro';
 import HideDiscontinued from '../../../components/HideDiscontinued.astro';
 import { db, url, countryName } from '../../../lib/data';
 const brands = [...db.brands].sort((a, b) => a.name.localeCompare(b.name));
-const releaseCount = (id: string) => (db.kitsByBrand.get(id) ?? []).reduce((n, k) => n + (db.releasesByKit.get(k.id)?.length ?? 0), 0);
+const releaseCount = (id: string) => db.releases.filter((r) => r.brand === id).length;   // placeholder kits hold releases too
 ---
 <Base title="Brands" description="Every brand in Hobbydex with its platforms, releases and parts.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Brands</div>
