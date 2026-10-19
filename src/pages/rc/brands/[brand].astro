@@ -142,6 +142,6 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   details.chassisless > summary .muted { font-weight: 400; }
   details.chassisless > p { margin: 0.6rem 0 0.4rem; }
   details.chassisless ul { list-style: none; padding: 0; margin: 0.5rem 0 0; columns: 13rem; column-gap: 1.5rem; }
-  details.chassisless li { break-inside: avoid; padding: 0.1rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  details.chassisless li { break-inside: avoid; padding: 0.1rem 0; }
   @media (max-width: 40em) { details.chassisless ul { columns: 1; } }
 </style>
