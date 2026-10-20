@@ -12,7 +12,7 @@ export type Kit = { id: string; sources?: Record<string, string>; placeholder?: 
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
 // What a buyer must get separately to complete a release (hobbydex-rc docs/schema.md "release", needs): a part, or a generic item
 export type Need = { part?: string; item?: string; source: string; qty?: number; note?: string };
-export type Depicts = { make: string; model: string; year?: number; licensed?: boolean };   // the real vehicle a release or body shell replicates
+export type Depicts = { make?: string; model: string; year?: number; licensed?: boolean };   // the real vehicle a release or body shell replicates; no make when several makers built it (a Sherman)
 export type Release = { id: string; sources?: Record<string, string>; depicts?: Depicts; toml_path?: string; announced_source?: string; series?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; scale?: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; releases?: string[]; car?: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };   // releases: the cars of the kit the maker lists the part for; car: a car that is none of them; neither: every release
@@ -197,9 +197,10 @@ export const countryName = (code: string) => new Intl.DisplayNames(['en'], { typ
 /** "Porsche 911 Carrera RSR 2.8 (1973)" */
 // one key per model however a maker spells it: case, spaces and hyphens do not count ("4x4 Pick Up" = "4x4 Pick-Up")
 export const modelKey = (model: string) => model.toLowerCase().replace(/[^a-z0-9]+/g, '');
-export const depictsText = (d: Depicts) => `${d.make} ${d.model}${d.year ? ` (${d.year})` : ''}`;
-export const releasesByMake = group(raw.releases.filter((r) => r.depicts), (r) => r.depicts!.make);
-export const bodiesByMake = group(raw.parts.filter((p) => p.depicts && p.category === 'body'), (p) => p.depicts!.make);
+export const depictsModel = (d: Depicts) => `${d.model}${d.year ? ` (${d.year})` : ''}`;
+// releases and body shells with a make only: the make pages; a vehicle with no make is listed on its releases and bodies alone
+export const releasesByMake = group(raw.releases.filter((r) => r.depicts?.make), (r) => r.depicts!.make!);
+export const bodiesByMake = group(raw.parts.filter((p) => p.depicts?.make && p.category === 'body'), (p) => p.depicts!.make!);
 // Releases with an unknown year sort as oldest and show as 'unknown'.
 export const yearOf = (r: { year?: number; model_year?: number }) => r.year ?? r.model_year ?? 0;   // a model year sorts in place of an unknown release year
 // Dates are ISO 8601 at the precision the source gives: "2012", "2012-05", "2012-05-01". A release's
