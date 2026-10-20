@@ -23,7 +23,7 @@ import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
 import { colourDot } from '../../../../lib/colourDot';
 import { partDrawing } from '../../../../lib/specDrawings';
 import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
-import { fileRows, makerOwnLinks, listedBelow } from '../../../../lib/docFacts';
+import { fileRows, makerOwnLinks, listedBelow, hostLabel } from '../../../../lib/docFacts';
 export function getStaticPaths() {
   // a former id (renamed or corrected) or another number the part is sold under (numbers) keeps working:
   // its page redirects to the current one; a number listed twice is one route
@@ -94,6 +94,8 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
 // the maker's pages for the part's manual, parts list and exploded view, as on a release; its own links (not fan sites)
 const partFiles = fileRows((part.documents ?? []).map((id) => db.doc.get(id)).filter((d) => d !== undefined));
 const partLinks = makerOwnLinks(part.links);
+// a shop's product page, when the maker has none: its own row, never under Product page
+const dealerLinks = (part.links ?? []).filter((l) => l.kind === 'dealer');
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
 ---
@@ -111,6 +113,7 @@ import RealVehicle from '../../../../components/RealVehicle.astro';
     {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <> <span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span>{part.sources?.category && <FactSource field="category" url={part.sources.category} />}</dd></>}
     {partLinks.length > 0 && <><dt>Product page</dt><dd>{partLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
+    {dealerLinks.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerLinks.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{hostLabel(l.url)}</a></>)}</dd></>}
     {partFiles.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
     {part.released && <><dt>Released</dt><dd><DateText r={part} /><DateDoubt reason={dateDoubt(part)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{partLabel(replaces)}</a> {replaces.number && replaces.name}<Discontinued item={replaces} /></dd></>}
