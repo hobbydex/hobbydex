@@ -8,6 +8,14 @@ updates:
     groups:
       npm:
         patterns: ["*"]
+    ignore:
+      # @astrojs/check accepts TypeScript 5 and 6; TypeScript 7 support
+      # waits on TypeScript 7.1: https://github.com/withastro/astro/issues/17268
+      - dependency-name: typescript
+        versions: [">=7"]
+      # CI builds on Node 22
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
