@@ -14,7 +14,7 @@ import Discontinued from '../../../../components/Discontinued.astro';
 import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
-import { SEEN_NOTE, db, key, url, brandName, announcedSourceLabel, byPartNo, partLabel, partRest, partNo, yearOf, isoText, dateDoubt, brandGone, docPage, dateSource, requiredName, depictsModel, conversionsForRelease, fitsForRelease, seriesMates, type Part } from '../../../../lib/data';
+import { SEEN_NOTE, db, key, url, brandName, announcedSourceLabel, byPartNo, partLabel, partRest, partNo, yearOf, isoText, dateDoubt, brandGone, docPage, dateSource, requiredName, conversionsForRelease, fitsForRelease, seriesMates, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import FactSource from '../../../../components/FactSource.astro';
@@ -101,6 +101,7 @@ const conversions = conversionsForRelease(release);
 // the maker's videos of this release, then those of the whole kit
 const videos = [...new Set([...(db.videosByRelease.get(release.id) ?? []), ...(db.videosByKit.get(kit.id) ?? [])])];
 import SeenNote from '../../../../components/SeenNote.astro';
+import RealVehicle from '../../../../components/RealVehicle.astro';
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a>{brandGone(release.brand) && <span class="muted"> (brand defunct)</span>} / {kit.placeholder ? <span>Chassis not yet known</span> : <a href={url.platform(kit.id)}>{kit.name}</a>} / {release.name}</div>
@@ -110,7 +111,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
   <div class="factsrow">
   <dl class="facts">
     {kit.placeholder ? <><dt>Chassis</dt><dd>not yet known</dd></> : <><dt>Platform</dt><dd><a href={url.platform(kit.id)}>{kit.name}</a>{release.sources?.kit && <FactSource field="kit" url={release.sources.kit} />}</dd></>}
-    {release.depicts && <><dt>Real vehicle</dt><dd>{release.depicts.make ? <><a href={url.make(release.depicts.make)}>{release.depicts.make}</a> {depictsModel(release.depicts)}</> : depictsModel(release.depicts)}{release.depicts.licensed && <span class="muted"> · officially licensed, according to {brandName(release.brand)}</span>}<span hidden data-pagefind-filter={release.depicts.make ? `make:${release.depicts.make}` : undefined} /></dd></>}
+    {release.depicts && <><dt>Real vehicle</dt><dd><RealVehicle depicts={release.depicts!} />{release.depicts.licensed && <span class="muted"> · officially licensed, according to {brandName(release.brand)}</span>}<span hidden data-pagefind-filter={release.depicts.make ? `make:${release.depicts.make}` : undefined} /></dd></>}
     {release.requires?.length && <><dt>Needs</dt><dd>{release.requires.length > 1 && 'one of: '}{release.requires.map((id, i) => { const n = requiredName(id); return <>{i > 0 && (i === release.requires!.length - 1 ? ' or ' : ', ')}{n ? <a href={n.href}>{n.name}</a> : id}</>; })}<span class="muted"> (not included: this is a conversion kit)</span></dd></>}
     {(release.scale ?? kit.scale) && <><dt>Scale</dt><dd>{release.scale ?? kit.scale}{scaleSrc && <FactSource field="scale" url={scaleSrc} />}</dd></>}
     {(shownCat || kit.drive || kit.power) && <><dt>Type</dt><dd>{shownCat && <><a href={`/rc/platforms/types/${shownCat}/`}>{kitTypeOne[shownCat] ?? shownCat}</a>{catSrc && <FactSource field="category" url={catSrc} />}{(kit.drive || kit.power) && ' · '}</>}{[driveLabel(kit.drive), kit.power].filter(Boolean).join(' · ')}</dd></>}

@@ -1,0 +1,10 @@
+---
+import VehiclePage from '../../../components/VehiclePage.astro';
+import { vehicles } from '../../../lib/data';
+// model-only vehicles: a model several makers built, with no make (Sherman, Pershing, KV-1, JS-2, Centurion)
+export function getStaticPaths() {
+  return vehicles.filter((v) => !v.make).map((v) => ({ params: { model: v.slug }, props: { vehicle: v } }));
+}
+const { vehicle } = Astro.props;
+---
+<VehiclePage vehicle={vehicle} />

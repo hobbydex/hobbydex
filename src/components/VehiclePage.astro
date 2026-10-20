@@ -1,0 +1,59 @@
+---
+// A real vehicle's page: every release and body shell that depicts it, across RC brands. Releases sort by date; when
+// they name several vehicle years, the rows are grouped by that year (the year a release depicts, not its date).
+import Base from '../layouts/Base.astro';
+import DateText from './DateText.astro';
+import DateDoubt from './DateDoubt.astro';
+import DoubtNote from './DoubtNote.astro';
+import Discontinued from './Discontinued.astro';
+import HideDiscontinued from './HideDiscontinued.astro';
+import ReleaseArt from './ReleaseArt.astro';
+import SeenNote from './SeenNote.astro';
+import { db, url, brandName, byReleaseDate, partLabel, yearDoubt, hasDate, type Vehicle, type Part } from '../lib/data';
+interface Props { vehicle: Vehicle }
+const { vehicle } = Astro.props;
+const { make, model, releases, bodies } = vehicle;
+const byBrandNo = (a: Part, b: Part) => brandName(a.brand).localeCompare(brandName(b.brand)) || (a.status === 'discontinued' ? 1 : 0) - (b.status === 'discontinued' ? 1 : 0) || partLabel(a).localeCompare(partLabel(b), undefined, { numeric: true });
+const yearOfDepicts = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? 0;   // 0: no year stated
+const years = [...new Set([...releases, ...bodies].map(yearOfDepicts))].sort((a, b) => (a || Infinity) - (b || Infinity));
+const groups = years.map((y) => ({ year: y, rs: releases.filter((r) => yearOfDepicts(r) === y).sort(byReleaseDate), bs: bodies.filter((p) => yearOfDepicts(p) === y).sort(byBrandNo) }));
+const hasDisc = [...releases, ...bodies].some((x) => x.status === 'discontinued');
+const title = make ? `${make} ${model}` : model;
+const brands = new Set(releases.map((r) => r.brand)).size;
+---
+<Base title={title} description={`${title}: ${releases.length} ${releases.length === 1 ? 'release' : 'releases'}${bodies.length ? ` and ${bodies.length} body ${bodies.length === 1 ? 'shell' : 'shells'}` : ''} from ${brands} RC ${brands === 1 ? 'brand' : 'brands'}.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / {make ? <><a href="/rc/makes/">Car makes</a> / <a href={url.make(make)}>{make}</a> / {model}</> : model}</div>
+  <h1>{title} <span class="muted">({releases.length + bodies.length})</span></h1>
+  {years.length === 1 && years[0] > 0 && <dl class="facts"><dt>Vehicle year</dt><dd>{years[0]}</dd></dl>}
+  {hasDisc && <HideDiscontinued />}
+  {groups.map((g) => <section>
+    {groups.length > 1 && <h2>{g.year || 'Year not stated'} <span class="muted">({g.rs.length + g.bs.length})</span></h2>}
+    {g.rs.length > 0 && <>
+      <table class="releases">
+      <tr><th>Release</th><th>Brand</th><th>Platform</th><th class="num">Released</th></tr>
+      {g.rs.map((r) => { const k = db.kit.get(r.kit); return <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
+        <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} />{r.number && <span class="muted"> {r.number}</span>}</td>
+        <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
+        <td data-label="Platform">{k && !k.placeholder ? <a href={url.platform(k.id)}>{k.name}</a> : ''}</td>
+        <td class="num" data-label="Released">{hasDate(r) || r.model_year ? <DateText r={r} year /> : ''}<DateDoubt reason={yearDoubt(r)} /></td>
+      </tr>; })}
+      </table>
+  <DoubtNote on={g.rs.some((r) => !!yearDoubt(r))} /></>}
+    {g.bs.length > 0 && <>
+      <table class="releases bodies">
+      <tr><th>Body</th><th>Brand</th><th>Fits</th><th class="num">Released</th></tr>
+      {g.bs.map((p) => { const fits = [...new Set((p.fits ?? []).map((f) => f.kit).filter((k): k is string => !!k))].map((k) => db.kit.get(k)).filter((k) => !!k); return <tr data-discontinued={p.status === 'discontinued' ? '' : undefined}>
+        <td class="name"><a href={url.part(p.id)}>{p.name}</a><Discontinued item={p} />{p.number && <span class="muted"> {p.number}</span>}</td>
+        <td data-label="Brand"><a href={url.brand(p.brand)}>{brandName(p.brand)}</a></td>
+        <td data-label="Fits">{fits.map((k, i) => <>{i > 0 && ', '}<a href={url.platform(k!.id)}>{k!.name}</a></>)}</td>
+        <td class="num" data-label="Released">{p.released ? p.released.slice(0, 4) : ''}</td>
+      </tr>; })}
+      </table>
+  <SeenNote rows={g.rs} /></>}
+  </section>)}
+  <style>
+    table.bodies { margin-top: 0.75em; }
+    /* phones: the labelled cells wrap as whole boxes, as on the make pages */
+    @media (max-width: 600px) { table.releases td[data-label]:not(:empty) { display: inline-block; white-space: normal; } }
+  </style>
+</Base>
