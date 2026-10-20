@@ -5,7 +5,7 @@ import type { Link } from '../lib/data';
 import CopyButton from './CopyButton.astro';
 interface Props { query: string; copy?: string; copyLabel?: string; links?: Link[] }
 const { query, copy, copyLabel = 'Copy number', links = [] } = Astro.props;
-const own = links.filter((l) => l.kind !== 'fan-site');
+const own = links.filter((l) => l.kind !== 'fan-site' && l.kind !== 'dealer');
 ---
 <p class="websearch" data-pagefind-ignore data-q={query}>
   <a class="btn" href={`https://www.google.com/search?q=${encodeURIComponent(query)}`} rel="nofollow noopener" target="_blank">Search the web</a>

@@ -55,6 +55,8 @@ const ownLinks = makerOwnLinks(release.links);
 const productPages = docs.filter((d) => d.kind === 'product_page' && webLink(d)).map((d) => ({ site: pageLabel(webLink(d)!), url: webLink(d)! }))
   .sort((a, b) => Number(b.site === 'English') - Number(a.site === 'English'));
 const makerLinks = ownLinks.length > 0 ? ownLinks : productPages;
+// a shop's product page, when the maker has none: its own row, never under Product page
+const dealerLinks = (release.links ?? []).filter((l) => l.kind === 'dealer');
 const mainDocs = docs.filter((d) => d.kind !== 'setup_sheet');
 const files = fileRows(docs);
 // what the buyer must get separately: a part (its page) or a generic item (a plain label)
@@ -122,6 +124,7 @@ import RealVehicle from '../../../../components/RealVehicle.astro';
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
     {makerLinks.length > 0 && <><dt>Product page</dt><dd>{makerLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : hostLabel(l.url)}</a></>)}</dd></>}
+    {dealerLinks.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerLinks.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{hostLabel(l.url)}</a></>)}</dd></>}
     {files.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : hostLabel(d.page!)}</a></>)}</dd></>)}
     <dt>Build</dt><dd>{buildLabel(release.kind)}{release.sources?.kind && <FactSource field="kind" url={release.sources.kind} />}</dd>
     <dt>Status</dt><dd>{release.status}</dd>

@@ -113,6 +113,8 @@ const productUrls = [...new Set(releases.flatMap((r) => {
   return (r.documents ?? []).map((id) => db.doc.get(id)).filter((d): d is Doc => !!d && d.kind === 'product_page')
     .map((d) => docPage(d, r.released)).filter((u): u is string => !!u);
 }))];
+// the shops' product pages of its releases, shown apart from the maker's
+const dealerUrls = [...new Set(releases.flatMap((r) => (r.links ?? []).filter((l) => l.kind === 'dealer').map((l) => l.url)))];
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="platform" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
@@ -125,6 +127,9 @@ const productUrls = [...new Set(releases.flatMap((r) => {
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}{kit.sources?.scale && <FactSource field="scale" url={kit.sources.scale} />}</dd></>}
     {kit.drive && <><dt>Drive</dt><dd>{driveLabel(kit.drive)}<span hidden data-pagefind-filter={`drive:${driveLabel(kit.drive)}`} /></dd></>}
     {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
+    {dealerUrls.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerUrls.length <= 3
+      ? dealerUrls.map((u, i) => <>{i > 0 && ' · '}<a href={u} rel="nofollow noopener" target="_blank">{hostLabel(u)}</a></>)
+      : `${dealerUrls.length} dealer pages`}</dd></>}
     {productUrls.length > 0 && <><dt>Product page</dt><dd>{productUrls.length <= 3
       ? productUrls.map((u, i) => <>{i > 0 && ' · '}<a href={u} rel="nofollow noopener" target="_blank">{productUrls.length > 1 ? pageLabel(u) : hostLabel(u)}</a></>)
       : sources.length > 0 ? <a href="#sources">{productUrls.length} product pages</a> : `${productUrls.length} product pages`}</dd></>}
