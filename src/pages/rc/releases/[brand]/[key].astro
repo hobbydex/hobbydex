@@ -124,6 +124,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
   </dl>
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} size="12rem" class="hero" /></span>
   </div>
+  <Videos videos={videos} />
   <FanLinks links={release.links} />
   {rows.length > 0 && <p data-pagefind-ignore><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p>}
   {seriesByPlatform.length > 0 && <><h2>{release.series} series <span class="muted">({seriesByPlatform.reduce((n, [, rs]) => n + rs.length, 0)})</span></h2>
@@ -219,7 +220,6 @@ import SeenNote from '../../../../components/SeenNote.astro';
       for (const g of document.querySelectorAll<HTMLElement>('.catgroup')) g.hidden = !!sel.value && g.dataset.cat !== sel.value;
     });
   </script>
-    <Videos videos={videos} />
     {sheets.length > 0 && <><h2>Setup sheets <span class="muted">({sheets.length})</span></h2><details class="sheets"><summary class="muted">{sheets.length === 1 ? "the sheet" : "all sheets"}</summary><ul>{sheets.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details></>}
   {mainDocs.length > 0 && <><h2>Sources</h2>
     {mainDocs.length <= 4 || new Set(mainDocs.map((d) => d.url)).size === mainDocs.length
