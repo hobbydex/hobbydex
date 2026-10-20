@@ -1,0 +1,10 @@
+---
+// A fact's source (the export's `sources` table): a small muted link after the fact, "category from TamiyaBase",
+// labelled by the host ("TamiyaBase", else the maker's host). Same style as the date source notes.
+import { hostLabel } from '../lib/docFacts';
+interface Props { field: string; url: string; dot?: boolean }
+const { field, url, dot = true } = Astro.props;
+const host = hostLabel(url);
+const label = host === 'tamiyabase.com' ? 'TamiyaBase' : host;
+---
+<span class="muted">{dot && ' · '}<a href={url} rel="nofollow">{field} from {label}</a></span>
