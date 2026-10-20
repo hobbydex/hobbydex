@@ -4,4 +4,4 @@
 interface Props { reason?: string }
 const { reason } = Astro.props;
 ---
-{reason && <abbr class="doubt" tabindex="0" title={reason} data-tip={reason} aria-label={reason}>?</abbr>}
+{reason && <abbr class="doubt" tabindex="0" data-tip={reason} aria-label={reason}>?</abbr>}
