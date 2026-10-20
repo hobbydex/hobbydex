@@ -122,8 +122,6 @@ import SeenNote from '../../../../components/SeenNote.astro';
     {replacedByReleases.length > 0 && <><dt>Replaced by</dt><dd>{replacedByReleases.map((r, i) => <>{i > 0 && ' · '}<a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a></>)}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.release(replaces.id)}>{brandName(replaces.brand)} {replaces.name}</a></dd></>}
   </dl>
-  <DoubtNote on={!!dateDoubt(release)} />
-  <SeenNote rows={[release]} />
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} size="12rem" class="hero" /></span>
   </div>
   <FanLinks links={release.links} />
@@ -251,5 +249,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
     .gearing .ratio { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
     .gearing :global(svg) { display: block; max-width: 100%; height: auto; }
   </style>
+  <DoubtNote on={!!dateDoubt(release)} />
+  <SeenNote rows={[release]} />
   <DataLink path={release.toml_path} id={release.id} />
 </Base>
