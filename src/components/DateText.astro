@@ -5,4 +5,4 @@ import { SEEN_NOTE, dateTextPlain, seenOnly, yearTextPlain } from '../lib/data';
 interface Props { r: { year?: number; released?: string; announced?: string; seen_by?: string; model_year?: number }; year?: boolean }
 const { r, year } = Astro.props;
 ---
-{year ? yearTextPlain(r) : dateTextPlain(r)}{seenOnly(r) && <abbr class="doubt seen" tabindex="0" title={SEEN_NOTE} data-tip={SEEN_NOTE} aria-label={SEEN_NOTE}>*</abbr>}
+{year ? yearTextPlain(r) : dateTextPlain(r)}{seenOnly(r) && <abbr class="doubt seen" tabindex="0" data-tip={SEEN_NOTE} aria-label={SEEN_NOTE}>*</abbr>}
