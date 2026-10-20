@@ -9,7 +9,7 @@ import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
 import { db, key, url, brandName, byPartNo, partNo, yearOf, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt, seriesMates, docPage, type Doc, type Part, type Release } from '../../../../lib/data';
-import { FILE_KINDS, fileRows } from '../../../../lib/docFacts';
+import { FILE_KINDS, fileRows, hostLabel, pageLabel, makerOwnLinks } from '../../../../lib/docFacts';
 import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
@@ -105,6 +105,13 @@ const files = fileRows(fileDocs.filter(own), fileKinds).map(([label, ds]) => [la
 const moreFiles = fileDocs.length - fileDocs.filter(own).length;
 const webLink = (d: Doc) => docPage(d, docRels.get(d.id)?.[0]?.released);
 const sources = allDocs.filter((d) => d.kind === 'product_page');
+// the product pages of its releases, as the release pages show them (own links, else the product_page documents), once per URL
+const productUrls = [...new Set(releases.flatMap((r) => {
+  const own = makerOwnLinks(r.links);
+  if (own.length > 0) return own.map((l) => l.url);
+  return (r.documents ?? []).map((id) => db.doc.get(id)).filter((d): d is Doc => !!d && d.kind === 'product_page')
+    .map((d) => docPage(d, r.released)).filter((u): u is string => !!u);
+}))];
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="platform" sub={brandName(kit.brand)}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
@@ -116,6 +123,9 @@ const sources = allDocs.filter((d) => d.kind === 'product_page');
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}</dd></>}
     {kit.drive && <><dt>Drive</dt><dd>{driveLabel(kit.drive)}<span hidden data-pagefind-filter={`drive:${driveLabel(kit.drive)}`} /></dd></>}
     {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
+    {productUrls.length > 0 && <><dt>Product page</dt><dd>{productUrls.length <= 3
+      ? productUrls.map((u, i) => <>{i > 0 && ' · '}<a href={u} rel="nofollow noopener" target="_blank">{productUrls.length > 1 ? pageLabel(u) : hostLabel(u)}</a></>)
+      : sources.length > 0 ? <a href="#sources">{productUrls.length} product pages</a> : `${productUrls.length} product pages`}</dd></>}
   </dl>
     <span class="typeicon" title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}>{kit.art ? <ReleaseArt id={kit.id} category={kit.category} kitArt={kit.art} size="5rem" /> : <Icon name={kitTypeIcon(kit.category)} label={kitTypeOne[kit.category ?? 'car'] ?? kit.category} size="5rem" />}</span>
   </div>
@@ -200,7 +210,7 @@ const sources = allDocs.filter((d) => d.kind === 'product_page');
         {grp.map(({ part, rels }) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td data-label="Brand">{brandName(part.brand)}</td><td data-label="Listed for">{rels.length > 0 ? rels.join(', ') : `Whole ${o.name}`}</td></tr>)}
       </table></div>)}
   </details>)}
-  {sources.length > 0 && <><h2>Sources</h2>
+  {sources.length > 0 && <><h2 id="sources">Sources</h2>
     <ul>{sources.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></>}
   <style>
     .catgroup table { table-layout: fixed; width: 100%; }
