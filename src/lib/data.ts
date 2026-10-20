@@ -13,7 +13,7 @@ export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source
 // What a buyer must get separately to complete a release (hobbydex-rc docs/schema.md "release", needs): a part, or a generic item
 export type Need = { part?: string; item?: string; source: string; qty?: number; note?: string };
 export type Depicts = { make: string; model: string; year?: number; licensed?: boolean };   // the real vehicle a release or body shell replicates
-export type Release = { id: string; depicts?: Depicts; toml_path?: string; series?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; scale?: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
+export type Release = { id: string; depicts?: Depicts; toml_path?: string; announced_source?: string; series?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; scale?: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; releases?: string[]; car?: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };   // releases: the cars of the kit the maker lists the part for; car: a car that is none of them; neither: every release
 export type MountHoles = { thread: string; count?: number; circle_mm: number };   // count left out: the maker gives thread and spacing only
@@ -283,6 +283,15 @@ export const yearTextPlain = (r: { year?: number; released?: string; announced?:
 export const yearText = (r: { year?: number; released?: string; announced?: string; seen_by?: string; model_year?: number }) =>
   yearTextPlain(r) + (seenOnly(r) ? '*' : '');
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
+// The short name of the page an announced date comes from, for the release page: the brand's video, Big Squid RC,
+// the maker's press release (a PDF) or, else, the maker's news.
+export const announcedSourceLabel = (url: string, brand: string) => {
+  const u = new URL(url);
+  if (u.hostname.endsWith('bigsquidrc.com')) return 'Big Squid RC';
+  if (u.hostname.endsWith('youtube.com') || u.hostname === 'youtu.be') return `${brand} video`;
+  if (u.pathname.toLowerCase().endsWith('.pdf')) return 'press release';
+  return 'maker news';
+};
 
 // Conversion kits: a release whose `requires` names a kit or release (the car it needs). For a kit, the
 // conversion kits made for it or for any of its releases; for a release, those made for it or for its kit.
