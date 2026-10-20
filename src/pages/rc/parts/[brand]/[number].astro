@@ -14,7 +14,7 @@ import CopyButton from '../../../../components/CopyButton.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
-import { db, key, url, brandName, partLabel, byReleaseDate, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, depictsModel, type Fits , yearDoubt } from '../../../../lib/data';
+import { db, key, url, brandName, partLabel, byReleaseDate, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, type Fits , yearDoubt } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
@@ -95,6 +95,7 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
 const partFiles = fileRows((part.documents ?? []).map((id) => db.doc.get(id)).filter((d) => d !== undefined));
 const partLinks = makerOwnLinks(part.links);
 import SeenNote from '../../../../components/SeenNote.astro';
+import RealVehicle from '../../../../components/RealVehicle.astro';
 ---
 <Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
@@ -106,7 +107,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
   <div class="factsrow">
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
-    {part.depicts && <><dt>Real vehicle</dt><dd>{part.depicts.make ? <><a href={url.make(part.depicts.make)}>{part.depicts.make}</a> {depictsModel(part.depicts)}</> : depictsModel(part.depicts)}<span hidden data-pagefind-filter={part.depicts.make ? `make:${part.depicts.make}` : undefined} /></dd></>}
+    {part.depicts && <><dt>Real vehicle</dt><dd><RealVehicle depicts={part.depicts!} /><span hidden data-pagefind-filter={part.depicts.make ? `make:${part.depicts.make}` : undefined} /></dd></>}
     {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <> <span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span>{part.sources?.category && <FactSource field="category" url={part.sources.category} />}</dd></>}
     {partLinks.length > 0 && <><dt>Product page</dt><dd>{partLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}

@@ -1,0 +1,9 @@
+---
+// The "Real vehicle" text of a release or body shell: its make (linked to the make page) and its model (linked to the
+// vehicle page), with the year it names. Without a make, only the model is shown.
+import { url, vehicleOf, type Depicts } from '../lib/data';
+interface Props { depicts: Depicts }
+const { depicts } = Astro.props;
+const href = vehicleOf(depicts)?.href;
+---
+{depicts.make && <><a href={url.make(depicts.make)}>{depicts.make}</a> </>}{href ? <a href={href}>{depicts.model}</a> : depicts.model}{depicts.year ? ` (${depicts.year})` : ''}

@@ -1,0 +1,9 @@
+---
+import VehiclePage from '../../../../components/VehiclePage.astro';
+import { vehicles, makeSlug } from '../../../../lib/data';
+export function getStaticPaths() {
+  return vehicles.filter((v) => v.make).map((v) => ({ params: { make: makeSlug(v.make!), model: v.slug }, props: { vehicle: v } }));
+}
+const { vehicle } = Astro.props;
+---
+<VehiclePage vehicle={vehicle} />

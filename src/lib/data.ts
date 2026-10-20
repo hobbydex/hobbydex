@@ -201,6 +201,25 @@ export const depictsModel = (d: Depicts) => `${d.model}${d.year ? ` (${d.year})`
 // releases and body shells with a make only: the make pages; a vehicle with no make is listed on its releases and bodies alone
 export const releasesByMake = group(raw.releases.filter((r) => r.depicts?.make), (r) => r.depicts!.make!);
 export const bodiesByMake = group(raw.parts.filter((p) => p.depicts?.make && p.category === 'body'), (p) => p.depicts!.make!);
+// A real vehicle: the releases and body shells that depict one model of a make (or of no make, a model several makers
+// built), one entry per model however it is spelled; the spelling most of them use names it. Its page is
+// /rc/makes/<make>/<slug>/, or /rc/vehicles/<slug>/ without a make.
+export type Vehicle = { make?: string; model: string; slug: string; href: string; releases: Release[]; bodies: Part[] };
+const vehicleKey = (d: { make?: string; model: string }) => `${d.make ?? ''}|${modelKey(d.model)}`;
+const vehicleRels = group(raw.releases.filter((r) => r.depicts), (r) => vehicleKey(r.depicts!));
+const vehicleBodies = group(raw.parts.filter((p) => p.depicts && p.category === 'body'), (p) => vehicleKey(p.depicts!));
+export const vehicles: Vehicle[] = [...new Set([...vehicleRels.keys(), ...vehicleBodies.keys()])].map((key) => {
+  const releases = vehicleRels.get(key) ?? [], bodies = vehicleBodies.get(key) ?? [];
+  const spellings = [...releases, ...bodies].map((x) => x.depicts!);
+  const counts = new Map<string, number>();
+  for (const d of spellings) counts.set(d.model, (counts.get(d.model) ?? 0) + 1);
+  const model = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0];
+  const make = spellings[0].make, slug = makeSlug(model);
+  return { make, model, slug, href: make ? `/rc/makes/${makeSlug(make)}/${slug}/` : `/rc/vehicles/${slug}/`, releases, bodies };
+}).sort((a, b) => (a.make ?? '').localeCompare(b.make ?? '') || a.model.localeCompare(b.model, undefined, { numeric: true, sensitivity: 'base' }));
+const vehicleIndex = new Map(vehicles.map((v) => [vehicleKey(v), v]));
+/** The vehicle a release's or body shell's depicts names. */
+export const vehicleOf = (d: Depicts) => vehicleIndex.get(vehicleKey(d));
 // Releases with an unknown year sort as oldest and show as 'unknown'.
 export const yearOf = (r: { year?: number; model_year?: number }) => r.year ?? r.model_year ?? 0;   // a model year sorts in place of an unknown release year
 // Dates are ISO 8601 at the precision the source gives: "2012", "2012-05", "2012-05-01". A release's
