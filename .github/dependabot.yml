@@ -8,6 +8,13 @@ updates:
     groups:
       npm:
         patterns: ["*"]
+    ignore:
+      # @astrojs/check does not accept TypeScript 7 yet
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # CI builds on Node 22
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
