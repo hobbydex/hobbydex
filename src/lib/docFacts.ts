@@ -6,12 +6,15 @@ export const FILE_KINDS: Record<string, string> = { manual: 'Manual', part_list:
 export const fileRows = (docs: Doc[], kinds: Record<string, string> = FILE_KINDS) => Object.entries(kinds).map(([k, label]) => [label, docs.filter((d) => d.kind === k && d.page)] as const)
   .filter(([, ds]) => ds.length > 0);
 
-// a maker page's label: its language when the path names one, else its host
+// a maker page's host without "www.": the label of a single link
+export const hostLabel = (u: string) => new URL(u).hostname.replace(/^www\./, '');
+
+// a maker page's label among several: its language when the path names one, else its host
 export const pageLabel = (u: string) => {
   const h = new URL(u);
   if (/\/(english|en)\//.test(h.pathname)) return 'English';
   if (/\/(japanese|jp|ja)\//.test(h.pathname) || /\.jp$/.test(h.hostname)) return 'Japanese';
-  return h.hostname.replace(/^www\./, '');
+  return hostLabel(u);
 };
 
 // the maker's own links of a record: not a fan site, not a dealer
