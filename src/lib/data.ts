@@ -13,7 +13,7 @@ export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source
 // What a buyer must get separately to complete a release (hobbydex-rc docs/schema.md "release", needs): a part, or a generic item
 export type Need = { part?: string; item?: string; source: string; qty?: number; note?: string };
 export type Depicts = { make?: string; model: string; year?: number; licensed?: boolean };   // the real vehicle a release or body shell replicates; no make when several makers built it (a Sherman)
-export type Release = { id: string; sources?: Record<string, string>; depicts?: Depicts; toml_path?: string; announced_source?: string; series?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; scale?: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
+export type Release = { id: string; sources?: Record<string, string>; depicts?: Depicts; toml_path?: string; announced_source?: string; series?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; scale?: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; related?: { release: string; relation: string; source: string }[]; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; releases?: string[]; car?: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };   // releases: the cars of the kit the maker lists the part for; car: a car that is none of them; neither: every release
 export type MountHoles = { thread: string; count?: number; circle_mm: number };   // count left out: the maker gives thread and spacing only
@@ -59,6 +59,12 @@ for (const p of raw.parts) if (p.supersedes) {
 }
 // Releases that replace a release (supersedes, set on the newer one): the newer releases that replace each one.
 const releaseReplacedBy = new Map<string, Release[]>();
+// Re-releases of a release (related, relation rerelease-of, set on the re-release): the re-releases of each original.
+const reReleasedAs = new Map<string, Release[]>();
+for (const r of raw.releases) for (const x of r.related ?? []) if (x.relation === 'rerelease-of') {
+  if (!reReleasedAs.has(x.release)) reReleasedAs.set(x.release, []);
+  reReleasedAs.get(x.release)!.push(r);
+}
 for (const r of raw.releases) if (r.supersedes) {
   if (!releaseReplacedBy.has(r.supersedes)) releaseReplacedBy.set(r.supersedes, []);
   releaseReplacedBy.get(r.supersedes)!.push(r);
@@ -153,6 +159,7 @@ export const db = {
   part: byId(raw.parts),
   replacedBy,
   releaseReplacedBy,
+  reReleasedAs,
   upgradesFor,
   rebrandsOf,
   relatedTo,

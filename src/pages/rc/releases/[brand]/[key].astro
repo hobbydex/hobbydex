@@ -39,6 +39,10 @@ const scaleSrc = release.scale ? release.sources?.scale : kit.sources?.scale;
 // successor links (supersedes): the newer releases that replace this one, and the older one this one replaces
 const replacedByReleases = db.releaseReplacedBy.get(release.id) ?? [];
 const replaces = release.supersedes ? db.release.get(release.supersedes) : undefined;
+// re-releases (related, rerelease-of): the original this one re-releases, and the re-releases of this one
+const reReleaseOf = release.related?.find((x) => x.relation === 'rerelease-of');
+const original = reReleaseOf ? db.release.get(reReleaseOf.release) : undefined;
+const reReleases = [...(db.reReleasedAs.get(release.id) ?? [])].sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
 // the car line (series): the other releases of it, grouped by platform in date order
 const seriesKits = new Map<string, typeof db.releases>();
 for (const x of seriesMates(release)) seriesKits.set(x.kit, [...(seriesKits.get(x.kit) ?? []), x]);
@@ -130,6 +134,8 @@ import RealVehicle from '../../../../components/RealVehicle.astro';
     <dt>Status</dt><dd>{release.status}</dd>
     {replacedByReleases.length > 0 && <><dt>Replaced by</dt><dd>{replacedByReleases.map((r, i) => <>{i > 0 && <br />}<a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a></>)}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.release(replaces.id)}>{brandName(replaces.brand)} {replaces.name}</a></dd></>}
+    {original && <><dt>Re-release of</dt><dd><a href={url.release(original.id)}>{original.name}</a>{original.year ? ` (${original.year})` : ''}</dd></>}
+    {reReleases.length > 0 && <><dt>Re-released as</dt><dd>{reReleases.map((r, i) => <>{i > 0 && <br />}<a href={url.release(r.id)}>{r.name}</a>{r.year ? ` (${r.year})` : ''}</>)}</dd></>}
   </dl>
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} size="12rem" class="hero" /></span>
   </div>
