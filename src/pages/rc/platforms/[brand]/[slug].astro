@@ -138,13 +138,14 @@ const sources = allDocs.filter((d) => d.kind === 'product_page');
   <h2>Releases</h2>
   {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
   {(() => {
-    // one table: current releases first, then the discontinued ones; unchecking "Show discontinued" hides those rows
+    // one table: current releases first, then the discontinued ones; unchecking "Show discontinued" hides those rows,
+    // unless every release is discontinued: then there is no toggle and the rows always show
     const rows = [...current, ...discontinued];
     return <>
       {current.length === 0 && <p class="muted">Every release is discontinued.</p>}
       <table class="releases">
         <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
-        {rows.map((r) => <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
+        {rows.map((r) => <tr data-discontinued={r.status === 'discontinued' && current.length > 0 ? '' : undefined}>
           <td class="num" data-label="Year"><DateText r={r} year /><DateDoubt reason={yearDoubt(r)} /></td><td class="name"><ReleaseArt id={r.id} category={r.category ?? kit.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>{show.number && <td class="num" data-label="Item no.">{r.number ?? ''}</td>}{show.edition && <td data-label="Edition">{r.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(r.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{r.status === 'discontinued' ? '' : r.status}</td>}
         </tr>)}
       </table>
