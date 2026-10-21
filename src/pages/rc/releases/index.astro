@@ -2,12 +2,13 @@
 import { buildLabel } from '../../../lib/build';
 import Base from '../../../layouts/Base.astro';
 import Discontinued from '../../../components/Discontinued.astro';
-import { db, url, key, brandName, dateKey, dateDoubt } from '../../../lib/data';
+import { db, url, key, brandName, dateKey, dateDoubt, SEEN_NOTE } from '../../../lib/data';
 import DateText from '../../../components/DateText.astro';
 import DateDoubt from '../../../components/DateDoubt.astro';
 import DoubtNote from '../../../components/DoubtNote.astro';
-// The newest releases with a known date, and every brand's full release list on its own page
-// (/rc/releases/<brand>/): one table of all 5,500 releases was 1.3 MB.
+// The newest releases with a known date, the filterable table over every release (list.json, loaded by the
+// release table script), and every brand's full release list on its own page (/rc/releases/<brand>/): one table
+// of all 5,500 releases was 1.3 MB. The newest table stays in the HTML for readers without script and for search engines.
 const NEWEST = 100;
 const dated = db.releases.filter((r) => dateKey(r)).sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name)).slice(0, NEWEST);
 const byBrand = [...db.releases.reduce((m, r) => m.set(r.brand, (m.get(r.brand) ?? 0) + 1), new Map<string, number>())]
@@ -19,14 +20,45 @@ import { releasesByType } from '../../../lib/releaseTypes';
 // every type with its release count, in the platform type order
 const typeCats = [...releasesByType.keys()].sort((a, b) => (kitTypeOrder.indexOf(a) + 1 || 99) - (kitTypeOrder.indexOf(b) + 1 || 99));
 ---
-<Base title="Releases" description="RC kit and RTR releases in Hobbydex: the newest, and every brand's releases on its own page.">
+<Base title="Releases" description="RC kit and RTR releases in Hobbydex: filter every release by brand, type, scale, build and year, or see the newest, and every brand's releases on its own page.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Releases</div>
   <h1>Releases</h1>
-  <p class="muted">{db.releases.length} releases from {byBrand.length} brands. By type, then the {NEWEST} newest with a known date, then every brand's release list.</p>
+  <p class="muted">{db.releases.length} releases from {byBrand.length} brands. By type, then a table you can filter, then every brand's release list.</p>
   <h2>By type</h2>
-  <ul class="typegrid">{typeCats.map((t) => <li><a href={`/rc/releases/types/${t}/`}><Icon name={kitTypeIcon(t)} size="2rem" /><b>{kitTypeLabel[t] ?? t}</b><span class="muted">{releasesByType.get(t)!.length} releases</span></a></li>)}</ul>
-  <h2>Newest <span class="muted">· <a href="/rc/releases/by-year/">all releases by year</a></span></h2>
-  <table class="releases">
+  <ul class="typegrid">{typeCats.map((t) => <li>
+    <a href={`/rc/releases/types/${t}/`}><Icon name={kitTypeIcon(t)} size="2rem" /><b>{kitTypeLabel[t] ?? t}</b><span class="muted">{releasesByType.get(t)!.length} releases</span></a>
+    <a class="tablelink" href={`/rc/releases/?type=${t}`}>in the table</a>
+  </li>)}</ul>
+  <h2 id="table">Releases <span class="muted">· <a href="/rc/releases/by-year/">all releases by year</a></span></h2>
+  <form id="release-filters" class="release-filters" hidden>
+    <label><span>Brand</span><select id="f-brand"></select></label>
+    <label><span>Type</span><select id="f-type"></select></label>
+    <label><span>Scale</span><select id="f-scale"></select></label>
+    <label><span>Build</span><select id="f-build"></select></label>
+    <div class="yearstep" role="group" aria-label="Year">
+      <span class="yearlbl">Year</span>
+      <button type="button" id="y-back5" aria-label="Five years back">«</button>
+      <button type="button" id="y-back1" aria-label="One year back">‹</button>
+      <button type="button" id="y-all" aria-pressed="true">All years</button>
+      <button type="button" id="y-fwd1" aria-label="One year forward">›</button>
+      <button type="button" id="y-fwd5" aria-label="Five years forward">»</button>
+    </div>
+    <label><span>Sort</span><select id="f-sort">
+      <option value="date-desc">Newest first</option><option value="date-asc">Oldest first</option>
+      <option value="name-asc">Name A to Z</option><option value="name-desc">Name Z to A</option>
+      <option value="brand-asc">Brand A to Z</option><option value="brand-desc">Brand Z to A</option>
+    </select></label>
+    <button type="button" id="release-clear">Clear filters</button>
+  </form>
+  <div id="release-results" hidden data-src="/rc/releases/list.json" data-seen-note={SEEN_NOTE} data-doubt-note="a date we are not sure of; the release page gives the reason">
+    <p class="muted" id="release-count" aria-live="polite"></p>
+    <table class="releases">
+      <thead><tr><th data-sort="date"><button type="button" class="sortbtn">Released</button></th><th data-sort="brand"><button type="button" class="sortbtn">Brand</button></th><th data-sort="name"><button type="button" class="sortbtn">Release</button></th><th>Type</th><th>Scale</th><th>Build</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p><button type="button" id="release-more" hidden>Show more</button></p>
+  </div>
+  <table class="releases" id="release-newest">
     <tr><th class="num">Released</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr>
     {dated.map((r) => <tr>
       <td class="num" data-label="Released"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td class="name" data-label="Release"><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>
@@ -37,11 +69,39 @@ const typeCats = [...releasesByType.keys()].sort((a, b) => (kitTypeOrder.indexOf
   <SeenNote rows={dated} />
   <h2>By brand</h2>
   <table class="sortable">
-    <thead><tr><th>Brand</th><th class="num">Releases</th></tr></thead>
-    <tbody>{byBrand.map(([b, n]) => <tr><td><a href={`/rc/releases/${key(b)[0]}/`}>{brandName(b)}</a></td><td class="num">{n}</td></tr>)}</tbody>
+    <thead><tr><th>Brand</th><th class="num">Releases</th><th><span class="sr-only">Filtered table</span></th></tr></thead>
+    <tbody>{byBrand.map(([b, n]) => <tr><td><a href={`/rc/releases/${key(b)[0]}/`}>{brandName(b)}</a></td><td class="num">{n}</td><td><a href={`/rc/releases/?brand=${key(b)[0]}`}>in the table</a></td></tr>)}</tbody>
   </table>
   <script src="/sort-table.js" defer></script>
-  <style>
+  <script src="/release-table.js" type="module"></script>
+  <style is:global>
   @media (max-width: 600px) { table.releases td[data-label]:not(:empty) { display: inline-block; white-space: normal; } }
+  .release-filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.6rem 0.9rem; align-items: end; margin: 0.75rem 0; }
+  .release-filters label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; color: var(--muted); }
+  .release-filters select { font-size: 0.95rem; padding: 0.35rem 0.5rem; color: var(--fg); min-width: 0; width: 100%; box-sizing: border-box; }
+  .release-filters[hidden], #release-newest[hidden] { display: none !important; }
+  .yearstep { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; min-width: 0; }
+  .yearstep .yearlbl { flex: 0 0 100%; font-size: 0.85rem; color: var(--muted); }
+  .yearstep button { padding: 0.3rem 0.45rem; font-size: 0.95rem; color: var(--fg); }
+  .yearstep button:disabled { opacity: 0.4; cursor: default; }
+  .yearstep button[aria-pressed="true"] { border-color: var(--accent); }
+  .yearstep #y-all { white-space: nowrap; }
+  .yearstep button:not(#y-all) { min-width: 2.2rem; }
+  .release-filters button { justify-self: start; padding: 0.35rem 0.8rem; }
+  #release-results .relart, #release-results .icon { color: var(--muted); margin-right: 0.15rem; }
+  ul.typegrid a.tablelink { display: inline; background: none; border: 0; padding: 0; text-align: center; font-size: 0.85rem; }
+  ul.typegrid > li { display: flex; flex-direction: column; gap: 0.25rem; }
+  ul.typegrid > li > a:first-child { flex: 1; }
+  @media (max-width: 600px) {
+    .release-filters { grid-template-columns: 1fr 1fr; gap: 0.5rem 0.6rem; }
+    .release-filters button { grid-column: 1 / -1; }
+    #release-results td.name { display: block !important; white-space: normal; overflow-wrap: anywhere; }
+    #release-results table, #release-results tbody { width: 100%; max-width: 100%; }
+  }
+  #release-results thead th button { all: unset; cursor: pointer; font: inherit; color: inherit; }
+  #release-results thead th button:hover { color: var(--accent); }
+  #release-results thead th[aria-sort] button::after { content: " \2191"; color: var(--muted); }
+  #release-results thead th[aria-sort="descending"] button::after { content: " \2193"; }
+  #release-results tr.yeardiv th { text-align: left; font-size: 0.85rem; color: var(--muted); background: var(--surface); }
   </style>
 </Base>
