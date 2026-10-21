@@ -64,7 +64,7 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   {brand.notes && <p class="muted">{brand.notes}</p>}
   {kits.length > MANY && <><h2>Platforms <span class="muted">({kits.length})</span></h2>
   <div class="kitfilter" data-pagefind-ignore>
-    <input type="search" class="search-box" placeholder={`Filter ${brand.name} platforms by name, scale or drive`} aria-label="Filter platforms" autocomplete="off" />
+    <div class="sfield"><Icon name="search" /><input type="search" class="search-box" placeholder={`Filter ${brand.name} platforms by name, scale or drive`} aria-label="Filter platforms" autocomplete="off" /></div>
     <p class="muted">By type: {kitGroups.map(([t, rs], i) => <>{i > 0 && ' · '}<a href={`#type-${t}`}><Icon name={kitTypeIcon(t)} /> {kitTypeLabel[t] ?? t}</a> <span class="muted">{rs.length}</span></>)}</p>
   </div>
   {kitGroups.map(([t, rs]) => <section class="kitgroup" id={`type-${t}`}>
@@ -93,7 +93,7 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   <h2>Parts <span class="muted">({parts.length})</span></h2>
   {cats.length > 0 && <CategoryBoxes label={`${brand.name} parts by category`} items={cats.map(([c, n]) => ({ category: c, n, href: `/rc/categories/${c}/${key(brand.id)[0]}/`, title: `${n} ${brand.name} ${catName(c).toLowerCase()} part${n > 1 ? 's' : ''}` }))} />}
   {parts.length > 0 && <div class="brandsearch" data-pagefind-ignore data-src={`/rc/brands/${key(brand.id)[0]}/parts.json`} data-base={`/rc/parts/${key(brand.id)[0]}/`} data-cats={JSON.stringify(Object.fromEntries(cats.map(([c]) => [c, catName(c)])))}>
-    <input type="search" class="search-box" placeholder={`Find a ${brand.name} part by number or name`} aria-label="Find a part" autocomplete="off" />
+    <div class="sfield"><Icon name="search" /><input type="search" class="search-box" placeholder={`Find a ${brand.name} part by number or name`} aria-label="Find a part" autocomplete="off" /></div>
     <p class="muted status"></p>
     <table class="results" hidden><thead><tr><th>Number</th><th>Name</th><th>Category</th></tr></thead><tbody></tbody></table>
   </div>}
