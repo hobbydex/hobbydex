@@ -112,16 +112,20 @@ const conversions = conversionsForRelease(release);
 const videos = [...new Set([...(db.videosByRelease.get(release.id) ?? []), ...(db.videosByKit.get(kit.id) ?? [])])];
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
+// the search index (Base's hidden block): brand, name, item number, platform, type, scale, year, depicted make and model, series
+const indexWords = [brandName(release.brand), release.number, release.name, kit.placeholder ? '' : kit.name, shownCat && (kitTypeOne[shownCat] ?? shownCat),
+  release.scale ?? kit.scale, yearOf(release) || '', release.depicts?.make, release.depicts?.model, release.series].filter(Boolean).join(' ');
+const indexFilters = [release.status === 'discontinued' && 'status:discontinued', release.depicts?.make && `make:${release.depicts.make}`].filter((x): x is string => !!x);
 ---
-<Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)}>
+<Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)} words={indexWords} filters={indexFilters}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a>{brandGone(release.brand) && <span class="muted"> (brand defunct)</span>} / {kit.placeholder ? <span>Chassis not yet known</span> : <a href={url.platform(kit.id)}>{kit.name}</a>} / {release.name}</div>
-  <h1><span data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(release.brand)} {release.name}</span>{release.status === 'discontinued' && <span hidden data-pagefind-filter="status:discontinued" />}<Discontinued item={release} />{release.color && <Fragment set:html={' ' + colourDot(release.color)} />}</h1>
+  <h1><span>{brandName(release.brand)} {release.name}</span><Discontinued item={release} />{release.color && <Fragment set:html={' ' + colourDot(release.color)} />}</h1>
   {release.sources?.name && <p><FactSource field="name" url={release.sources.name} dot={false} /></p>}
   <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
   <div class="factsrow">
   <dl class="facts">
     {kit.placeholder ? <><dt>Chassis</dt><dd>not yet known</dd></> : <><dt>Platform</dt><dd><a href={url.platform(kit.id)}>{kit.name}</a>{release.sources?.kit && <FactSource field="kit" url={release.sources.kit} />}</dd></>}
-    {release.depicts && <><dt>Real vehicle</dt><dd><RealVehicle depicts={release.depicts!} />{release.depicts.licensed && <span class="muted"> · officially licensed, according to {brandName(release.brand)}</span>}<span hidden data-pagefind-filter={release.depicts.make ? `make:${release.depicts.make}` : undefined} /></dd></>}
+    {release.depicts && <><dt>Real vehicle</dt><dd><RealVehicle depicts={release.depicts!} />{release.depicts.licensed && <span class="muted"> · officially licensed, according to {brandName(release.brand)}</span>}</dd></>}
     {release.requires?.length && <><dt>Needs</dt><dd>{release.requires.length > 1 && 'one of: '}{release.requires.map((id, i) => { const n = requiredName(id); return <>{i > 0 && (i === release.requires!.length - 1 ? ' or ' : ', ')}{n ? <a href={n.href}>{n.name}</a> : id}</>; })}<span class="muted"> (not included: this is a conversion kit)</span></dd></>}
     {(release.scale ?? kit.scale) && <><dt>Scale</dt><dd>{release.scale ?? kit.scale}{scaleSrc && <FactSource field="scale" url={scaleSrc} />}</dd></>}
     {(shownCat || kit.drive || kit.power) && <><dt>Type</dt><dd>{shownCat && <><a href={`/rc/platforms/types/${shownCat}/`}>{kitTypeOne[shownCat] ?? shownCat}</a>{catSrc && <FactSource field="category" url={catSrc} />}{(kit.drive || kit.power) && ' · '}</>}{[driveLabel(kit.drive), kit.power].filter(Boolean).join(' · ')}</dd></>}

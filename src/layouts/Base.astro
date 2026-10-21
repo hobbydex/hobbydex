@@ -1,7 +1,7 @@
 ---
 import '../styles/global.css';
-interface Props { title: string; description?: string; jsonld?: unknown; kind?: string; sub?: string }
-const { title, description, jsonld, kind, sub } = Astro.props;
+interface Props { title: string; description?: string; jsonld?: unknown; kind?: string; sub?: string; words?: string; filters?: string[] }
+const { title, description, jsonld, kind, sub, words, filters } = Astro.props;
 ---
 <!doctype html>
 <html lang="en" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
@@ -35,19 +35,22 @@ const { title, description, jsonld, kind, sub } = Astro.props;
       <script src="/theme.js" defer></script>
       <script src="/doubt.js" defer></script>
     </header>
-    {/* SEARCH: tables on release and platform pages are excluded from the index (data-pagefind-ignore on their
-        parts tables, lists and sections, and on the KitSets and OtherCarSets components). Their part lists made
-        every release of a car match on a bearing size or a part name, so a release or platform is found by its own
-        name, number, brand and description. Part pages keep everything, tables included (fits, used-in lists), so a
-        part still matches by the platform it fits. SIZE: the built site is kept small for GitHub Pages (about 1 GB
-        soft limit; 1.1 GB in 2026-10): shared scripts are external cached files (public/theme.js and
-        astro.config.mjs assetsInlineLimit) rather than inline on each of 115k pages. Part pages (~5.8 KB each) are
-        the bulk of the index. Only kits, releases, parts, specs and brands are searchable; list pages are not. */}
-    <main data-pagefind-body={kind ? "" : undefined}>
-      {kind && <span hidden data-pagefind-meta={`type:${kind}`} data-pagefind-filter={`type:${kind}`} />}
-      {sub && <span hidden data-pagefind-meta={`sub:${sub}`} />}
+    <main>
       <slot />
     </main>
+    {/* SEARCH: a typed page (kind set) is indexed only through the hidden block below, which holds its title, type,
+        subtitle, filters and the words people search for (the page passes them as `words` and `filters`; the title
+        weighs 10). Everything else on the page, tables and notes included, is left out. Pages without a kind are
+        indexed as a whole, minus their data-pagefind-ignore regions. Pagefind reads metadata only inside the body
+        element, so the block must sit in it. Shared scripts are external cached files (public/theme.js and
+        astro.config.mjs assetsInlineLimit) to keep the built site small. */}
+    {kind && <div hidden data-pagefind-body>
+      <span data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{title}</span>
+      <span data-pagefind-meta={`type:${kind}`} data-pagefind-filter={`type:${kind}`} />
+      {sub && <span data-pagefind-meta={`sub:${sub}`} />}
+      {(filters ?? []).map((f) => <span data-pagefind-filter={f} />)}
+      <p>{words}</p>
+    </div>}
     <footer class="site" data-pagefind-ignore>
       Open hobby parts database. Facts only: part numbers, names and fitment with their source; no prices, stock or images of our own.
       The data is maintained by the project, not crowdsourced: tell us about an error, a missing brand or a better source by <a href="https://github.com/hobbydex/hobbydex-rc/issues/new">opening an issue</a>; see the <a href="/faq/">FAQ</a>.
