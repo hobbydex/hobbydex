@@ -12,8 +12,8 @@ const { rs } = Astro.props;
   <h2>On another chassis <span class="muted">({rs.length})</span></h2>
   <p class="muted">Releases of this type built on a platform of another type.</p>
   <table class="releases">
-    <tr><th>Release</th><th>Brand</th><th>Platform</th><th class="num">Year</th></tr>
-    {rs.map((r) => <tr><td class="name"><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td data-label="Platform"><a href={url.platform(r.kit)}>{db.kit.get(r.kit)?.name}</a></td><td class="num" data-label="Year"><DateText r={r} year /><DateDoubt reason={yearDoubt(r)} /></td></tr>)}
+    <tr><th>Scale</th><th>Release</th><th>Brand</th><th>Platform</th><th class="num">Year</th></tr>
+    {rs.map((r) => <tr><td data-label="Scale">{r.scale ?? db.kit.get(r.kit)?.scale ?? ''}</td><td class="name"><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td data-label="Platform"><a href={url.platform(r.kit)}>{db.kit.get(r.kit)?.name}</a></td><td class="num" data-label="Year"><DateText r={r} year /><DateDoubt reason={yearDoubt(r)} /></td></tr>)}
   </table>
   <DoubtNote on={rs.some((r) => !!yearDoubt(r))} />
 </>}

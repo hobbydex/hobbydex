@@ -1,14 +1,10 @@
 ---
 import Base from '../../../layouts/Base.astro';
-import Discontinued from '../../../components/Discontinued.astro';
-import { db, url, brandName } from '../../../lib/data';
+import { db } from '../../../lib/data';
 import Icon from '../../../components/Icon.astro';
 import { kitTypeLabel, kitTypeOrder, kitTypeIcon } from '../../../lib/kitTypes';
-import DriveFilter from '../../../components/DriveFilter.astro';
-import { driveLabel } from '../../../lib/drive';
 const label = kitTypeLabel;
 const order = kitTypeOrder;
-const scaleKey = (s?: string) => (s ? Number(s.split('/')[1]) : 999);
 const byCat = new Map<string, typeof db.kits>();
 for (const k of db.kits) {
   const c = k.category || 'car';
@@ -28,28 +24,5 @@ const cats = [...new Set([...byCat.keys(), ...onOther.keys()])].sort((a, b) => (
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Platforms</div>
   <h1>Platforms by type</h1>
   <p class="muted">{db.kits.length} platforms · <a href="/rc/platforms/by-date/">by date</a></p>
-  <DriveFilter drives={db.kits.map((k) => k.drive)} />
   <ul class="typegrid">{cats.map((c) => <li><a href={`/rc/platforms/types/${c}/`}><Icon name={kitTypeIcon(c)} size="2rem" /><b>{label[c] ?? c}</b><span class="muted">{byCat.get(c)?.length ?? `${onOther.get(c)!.length} releases`}</span></a></li>)}</ul>
-  {cats.map((c) => {
-    const kits = [...(byCat.get(c) ?? [])].sort((a, b) => scaleKey(a.scale) - scaleKey(b.scale) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
-    return <section class="drivegroup">
-      <h2 id={c}><Icon name={kitTypeIcon(c)} /> <a href={`/rc/platforms/types/${c}/`}>{label[c] ?? c}</a> <span class="muted">({kits.length || `${onOther.get(c)!.length} releases`})</span></h2>
-      {kits.length > 0 && <table>
-        <tr><th>Scale</th><th>Brand</th><th>Platform</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
-        {kits.map((k) => <tr data-drive={k.drive ?? ''}>
-          <td>{k.scale ?? ''}</td><td><a href={url.brand(k.brand)}>{brandName(k.brand)}</a></td><td><a href={url.platform(k.id)}>{k.name}</a></td>
-          <td>{driveLabel(k.drive)}</td><td>{k.power ?? ''}</td><td class="num">{db.releasesByKit.get(k.id)?.length ?? 0}</td>
-        </tr>)}
-      </table>}
-      {onOther.has(c) && <>
-        <p class="muted">On another platform:</p>
-        <table>
-          <tr><th>Scale</th><th>Brand</th><th>Release</th><th>Platform</th></tr>
-          {[...onOther.get(c)!].sort((a, b) => brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name)).map((r) => { const k = db.kit.get(r.kit); return <tr>
-            <td>{r.scale ?? k?.scale ?? ''}</td><td><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td>{k && <a href={url.platform(k.id)}>{k.name}</a>}</td>
-          </tr>; })}
-        </table>
-      </>}
-    </section>;
-  })}
 </Base>
