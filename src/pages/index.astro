@@ -159,7 +159,7 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
     <a class="stat" href="/rc/brands/"><b>{db.brands.length}</b> brands</a>
     <a class="stat" href="/rc/platforms/"><b>{db.kits.length}</b> platforms</a>
     <a class="stat" href="/rc/releases/"><b>{db.releases.length}</b> releases</a>
-    <a class="stat" href="/rc/releases/"><b>{[...releasesByType.keys()].filter((t) => t !== 'car').length}</b> car types</a>
+    <a class="stat" href="/rc/releases/"><b>{releasesByType.size}</b> car types</a>
     <a class="stat" href="/rc/makes/"><b>{new Set([...releasesByMake.keys(), ...bodiesByMake.keys()]).size}</b> car makes</a>
     <a class="stat" href="/search/?type=part"><b>{db.parts.length}</b> parts</a>
     <a class="stat" href="/rc/categories/"><b>{byCat.size}</b> part categories</a>
