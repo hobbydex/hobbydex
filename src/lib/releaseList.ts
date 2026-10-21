@@ -1,14 +1,18 @@
-import { db, key, brandName, dateKey, seenOnly, dateDoubt } from './data';
+import { createHash } from 'node:crypto';
+import { db, key, brandName, dateKey, dateDoubt, releasedOf, seenOnly } from './data';
 import { releaseType, releaseScale } from './releaseTypes';
 import { kitTypeLabel, kitTypeIcon, kitTypeOrder } from './kitTypes';
 import { wideIcons } from './wideIcons';
 import { buildLabel } from './build';
+import { colourShades } from './colourDot';
 
 // The release list for the filterable table on /rc/releases/ (list.json). Each row is an array:
-// [id tail, name, brand, type, scale, build, status, date, flags, outline]. Brand, type, scale, build and status
-// index the lists beside the rows; the release URL is /rc/releases/<brand slug>/<id tail>/. The date is the
-// release's date key ("2026-11", "2012-05-01" or "" when undated); its year is the first four characters.
-// flags: 1 = a seen_by bound only (the date column's asterisk), 2 = a date we are not sure of (the "?").
+// [id tail, name, brand, type, scale, build, status, date, flags, art, colour, doubt], trailing nulls left out.
+// Brand, type, scale, build and status index the lists beside the rows; colour and doubt index `colours` and
+// `doubts`. The release URL is /rc/releases/<brand slug>/<id tail>/. The date is the release's date key ("2026-11",
+// "2012-05-01" or "" when undated). art is the file name of the release's outline in /art/ (see releaseArts).
+// flags: 1 = a seen_by bound only (the date's asterisk), 2 = an announced date (the date reads "announced ...").
+// A row with a doubt index has a date we are not sure of (the "?" with that reason).
 export function releaseList() {
   const ids = (xs: string[]) => new Map(xs.map((x, i) => [x, i]));
   const brandIds = [...new Set(db.releases.map((r) => r.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));
@@ -16,13 +20,21 @@ export function releaseList() {
   const scales = [...new Set(db.releases.map(releaseScale))].sort((a, b) => (a ? Number(a.split('/')[1]) : 999) - (b ? Number(b.split('/')[1]) : 999));
   const builds = ['kit', 'rtr', 'arr', ''].filter((b) => db.releases.some((r) => (r.kind ?? '') === b));
   const statuses = ['released', 'announced', 'discontinued'].filter((s) => db.releases.some((r) => r.status === s));
+  const colours: string[] = [], doubts: string[] = [];
+  const index = (xs: string[], x: string) => { let i = xs.indexOf(x); if (i < 0) i = xs.push(x) - 1; return i; };
   const bi = ids(brandIds), ti = ids(types), si = ids(scales), ui = ids(builds), sti = ids(statuses);
   const rows = db.releases.map((r) => {
     const [brand, ...tail] = key(r.id);
     if (brand !== key(r.brand)[0]) throw new Error(`release ${r.id} is not under brand ${r.brand}`);
     const type = releaseType(r);
-    const flags = (seenOnly(r) ? 1 : 0) | (dateDoubt(r) ? 2 : 0);
-    return [tail.join('/'), r.name, bi.get(r.brand), ti.get(type), si.get(releaseScale(r)), ui.get(r.kind ?? ''), sti.get(r.status), dateKey(r), flags, r.art ?? null];
+    const flags = (seenOnly(r) ? 1 : 0) | (!releasedOf(r) && r.announced ? 2 : 0);
+    const main = r.art ? colourShades(r.color)?.[0] : undefined;
+    const colour = main ? index(colours, tableColour(main)) : null;
+    const doubt = dateDoubt(r) ? index(doubts, dateDoubt(r)!) : null;
+    const row = [tail.join('/'), r.name, bi.get(r.brand), ti.get(type), si.get(releaseScale(r)), ui.get(r.kind ?? ''), sti.get(r.status), dateKey(r), flags,
+      r.art ? artFile(r.art) : null, colour, doubt];
+    while (row.length && row[row.length - 1] === null) row.pop();
+    return row;
   });
   return {
     brands: brandIds.map((b) => [key(b)[0], brandName(b)]),
@@ -30,6 +42,27 @@ export function releaseList() {
     scales,
     builds: builds.map((b) => [b, buildLabel(b)]),
     statuses,
+    colours,
+    doubts,
     rows,
   };
+}
+
+// The file name of an outline in /art/: a hash of its path data, so a release shares the file of every release drawn alike.
+export const artFile = (d: string) => `${createHash('sha256').update(d).digest('hex').slice(0, 10)}.svg`;
+
+// Every distinct release outline, by file name: the static SVGs under /art/ (src/pages/art/[file].ts).
+export function releaseArts() {
+  const out = new Map<string, string>();
+  for (const r of db.releases) if (r.art) out.set(artFile(r.art), r.art);
+  return out;
+}
+
+// The fill of a release's outline in the release table: its main colour, as a CSS colour. Dark colours fill with
+// the text colour (black would vanish on a dark page), white with the muted colour, see-through with a grey wash.
+function tableColour(s: { c: string; see?: boolean }) {
+  if (s.see) return 'rgba(150,150,160,0.35)';
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(s.c.slice(i, i + 2), 16) / 255);
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return lum < 0.15 ? 'var(--fg)' : lum > 0.85 ? 'var(--muted)' : s.c;
 }

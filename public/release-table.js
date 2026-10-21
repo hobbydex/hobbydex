@@ -8,16 +8,31 @@ export const SORTS = ['date', 'name', 'brand'];
 export const NONE = 'none';
 const DEFAULT_DIR = { date: 'desc', name: 'asc', brand: 'asc' };
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// A date key as the static table words it (data.ts isoText): "2026-09-24" -> "2026 Sep 24", "2025-10" -> "2025 Oct".
+export function isoText(iso) {
+  const m = iso.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/);
+  if (!m) return iso;
+  return [m[1], m[2] && MONTHS[Number(m[2]) - 1], m[3] && String(Number(m[3]))].filter(Boolean).join(' ');
+}
+// The date column's words (data.ts dateTextPlain): an announced date says so, an undated release says unknown.
+export function dateLabel(date, flags) {
+  if (!date) return 'unknown';
+  return flags & 2 ? `announced ${isoText(date)}` : isoText(date);
+}
+
 // The rows as objects. The list's index columns are resolved here; the year is a number and its decade a value.
+// A row's trailing empty columns are left out of the list, so art, colour and doubt may be missing.
 export function decode(list) {
-  return list.rows.map(([tail, name, bi, ti, si, bu, st, date, flags, art]) => {
+  return list.rows.map(([tail, name, bi, ti, si, bu, st, date, flags, art, colour, doubt]) => {
     const [brand, brandName] = list.brands[bi];
     const [type, typeLabel, icon, wide] = list.types[ti];
     const build = list.builds[bu];
     return {
       url: `/rc/releases/${brand}/${tail}/`, name, brand, brandName, type, typeLabel, icon, wide: !!wide,
       scale: list.scales[si], build: build[0], buildLabel: build[1], status: list.statuses[st],
-      date, year: date ? date.slice(0, 4) : NONE, seen: (flags & 1) > 0, doubt: (flags & 2) > 0, art: art || '',
+      date, dateText: dateLabel(date, flags), year: date ? date.slice(0, 4) : NONE, seen: (flags & 1) > 0,
+      doubt: doubt == null ? '' : list.doubts[doubt], art: art || '', colour: colour == null ? '' : list.colours[colour],
     };
   });
 }
@@ -165,7 +180,6 @@ if (root) {
   const newest = document.getElementById('release-newest');
   const sortSelect = document.getElementById('f-sort');
   const SEEN_NOTE = root.dataset.seenNote;
-  const DOUBT_NOTE = root.dataset.doubtNote;
   const NS = 'http://www.w3.org/2000/svg';
 
   const cell = (tr, label, cls) => {
@@ -188,9 +202,9 @@ if (root) {
   const rowEl = (r) => {
     const tr = document.createElement('tr');
     const date = cell(tr, 'Released', 'num');
-    date.textContent = r.date;
+    date.textContent = r.dateText;
     if (r.seen) { const a = document.createElement('abbr'); a.className = 'doubt seen'; a.tabIndex = 0; a.dataset.tip = SEEN_NOTE; a.setAttribute('aria-label', SEEN_NOTE); a.textContent = '*'; date.append(a); }
-    if (r.doubt) { const a = document.createElement('abbr'); a.className = 'doubt'; a.tabIndex = 0; a.dataset.tip = DOUBT_NOTE; a.setAttribute('aria-label', DOUBT_NOTE); a.textContent = '?'; date.append(a); }
+    if (r.doubt) { const a = document.createElement('abbr'); a.className = 'doubt'; a.tabIndex = 0; a.dataset.tip = r.doubt; a.setAttribute('aria-label', r.doubt); a.textContent = '?'; date.append(a); }
     const brand = cell(tr, 'Brand');
     const b = document.createElement('a'); b.href = `/rc/brands/${r.brand}/`; b.textContent = r.brandName; brand.append(b);
     const name = cell(tr, 'Release', 'name');
@@ -206,18 +220,19 @@ if (root) {
     cell(tr, 'Build').textContent = r.buildLabel;
     return tr;
   };
+  // An outline is a span masked by /art/<file>.svg, filled with the release's colour. The table renders one page of
+  // rows at a time, so only those rows' outlines are fetched; the browser caches each file.
+  const showArt = (el) => { const u = `url(/art/${el.dataset.art})`; el.style.maskImage = u; el.style.webkitMaskImage = u; };
   // the release's outline, or its type icon when it has none (the same drawing as ReleaseArt in the release tables)
   const outline = (r) => {
     if (r.art) {
-      const svg = document.createElementNS(NS, 'svg');
-      svg.setAttribute('class', 'relart inrow');
-      svg.setAttribute('viewBox', '0 0 48 24');
-      svg.setAttribute('aria-hidden', 'true');
-      svg.style.width = '2.6em'; svg.style.height = '1.3em';
-      const p = document.createElementNS(NS, 'path');
-      p.setAttribute('d', r.art); p.setAttribute('fill', 'currentColor');
-      svg.append(p);
-      return svg;
+      const span = document.createElement('span');
+      span.className = 'relart inrow';
+      span.setAttribute('aria-hidden', 'true');
+      span.style.backgroundColor = r.colour || 'currentColor';
+      span.dataset.art = `${r.art}`;
+      showArt(span);
+      return span;
     }
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('class', 'icon');
