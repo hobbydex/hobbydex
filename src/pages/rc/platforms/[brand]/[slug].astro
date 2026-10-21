@@ -53,6 +53,9 @@ const bearingSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.c
 const screwSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.category === 'screw' && /\b(screw|hardware|fastener|bolt)s?\s+(kit|set)\b/i.test(p.name));
 const fits = allFits.filter((x) => !bearingSets.includes(x) && !screwSets.includes(x));
 const relations = db.kitRelations.get(kit.id) ?? [];
+// successor links (supersedes): the newer platforms that replace this one, and the older one this one replaces
+const replacedByKits = db.kitReplacedBy.get(kit.id) ?? [];
+const replacesKit = kit.supersedes ? db.kit.get(kit.supersedes) : undefined;
 // car lines (series) this platform's releases belong to that run on other platforms too
 const seriesOn = [...new Set(releases.map((r) => r.series).filter((x): x is string => !!x))].map((series) => {
   const others = new Map<string, string>();
@@ -131,6 +134,8 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}{kit.sources?.scale && <FactSource field="scale" url={kit.sources.scale} />}</dd></>}
     {kit.drive && <><dt>Drive</dt><dd>{driveLabel(kit.drive)}</dd></>}
     {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
+    {replacesKit && <><dt>Replaces</dt><dd><a href={url.platform(replacesKit.id)}>{brandName(replacesKit.brand)} {replacesKit.name}</a></dd></>}
+    {replacedByKits.length > 0 && <><dt>Replaced by</dt><dd>{replacedByKits.map((o, i) => <>{i > 0 && <br />}<a href={url.platform(o.id)}>{brandName(o.brand)} {o.name}</a></>)}</dd></>}
     {dealerUrls.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerUrls.length <= 3
       ? dealerUrls.map((u, i) => <>{i > 0 && ' · '}<a href={u} rel="nofollow noopener" target="_blank">{hostLabel(u)}</a></>)
       : `${dealerUrls.length} dealer pages`}</dd></>}
