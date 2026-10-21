@@ -97,3 +97,14 @@ test('index: only platforms, releases, parts, specs, brands, makes and categorie
     for (const x of r.slice(0, 50)) assert.ok(TYPES.has(x.meta.type), `${text}: ${x.url} has no type`);
   }
 }));
+
+test('a make comes first for its full name or the start of it', () => {
+  const datas = [
+    { meta: { type: 'release', title: 'Tamiya Mercedes-Benz Unimog 406' } },
+    { meta: { type: 'part', title: '12345 Mercedes-Benz body' } },
+    { meta: { type: 'make', title: 'Mercedes-Benz RC cars' } },
+  ];
+  for (const q of ['mercedes', 'mercedes benz', 'Mercedes-Benz']) assert.equal(order(q, datas)[0], 'Mercedes-Benz RC cars');
+  // a word inside the name is not the start of it
+  assert.notEqual(order('benz', datas)[0], 'Mercedes-Benz RC cars');
+});

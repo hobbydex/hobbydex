@@ -12,7 +12,9 @@ export function rankHits(text, datas) {
     const name = t === 'part' ? bare.replace(/^\S+\s/, '') : bare;   // a part title starts with its number
     const all = words.every((w) => title.includes(w));
     const cat = (d.filters && d.filters.category && d.filters.category[0]) || '';
-    const exact = (t === 'make' && (title === qn || title === qn + ' rc cars')) || (t === 'brand' && title === qn);
+    // a make whose name starts with the query as whole words ("mercedes" for Mercedes-Benz) counts as exact
+    const make = title.replace(/ rc cars$/, '');
+    const exact = (t === 'make' && (make === qn || make.startsWith(qn + ' '))) || (t === 'brand' && title === qn);
     const tier = exact || ((t === 'platform' || t === 'release') && (name === qn || bare === qn)) ? 0
       : t === 'platform' && all ? 1 : t === 'release' && all ? 2 : t === 'part' && all ? (CAR_PARTS.includes(cat) ? 3 : 4)
       : all ? 5 : t === 'part' ? 7 : 6;
