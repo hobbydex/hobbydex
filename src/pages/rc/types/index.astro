@@ -1,0 +1,62 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Icon from '../../../components/Icon.astro';
+import { db, url, brandName } from '../../../lib/data';
+import { kitTypeLabel, kitTypeIcon, kitTypeAbout, kitTypeOrder, kitTypeOne } from '../../../lib/kitTypes';
+import { releasesByType, SPLIT_AT, brandSlug } from '../../../lib/releaseTypes';
+
+const kitsOf = new Map<string, typeof db.kits>();
+for (const k of db.kits) {
+  const c = k.category || 'car';
+  if (!kitsOf.has(c)) kitsOf.set(c, []);
+  kitsOf.get(c)!.push(k);
+}
+// one tile per type with releases or platforms, in the kit type order; the catch-all 'car' type last
+const types = [...new Set([...releasesByType.keys(), ...kitsOf.keys()])]
+  .sort((a, b) => Number(a === 'car') - Number(b === 'car') ||(kitTypeOrder.indexOf(a) + 1 || 99) - (kitTypeOrder.indexOf(b) + 1 || 99));
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const CAR_NOTE = 'Releases whose type is not known yet; they move to their own type as soon as a maker page states it.';
+
+// the top 3 brands of a type by release count (platforms break ties and place brands with no releases)
+const topBrands = (type: string) => {
+  const rels = new Map<string, number>();
+  for (const r of releasesByType.get(type) ?? []) rels.set(r.brand, (rels.get(r.brand) ?? 0) + 1);
+  const kits = new Map<string, number>();
+  for (const k of kitsOf.get(type) ?? []) kits.set(k.brand, (kits.get(k.brand) ?? 0) + 1);
+  const split = (releasesByType.get(type)?.length ?? 0) > SPLIT_AT;
+  return [...new Set([...rels.keys(), ...kits.keys()])]
+    .sort((a, b) => (rels.get(b) ?? 0) - (rels.get(a) ?? 0) || (kits.get(b) ?? 0) - (kits.get(a) ?? 0) || brandName(a).localeCompare(brandName(b)))
+    .slice(0, 3)
+    .map((b) => ({
+      name: brandName(b),
+      href: rels.has(b) ? (split ? `/rc/releases/types/${type}/${brandSlug(b)}/` : `/rc/releases/types/${type}/#${brandSlug(b)}`) : url.brand(b),
+    }));
+};
+---
+<Base title="RC car types" description="Every RC car type in Hobbydex: its releases and platforms, and the brands that make them." kind="type" words="RC car types cars trucks buggies touring drift crawler monster formula kart boat">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Types</div>
+  <h1>RC car types</h1>
+  <p>Releases and platforms grouped by what they are, from buggies and trucks to drift cars and boats, with the brands that make most of them.</p>
+  <ul class="cards typecards">
+    {types.map((t) => {
+      const releases = releasesByType.get(t)?.length ?? 0;
+      const platforms = kitsOf.get(t)?.length ?? 0;
+      const label = kitTypeLabel[t] ?? t;
+      const brands = topBrands(t);
+      return <li class="typecard">
+        <h2><Icon name={kitTypeIcon(t)} size="1.6em" /> {label}</h2>
+        <p class="muted">{t === 'car' ? CAR_NOTE : kitTypeAbout[t]}</p>
+        <p class="counts">{plural(releases, 'release', 'releases')} · {plural(platforms, 'platform', 'platforms')}</p>
+        {brands.length > 0 && <p class="brands">Top brands: {brands.map((b, i) => <>{i > 0 && ', '}<a href={b.href}>{b.name}</a></>)}</p>}
+        <p class="links"><a href={`/rc/releases/?type=${t}`}>All releases</a> · <a href={`/rc/platforms/types/${t}/`}>Platforms</a></p>
+      </li>;
+    })}
+  </ul>
+  <style>
+    .typecards li { display: flex; flex-direction: column; gap: 0.35rem; }
+    .typecards h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 0.4rem; border: 0; padding: 0; }
+    .typecards p { margin: 0; }
+    .typecard .counts { font-weight: 600; }
+    .typecard .links { margin-top: auto; padding-top: 0.25rem; }
+  </style>
+</Base>
