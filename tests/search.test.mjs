@@ -97,3 +97,22 @@ test('index: only platforms, releases, parts, specs, brands, makes and categorie
     for (const x of r.slice(0, 50)) assert.ok(TYPES.has(x.meta.type), `${text}: ${x.url} has no type`);
   }
 }));
+
+test('a make comes first for its full name or the start of it', () => {
+  const datas = [
+    { meta: { type: 'release', title: 'Tamiya Mercedes-Benz Unimog 406' } },
+    { meta: { type: 'part', title: '12345 Mercedes-Benz body' } },
+    { meta: { type: 'make', title: 'Mercedes-Benz RC cars' } },
+  ];
+  for (const q of ['mercedes', 'mercedes benz', 'Mercedes-Benz']) assert.equal(order(q, datas)[0], 'Mercedes-Benz RC cars');
+  // a word inside the name is not the start of it
+  assert.notEqual(order('benz', datas)[0], 'Mercedes-Benz RC cars');
+});
+
+test('a make from the candidate list comes first even when pagefind ranks it low', async () => {
+  const rows = [['Tamiya TT-02', 'Tamiya', '/rc/platforms/tamiya/tt-02/'], ['Mercedes-Benz RC cars', 'car make', '/rc/makes/mercedes-benz/', 'make']];
+  const many = Array.from({ length: 80 }, (_, i) => ({ id: `/r${i}/`, data: async () => ({ url: `/r${i}/`, meta: { type: 'release', title: `Tamiya Mercedes-Benz Truck ${i}` }, filters: {} }) }));
+  const pagefind = { search: async () => ({ results: many }) };
+  const r = await rankedSearch(pagefind, 'mercedes', rows);
+  assert.equal(r.datas[0].meta.title, 'Mercedes-Benz RC cars');
+});
