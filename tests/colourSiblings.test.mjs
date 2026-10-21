@@ -53,3 +53,13 @@ test('a release without an item number or a colour does not pair', () => {
   const d = rel('d', '34118T1S', 'Inferno NEO 4.0 VE readyset');
   assert.deepEqual(ids(c, [c, d]), []);
 });
+
+test('a colour code after a dash pairs; the motor version before it keeps BRS and BRD apart', () => {
+  const yw = rel('a', 'BRS-YW', '1:8 Bronco Raptor BRS-YW', { color: 'yellow' });
+  const gy = rel('b', 'BRS-GY', '1:8 Bronco Raptor BRS-GY', { color: 'grey' });
+  const or = rel('c', 'BRD-OR', '1:8 Bronco Raptor BRD-OR', { color: 'orange' });
+  assert.deepEqual(ids(yw, [yw, gy, or]), ['BRS-GY']);
+  assert.deepEqual(ids(or, [yw, gy, or]), []);
+  const nocolour = rel('d', 'BRS-DG', '1:8 Bronco Raptor BRS-DG');
+  assert.deepEqual(ids(nocolour, [yw, gy, nocolour]), []);
+});

@@ -23,7 +23,9 @@ function colourRe(color?: string): string {
 function nameKey(r: Release): string {
   const src = colourRe(r.color);
   const has = new RegExp(src, 'i');
-  const s = r.name.toLowerCase()
+  const p = numberParts(r.number);
+  const own = p && r.number ? new RegExp(r.number.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[\s-]+/g, '[\\s-]*'), 'gi') : null;
+  const s = (own ? r.name.replace(own, ` ${p!.stem} `) : r.name).toLowerCase()
     .replace(/\([^)]*\)|\[[^\]]*\]/g, (m) => (has.test(m) ? ' ' : m))
     .replace(/\bcolou?r\s+type\s+\d+\b/g, ' ')
     .replace(/\bw\/\s*\S+/g, ' ')
@@ -33,11 +35,14 @@ function nameKey(r: Release): string {
 }
 
 // the item number split into its stem and colour code: "34118T1S" -> 34118, T1 (the S is a set, not a colour);
-// "30615C" -> 30615, C. Undefined for numbers with no such code.
-function numberParts(number?: string): { stem: string; code: string; pattern: 'type' | 'letter' } | undefined {
+// "30615C" -> 30615, C; "BRS-YW" -> BRS, YW. Undefined for numbers with no such code.
+function numberParts(number?: string): { stem: string; code: string; pattern: 'type' | 'letter' | 'dash' } | undefined {
   if (!number) return undefined;
   const n = number.replace(/\s+/g, '').toUpperCase();
-  let m = /^(.*\d)T(\d)S?$/.exec(n);
+  // a colour code after a dash: Traction Hobby's BRS-YW and RAM1500BRD-BU (BRS and BRD, the motor, stay in the stem)
+  let m = /^(.*[A-Z0-9])-([A-Z]{2,3})$/.exec(n);
+  if (m) return { stem: m[1], code: m[2].toLowerCase(), pattern: 'dash' };
+  m = /^(.*\d)T(\d)S?$/.exec(n);
   if (m) return { stem: m[1], code: `t${m[2]}`, pattern: 'type' };
   m = /^(.*\d)([A-Z]{1,2})$/.exec(n);
   if (m) return { stem: m[1], code: m[2].toLowerCase(), pattern: 'letter' };
