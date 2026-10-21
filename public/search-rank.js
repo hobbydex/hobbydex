@@ -1,5 +1,5 @@
 // Search ranking for /search/ (lower comes first), shared with tests/search.test.mjs.
-// An exact platform or release name, then platforms, releases and parts whose title holds every word
+// An exact make, brand, platform or release name, then platforms, releases and parts whose title holds every word
 // (shortest title first; bodies, wings, decals and bumpers before generic parts), then pages
 // that only mention the words. `datas` are pagefind result data in pagefind's own order.
 export const CAR_PARTS = ['Body and covers', 'Wings', 'Decals', 'Bumpers and guards'];
@@ -12,7 +12,8 @@ export function rankHits(text, datas) {
     const name = t === 'part' ? bare.replace(/^\S+\s/, '') : bare;   // a part title starts with its number
     const all = words.every((w) => title.includes(w));
     const cat = (d.filters && d.filters.category && d.filters.category[0]) || '';
-    const tier = (t === 'platform' || t === 'release') && (name === qn || bare === qn) ? 0
+    const exact = (t === 'make' && (title === qn || title === qn + ' rc cars')) || (t === 'brand' && title === qn);
+    const tier = exact || ((t === 'platform' || t === 'release') && (name === qn || bare === qn)) ? 0
       : t === 'platform' && all ? 1 : t === 'release' && all ? 2 : t === 'part' && all ? (CAR_PARTS.includes(cat) ? 3 : 4)
       : all ? 5 : t === 'part' ? 7 : 6;
     return { i, tier, len: name.length };
