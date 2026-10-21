@@ -115,17 +115,21 @@ const productUrls = [...new Set(releases.flatMap((r) => {
 }))];
 // the shops' product pages of its releases, shown apart from the maker's
 const dealerUrls = [...new Set(releases.flatMap((r) => (r.links ?? []).filter((l) => l.kind === 'dealer').map((l) => l.url)))];
+// the search index (Base's hidden block): brand, name, type, scale, and the vehicles its releases depict
+const indexWords = [brandName(kit.brand), kit.name, kitTypeOne[kit.category ?? 'car'] ?? kit.category, kit.scale,
+  ...releases.flatMap((r) => [r.depicts?.make, r.depicts?.model])].filter(Boolean).join(' ');
+const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
 ---
-<Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="platform" sub={brandName(kit.brand)}>
+<Base title={`${brandName(kit.brand)} ${kit.name}`} description={`${brandName(kit.brand)} ${kit.name}: releases and parts.`} kind="platform" sub={brandName(kit.brand)} words={indexWords} filters={indexFilters}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
-  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brandName(kit.brand)} {kit.name}</h1>
+  <h1>{brandName(kit.brand)} {kit.name}</h1>
   {kit.sources?.name && <p><FactSource field="name" url={kit.sources.name} dot={false} /></p>}
   <WebSearch query={`${brandName(kit.brand)} ${kit.name}`} links={kit.links} />
   <div class="factsrow">
   <dl class="facts">
     <dt>Category</dt><dd><a href={`/rc/platforms/types/${kit.category || 'car'}/`}>{kitTypeOne[kit.category ?? 'car'] ?? kit.category}</a>{isSourceNote(kit.notes) && <> <SourceNote text={kit.notes!} /></>}{kit.sources?.category && <FactSource field="category" url={kit.sources.category} />}</dd>
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}{kit.sources?.scale && <FactSource field="scale" url={kit.sources.scale} />}</dd></>}
-    {kit.drive && <><dt>Drive</dt><dd>{driveLabel(kit.drive)}<span hidden data-pagefind-filter={`drive:${driveLabel(kit.drive)}`} /></dd></>}
+    {kit.drive && <><dt>Drive</dt><dd>{driveLabel(kit.drive)}</dd></>}
     {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
     {dealerUrls.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerUrls.length <= 3
       ? dealerUrls.map((u, i) => <>{i > 0 && ' · '}<a href={u} rel="nofollow noopener" target="_blank">{hostLabel(u)}</a></>)

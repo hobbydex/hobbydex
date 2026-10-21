@@ -31,7 +31,7 @@ const hasDisc = [...releases, ...bodies].some((x) => x.status === 'discontinued'
 const vyear = (x: { depicts?: { year?: number } }) => x.depicts?.year ?? '';
 import SeenNote from '../../../../components/SeenNote.astro';
 ---
-<Base title={`${make} RC cars`} description={`${make} RC replicas: ${releases.length} ${releases.length === 1 ? 'release' : 'releases'}${bodies.length ? ` and ${bodies.length} body shells` : ''}, by model.${info ? ` ${info.notes}` : ''}`}>
+<Base title={`${make} RC cars`} description={`${make} RC replicas: ${releases.length} ${releases.length === 1 ? 'release' : 'releases'}${bodies.length ? ` and ${bodies.length} body shells` : ''}, by model.${info ? ` ${info.notes}` : ''}`} kind="make" words={[make, info?.notes, ...models, ...makeVehicles.map((v) => v.model)].filter(Boolean).join(' ')}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/makes/">Car makes</a> / {make}</div>
   <h1>{make} <span class="muted">({releases.length} {releases.length === 1 ? 'release' : 'releases'})</span></h1>
   {info && <dl class="facts"><dt>Country</dt><dd>{countryName(info.country)}</dd></dl>}

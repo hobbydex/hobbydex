@@ -60,7 +60,7 @@ import Icon from '../components/Icon.astro';
       }
       const filt = () => { const f = {}; if (type) f.type = type; if (cat) { f.category = cat; f.type = 'part'; } if (drive) { f.drive = drive; f.type = 'platform'; } if (make) f.make = make; return f; };
       const PAGE = 20;
-      const labels = { part: 'part', spec: 'spec', release: 'release', platform: 'platform', brand: 'brand' };
+      const labels = { part: 'part', spec: 'spec', release: 'release', platform: 'platform', brand: 'brand', make: 'make', category: 'category' };
       // the same mark as Discontinued.astro, after the title of a discontinued part or release
       const DISC = '<span class="disc" title="Discontinued"><svg class="icon" aria-hidden="true"><use href="/icons.svg#discontinued"/></svg><span class="sr-only"> discontinued</span></span>';
       const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

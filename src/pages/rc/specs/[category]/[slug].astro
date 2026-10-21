@@ -28,9 +28,9 @@ const specCan = spec.category === 'motor' ? canDiameter(spec as { diameter_mm?: 
 const specSinks = specCan ? (heatsinksByCan.get(specCan) ?? []) : [];
 import SeenNote from '../../../../components/SeenNote.astro';
 ---
-<Base title={title} description={`${title}: generic ${spec.category} spec, and which branded parts and kits match it.`} kind="spec" sub={spec.category}>
+<Base title={title} description={`${title}: generic ${spec.category} spec, and which branded parts and kits match it.`} kind="spec" sub={spec.category} words={spec.category}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">specs</a> / <a href={`/rc/specs/${spec.category}/`}>{spec.category}</a> / {key(spec.id)[1]}</div>
-  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{title}</h1>
+  <h1>{title}</h1>
   <dl class="facts">
     <dt>Category</dt><dd>{spec.category}</dd>
     {attrs.map(([k, v]) => <><dt>{k.replace(/_/g, ' ')}</dt><dd>{String(v)}</dd></>)}

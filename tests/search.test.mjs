@@ -53,7 +53,7 @@ test('a release whose name holds the words comes before parts', () => {
 // ---- the built index ----
 const DIST = resolve('dist');
 const built = existsSync(join(DIST, 'pagefind', 'pagefind.js'));
-const TYPES = new Set(['platform', 'release', 'part', 'spec', 'brand']);
+const TYPES = new Set(['platform', 'release', 'part', 'spec', 'brand', 'make', 'category']);
 
 let server, search;
 before(async () => {
@@ -90,7 +90,7 @@ test('index: a Lancia Delta body ranks above every bearing kit', { skip: !built 
   assert.ok(bearing < 0 || body < bearing, 'the body comes before the bearing kits');
 }));
 
-test('index: only platforms, releases, parts, specs and brands are searchable', { skip: !built && 'no build' }, () => withIndex(async (search) => {
+test('index: only platforms, releases, parts, specs, brands, makes and categories are searchable', { skip: !built && 'no build' }, () => withIndex(async (search) => {
   for (const text of ['comic', 'buggy', 'bearing']) {
     const r = await search(text);
     assert.ok(r.length > 0, `${text}: some results`);

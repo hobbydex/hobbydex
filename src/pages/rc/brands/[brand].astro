@@ -44,9 +44,9 @@ const endedText = brand.ended ? dateText({ released: brand.ended }) : undefined;
 const dateDoubtful = !!((brand.status === 'active' && launchedText && brand.launched_doubt) || (brand.status === 'gone' && endedText && ((launchedText && brand.launched_doubt) || brand.ended_doubt)));
 const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length ?? 0] as const).filter(([, n]) => n > 0);
 ---
-<Base title={brand.name} description={`${brand.name}: platforms and parts in Hobbydex.`} kind="brand">
+<Base title={brand.name} description={`${brand.name}: platforms and parts in Hobbydex.`} kind="brand" words={brand.notes}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / {brand.name}</div>
-  <h1 data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{brand.name}</h1>
+  <h1>{brand.name}</h1>
   <dl class="facts">
     {brand.legal_name && <><dt>Legal name</dt><dd>{brand.legal_name}</dd></>}
     {owner && <><dt>Owned by</dt><dd>{owner.brand && owner.brand !== brand.id ? <a href={url.brand(owner.brand)}>{owner.name}</a> : owner.name}{owner.country && <span class="muted"> ({countryName(owner.country)})</span>}{brand.owner_since && <span class="muted">, since {brand.owner_since}</span>} {ownerHref && <a class="muted" href={ownerHref} rel="nofollow" title={ownerDoc?.title}>source</a>}</dd></>}

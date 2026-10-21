@@ -20,7 +20,7 @@ const table = !!columns[category] && parts.length <= BIG;
 const byCount = [...brands].sort((a, b) => b[1].length - a[1].length);
 const info = db.categories.find((c) => c.id === `category/${category}`);
 ---
-<Base title={catName(category)} description={`${catName(category)}: ${countOf(category)} RC parts from ${brands.length} brands${table ? ', with their key specs' : ''}.`}>
+<Base title={catName(category)} description={`${catName(category)}: ${countOf(category)} RC parts from ${brands.length} brands${table ? ', with their key specs' : ''}.`} kind="category" words={[catName(category), info?.summary].filter(Boolean).join(' ')}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/categories/">Categories</a> / {catName(category)}</div>
   <h1><Icon name={category} size="1.4em" /> {catName(category)}</h1>
   {info?.description && <p>{info.description}</p>}

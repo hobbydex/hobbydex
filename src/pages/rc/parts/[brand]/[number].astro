@@ -98,18 +98,23 @@ const partLinks = makerOwnLinks(part.links);
 const dealerLinks = (part.links ?? []).filter((l) => l.kind === 'dealer');
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
+// the search index (Base's hidden block): the part's numbers, names, brand, category, generic spec, and the platforms and releases it fits
+const indexWords = [brand?.name, part.number, ...(part.numbers ?? []), ...(part.former_ids ?? []).map((f) => key(f)[1]), part.name, ...(part.former_names ?? []),
+  part.category && catName(part.category), ...new Set((part.equivalent_to ?? []).map((e) => db.spec.get(e.spec)?.name)),
+  ...kitsOf.map((k) => (k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : '')), ...uses.map((u) => `${brandName(u.release.brand)} ${u.release.name}`)].filter(Boolean).join(' ');
+const indexFilters = [part.category && `category:${catName(part.category)}`, part.status === 'discontinued' && 'status:discontinued',
+  part.depicts?.make && `make:${part.depicts.make}`].filter((x): x is string => !!x);
 ---
-<Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name}>
+<Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name} words={indexWords} filters={indexFilters}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
-  {part.category && <span hidden data-pagefind-filter={`category:${catName(part.category)}`} />}
-  <h1><span data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</span>{part.status === 'discontinued' && <span hidden data-pagefind-filter="status:discontinued" />}<Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
+  <h1><span>{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</span><Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
   {part.sources?.name && <p><FactSource field="name" url={part.sources.name} dot={false} /></p>}
   {(part as { name_source?: string }).name_source === 'ocr' && <p class="muted ocrname" data-pagefind-ignore>This name was read by OCR from a scanned manual and is not checked yet; it may contain reading errors.</p>}
   <WebSearch query={`"${part.number ?? part.name}" ${brand?.name ?? ''}`.trim()} copy={part.number} links={part.links} />
   <div class="factsrow">
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
-    {part.depicts && <><dt>Real vehicle</dt><dd><RealVehicle depicts={part.depicts!} /><span hidden data-pagefind-filter={part.depicts.make ? `make:${part.depicts.make}` : undefined} /></dd></>}
+    {part.depicts && <><dt>Real vehicle</dt><dd><RealVehicle depicts={part.depicts!} /></dd></>}
     {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <> <span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span>{part.sources?.category && <FactSource field="category" url={part.sources.category} />}</dd></>}
     {partLinks.length > 0 && <><dt>Product page</dt><dd>{partLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
