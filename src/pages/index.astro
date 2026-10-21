@@ -42,7 +42,7 @@ const parts = buggy.split('Z').filter((x) => x.trim()).map((x) => x + 'Z');
 const BODY = parts.slice(0, 2).join(''), WHEELS = parts.slice(2).join('');
 // the band's lower edge is a rolling wave; the car rides it in and lifts off the crest at three quarters of
 // the width, hanging just above it with the dirt it kicked up (one run; with reduced motion the end pose at
-// once). The edge is anchored right, so a phone still shows that crest. GROUND is the edge, AIR the car's
+// once). The drawing scales with the width, so a phone shows the whole run. GROUND is the edge, AIR the car's
 // line: the wave up its rising face, then a rising arc that leaves it along the same slope.
 const GROUND = 'M-200 140 C 0 140 100 112 250 112 S 520 150 680 142 S 840 96 900 96 S 1010 146 1120 150 L 1400 150';
 const AIR = 'M-200 140 C 0 140 100 112 250 112 S 520 150 680 142 C 779.2 137.0 816.9 120.5 845.5 108.7 C 901.0 85.8 930.5 68.7 975.5 60.7';
