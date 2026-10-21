@@ -1,4 +1,5 @@
 ---
+import { specLabel } from '../../../../lib/specs';
 import Base from '../../../../layouts/Base.astro';
 import Standards from '../../../../components/Standards.astro';
 import { specDrawing } from '../../../../lib/specDrawings';
@@ -13,6 +14,14 @@ export function getStaticPaths() {
 const { spec } = Astro.props;
 const skip = new Set(['id', 'category', 'name', 'standards', 'toml_path']);
 const attrs = Object.entries(spec).filter(([k, v]) => !skip.has(k) && (typeof v === 'string' || typeof v === 'number'));
+// a field name as a label: "din_outer_mm" -> "Outer, DIN (mm)", "shaft_mm" -> "Shaft (mm)"
+const fieldLabel = (k: string) => {
+  let t = k.replace(/_/g, ' '), unit = '';
+  const u = t.match(/ (mm|g|kg|v|mah|cst|kv|t|deg)$/i);
+  if (u) { unit = ` (${u[1] === 'v' ? 'V' : u[1] === 'mah' ? 'mAh' : u[1] === 'cst' ? 'cSt' : u[1] === 'kv' ? 'kV' : u[1]})`; t = t.slice(0, -u[0].length); }
+  if (/^(din|iso|jis) /.test(t)) t = `${t.slice(4)}, ${t.slice(0, 3).toUpperCase()}`;
+  return t.charAt(0).toUpperCase() + t.slice(1) + unit;
+};
 const linked = db.partsBySpec.get(spec.id) ?? [];
 const uses = linked.flatMap(({ part, link }) => (db.usesByPart.get(part.id) ?? []).map((u) => ({ part, link, ...u })))
   .sort((a, b) => yearOf(a.release) - yearOf(b.release) || a.release.name.localeCompare(b.release.name));
@@ -29,11 +38,11 @@ const specSinks = specCan ? (heatsinksByCan.get(specCan) ?? []) : [];
 import SeenNote from '../../../../components/SeenNote.astro';
 ---
 <Base title={title} description={`${title}: generic ${spec.category} spec, and which branded parts and kits match it.`} kind="spec" sub={spec.category} words={spec.category}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">specs</a> / <a href={`/rc/specs/${spec.category}/`}>{spec.category}</a> / {key(spec.id)[1]}</div>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">Specs</a> / <a href={`/rc/specs/${spec.category}/`}>{specLabel[spec.category] ?? spec.category}</a> / {key(spec.id)[1]}</div>
   <h1>{title}</h1>
   <dl class="facts">
-    <dt>Category</dt><dd>{spec.category}</dd>
-    {attrs.map(([k, v]) => <><dt>{k.replace(/_/g, ' ')}</dt><dd>{String(v)}</dd></>)}
+    <dt>Category</dt><dd><a href={`/rc/specs/${spec.category}/`}>{specLabel[spec.category] ?? spec.category}</a></dd>
+    {attrs.map(([k, v]) => <><dt>{fieldLabel(k)}</dt><dd>{String(v)}</dd></>)}
     {spec.standards && <><dt>Standards</dt><dd><Standards codes={spec.standards} /></dd></>}
   </dl>
   {drawing && <figure class="drawing" data-pagefind-ignore>
