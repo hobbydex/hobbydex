@@ -4,6 +4,7 @@ import ReleaseArt from '../components/ReleaseArt.astro';
 import Discontinued from '../components/Discontinued.astro';
 import { kitTypeIcon, kitTypeOne } from '../lib/kitTypes';
 import Base from '../layouts/Base.astro';
+import { readFileSync } from 'node:fs';
 import { db, url, brandName, dateKey, dateDoubt, releasesByMake, bodiesByMake } from '../lib/data';
 import DateText from '../components/DateText.astro';
 import DateDoubt from '../components/DateDoubt.astro';
@@ -34,32 +35,70 @@ for (const r of db.releases) if (r.status !== 'discontinued') {
 }
 const latest = [...newest.values()].sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || (a.status === 'announced' ? -1 : 1)).slice(0, 20);
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
+// the hero's car: the site's own buggy icon (public/icons.svg#buggy, 48x24, front to the left, wheels on
+// y=23.2), split into body and wing (its first two subpaths) and the two wheels, so the suspension can work
+const buggy = (readFileSync('public/icons.svg', 'utf8').match(/<symbol id="buggy"[^>]*>\s*<path[^>]*d="([^"]+)"/) ?? [])[1] ?? '';
+const parts = buggy.split('Z').filter((x) => x.trim()).map((x) => x + 'Z');
+const BODY = parts.slice(0, 2).join(''), WHEELS = parts.slice(2).join('');
+// the band's lower edge is a rolling wave; the car rides it in and lifts off the crest at three quarters of
+// the width, hanging just above it with the dirt it kicked up (one run; with reduced motion the end pose at
+// once). The edge is anchored right, so a phone still shows that crest. GROUND is the edge, AIR the car's
+// line: the wave up its rising face, then a rising arc that leaves it along the same slope.
+const GROUND = 'M-200 140 C 0 140 100 112 250 112 S 520 150 680 142 S 840 96 900 96 S 1010 146 1120 150 L 1400 150';
+const AIR = 'M-200 140 C 0 140 100 112 250 112 S 520 150 680 142 C 779.2 137.0 816.9 120.5 845.5 108.7 C 901.0 85.8 930.5 68.7 975.5 60.7';
+// debris: thrown back and up from under the rear wheel while the car leaves the crest; the specks ride along
+// with the car (they are in its frame) and hang just behind it at the end. [x, y, r] in the car's frame
+// (its middle at 0, wheels on y=0, front to the right): the rear wheel touches down near x=-30.
+const KICK = [-30, -1], KICK_AT = 3.1;
+const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], [-74, -11, 1.2], [-82, -26, 0.9], [-40, -2, 1.5]];
 ---
 <Base title="Open hobby parts database" description="Hobbydex: which parts are in my RC car, what fits it, and what is it equivalent to. Open data, no prices, no images of our own.">
   <h1 class="sr-only">Hobbydex</h1>
-  <p>Which parts are in my car, what fits it, and what is it equivalent to? An open, cross-brand parts database, starting with RC cars.</p>
-  <form class="home-search" action="/search/" method="get" role="search">
-    <div class="ac">
-      <Icon name="search" />
-      <input type="search" name="q" id="home-q" placeholder="Part number, part name, platform or brand" aria-label="Search"
-        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="home-ac" autocomplete="off" />
-      <div class="ac-pop" id="home-pop" hidden>
-        <div class="ac-status" id="home-ac-status" role="status"></div>
-        <ul class="ac-list" id="home-ac" role="listbox" aria-label="Suggestions"></ul>
-        <a class="ac-all" id="home-ac-all" href="/search/">All results</a>
+  <section class="home-hero">
+    <p class="tagline">Which parts are in my car, what fits it, and what is it equivalent to? An open, cross-brand parts database, starting with RC cars.</p>
+    <form class="home-search" action="/search/" method="get" role="search">
+      <div class="ac">
+        <input type="search" name="q" id="home-q" placeholder="Part number, part name, platform or brand" aria-label="Search"
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="home-ac" autocomplete="off" />
+        <div class="ac-pop" id="home-pop" hidden>
+          <div class="ac-status" id="home-ac-status" role="status"></div>
+          <ul class="ac-list" id="home-ac" role="listbox" aria-label="Suggestions"></ul>
+          <a class="ac-all" id="home-ac-all" href="/search/">All results</a>
+        </div>
       </div>
-    </div>
-    <button type="submit" aria-label="Search"><Icon name="search" /><span class="label">Search</span></button>
-  </form>
+      <button type="submit" aria-label="Search"><Icon name="search" /><span class="label">Search</span></button>
+    </form>
+    <svg class="hero-edge" viewBox="0 0 1200 170" preserveAspectRatio="xMaxYMax slice" aria-hidden="true" focusable="false">
+      <path class="below" d={`${GROUND} V 400 H -200 Z`} />
+      <g class="car">
+        <g transform="translate(-48 -46.4) scale(2)"><g transform="translate(48 0) scale(-1 1)">
+          <path d={WHEELS} fill-rule="evenodd" />
+          <g><path d={BODY} fill-rule="evenodd" /><animateTransform attributeName="transform" type="translate" values="0 0; 0 0; 0 1.2; 0 -1" keyTimes="0; 0.7; 0.9; 1" calcMode="spline" keySplines="0 0 1 1; 0.4 0 0.6 1; 0.3 0 0.4 1" dur="3.2s" begin="0.4s" fill="freeze" /></g>
+        </g></g>
+        <g class="dirt">{DIRT.map(([x, y, r], i) => <circle cx={KICK[0]} cy={KICK[1]} r={r} opacity="0">
+          <animate attributeName="cx" from={KICK[0]} to={x} begin={`${KICK_AT + i * 0.04}s`} dur="0.5s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.2 0.6 0.4 1" />
+          <animate attributeName="cy" from={KICK[1]} to={y} begin={`${KICK_AT + i * 0.04}s`} dur="0.5s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.2 0.6 0.4 1" />
+          <set attributeName="opacity" to="1" begin={`${KICK_AT + i * 0.04}s`} fill="freeze" />
+        </circle>)}</g>
+        <!-- nose up in the air: the car pitches back as it leaves the crest and stays so -->
+        <animateTransform attributeName="transform" type="rotate" values="0; 0; -5" keyTimes="0; 0.85; 1" calcMode="spline" keySplines="0 0 1 1; 0.3 0 0.4 1" dur="3.2s" begin="0.4s" fill="freeze" additive="sum" />
+        <animateMotion dur="3.2s" begin="0.4s" fill="freeze" rotate="auto" path={AIR} />
+      </g>
+    </svg>
+  </section>
+  <script is:inline>
+    // reduced motion: the hero car stands where its drive would end
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { const e = document.querySelector('.hero-edge'); e && e.setCurrentTime && (e.pauseAnimations(), e.setCurrentTime(5)); }
+  </script>
   <script is:inline>
     // suggestions as you type: the best few results of the /search/ ranking under the box. Arrow keys pick one,
     // Enter opens it; Enter without a pick (or the button) opens the full search page, as before.
     (() => {
       const q = document.getElementById('home-q'), pop = document.getElementById('home-pop'), list = document.getElementById('home-ac');
       const status = document.getElementById('home-ac-status'), all = document.getElementById('home-ac-all');
-      const SHOW = 8, labels = { part: 'part', spec: 'spec', release: 'release', platform: 'platform', brand: 'brand' };
+      const SHOW = 8, MIN = 3, labels = { part: 'part', spec: 'spec', release: 'release', platform: 'platform', brand: 'brand', make: 'make' };
       const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-      let ready, active = -1, running = false, again = false, timer;
+      let ready, active = -1, seq = 0, timer;
       // the index loads on the first focus, so it is usually in by the time the first word is typed
       const load = () => ready ??= (async () => {
         const [{ rankedSearch }, platforms, pagefind] = await Promise.all([import('/search-rank.js'),
@@ -74,24 +113,23 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
         for (let k = 0; k < items.length; k++) items[k].setAttribute('aria-selected', String(k === i));
         if (i >= 0) { q.setAttribute('aria-activedescendant', items[i].id); items[i].scrollIntoView({ block: 'nearest' }); } else q.removeAttribute('aria-activedescendant');
       };
+      // each run has its number; a run whose number is no longer the newest stops and draws nothing, so a slow
+      // search for "to" never holds up the one for "toyota" (two letters match most of the index)
       async function suggest() {
-        if (running) { again = true; return; }
-        running = true;
-        try { await run(); } catch (e) { status.textContent = 'Search failed to load: ' + (e && e.message ? e.message : e); list.innerHTML = ''; }
-        running = false;
-        if (again) { again = false; suggest(); }
+        const my = ++seq, stale = () => my !== seq;
+        try { await run(stale); } catch (e) { if (!stale()) { status.textContent = 'Search failed to load: ' + (e && e.message ? e.message : e); list.innerHTML = ''; } }
       }
-      async function run() {
+      async function run(stale) {
         const text = q.value.trim();
         all.href = '/search/' + (text ? '?q=' + encodeURIComponent(text) : ''); all.textContent = text ? `All results for "${text}"` : 'All results';
-        if (!text) { list.innerHTML = ''; open(false); return; }
+        if (text.length < MIN) { list.innerHTML = ''; open(false); return; }
         open(true);
         status.textContent = ready ? 'Searching...' : 'Loading the search index...';
         const search = await load();
-        if (again) return;
+        if (stale()) return;
         status.textContent = 'Searching...';
-        const r = await search(text, () => again);
-        if (!r || again) return;
+        const r = await search(text, stale);
+        if (!r || stale()) return;
         const words = text.toLowerCase().split(/\s+/).filter((w) => w.length > 1).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
         const re = words.length ? new RegExp('(' + words.join('|') + ')', 'ig') : null;
         list.innerHTML = r.datas.slice(0, SHOW).map((d, i) => { const t = d.meta.type || '';
@@ -126,6 +164,15 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
     <a class="stat" href="/rc/specs/"><b>{db.specs.length}</b> generic specs</a>
   </div>
 
+  <h2>Latest releases <span class="muted">· <a href="/rc/releases/by-year/">all releases by date</a></span></h2>
+  <table>
+    <tr><th class="num">Released</th><th>Release</th><th>Status</th></tr>
+    {latest.map((r) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
+      <td><span class="muted" title={kitTypeOne[cat ?? 'car']}>{r.art ? <ReleaseArt id={r.id} category={cat} art={r.art} size="1em" /> : <Icon name={kitTypeIcon(cat)} label={kitTypeOne[cat ?? 'car'] ?? cat} size="1em" />}</span> <a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a><Discontinued item={r} />
+        {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td><td class="muted">{r.status}</td></tr>; })}
+  </table>
+  <DoubtNote on={latest.some((r) => !!dateDoubt(r))} />
+
   <div class="home-grid">
     <section>
       <h2>Most upgraded platforms <span class="muted">· parts from other brands that fit</span></h2>
@@ -142,15 +189,6 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
       </ul>
     </section>
   </div>
-
-  <h2>Latest releases <span class="muted">· <a href="/rc/releases/by-year/">all releases by date</a></span></h2>
-  <table>
-    <tr><th class="num">Released</th><th>Release</th><th>Status</th></tr>
-    {latest.map((r) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
-      <td><span class="muted" title={kitTypeOne[cat ?? 'car']}>{r.art ? <ReleaseArt id={r.id} category={cat} art={r.art} size="1em" /> : <Icon name={kitTypeIcon(cat)} label={kitTypeOne[cat ?? 'car'] ?? cat} size="1em" />}</span> <a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a><Discontinued item={r} />
-        {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td><td class="muted">{r.status}</td></tr>; })}
-  </table>
-  <DoubtNote on={latest.some((r) => !!dateDoubt(r))} />
 
   <p><a href="/rc/">Browse RC cars</a> · <a href="/rc/compare/">Compare two releases</a> · <a href="/rc/categories/">Part categories</a> · <a href="/rc/specs/">Generic specs</a> · <a href="/rc/servos/">Compare servos</a></p>
   <p class="muted">Dataset {db.dataset}, export generated {db.generated}. Early draft: data and schema are still growing.</p>

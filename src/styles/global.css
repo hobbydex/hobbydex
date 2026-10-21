@@ -48,10 +48,10 @@ ul.cards li { background: var(--surface); border: 1px solid var(--border); borde
 /* search */
 .search-box { width: 100%; font: inherit; font-size: 1rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.55rem 0.75rem; outline: none; }
 .search-box:focus { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
-/* a magnifier inside a search field, on the left; a box with a button is .home-search (joined to it) */
+/* a magnifier inside a search field without a button, on the left; the home box has it on its button instead (.home-search) */
 .sfield { position: relative; display: block; }
 .sfield > input { display: block; padding-left: 2.1rem; }
-.sfield > .icon, .home-search .ac > .icon { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); width: 1.1rem; height: 1.1rem; vertical-align: 0; color: var(--muted); pointer-events: none; }
+.sfield > .icon { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); width: 1.1rem; height: 1.1rem; vertical-align: 0; color: var(--muted); pointer-events: none; }
 .search-filters { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.75rem 0; }
 .search-filters button { font: inherit; font-size: 0.8rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.1rem 0.7rem; cursor: pointer; }
 .search-filters button[aria-pressed="true"] { color: var(--fg); background: var(--surface-2); border-color: var(--muted); }
@@ -83,7 +83,6 @@ ul.search-results mark { background: var(--mark); color: inherit; border-radius:
 .search-filters select { font: inherit; font-size: 0.8rem; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.1rem 0.6rem; }
 .home-search { display: flex; margin: 1rem 0; max-width: 40rem; }
 .home-search input { flex: 1; min-width: 0; font: inherit; font-size: 1rem; padding: 0.5rem 0.75rem; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px 0 0 6px; }
-.home-search .ac > input { padding-left: 2.1rem; }
 .home-search :is(input, button):focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; position: relative; z-index: 1; }
 .home-search .ac { position: relative; flex: 1; min-width: 0; display: flex; }
 .ac-pop { position: absolute; z-index: 10; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.15); overflow: hidden; }
@@ -244,3 +243,16 @@ abbr.doubt:is(:hover, :focus, :focus-visible)::after {
   color: var(--fg); font-size: 0.8rem; font-weight: 400; line-height: 1.35; text-align: left; box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
 }
 abbr.doubt.flip::after { left: auto; right: 0; }
+
+/* home hero: tagline and search on a tinted band whose lower edge is a track; a traced car is cut out of it */
+body { overflow-x: clip; }
+.home-hero { --hero-bg: var(--bgColor-accent-muted); position: relative; margin: -1.5rem calc(50% - 50vw) 1.5rem; padding: 1.75rem calc(50vw - 50%) 0;
+  background: linear-gradient(170deg, color-mix(in srgb, var(--hero-bg) 35%, var(--bg)) 0%, var(--hero-bg) 70%); }
+/* light mode: a touch more blue than Primer's accent-muted (#ddf4ff), mixed with the accent itself */
+@media (prefers-color-scheme: light) { :root:not([data-color-mode="dark"]) .home-hero { --hero-bg: color-mix(in srgb, var(--bgColor-accent-emphasis) 16%, var(--bgColor-accent-muted)); } }
+:root[data-color-mode="light"] .home-hero { --hero-bg: color-mix(in srgb, var(--bgColor-accent-emphasis) 16%, var(--bgColor-accent-muted)); }
+.home-hero .tagline { font-size: 1.15rem; max-width: 40rem; margin: 0 auto 1.25rem; text-align: center; }
+.home-hero .home-search { margin: 0 auto; }
+.hero-edge { display: block; width: 100vw; height: 170px; margin: -0.75rem calc(50% - 50vw) -1px; }
+.hero-edge .below { fill: var(--bg); }   /* the page below the wave; above it the band's gradient shows through */
+.hero-edge :is(.car, .dirt) { fill: var(--bg); }
