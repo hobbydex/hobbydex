@@ -40,6 +40,7 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
   <p>Which parts are in my car, what fits it, and what is it equivalent to? An open, cross-brand parts database, starting with RC cars.</p>
   <form class="home-search" action="/search/" method="get" role="search">
     <div class="ac">
+      <Icon name="search" />
       <input type="search" name="q" id="home-q" placeholder="Part number, part name, platform or brand" aria-label="Search"
         role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="home-ac" autocomplete="off" />
       <div class="ac-pop" id="home-pop" hidden>
@@ -48,7 +49,7 @@ const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
         <a class="ac-all" id="home-ac-all" href="/search/">All results</a>
       </div>
     </div>
-    <button type="submit">Search</button>
+    <button type="submit" aria-label="Search"><Icon name="search" /><span class="label">Search</span></button>
   </form>
   <script is:inline>
     // suggestions as you type: the best few results of the /search/ ranking under the box. Arrow keys pick one,
