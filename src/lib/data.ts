@@ -8,7 +8,7 @@ export type Make = { id: string; name: string; country: string; notes: string; t
 export type Company = { id: string; name: string; legal_name?: string; country?: string; website?: string; status?: string; brand?: string; parent?: string; notes?: string };
 export type Link = { site: string; url: string; kind?: 'fan-site' | 'press' | 'dealer' };   // dealer: a shop's product page, never the maker's
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
-export type Kit = { id: string; sources?: Record<string, string>; placeholder?: boolean; toml_path?: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; art?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[]; links?: Link[] };
+export type Kit = { id: string; sources?: Record<string, string>; placeholder?: boolean; toml_path?: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; art?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[]; supersedes?: string; links?: Link[] };
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
 // What a buyer must get separately to complete a release (hobbydex-rc docs/schema.md "release", needs): a part, or a generic item
 export type Need = { part?: string; item?: string; source: string; qty?: number; note?: string };
@@ -137,11 +137,19 @@ for (const k of raw.kits) {
   for (const l of k.same_platform_as ?? []) { addRel(k.id, l.kit, 'platform', l, false); addRel(l.kit, k.id, 'platform', l, true); }
 }
 
+// Platforms that replace a platform (supersedes, set on the newer kit): the newer kits that replace each one.
+const kitReplacedBy = new Map<string, Kit[]>();
+for (const k of raw.kits) if (k.supersedes) {
+  if (!kitReplacedBy.has(k.supersedes)) kitReplacedBy.set(k.supersedes, []);
+  kitReplacedBy.get(k.supersedes)!.push(k);
+}
+
 export const db = {
   ...raw,
   // platforms: a placeholder kit (releases whose chassis no source names yet) is in no platform list, count or sitemap
   kits: raw.kits.filter((k) => !k.placeholder),
   kitRelations,
+  kitReplacedBy,
   fitsByKit,
   categories: raw.categories ?? [],
   standards: raw.standards ?? [],
