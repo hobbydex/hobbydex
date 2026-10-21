@@ -1,7 +1,7 @@
 // Release table logic (public/release-table.js): the URL state, filters, facet counts and sort, on a small list.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decode, presentValues, parseSearch, toSearch, filterRows, facets, options, sortRows, listRows, stepYear, NONE } from '../public/release-table.js';
+import { decode, presentValues, parseSearch, toSearch, filterRows, facets, options, sortRows, listRows, stepYear, isoText, dateLabel, NONE } from '../public/release-table.js';
 
 const list = {
   brands: [['traxxas', 'Traxxas'], ['arrma', 'Arrma']],
@@ -9,11 +9,13 @@ const list = {
   scales: ['1/10', '1/8', ''],
   builds: [['rtr', 'RTR'], ['kit', 'Kit']],
   statuses: ['released', 'discontinued'],
+  colours: ['#1f5fd6'],
+  doubts: ['a date we are not sure of'],
   rows: [
-    ['4-tec', 'E-Revo', 0, 0, 0, 0, 0, '2020-03', 0, 'M0 0h48'],
-    ['old', 'Old Car', 1, 1, 2, 1, 1, '1998', 1, null],
-    ['no-date', 'Plain', 1, 1, 2, 0, 0, '', 0, null],
-    ['kit-1', 'Kit One', 0, 1, 0, 1, 0, '2024-05-01', 2, null],
+    ['4-tec', 'E-Revo', 0, 0, 0, 0, 0, '2020-03', 0, 'aaaaaaaaaa.svg', 0],
+    ['old', 'Old Car', 1, 1, 2, 1, 1, '1998', 1],
+    ['no-date', 'Plain', 1, 1, 2, 0, 0, '', 0],
+    ['kit-1', 'Kit One', 0, 1, 0, 1, 0, '2024-05-01', 0, null, null, 0],
   ],
 };
 const rows = decode(list);
@@ -21,11 +23,24 @@ const rows = decode(list);
 test('decode resolves the index columns and the URL', () => {
   assert.equal(rows[0].url, '/rc/releases/traxxas/4-tec/');
   assert.equal(rows[0].year, '2020');
-  assert.equal(rows[0].art, 'M0 0h48');
+  assert.equal(rows[0].art, 'aaaaaaaaaa.svg');
+  assert.equal(rows[0].colour, '#1f5fd6');
+  assert.equal(rows[1].art, '');
+  assert.equal(rows[1].colour, '');
   assert.equal(rows[2].scale, '');
   assert.equal(rows[2].year, NONE);
   assert.equal(rows[1].seen, true);
-  assert.equal(rows[3].doubt, true);
+  assert.equal(rows[3].doubt, 'a date we are not sure of');
+  assert.equal(rows[1].doubt, '');
+});
+
+test('dates read as the static table words them', () => {
+  assert.equal(isoText('2026-09-24'), '2026 Sep 24');
+  assert.equal(isoText('2025-10'), '2025 Oct');
+  assert.equal(isoText('2025'), '2025');
+  assert.equal(dateLabel('2025-10', 2), 'announced 2025 Oct');
+  assert.equal(dateLabel('', 0), 'unknown');
+  assert.deepEqual(rows.map((r) => r.dateText), ['2020 Mar', '1998', 'unknown', '2024 May 1']);
 });
 
 test('the URL restores filters and drops unknown values', () => {
