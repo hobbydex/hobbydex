@@ -1,0 +1,42 @@
+---
+import Base from '../../../../../layouts/Base.astro';
+import DoubtNote from '../../../../../components/DoubtNote.astro';
+import Icon from '../../../../../components/Icon.astro';
+import ReleaseTypeTable from '../../../../../components/ReleaseTypeTable.astro';
+import SeenNote from '../../../../../components/SeenNote.astro';
+import { db, url, brandName, yearDoubt } from '../../../../../lib/data';
+import { kitTypeLabel, kitTypeIcon, kitTypeOne, kitTypeAbout } from '../../../../../lib/kitTypes';
+import { SPLIT_AT, brandSlug, releaseByScaleName, releasesByType } from '../../../../../lib/releaseTypes';
+export function getStaticPaths() {
+  return [...releasesByType.keys()].map((type) => ({ params: { type } }));
+}
+const { type } = Astro.params;
+const label = kitTypeLabel[type] ?? type;
+const rs = releasesByType.get(type) ?? [];
+const split = rs.length > SPLIT_AT;
+// releases grouped by brand, most releases first
+const byBrand = [...rs.reduce((m, r) => m.set(r.brand, [...(m.get(r.brand) ?? []), r]), new Map<string, typeof rs>())]
+  .sort((a, b) => b[1].length - a[1].length || brandName(a[0]).localeCompare(brandName(b[0])));
+const platforms = db.kits.filter((k) => (k.category || 'car') === type).length;
+const shown = split ? [] : rs;
+---
+<Base title={`${label} releases`} description={`${rs.length} ${kitTypeOne[type] ?? type} releases in Hobbydex, by brand.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / {label}</div>
+  <h1><Icon name={kitTypeIcon(type)} size="1.4em" /> {label} <span class="muted">({rs.length})</span></h1>
+  {kitTypeAbout[type] && <p class="about">{kitTypeAbout[type]}</p>}
+  <p class="muted" data-pagefind-ignore>{platforms > 0 ? <a href={`/rc/platforms/types/${type}/`}>{platforms} {platforms === 1 ? 'platform' : 'platforms'} of this type</a> : "No platforms of this type of its own: these releases sit on another type's chassis."}</p>
+  {split ? <>
+    <p class="muted">{byBrand.length} brands; each brand's releases are on its own page.</p>
+    <table class="sortable">
+      <thead><tr><th>Brand</th><th class="num">Releases</th></tr></thead>
+      <tbody>{byBrand.map(([b, list]) => <tr><td><a href={`/rc/releases/types/${type}/${brandSlug(b)}/`}>{brandName(b)}</a></td><td class="num">{list.length}</td></tr>)}</tbody>
+    </table>
+    <script src="/sort-table.js" defer></script>
+  </> : byBrand.map(([b, list]) => <section>
+    <h2 id={brandSlug(b)}><a href={url.brand(b)}>{brandName(b)}</a> <span class="muted">({list.length})</span></h2>
+    <ReleaseTypeTable rs={[...list].sort(releaseByScaleName)} />
+  </section>)}
+  <DoubtNote on={shown.some((r) => !!yearDoubt(r))} />
+  <SeenNote rows={shown} />
+  <style>.about { max-width: 46rem; font-size: 1.05rem; }</style>
+</Base>

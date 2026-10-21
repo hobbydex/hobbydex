@@ -1,0 +1,22 @@
+---
+// Releases of one type (src/pages/rc/releases/types/): the release, its platform, scale and year.
+import Discontinued from './Discontinued.astro';
+import DateText from './DateText.astro';
+import DateDoubt from './DateDoubt.astro';
+import { db, url, yearDoubt, type Release } from '../lib/data';
+import { releaseScale } from '../lib/releaseTypes';
+interface Props { rs: Release[] }
+const { rs } = Astro.props;
+---
+<table class="releases">
+  <tr><th>Release</th><th>Platform</th><th>Scale</th><th class="num">Year</th></tr>
+  {rs.map((r) => { const k = db.kit.get(r.kit); return <tr>
+    <td class="name" data-label="Release"><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>
+    <td data-label="Platform">{k && <a href={url.platform(k.id)}>{k.name}</a>}</td>
+    <td data-label="Scale">{releaseScale(r)}</td>
+    <td class="num" data-label="Year"><DateText r={r} year /><DateDoubt reason={yearDoubt(r)} /></td>
+  </tr>; })}
+</table>
+<style>
+  @media (max-width: 600px) { table.releases td[data-label]:not(:empty) { display: inline-block; white-space: normal; } }
+</style>
