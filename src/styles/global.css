@@ -251,6 +251,10 @@ body { overflow-x: clip; }
 /* light mode: a touch more blue than Primer's accent-muted (#ddf4ff), mixed with the accent itself */
 @media (prefers-color-scheme: light) { :root:not([data-color-mode="dark"]) .home-hero { --hero-bg: color-mix(in srgb, var(--bgColor-accent-emphasis) 16%, var(--bgColor-accent-muted)); } }
 :root[data-color-mode="light"] .home-hero { --hero-bg: color-mix(in srgb, var(--bgColor-accent-emphasis) 16%, var(--bgColor-accent-muted)); }
+/* dark mode: Primer's accent-muted is a faint wash on the dark page, too close to the page colour the car is cut
+   out of; a deeper blue band makes the car and its dirt stand out */
+@media (prefers-color-scheme: dark) { :root:not([data-color-mode="light"]) .home-hero { --hero-bg: color-mix(in srgb, var(--bgColor-accent-emphasis) 38%, var(--bgColor-default)); } }
+:root[data-color-mode="dark"] .home-hero { --hero-bg: color-mix(in srgb, var(--bgColor-accent-emphasis) 38%, var(--bgColor-default)); }
 .home-hero .tagline { font-size: 1.15rem; max-width: 40rem; margin: 0 auto 1.25rem; text-align: center; }
 .home-hero .home-search { margin: 0 auto; }
 .hero-edge { display: block; width: 100vw; height: auto; aspect-ratio: 1200 / 170; margin: -0.75rem calc(50% - 50vw) -1px; }
