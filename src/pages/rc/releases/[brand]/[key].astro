@@ -23,6 +23,7 @@ import DataLink from '../../../../components/DataLink.astro';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 import { driveLabel } from '../../../../lib/drive';
 import { bearingList } from '../../../../lib/bearingList';
+import { colourSiblings, colourName } from '../../../../lib/colourSiblings';
 import { gearing } from '../../../../lib/gearing';
 import { fileRows, pageLabel, hostLabel, makerOwnLinks } from '../../../../lib/docFacts';
 export function getStaticPaths() {
@@ -66,7 +67,10 @@ const files = fileRows(docs);
 // what the buyer must get separately: a part (its page) or a generic item (a plain label)
 const ITEM_LABEL: Record<string, string> = { radio: 'Radio', receiver: 'Receiver', servo: 'Servo', esc: 'ESC', motor: 'Motor', engine: 'Engine', battery: 'Battery', charger: 'Charger', pinion: 'Pinion', tyres: 'Tyres', wheels: 'Wheels', body: 'Body', paint: 'Paint', glue: 'Glue', fuel: 'Fuel', 'glow-starter': 'Glow starter', tools: 'Tools' };
 const needs = (release.needs ?? []).map((n) => ({ ...n, p: n.part ? db.part.get(n.part) : undefined })).filter((n) => !n.part || n.p);
-const rows = (release.contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
+// the same release in other colours (colourSiblings.ts); a release with no parts list of its own shows the one of the sibling with the most rows
+const siblings = colourSiblings(release, db.releases);
+const listedFrom = (release.contains ?? []).length === 0 ? siblings.filter((s) => (s.contains ?? []).length > 0).sort((a, b) => b.contains!.length - a.contains!.length)[0] : undefined;
+const rows = ((listedFrom ?? release).contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
 // current parts before discontinued ones, each group in part-number order
 const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b) => (a.p.status === 'discontinued' ? 1 : 0) - (b.p.status === 'discontinued' ? 1 : 0) || byPartNo(a.p, b.p));
 const hasSplit = rows.some((c) => c.role !== 'listed');
@@ -124,6 +128,7 @@ import RealVehicle from '../../../../components/RealVehicle.astro';
     {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && <br />}<a href={url.platform(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
     {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
     {release.released ? <><dt>Released</dt><dd><DateText r={release} /><DateDoubt reason={dateDoubt(release)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></> : release.year ? <><dt>Year</dt><dd><DateText r={release} year /><DateDoubt reason={dateDoubt(release)} /></dd></> : release.announced ? <><dt>Released</dt><dd><DateText r={release} />{release.announced_source && <span class="muted"> · <a href={release.announced_source} rel="nofollow">{announcedSourceLabel(release.announced_source, brandName(release.brand))}</a></span>}</dd></> : release.seen_by ? <><dt>Released</dt><dd>on sale by {release.seen_by_source ? <a href={release.seen_by_source} rel="nofollow">{isoText(release.seen_by)}</a> : isoText(release.seen_by)}<abbr class="doubt seen" tabindex="0" data-tip={SEEN_NOTE} aria-label={SEEN_NOTE}>*</abbr></dd></> : <><dt>Year</dt><dd><DateText r={release} year /></dd></>}
+    {siblings.length > 0 && <><dt>Other colours</dt><dd>{siblings.map((s, i) => <>{i > 0 && <br />}<Fragment set:html={colourDot(colourName(s))} /> <a href={url.release(s.id)}>{s.number}</a>{colourName(s) && <span class="muted"> · {colourName(s)}</span>}</>)}</dd></>}
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
@@ -141,7 +146,7 @@ import RealVehicle from '../../../../components/RealVehicle.astro';
   </div>
   <Videos videos={videos} />
   <FanLinks links={release.links} />
-  {rows.length > 0 && <p data-pagefind-ignore><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p>}
+  {!listedFrom && rows.length > 0 && <p data-pagefind-ignore><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p>}
   {seriesByPlatform.length > 0 && <><h2>{release.series} series <span class="muted">({seriesByPlatform.reduce((n, [, rs]) => n + rs.length, 0)})</span></h2>
     <ul>{seriesByPlatform.map(([kitId, rs]) => <li><a href={url.platform(kitId)}>{db.kit.get(kitId)?.name ?? kitId}</a><span class="muted">:</span> {rs.map((x, i) => <>{i > 0 && ' · '}<a href={url.release(x.id)}>{x.name}</a></>)}</li>)}</ul></>}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
@@ -183,8 +188,12 @@ import RealVehicle from '../../../../components/RealVehicle.astro';
     <OtherCarSets items={otherScrew} kitName={kit.name} /></section>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
+  {listedFrom && <section data-pagefind-ignore class="listedfrom">
+    <h2>In the box: parts list of {listedFrom.number} <span class="muted">({boxRows.length} part numbers)</span></h2>
+    <p class="muted">(same release in another colour; the maker lists it under {listedFrom.number}) <a href={url.release(listedFrom.id)}>{brandName(listedFrom.brand)} {listedFrom.name}</a></p>
+  </section>}
   {boxCats.length > 1 && <CategoryBoxes label="In the box by category" items={boxCats.map(({ g, n }) => ({ category: g, n, href: `#kit-${g || 'other'}`, title: `${n} ${g ? catName(g) : 'other'} part number${n > 1 ? 's' : ''}` }))}>
-    <h2>In the box <span class="muted">({boxRows.length} part numbers)</span></h2>
+    {!listedFrom && <h2>In the box <span class="muted">({boxRows.length} part numbers)</span></h2>}
   </CategoryBoxes>}
   {(cats.length > 1 || hasStep) && <p data-pagefind-ignore>{cats.length > 1 && <label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label>}{hasStep && <label class="steptoggle"><input type="checkbox" id="showsteps" /> Build steps</label>}</p>}
   {(() => { const shown = sections.map(([role, label]) => ({ role, label, rows: section(role) })).filter((x) => x.rows.length > 0); return shown.length > 0 && <div data-pagefind-ignore>
