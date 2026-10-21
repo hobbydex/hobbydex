@@ -12,7 +12,9 @@ export function rankHits(text, datas) {
     const name = t === 'part' ? bare.replace(/^\S+\s/, '') : bare;   // a part title starts with its number
     const all = words.every((w) => title.includes(w));
     const cat = (d.filters && d.filters.category && d.filters.category[0]) || '';
-    const exact = (t === 'make' && (title === qn || title === qn + ' rc cars')) || (t === 'brand' && title === qn);
+    // a make whose name starts with the query as whole words ("mercedes" for Mercedes-Benz) counts as exact
+    const make = title.replace(/ rc cars$/, '');
+    const exact = (t === 'make' && (make === qn || make.startsWith(qn + ' '))) || (t === 'brand' && title === qn);
     const tier = exact || ((t === 'platform' || t === 'release') && (name === qn || bare === qn)) ? 0
       : t === 'platform' && all ? 1 : t === 'release' && all ? 2 : t === 'part' && all ? (CAR_PARTS.includes(cat) ? 3 : 4)
       : all ? 5 : t === 'part' ? 7 : 6;
@@ -25,13 +27,14 @@ export function rankHits(text, datas) {
 export const PLATFORM_CANDIDATES = 10, OTHER_CANDIDATES = 60;
 // Platforms are few and can sit far down pagefind's order behind hundreds of a chassis's releases and
 // parts ("TT-02"): the platforms whose title holds every word (shortest first) always join the
-// candidates. They come from `platforms`, the [title, brand, url] rows of /search-platforms.json.
+// candidates, and so do car makes and brands (their pages are long, so pagefind ranks them low). They come
+// from `platforms`, the [title, sub, url, type?] rows of /search-platforms.json (type defaults to platform).
 export function platformHits(text, platforms) {
   const words = norm(text).split(' ').filter(Boolean);
   if (!words.length) return [];
   return platforms.filter(([title]) => { const t = norm(title); return words.every((w) => t.includes(w)); })
     .sort((a, b) => a[0].length - b[0].length).slice(0, PLATFORM_CANDIDATES)
-    .map(([title, sub, url]) => { const d = { url, meta: { type: 'platform', title, sub }, filters: {} }; return { id: url, data: async () => d }; });
+    .map(([title, sub, url, type = 'platform']) => { const d = { url, meta: { type, title, sub }, filters: {} }; return { id: url, data: async () => d }; });
 }
 // A plain query (no filters): pagefind's hits re-ranked by rankHits, with the platform title matches
 // joined in. Returns { hits, datas } (datas[i] belongs to hits[i] for the ranked head; the rest of
