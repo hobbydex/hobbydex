@@ -5,6 +5,7 @@ import DoubtNote from '../../../../components/DoubtNote.astro';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
+import Icon from '../../../../components/Icon.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { db, url, brandName, yearOf, makeSlug, countryName, releasesByMake, bodiesByMake, vehicles, partLabel, type Release, type Part , yearDoubt, hasDate } from '../../../../lib/data';
 export function getStaticPaths() {
@@ -56,7 +57,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
       <table class="releases bodies">
       <tr><th>Body</th><th>Model</th><th>Brand</th><th>Fits</th><th class="num">Released</th></tr>
       {bs.map((p) => { const fits = [...new Set((p.fits ?? []).map((f) => f.kit).filter((k): k is string => !!k))].map((k) => db.kit.get(k)).filter((k) => !!k); return <tr data-discontinued={p.status === 'discontinued' ? '' : undefined}>
-        <td class="name"><a href={url.part(p.id)}>{p.name}</a><Discontinued item={p} />{p.number && <span class="muted"> {p.number}</span>}</td>
+        <td class="name">{p.art ? <ReleaseArt id={p.id} category={p.category} color={p.color} art={p.art} size="1.3em" class="inrow" /> : <span class="muted"><Icon name="body" size="1.3em" /></span>} <a href={url.part(p.id)}>{p.name}</a><Discontinued item={p} />{p.number && <span class="muted"> {p.number}</span>}</td>
         <td data-label="Model">{p.depicts!.model}</td>
         <td data-label="Brand"><a href={url.brand(p.brand)}>{brandName(p.brand)}</a></td>
         <td data-label="Fits">{fits.map((k, i) => <>{i > 0 && ', '}<a href={url.platform(k!.id)}>{k!.name}</a></>)}</td>
