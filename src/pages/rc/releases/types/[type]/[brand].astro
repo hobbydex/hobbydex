@@ -1,0 +1,28 @@
+---
+import Base from '../../../../../layouts/Base.astro';
+import DoubtNote from '../../../../../components/DoubtNote.astro';
+import Icon from '../../../../../components/Icon.astro';
+import ReleaseTypeTable from '../../../../../components/ReleaseTypeTable.astro';
+import SeenNote from '../../../../../components/SeenNote.astro';
+import { url, brandName, yearDoubt } from '../../../../../lib/data';
+import { kitTypeLabel, kitTypeIcon, kitTypeOne } from '../../../../../lib/kitTypes';
+import { SPLIT_AT, brandSlug, releaseByScaleName, releasesByType } from '../../../../../lib/releaseTypes';
+// only the types split by brand (see the type page) get brand sub-pages
+export function getStaticPaths() {
+  return [...releasesByType].filter(([, rs]) => rs.length > SPLIT_AT).flatMap(([type, rs]) =>
+    [...new Set(rs.map((r) => r.brand))].map((brand) => ({ params: { type, brand: brandSlug(brand) }, props: { brand } })));
+}
+const { type, brand: slug } = Astro.params;
+const { brand } = Astro.props;
+const label = kitTypeLabel[type] ?? type;
+const rs = (releasesByType.get(type) ?? []).filter((r) => r.brand === brand).sort(releaseByScaleName);
+const name = brandName(brand);
+---
+<Base title={`${name} ${label.toLowerCase()}`} description={`${rs.length} ${name} ${kitTypeOne[type] ?? type} releases in Hobbydex.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / <a href={`/rc/releases/types/${type}/`}>{label}</a> / {name}</div>
+  <h1><Icon name={kitTypeIcon(type)} size="1.4em" /> {name} {label.toLowerCase()} <span class="muted">({rs.length})</span></h1>
+  <p class="muted" data-pagefind-ignore><a href={url.brand(brand)}>{name} brand page</a>; <a href={`/rc/releases/${slug}/`}>all {name} releases</a></p>
+  <ReleaseTypeTable rs={rs} />
+  <DoubtNote on={rs.some((r) => !!yearDoubt(r))} />
+  <SeenNote rows={rs} />
+</Base>
