@@ -1,6 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { db, brandName, url } from '../../lib/data';
+import { db, brandName, url, listYear } from '../../lib/data';
 // How much of each brand is in Hobbydex: counts and coverage, to see where the holes are.
 // (The data audit page is about quality: unnamed, uncategorised and unlinked parts.)
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
@@ -13,10 +13,11 @@ const inBox = new Set(db.releases.flatMap((r) => (r.contains ?? []).map((c) => c
 const rows = db.brands.map((b) => {
   const ps = db.partsByBrand.get(b.id) ?? [], rs = db.releases.filter((r) => r.brand === b.id);
   return { b: b.id, kits: kitsByBrand.get(b.id) ?? 0, rel: rs.length, parts: ps.length,
-    contents: pct(rs.filter((r) => (r.contains ?? []).length).length, rs.length), dated: pct(rs.filter((r) => r.year).length, rs.length),
+    contents: pct(rs.filter((r) => (r.contains ?? []).length).length, rs.length), dated: pct(rs.filter((r) => listYear(r)).length, rs.length),
     linked: pct(ps.filter((p) => inBox.has(p.id) || (p.fits ?? []).length).length, ps.length), gtin: pct(ps.filter((p) => p.gtin).length, ps.length) };
 }).filter((r) => r.parts || r.rel || r.kits).sort((a, b) => b.rel - a.rel || b.parts - a.parts);
-const years = [...count(db.releases.filter((r) => r.year), (r) => String(r.year)).entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
+// the same year as the by-year pages: its own, else its announcement or seen_by bound
+const years = [...count(db.releases.filter((r) => listYear(r)), (r) => String(listYear(r))).entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
 const maxYear = Math.max(1, ...years.map(([, n]) => n));
 ---
 <Base title="Statistics" description="How much of each brand is in Hobbydex: parts, platforms and releases per brand, and how complete they are.">
@@ -34,12 +35,12 @@ const maxYear = Math.max(1, ...years.map(([, n]) => n));
     </section>
   </div>
   <h2>Per brand <span class="muted">· most releases first</span></h2>
-  <p class="muted">Contents: releases whose parts list is in the data. Dated: releases with a known year. Linked: parts in a release's contents or linked to the platforms they fit. Barcode: parts with a UPC/EAN.</p>
+  <p class="muted">Contents: releases whose parts list is in the data. Dated: releases with a year, an announcement or a first sighting. Linked: parts in a release's contents or linked to the platforms they fit. Barcode: parts with a UPC/EAN.</p>
   <div class="tablescroll"><table>
     <tr><th>Brand</th><th class="num">Platforms</th><th class="num">Releases</th><th class="num">Parts</th><th class="num">Contents</th><th class="num">Dated</th><th class="num">Linked</th><th class="num">Barcode</th></tr>
     {rows.map((r) => <tr><td><a href={url.brand(r.b)}>{brandName(r.b)}</a></td><td class="num">{r.kits}</td><td class="num">{r.rel}</td><td class="num">{r.parts}</td>
       <td class="num">{r.rel ? `${r.contents}%` : ''}</td><td class="num">{r.rel ? `${r.dated}%` : ''}</td><td class="num">{r.parts ? `${r.linked}%` : ''}</td><td class="num">{r.parts ? `${r.gtin}%` : ''}</td></tr>)}
   </table></div>
-  <h2>Releases by year <span class="muted">· {years.reduce((a, [, n]) => a + n, 0)} with a known year</span></h2>
+  <h2>Releases by year <span class="muted">· {years.reduce((a, [, n]) => a + n, 0)} with a year, announcement or first sighting</span></h2>
   <ul class="hbars years">{years.map(([y, n]) => <li><span>{y}</span><span class="bar" style={`width:${(n / maxYear) * 100}%`} title={`${y}: ${n} releases`}></span><span class="v">{n}</span></li>)}</ul>
 </Base>
