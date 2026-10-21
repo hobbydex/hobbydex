@@ -1,5 +1,5 @@
-// Drawing of an E-clip (DIN 6799) from its spec's DIN fields: the front view with the outer diameter, the opening
-// at the groove diameter, the three inner lugs and the thickness. Drawn in currentColor like the other drawings.
+// Drawing of an E-clip (DIN 6799) from its spec's DIN fields: the front view with the outer diameter, the groove
+// diameter, the DIN outline (feet, cut-outs, tongue) and the thickness. Drawn in currentColor like the other drawings.
 // A spec without its DIN fields (non-standard thicknesses, bowed rings) has no drawing.
 import type { Spec } from './data';
 import type { ScrewDrawing } from './screwDrawing';
@@ -21,28 +21,45 @@ export function eclipDrawing(spec: Spec): ScrewDrawing | undefined {
   if (!G || !D || !T || G >= D) return undefined;
   const s = Math.min(40, 140 / D);   // px per mm: the outer ring is about 140 px across; a small clip is drawn larger
   const R = (D / 2) * s, r = (G / 2) * s;
-  const cx = W / 2, cy = 50 + R;
-  const h = Math.sqrt(R * R - r * r);   // height above the centre of the mouth's outer corners
-  const lugDepth = 0.35 * r;
-  const at = (deg: number, rad: number) => `${f(cx + rad * Math.cos((deg * Math.PI) / 180))} ${f(cy + rad * Math.sin((deg * Math.PI) / 180))}`;
-  // the body: the outer arc from the top-right corner round the bottom to the top-left corner (the mouth is the gap
-  // at the top, its width the groove diameter); the left mouth edge down to the groove circle; the groove arc through
-  // the bottom half, with three lugs pointing inwards at 150, 90 and 30 degrees; the right mouth edge back up
-  let d = `M${f(cx + r)} ${f(cy - h)}A${f(R)} ${f(R)} 0 1 1 ${f(cx - r)} ${f(cy - h)}L${f(cx - r)} ${f(cy)}`;
-  for (const a of [150, 90, 30]) {
-    d += `A${f(r)} ${f(r)} 0 0 0 ${at(a + 12, r)}L${at(a, r - lugDepth)}L${at(a - 12, r)}`;
+  const cx = W / 2, cy = 60 + R;
+  // the DIN 6799 outline, mouth at the bottom: the outer ring; two feet whose inner edges bear on the groove, with the
+  // mouth a (about 0.84 x the groove, as in the DIN table) between them; two kidney-shaped cut-outs; the tongue at the
+  // top that bears on the groove. Key points in units of the outer radius, smoothed with a Catmull-Rom spline.
+  const k = r / R, h = 0.42 * k;
+  const pol = (deg: number, rad: number): [number, number] => [rad * Math.cos((deg * Math.PI) / 180), rad * Math.sin((deg * Math.PI) / 180)];
+  const band = (deg: number) => 0.8 - 0.16 * Math.max(0, Math.cos(((deg + 90) * Math.PI) / 180)) ** 3;
+  const key: [number, number][] = [];
+  for (let a = 60; a >= -240; a -= 12) key.push(pol(a, 1));
+  key.push([-0.36, 0.96], [-h - 0.05, 0.84], [-h, 0.66], pol(128, k), [-0.42, 0.22], pol(170, 0.74));
+  for (let a = 186; a < 252; a += 11) key.push(pol(a, band(a)));
+  key.push([-0.17, -0.62], [-0.1, -k - 0.01], [0.1, -k - 0.01], [0.17, -0.62]);
+  for (let a = -72; a < -5; a += 11) key.push(pol(a, band(a)));
+  key.push(pol(10, 0.74), [0.42, 0.22], pol(52, k), [h, 0.66], [h + 0.05, 0.84], [0.36, 0.96]);
+  const pts: string[] = [];
+  for (let i = 0; i < key.length; i++) {
+    const p0 = key[(i - 1 + key.length) % key.length], p1 = key[i], p2 = key[(i + 1) % key.length], p3 = key[(i + 2) % key.length];
+    for (let n = 0; n < 8; n++) {
+      const t = n / 8, t2 = t * t, t3 = t2 * t;
+      const c = (j: 0 | 1) => 0.5 * (2 * p1[j] + (p2[j] - p0[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (3 * p1[j] - p0[j] - 3 * p2[j] + p3[j]) * t3);
+      pts.push(`${f(cx + c(0) * R)} ${f(cy + c(1) * R)}`);
+    }
   }
-  d += `A${f(r)} ${f(r)} 0 0 0 ${at(0, r)}L${f(cx + r)} ${f(cy - h)}Z`;
-  const o: string[] = [`<path class="fill" d="${d}"/>`];
+  const d = `M${pts.join('L')}Z`;
+  const o: string[] = [];
+  // the shaft the clip sits on, cut at the groove: the groove section hatched, the shaft's own diameter dashed
+  const Sh = Number(spec.shaft_mm);
+  o.push(`<defs><pattern id="eclip-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path class="thin" d="M0 0V5"/></pattern></defs>`);
+  o.push(`<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(r)}" fill="url(#eclip-hatch)" class="thin"/>`);
+  o.push(`<path class="fill" d="${d}"/>`);
+  if (Sh > G) o.push(`<circle class="thin dash" cx="${f(cx)}" cy="${f(cy)}" r="${f((Sh / 2) * s)}"/>`, hdim(cx - (Sh / 2) * s, cx + (Sh / 2) * s, cy - R - 14, `shaft ⌀${f(Sh)}`));
   o.push(`<path class="thin dashdot" d="M${f(cx - R - 8)} ${f(cy)}H${f(cx + R + 8)}M${f(cx)} ${f(cy - R - 8)}V${f(cy + R + 8)}"/>`);
-  o.push(`<circle class="thin dash" cx="${f(cx)}" cy="${f(cy)}" r="${f(r)}"/>`);
   o.push(vdim(cx + R + 14, cy - R, cy + R, `⌀${f(D)}`));
-  o.push(hdim(cx - r, cx + r, cy - R - 14, `⌀${f(G)}`));
-  o.push(`<text x="${f(cx)}" y="${f(cy + R + 30)}" text-anchor="middle" class="std">thickness ${f(T)}</text>`);
-  const H = Math.ceil(cy + R + 40);
+  o.push(hdim(cx - r, cx + r, cy + R + 18, `groove ⌀${f(G)}`));
+  o.push(`<text x="${f(cx)}" y="${f(cy + R + 48)}" text-anchor="middle" class="std">thickness ${f(T)}</text>`);
+  const H = Math.ceil(cy + R + 58);
   return {
     svg: `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${f(G)} / ${f(D)} x ${f(T)} E-clip"><g class="s">${o.join('')}<text x="${W - 4}" y="12" text-anchor="end" class="std">dimensions in mm</text></g></svg>`,
     standard: 'DIN 6799', approximate: false,
-    note: 'The three lugs are drawn schematically: the spec gives no lug size',
+    note: 'The outline follows the DIN 6799 drawing; only the groove, outer diameter and thickness are to scale',
   };
 }
