@@ -16,6 +16,7 @@ const cols: Record<string, [string, string][]> = {
   servo: [['size_class', 'Size'], ['spline_teeth', 'Spline']],
   pinion: [['teeth', 'Teeth'], ['pitch_dp', 'Pitch'], ['module', 'Module']],
   pin: [['diameter_mm', 'Diameter mm'], ['length_mm', 'Length mm']],
+  eclip: [['shaft_mm', 'Shaft mm'], ['thickness_mm', 'Thickness mm'], ['outer_mm', 'Outer mm'], ['variant', 'Variant']],
   washer: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['thickness_mm', 'Thickness mm'], ['shape', 'Shape']],
   nut: [['thread', 'Thread'], ['type', 'Type'], ['profile', 'Profile'], ['across_flats_mm', 'Across flats mm'], ['height_mm', 'Height mm']],
 };
@@ -33,10 +34,10 @@ const washerNames: [string, string][] = [['under 1 mm', 'shim'], ['1 mm to under
     {washerNames.map(([t, n]) => <tr><td>{t}</td><td>{n}</td></tr>)}
   </table>}
   <p class="muted">{specs.length} specs, sorted by size. Counts are branded parts linked to each spec.</p>
-  <table>
+  <div class="tablescroll"><table>
     <tr><th>Spec</th>{show.map(([, l]) => <th>{l}</th>)}<th class="num">Parts</th><th class="num">Brands</th></tr>
     {specs.map((s) => { const n = linkedCount(s.id); return <tr>
       <td><a href={url.spec(s.id)}>{s.name ?? s.id}</a></td>{show.map(([k]) => <td>{s[k] === undefined ? '' : String(s[k])}</td>)}<td class="num">{n.parts}</td><td class="num">{n.brands}</td>
     </tr>; })}
-  </table>
+  </table></div>
 </Base>
