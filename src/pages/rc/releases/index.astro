@@ -22,15 +22,9 @@ const typeCats = [...releasesByType.keys()].sort((a, b) => (kitTypeOrder.indexOf
 <Base title="Releases" description="RC kit and RTR releases in Hobbydex: the newest, and every brand's releases on its own page.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Releases</div>
   <h1>Releases</h1>
-  <p class="muted">{db.releases.length} releases from {byBrand.length} brands. The {NEWEST} newest with a known date are below; each brand's releases are on their own page.</p>
+  <p class="muted">{db.releases.length} releases from {byBrand.length} brands. By type, then the {NEWEST} newest with a known date, then every brand's release list.</p>
   <h2>By type</h2>
   <ul class="typegrid">{typeCats.map((t) => <li><a href={`/rc/releases/types/${t}/`}><Icon name={kitTypeIcon(t)} size="2rem" /><b>{kitTypeLabel[t] ?? t}</b><span class="muted">{releasesByType.get(t)!.length} releases</span></a></li>)}</ul>
-  <h2>By brand</h2>
-  <table class="sortable">
-    <thead><tr><th>Brand</th><th class="num">Releases</th></tr></thead>
-    <tbody>{byBrand.map(([b, n]) => <tr><td><a href={`/rc/releases/${key(b)[0]}/`}>{brandName(b)}</a></td><td class="num">{n}</td></tr>)}</tbody>
-  </table>
-  <script src="/sort-table.js" defer></script>
   <h2>Newest <span class="muted">· <a href="/rc/releases/by-year/">all releases by year</a></span></h2>
   <table class="releases">
     <tr><th class="num">Released</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr>
@@ -41,6 +35,12 @@ const typeCats = [...releasesByType.keys()].sort((a, b) => (kitTypeOrder.indexOf
   </table>
   <DoubtNote on={dated.some((r) => !!dateDoubt(r))} />
   <SeenNote rows={dated} />
+  <h2>By brand</h2>
+  <table class="sortable">
+    <thead><tr><th>Brand</th><th class="num">Releases</th></tr></thead>
+    <tbody>{byBrand.map(([b, n]) => <tr><td><a href={`/rc/releases/${key(b)[0]}/`}>{brandName(b)}</a></td><td class="num">{n}</td></tr>)}</tbody>
+  </table>
+  <script src="/sort-table.js" defer></script>
   <style>
   @media (max-width: 600px) { table.releases td[data-label]:not(:empty) { display: inline-block; white-space: normal; } }
   </style>
