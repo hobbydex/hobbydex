@@ -3,6 +3,7 @@
 import { db, type Part, type Spec, type MountHoles } from './data';
 import { screwDrawing, type ScrewDrawing } from './screwDrawing';
 import { nutDrawing } from './nutDrawing';
+import { eclipDrawing } from './eclipDrawing';
 
 const f = (v: number) => String(Math.round(v * 100) / 100);
 export const svgWrap = (w: number, h: number, label: string, body: string, units = true) =>
@@ -284,6 +285,7 @@ export function specDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | un
   if (spec.category === 'pin') return pin(spec);
   if (spec.category === 'nut') return nutDrawing(spec);
   if (spec.category === 'washer') return washerDrawing(spec);
+  if (spec.category === 'eclip') return eclipDrawing(spec);
   if (spec.category === 'motor') return motorDrawing(spec);
   return undefined;
 }
@@ -303,6 +305,12 @@ export function partDrawing(part: Part): (ScrewDrawing & { note?: string; spec?:
   if (ss && part.category === 'screw') { const dr = screwDrawing({ ...ss, thread_type: part.thread_type ?? ss.thread_type }); return dr && { ...dr, spec: ss }; }
   const ns = eq.find((x) => x.category === 'nut');
   if (ns && part.category === 'nut') { const dr = nutDrawing(ns); return dr && { ...dr, spec: ns }; }
+  const es = eq.find((x) => x.category === 'eclip');
+  if (es && part.category === 'pin-clip') {
+    const dr = eclipDrawing(es);
+    const close = part.equivalent_to?.some((e) => e.spec === es.id && e.match === 'close');   // a thin or HD clip: drawn at the standard size
+    return dr && { ...dr, spec: es, approximate: dr.approximate || !!close, note: close ? 'A thin or HD clip: drawn at the standard size of its shaft' : dr.note };
+  }
   const ws = eq.find((x) => x.category === 'washer');
   if (ws && part.category === 'washer-shim') { const dr = washerDrawing(ws); return dr && { ...dr, spec: ws }; }
   const ms = eq.find((x) => x.category === 'motor');
