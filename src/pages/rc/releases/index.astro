@@ -14,16 +14,12 @@ const dated = db.releases.filter((r) => dateKey(r)).sort((a, b) => dateKey(b).lo
 const byBrand = [...db.releases.reduce((m, r) => m.set(r.brand, (m.get(r.brand) ?? 0) + 1), new Map<string, number>())]
   .sort((a, b) => b[1] - a[1] || brandName(a[0]).localeCompare(brandName(b[0])));
 import SeenNote from '../../../components/SeenNote.astro';
-import Icon from '../../../components/Icon.astro';
-import { kitTypeLabel, kitTypeOrder, kitTypeIcon } from '../../../lib/kitTypes';
-import { releasesByType } from '../../../lib/releaseTypes';
-// every type with its release count, in the platform type order
-const typeCats = [...releasesByType.keys()].sort((a, b) => (kitTypeOrder.indexOf(a) + 1 || 99) - (kitTypeOrder.indexOf(b) + 1 || 99));
 ---
 <Base title="Releases" description="RC kit and RTR releases in Hobbydex: filter every release by brand, type, scale, build and year, or see the newest, and every brand's releases on its own page.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Releases</div>
   <h1>Releases</h1>
   <p class="muted">{db.releases.length} releases from {byBrand.length} brands. A table you can filter by brand, type, scale, build and year, then every brand's release list.</p>
+  <p><a href="/rc/types/">Browse by type</a></p>
   <h2 id="table">Releases <span class="muted">· <a href="/rc/releases/by-year/">all releases by year</a></span></h2>
   <form id="release-filters" class="release-filters" hidden>
     <label><span>Brand</span><select id="f-brand"></select></label>
@@ -47,10 +43,6 @@ const typeCats = [...releasesByType.keys()].sort((a, b) => (kitTypeOrder.indexOf
     </select></label>
     <button type="button" id="release-clear">Clear filters</button>
   </form>
-  <ul class="typegrid typechips" aria-label="Types">{typeCats.map((t) => <li>
-    <a href={`/rc/releases/types/${t}/`}><Icon name={kitTypeIcon(t)} size="1.2rem" /><b>{kitTypeLabel[t] ?? t}</b></a>
-    <span class="muted">{releasesByType.get(t)!.length} · <a class="tablelink" href={`/rc/releases/?type=${t}`}>in the table</a></span>
-  </li>)}</ul>
   <div id="release-results" hidden data-src="/rc/releases/list.json" data-seen-note={SEEN_NOTE}>
     <p class="muted" id="release-count" aria-live="polite"></p>
     <table class="releases">
@@ -92,17 +84,7 @@ const typeCats = [...releasesByType.keys()].sort((a, b) => (kitTypeOrder.indexOf
   .yearstep button:not(#y-all) { min-width: 2.2rem; }
   .release-filters button { justify-self: start; padding: 0.35rem 0.8rem; }
   #release-results .relart, #release-results .icon { color: var(--muted); margin-right: 0.15rem; }
-  ul.typegrid.typechips { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.4rem; margin: 0.5rem 0 0.75rem; }
-  ul.typegrid.typechips > li { display: flex; flex-direction: column; gap: 0.1rem; padding: 0.35rem 0.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; min-width: 0; font-size: 0.8rem; }
-  ul.typegrid.typechips > li > a:first-child { display: flex; flex-direction: row; align-items: center; gap: 0.35rem; padding: 0; background: none; border: 0; color: var(--fg); font-size: 0.85rem; line-height: 1.2; text-align: left; }
-  ul.typegrid.typechips > li > a:first-child:hover { color: var(--accent); }
-  ul.typegrid.typechips > li > a:first-child b { font-weight: 600; }
-  ul.typegrid.typechips a.tablelink { display: inline; padding: 0; border: 0; background: none; font-size: 0.8rem; color: var(--accent); }
   @media (max-width: 600px) {
-    ul.typegrid.typechips { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.3rem; }
-    ul.typegrid.typechips > li { padding: 0.3rem 0.35rem; }
-    ul.typegrid.typechips > li > a:first-child { font-size: 0.78rem; gap: 0.15rem; flex-direction: column; align-items: flex-start; }
-    ul.typegrid.typechips > li > a:first-child b { min-width: 0; }
     .release-filters { grid-template-columns: 1fr 1fr; gap: 0.5rem 0.6rem; }
     .release-filters button { grid-column: 1 / -1; }
     .release-filters .yearstep { grid-column: 1 / -1; }
