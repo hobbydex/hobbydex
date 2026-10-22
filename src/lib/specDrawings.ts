@@ -306,7 +306,7 @@ export function partDrawing(part: Part): (ScrewDrawing & { note?: string; spec?:
   const ns = eq.find((x) => x.category === 'nut');
   if (ns && part.category === 'nut') { const dr = nutDrawing(ns); return dr && { ...dr, spec: ns }; }
   const es = eq.find((x) => x.category === 'eclip');
-  if (es && part.category === 'pin-clip') {
+  if (es && part.category === 'clip') {
     const dr = eclipDrawing(es);
     const close = part.equivalent_to?.some((e) => e.spec === es.id && e.match === 'close');   // a thin or HD clip: drawn at the standard size
     return dr && { ...dr, spec: es, approximate: dr.approximate || !!close, note: close ? 'A thin or HD clip: drawn at the standard size of its shaft' : dr.note };
