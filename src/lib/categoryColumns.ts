@@ -12,6 +12,7 @@ function format(v: unknown, f: KeyField): string | number | undefined {
   if (f.format === 'yesno' && typeof v === 'boolean') return v ? 'yes' : 'no';
   if (f.format === 'cells' && Array.isArray(v)) return v[0] === v[1] ? `${v[0]}S` : `${v[0]}-${v[1]}S`;
   if (f.format === 'range' && Array.isArray(v)) return `${v[0]}-${v[1]}`;
+  if (f.format === 'volts') return `${Array.isArray(v) ? v.join('/') : v} V`;
   if (typeof v === 'number') return v;
   if (typeof v === 'string' && f.field === 'position') return POSITION[v] ?? v.replace(/-/g, ' ');
   if (typeof v === 'string') return v.replace(/-/g, ' ');

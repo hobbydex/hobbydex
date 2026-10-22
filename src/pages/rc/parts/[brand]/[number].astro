@@ -73,6 +73,7 @@ const engine = part.category === 'engine-fuel' ? [part.engine_class && `${part.e
   part.bore_mm && part.stroke_mm ? `bore x stroke ${part.bore_mm} x ${part.stroke_mm} mm` : part.bore_mm && `bore ${part.bore_mm} mm`, part.fuel].filter(Boolean).join(', ') : '';
 const chip = paintChip(part, 120);
 const isWheel = part.category === 'tire' || part.category === 'wheel';
+const PROGRAMMING: Record<string, string> = { card: 'program card', box: 'program box', app: 'phone app', bluetooth: 'Bluetooth', wifi: 'Wi-Fi', buttons: 'buttons', transmitter: 'transmitter' };
 // the wheel facts in one line, the colours with their dot
 const wheelFacts = [part.wheel_size && `${part.wheel_size} rim`, part.compound && `${part.compound} compound`, part.mounting && ({ 'pre-mounted': 'pre-mounted on wheels', 'pre-mounted-not-glued': 'mounted on wheels, not glued', 'wheels-included': 'wheels included, to be mounted', unmounted: 'tires only, no wheels' } as Record<string, string>)[part.mounting],
   part.wheel_color && { dot: colourDot(part.wheel_color), text: `${part.wheel_color} wheels` }, part.color && { dot: colourDot(part.color), text: part.color },
@@ -158,6 +159,13 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.sensored !== undefined && <><dt>{part.category === 'motor' ? 'Sensors' : 'Sensor port'}</dt><dd>{part.category === 'motor' ? (part.sensored ? 'sensored' : 'sensorless') : (part.sensored ? 'yes, runs sensored motors' : 'no, sensorless motors only')}</dd></>}
     {part.current_a && <><dt>ESC</dt><dd>{part.current_a} A{part.peak_current_a && ` (${part.peak_current_a} A peak)`}</dd></>}
     {part.lipo_cells && <><dt>LiPo</dt><dd>{part.lipo_cells[0] === part.lipo_cells[1] ? `${part.lipo_cells[0]}S` : `${part.lipo_cells[0]}-${part.lipo_cells[1]}S`}</dd></>}
+    {part.motor_type && <><dt>Motor type</dt><dd>{part.motor_type === 'both' ? 'brushed and brushless' : part.motor_type}</dd></>}
+    {(part.bec_v !== undefined || part.bec_a !== undefined) && <><dt>BEC</dt><dd>{[part.bec_v !== undefined && `${Array.isArray(part.bec_v) ? part.bec_v.join('/') : part.bec_v} V`, part.bec_a !== undefined && `${part.bec_a} A`].filter(Boolean).join(' at ')}</dd></>}
+    {part.waterproof !== undefined && <><dt>Waterproof</dt><dd>{part.waterproof ? 'yes' : 'no'}</dd></>}
+    {(part.motor_limit_t || part.motor_limit_kv) && <><dt>Motor limit</dt><dd>{[part.motor_limit_t && `${part.motor_limit_t}T`, part.motor_limit_kv && `${part.motor_limit_kv} kV`].filter(Boolean).join(', ')}</dd></>}
+    {part.nimh_cells && <><dt>NiMH</dt><dd>{part.nimh_cells[0] === part.nimh_cells[1] ? `${part.nimh_cells[0]} cells` : `${part.nimh_cells[0]}-${part.nimh_cells[1]} cells`}</dd></>}
+    {part.programming && <><dt>Programming</dt><dd>{part.programming.map((p) => PROGRAMMING[p] ?? p).join(', ')}</dd></>}
+    {part.resistance_mohm && <><dt>Resistance</dt><dd>{part.resistance_mohm} m&Omega;</dd></>}
     {part.torque_kgcm && <><dt>Servo</dt><dd>{part.torque_kgcm} kg/cm{part.speed_s && `, ${part.speed_s} s/60°`}{part.voltage && ` at ${part.voltage} V`}{part.motor && `, ${part.motor}`}{part.gear_material && `, ${part.gear_material} gears`}</dd></>}
     {(part.bearings || part.bearing_kind) && <><dt>Bearings</dt><dd>{`${part.bearings ?? ''}${part.bearing_kind ? ` ${part.bearing_kind}` : ''} bearings`.trim()}</dd></>}
     {part.dead_band_us && <><dt>Dead band</dt><dd>{part.dead_band_us} µs</dd></>}
