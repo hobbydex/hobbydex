@@ -1,8 +1,8 @@
 import { db, type Spec } from './data';
 
 // the line icon of each spec category (public/icons.svg)
-export const specIcon: Record<string, string> = { screw: 'screw', nut: 'nut', washer: 'washer-shim', bearing: 'bearing', pin: 'pin', eclip: 'eclip', pinion: 'pinion', oil: 'oil-grease', battery: 'battery', servo: 'servo', motor: 'motor', engine: 'engine-fuel', 'wheel-hex': 'wheel', connector: 'wire' };
-export const specLabel: Record<string, string> = { screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims', eclip: 'E-clips', connector: 'Connectors' };
+export const specIcon: Record<string, string> = { screw: 'screw', nut: 'nut', washer: 'washer-shim', bearing: 'bearing', pin: 'pin', eclip: 'eclip', pinion: 'pinion', oil: 'oil-grease', battery: 'battery', servo: 'servo', motor: 'motor', engine: 'engine-fuel', 'wheel-hex': 'wheel', connector: 'wire', wire: 'wire' };
+export const specLabel: Record<string, string> = { screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims', eclip: 'E-clips', connector: 'Connectors', wire: 'Wire gauges' };
 
 /** One short paragraph per spec category: what the part is and which figures decide the fit. */
 export const specIntro: Record<string, string> = {
@@ -18,6 +18,7 @@ export const specIntro: Record<string, string> = {
   washer: 'Washers, shims and spacers share one spec: bore, outer diameter and thickness in mm. The generic name follows the thickness, whatever the maker calls its own part; countersunk and conical ones carry a prefix.',
   eclip: 'E-clips (E-rings, DIN 6799 type) by the shaft they fit, in mm: a 3 mm E-clip goes on a 3 mm shaft, as the RC makers name them. Clips that state a thickness, and bowed (wave) E-rings, are listed apart from the plain clip of the same shaft.',
   connector: 'Power and signal connectors by family and size: the XT, EC and Deans plugs of the electric cars, Tamiya and JST balance and servo plugs, and the bullet and banana plugs of chargers and motors. A spec is one family and size; the pins, contact diameter and anti-spark design belong to the family, and a current is listed only where the maker states it, with its wire.',
+  wire: 'Bare solid round copper conductors by AWG gauge, from 8 to 30. The smaller the number, the thicker the wire: a 12 AWG conductor is 2.05 mm across and 3.31 mm² in section, from the AWG formula of ASTM B258. Insulation, strands and length are the branded part\'s own, and a wire part links to the gauge it names.',
   pinion: 'Pinion gears by tooth count and pitch. The pitch (48, 32 or 64 DP, or module 1 and 0.8 in metric) must match the spur gear; the tooth count sets the gearing. The bore, 3.175 or 5 mm, follows the motor shaft and is on the branded parts.',
 };
 
@@ -36,6 +37,7 @@ export function specSort(a: Spec, b: Spec) {
   if (a.category === 'washer') return num(a.bore_mm) - num(b.bore_mm) || num(a.outer_mm) - num(b.outer_mm) || num(a.thickness_mm) - num(b.thickness_mm) || String(a.shape ?? '').localeCompare(String(b.shape ?? ''));
   if (a.category === 'eclip') return num(a.shaft_mm) - num(b.shaft_mm) || String(a.variant ?? '').localeCompare(String(b.variant ?? '')) || num(a.thickness_mm) - num(b.thickness_mm);
   if (a.category === 'connector') return String(a.family).localeCompare(String(b.family)) || num(a.contact_mm) - num(b.contact_mm) || num(a.current_a) - num(b.current_a) || a.id.localeCompare(b.id);
+  if (a.category === 'wire') return num(a.awg) - num(b.awg);
   if (a.category === 'pin') return num(a.diameter_mm) - num(b.diameter_mm) || num(a.length_mm) - num(b.length_mm);
   if (a.category === 'pinion') return num(a.module) - num(b.module) || num(b.pitch_dp) - num(a.pitch_dp) || num(a.teeth) - num(b.teeth);
   return a.id.localeCompare(b.id);
