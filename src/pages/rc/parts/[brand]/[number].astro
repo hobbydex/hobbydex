@@ -105,7 +105,7 @@ const indexWords = [brand?.name, part.number, ...(part.numbers ?? []), ...(part.
 const indexFilters = [part.category && `category:${catName(part.category)}`, part.status === 'discontinued' && 'status:discontinued',
   part.depicts?.make && `make:${part.depicts.make}`].filter((x): x is string => !!x);
 ---
-<Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name} words={indexWords} filters={indexFilters}>
+<Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name} words={indexWords} filters={indexFilters} icon={part.category}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
   <h1><span>{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</span><Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
   {part.sources?.name && <p><FactSource field="name" url={part.sources.name} dot={false} /></p>}
