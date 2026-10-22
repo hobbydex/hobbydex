@@ -307,7 +307,8 @@ def build(job, filled):
         doc.recompute()
         shape = obj.Shape
         if filled:
-            shape = shape.fuse(Part.makeCylinder(job["bore"] / 2, 20, V(0, 0, -5)))
+            bb = shape.BoundBox   # the bore, only as long as the nut
+            shape = shape.fuse(Part.makeCylinder(job["bore"] / 2, bb.ZLength + 2, V(0, 0, bb.ZMin - 1)))
         return shape
     raise ValueError("unknown op " + op)
 
@@ -493,6 +494,12 @@ def read_fragment(svg, transform):
     return segs
 
 
+def fmt4(v):
+    """Four decimals: an arc's centre is so sensitive to its radii and ends that 0.01 mm moves it 0.2 mm."""
+    s = f"{round(v, 4):.4f}".rstrip("0").rstrip(".")
+    return "0" if s in ("-0", "") else s
+
+
 def body_d(segs):
     """SVG path data for the line work: one path, edges chained where they meet, arcs as A commands."""
     parts, last = [], None
@@ -510,7 +517,7 @@ def body_d(segs):
             parts.append("L " + xy(pts[0])); last = pts[0]
         elif cmd == "A":
             rx, ry, phi, large, sweep = seg[2]
-            parts.append(f"A {fmt(rx)} {fmt(ry)} {fmt(phi)} {large} {sweep} {xy(pts[1])}"); last = pts[1]
+            parts.append(f"A {fmt4(rx)} {fmt4(ry)} {fmt4(phi)} {large} {sweep} {fmt4(pts[1][0])} {fmt4(pts[1][1])}"); last = pts[1]
         elif cmd == "C":
             parts.append("C " + " ".join(xy(q) for q in pts)); last = pts[-1]
     return " ".join(parts)
