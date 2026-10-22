@@ -79,7 +79,9 @@ import Icon from '../components/Icon.astro';
           const li = document.createElement('li');
           const t = d.meta.type || '';
           const disc = d.filters && d.filters.status && d.filters.status.includes('discontinued') ? ' ' + DISC : '';
-          li.innerHTML = `<span class="badge">${esc(labels[t] || t)}</span><a href="${esc(d.url)}">${mark(d.meta.title || d.url, terms)}</a>${disc}` + (d.meta.sub ? `<span class="sub">${esc(d.meta.sub)}</span>` : '');
+          // a part shows its category's icon (the icon id is the category id, see Base.astro)
+          const icon = d.meta.icon ? `<svg class="icon" aria-hidden="true"><use href="/icons.svg#${esc(d.meta.icon)}"/></svg> ` : '';
+          li.innerHTML = `<span class="badge">${esc(labels[t] || t)}</span>${icon}<a href="${esc(d.url)}">${mark(d.meta.title || d.url, terms)}</a>${disc}` + (d.meta.sub ? `<span class="sub">${esc(d.meta.sub)}</span>` : '');
           results.appendChild(li);
         }
         shown += batch.length;
