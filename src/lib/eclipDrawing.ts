@@ -25,16 +25,16 @@ export function eclipDrawing(spec: Spec): ScrewDrawing | undefined {
   // the DIN 6799 outline, mouth at the bottom: the outer ring; two feet whose inner edges bear on the groove, with the
   // mouth a (about 0.84 x the groove, as in the DIN table) between them; two kidney-shaped cut-outs; the lip at the
   // top that bears on the groove. Key points in units of the outer radius, smoothed with a Catmull-Rom spline.
-  const k = r / R, h = 0.42 * k;
+  const k = r / R, h = 0.84 * k;   // h: half the mouth a, which DIN gives as about 0.84 x the groove
   const pol = (deg: number, rad: number): [number, number] => [rad * Math.cos((deg * Math.PI) / 180), rad * Math.sin((deg * Math.PI) / 180)];
   const band = () => 0.74;   // the ring keeps one width all round
   const key: [number, number][] = [];
-  for (let a = 60; a >= -240; a -= 12) key.push(pol(a, 1));
-  key.push([-0.33, 0.93], [-h - 0.05, 0.84], [-h, 0.66], pol(128, k), [-0.42, 0.22], pol(170, 0.74));
+  for (let a = 48; a >= -228; a -= 12) key.push(pol(a, 1));
+  key.push([-0.56, 0.84], [-0.47, 0.89], [-h - 0.07, 0.82], [-h - 0.03, 0.64], [-h - 0.01, 0.45], pol(147, k), [-0.46, 0.18], pol(170, 0.74));
   for (let a = 186; a < 238; a += 10) key.push(pol(a, band()));
   key.push([-0.28, -0.67], [-0.19, -0.58], [-0.13, -0.47], [-0.06, -k - 0.01], [0.06, -k - 0.01], [0.13, -0.47], [0.19, -0.58], [0.28, -0.67]);   // the lip: a smooth inverted bell down to the groove
   for (let a = -58; a < -5; a += 10) key.push(pol(a, band()));
-  key.push(pol(10, 0.74), [0.42, 0.22], pol(52, k), [h, 0.66], [h + 0.05, 0.84], [0.33, 0.93]);
+  key.push(pol(10, 0.74), [0.46, 0.18], pol(33, k), [h + 0.01, 0.45], [h + 0.03, 0.64], [h + 0.07, 0.82], [0.47, 0.89], [0.56, 0.84]);
   const pts: string[] = [];
   for (let i = 0; i < key.length; i++) {
     const p0 = key[(i - 1 + key.length) % key.length], p1 = key[i], p2 = key[(i + 1) % key.length], p3 = key[(i + 2) % key.length];
@@ -54,7 +54,7 @@ export function eclipDrawing(spec: Spec): ScrewDrawing | undefined {
   if (Sh > G) o.push(`<circle class="thin dash" cx="${f(cx)}" cy="${f(cy)}" r="${f((Sh / 2) * s)}"/>`, hdim(cx - (Sh / 2) * s, cx + (Sh / 2) * s, cy - R - 14, `shaft ⌀${f(Sh)}`));
   o.push(`<path class="thin dashdot" d="M${f(cx - R - 8)} ${f(cy)}H${f(cx + R + 8)}M${f(cx)} ${f(cy - R - 8)}V${f(cy + R + 8)}"/>`);
   o.push(vdim(cx + R + 14, cy - R, cy + R, `⌀${f(D)}`));
-  o.push(hdim(cx - r, cx + r, cy + R + 18, `groove ⌀${f(G)}`));
+  o.push(hdim(cx - r, cx + r, cy + R + 18, `groove ⌀${f(G)}`), hdim(cx - h * R, cx + h * R, cy + 0.98 * R, `a ${f(0.84 * G)}`));
   o.push(`<text x="${f(cx)}" y="${f(cy + R + 48)}" text-anchor="middle" class="std">thickness ${f(T)}</text>`);
   const H = Math.ceil(cy + R + 58);
   return {
