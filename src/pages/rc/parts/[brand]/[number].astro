@@ -21,6 +21,7 @@ import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
 import { colourDot } from '../../../../lib/colourDot';
+import { gauges, gaugeLink, INSULATION, mmText, shrinksTo } from '../../../../lib/wire';
 import { partDrawing } from '../../../../lib/specDrawings';
 import HardwareBag from '../../../../components/HardwareBag.astro';
 import PartDimensions from '../../../../components/PartDimensions.astro';
@@ -166,6 +167,14 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.radio_unit && <><dt>Radio</dt><dd>{radioUnitLabel[part.radio_unit] ?? part.radio_unit}</dd></>}
     {part.dimensions_mm && <><dt>{figureLabel(part, 'size')}</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
     {part.weight_g && <><dt>{figureLabel(part, 'weight')}</dt><dd>{part.weight_g} g</dd></>}
+    {part.category === 'wire' && gauges(part).length > 0 && <><dt>Wire gauge</dt><dd>{gauges(part).map((n, i) => <>{i > 0 && ' and '}{gaugeLink(n) ? <a href={gaugeLink(n)}>{n} AWG</a> : `${n} AWG`}</>)}</dd></>}
+    {part.category === 'wire' && part.insulation && <><dt>Insulation</dt><dd>{INSULATION[part.insulation] ?? part.insulation}</dd></>}
+    {part.category === 'wire' && part.strands && <><dt>Strands</dt><dd>{part.strands}</dd></>}
+    {part.category === 'wire' && part.length_mm && <><dt>Length</dt><dd>{mmText(part.length_mm)}</dd></>}
+    {part.category === 'wire' && part.diameter_mm !== undefined && <><dt>Diameter</dt><dd>{[part.diameter_mm].flat().join(', ')} mm</dd></>}
+    {part.category === 'wire' && part.shrink_ratio && <><dt>Shrink ratio</dt><dd>{part.shrink_ratio}:1</dd></>}
+    {part.category === 'wire' && shrinksTo(part) && <><dt>Shrinks to</dt><dd>{shrinksTo(part)!.join(', ')} mm</dd></>}
+    {part.category === 'wire' && part.flat_width_mm && <><dt>Flat width</dt><dd>{part.flat_width_mm} mm</dd></>}
     {part.connector && <><dt>Plug</dt><dd>{part.connector}</dd></>}
     {(part.kv || part.turns) && <><dt>Motor</dt><dd title="kV: rpm per volt without load. T: turns of wire per pole, fewer is faster.">{[part.kv && `${part.kv} kV`, part.turns && `${part.turns}T`, part.diameter_mm && part.length_mm && `${part.diameter_mm} x ${part.length_mm} mm`, part.shaft_mm && `${part.shaft_mm} mm shaft`].filter(Boolean).join(', ')}</dd></>}
     {part.kv && part.category === 'motor' && <><dt>No-load rpm</dt><dd title="kV x nominal LiPo voltage (3.7 V per cell), without load; under load a motor turns slower.">{noLoad(part.kv, part.lipo_cells).map(([c, v, r]) => `${c}S (${v} V): about ${r.toLocaleString('en-US')} rpm`).join(' · ')}</dd></>}
