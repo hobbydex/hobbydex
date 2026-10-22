@@ -242,6 +242,32 @@ def poly_face(pts, t, z0=0):
     p.append(p[0])
     return Part.Face(Part.makePolygon(p)).extrude(V(0, 0, t))
 
+def face_loops(faces):
+    loops = []
+    for f in faces:
+        outer = f.OuterWire
+        for w in f.Wires:
+            if not w.isSame(outer):
+                loops.append([(p.x, p.y, p.z) for p in w.discretize(Number=160)])
+    return loops
+
+def holes_of(shape):
+    """The inner loops of the flat top and bottom faces: the through-holes, as 3D points."""
+    planar = [f for f in shape.Faces if isinstance(f.Surface, Part.Plane) and abs(f.BoundBox.ZMax - f.BoundBox.ZMin) < 1e-6]
+    if not planar:
+        return {"top": [], "bottom": []}
+    zmax = max(f.BoundBox.ZMax for f in planar); zmin = min(f.BoundBox.ZMin for f in planar)
+    top, bottom = [], []
+    for f in planar:
+        n = V(f.Surface.Axis)
+        if f.Orientation == "Reversed":
+            n = n * -1
+        if n.z > 0.99 and abs(f.BoundBox.ZMax - zmax) < 1e-6:
+            top.append(f)
+        if n.z < -0.99 and abs(f.BoundBox.ZMin - zmin) < 1e-6:
+            bottom.append(f)
+    return {"top": face_loops(top), "bottom": face_loops(bottom)}
+
 def build(job, filled):
     op = job["op"]
     if op == "hex":
@@ -289,11 +315,15 @@ for job in json.loads(open(JOBS_JSON).read()):
     doc = FreeCAD.newDocument("job")
     try:
         view = V(*job["view"])
+        for i, e in enumerate([V(10, 0, 0), V(0, 10, 0), V(0, 0, 10)]):
+            open(job["axes"][i], "w").write(TechDraw.projectToSVG(Part.makeLine(V(0, 0, 0), e), view, ""))
         for filled, out in ((False, job["lines"]), (True, job["fill"])):
             shape = build(job, filled)
             if shape.isNull() or not shape.isValid() or not shape.Edges:
                 raise ValueError("empty shape")
             open(out, "w").write(TechDraw.projectToSVG(shape, view, ""))
+            if not filled:
+                json.dump(holes_of(shape), open(job["holes"], "w"))
         print("OK", job["slug"])
     except Exception as err:
         print("FAILED", job["slug"], err)
@@ -511,6 +541,35 @@ def silhouette(segs, x0, y0, nx, ny):
     return np.array(inside) > 0
 
 
+def axis_frame(axes):
+    """A 3D -> 2D map from the projected unit axes (each a line of length 10 from the origin)."""
+    ends = [[seg[1][0] for seg in segs] for segs in axes]
+    def dist(a, b):
+        return math.hypot(a[0] - b[0], a[1] - b[1])
+    origin = min(ends[0], key=lambda p: sum(min(dist(p, q) for q in ends[i]) for i in (1, 2)))
+    cols = []
+    for pts in ends:
+        far = max(pts, key=lambda q: dist(q, origin))
+        cols.append(((far[0] - origin[0]) / 10, (far[1] - origin[1]) / 10))
+    (ax, ay), (bx, by), (cx, cy) = cols
+    def frame(x, y, z):
+        return (origin[0] + ax * x + bx * y + cx * z, origin[1] + ay * x + by * y + cy * z)
+    return frame
+
+
+def hole_mask(holes, frame, x0, y0, nx, ny):
+    """Where a through-hole is see-through: inside the projected top loop and the projected
+    bottom loop of the same hole at once (a ray through the hole crosses both)."""
+    def poly(loop):
+        img = Image.new("1", (nx, ny), 0)
+        ImageDraw.Draw(img).polygon([((frame(*q)[0] - x0) * PX, (frame(*q)[1] - y0) * PX) for q in loop], fill=1)
+        return np.array(img).astype(bool)
+    out = np.zeros((ny, nx), dtype=bool)
+    for top, bottom in zip(holes["top"], holes["bottom"]):
+        out |= poly(top) & poly(bottom)
+    return out
+
+
 def trace(mask, x0, y0, name):
     """potrace of the mask, back to mm: the outline as one path."""
     pbm = WORK / f"{name}-sil.pbm"; svg = WORK / f"{name}-sil.svg"
@@ -586,7 +645,9 @@ def main(argv):
             continue
         slug = slug_of(s["id"])
         job.update({"slug": slug, "kind": kind, "id": s["id"], "view": UPRIGHT_VIEW if kind == "pin" else FLAT_VIEW,
-                    "lines": str(WORK / f"{slug}.lines.svgfrag"), "fill": str(WORK / f"{slug}.fill.svgfrag")})
+                    "lines": str(WORK / f"{slug}.lines.svgfrag"), "fill": str(WORK / f"{slug}.fill.svgfrag"),
+                    "holes": str(WORK / f"{slug}.holes.json"),
+                    "axes": [str(WORK / f"{slug}.axis{i}.svgfrag") for i in range(3)]})
         jobs.append(job)
     jobs.sort(key=lambda j: (-links[j["id"]], j["slug"]))
     print("planned", len(jobs), "of", sum(kinds_count.values()))
@@ -612,6 +673,9 @@ def main(argv):
         x0, y0 = min(xs) - 1, min(ys) - 1
         nx, ny = math.ceil((max(xs) + 1 - x0) * PX), math.ceil((max(ys) + 1 - y0) * PX)
         mask = silhouette(fill, x0, y0, nx, ny)
+        axes = [read_fragment(Path(a).read_text(), "scale(1, -1)") for a in job["axes"]]
+        holes = json.loads(Path(job["holes"]).read_text())
+        mask = mask & ~hole_mask(holes, axis_frame(axes), x0, y0, nx, ny)
         sil = trace(mask, x0, y0, slug)
         sil_pts = [pt for _, pts in sil for pt in pts]
         bx0 = min(min(xs), min(x for x, _ in sil_pts)); bx1 = max(max(xs), max(x for x, _ in sil_pts))
@@ -623,7 +687,7 @@ def main(argv):
         body = f'<path d="{body_d(line_segs)}" vector-effect="non-scaling-stroke"/>'
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{fmt(vx)} {fmt(vy)} {fmt(vw)} {fmt(vh)}" '
                f'data-pitch-x="{pitch_x:g}" data-pitch-y="{pitch_y:g}">'
-               f'<path class="sil" d="{d_string(sil)}"/>'
+               f'<path class="sil" fill-rule="evenodd" d="{d_string(sil)}"/>'
                f'<g class="lines" fill="none" stroke="currentColor" stroke-width="{STROKE_PX}" '
                f'stroke-linecap="butt" stroke-linejoin="miter">{body}</g></svg>\n')
         name = f"{slug}.svg"
