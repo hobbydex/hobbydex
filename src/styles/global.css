@@ -150,6 +150,7 @@ svg.paintchip { vertical-align: middle; margin-right: 0.5rem; }
 .paintcolour { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; }
 .factsrow { display: flex; align-items: center; gap: 2rem; flex-wrap: wrap; }
 .factsrow .typeicon { color: var(--muted); margin-left: auto; }
+@media (max-width: 40rem) { .factsrow .typeicon.bagicon { flex: 1 1 100%; margin-left: 0; } }
 .relart { vertical-align: -0.25em; flex: none; }
 .relart.hero { height: 12rem !important; width: auto !important; max-width: 100%; }   /* the release page outline or type icon: 12rem tall, as wide as its shape, never wider than a phone */
 .relart.inrow { color: var(--muted); margin-right: 0.15rem; }
