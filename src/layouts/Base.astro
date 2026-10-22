@@ -1,8 +1,8 @@
 ---
 import { db } from '../lib/data';
 import '../styles/global.css';
-interface Props { title: string; description?: string; jsonld?: unknown; kind?: string; sub?: string; words?: string; filters?: string[] }
-const { title, description, jsonld, kind, sub, words, filters } = Astro.props;
+interface Props { title: string; description?: string; jsonld?: unknown; kind?: string; sub?: string; words?: string; filters?: string[]; icon?: string }
+const { title, description, jsonld, kind, sub, words, filters, icon } = Astro.props;
 ---
 <!doctype html>
 <html lang="en" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
@@ -49,6 +49,7 @@ const { title, description, jsonld, kind, sub, words, filters } = Astro.props;
       <span data-pagefind-meta="title" data-pagefind-weight="10" data-pagefind-sort="title">{title}</span>
       <span data-pagefind-meta={`type:${kind}`} data-pagefind-filter={`type:${kind}`} />
       {sub && <span data-pagefind-meta={`sub:${sub}`} />}
+      {icon && <span data-pagefind-meta={`icon:${icon}`} />}
       {(filters ?? []).map((f) => <span data-pagefind-filter={f} />)}
       <p>{words}</p>
     </div>}
