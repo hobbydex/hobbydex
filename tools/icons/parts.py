@@ -69,6 +69,13 @@ S["motor"] = rrect(2.5, 5.5, 14, 13, 2.2) + rect(16.5, 9.5, 2, 5) + rect(18.5, 1
 S["servo"] = rrect(3.5, 9, 17, 10, 1.4) + rect(1, 11, 2.5, 2) + rect(20.5, 11, 2.5, 2) + circ(8.5, 8.5, 2.8) + poly([(7.5, 6.2), (18.5, 4.5), (18.8, 6.4), (8, 8.5)])
 # ESC: top view, heat-sink slots across the top, a rounded-square button, three motor wires out of the bottom end
 S["esc"] = rrect(2.5, 3, 19, 17, 1.5) + "".join(rect(4 + 3.65*i, 5, 1.4, 6.5) for i in range(5)) + rrect(14.8, 13.2, 5.2, 3.6, 0.9) + rrect(16.2, 14.3, 2.4, 1.4, 0.4) + "".join(rect(x, 20, 1.6, 2.8) for x in (3.9, 7.55, 11.2))
+# radio: a pistol-grip transmitter from the side (body, antenna stub, wheel on top, trigger, grip); parts touch, never overlap
+S["radio"] = rrect(2.5, 6, 15, 6.5, 2) + rect(15.8, 2, 1.8, 4) + rrect(4.5, 3.6, 5, 2.4, 1.2) + rect(5, 8, 4, 2.2) + poly([(9.2, 12.5), (16.6, 12.5), (15, 21.5), (8.4, 21.5)]) + rect(6.8, 12.5, 1.6, 3.4)
+# light: a lamp (ring with a bulb) and three rays
+def bar(p, q, w):   # a straight bar of width w from p to q
+    dx, dy = q[0] - p[0], q[1] - p[1]; L = math.hypot(dx, dy); nx, ny = -dy / L * w / 2, dx / L * w / 2
+    return poly([(p[0] + nx, p[1] + ny), (q[0] + nx, q[1] + ny), (q[0] - nx, q[1] - ny), (p[0] - nx, p[1] - ny)])
+S["light"] = ring(9, 12, 5.2, 2.8) + circ(9, 12, 1.3) + bar((15.8, 12), (21.6, 12), 1.6) + bar((15.2, 7.6), (19.3, 3.5), 1.6) + bar((15.2, 16.4), (19.3, 20.5), 1.6)
 S["battery"] = rrect(1.5, 6.5, 19, 11, 1.6) + rect(20.5, 9.5, 2, 5) + poly([(6.7, 9.5), (8.3, 9.5), (8.3, 11.2), (10, 11.2), (10, 12.8), (8.3, 12.8), (8.3, 14.5), (6.7, 14.5), (6.7, 12.8), (5, 12.8), (5, 11.2), (6.7, 11.2)]) + rect(13, 11.2, 4, 1.6)
 S["charger"] = rrect(2.5, 4.5, 19, 15, 2) + poly([(13.2, 7), (8.5, 13), (11.8, 13), (10.6, 17.5), (15.5, 11), (12.2, 11)])
 S["engine-fuel"] = poly([(4.5, 7.5), (8, 4), (16, 4), (16, 20.5), (4.5, 20.5)]) + rect(7.5, 1.8, 5, 2.5) + poly([(16, 9.5), (19.5, 6.2), (20.8, 7.4), (18, 10.2), (18, 17), (16, 17)]) + rect(7.5, 10.5, 5.5, 6)

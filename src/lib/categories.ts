@@ -1,8 +1,8 @@
 export const categoryLabel: Record<string, string> = {
   'ball-end': 'Ball ends and links', battery: 'Batteries', bearing: 'Bearings and bushings', body: 'Body and covers', 'body-accessory': 'Body accessories', 'bumper-guard': 'Bumpers and guards',
   chassis: 'Chassis and mounts', decal: 'Decals', differential: 'Differential', drivetrain: 'Drivetrain', electronics: 'Electronics',
-  'engine-fuel': 'Engine and fuel', gear: 'Gears and transmission', motor: 'Motors', nut: 'Nuts', 'o-ring-seal': 'O-rings and seals',
-  'oil-grease': 'Oils and greases', pin: 'Pins', clip: 'Clips', pinion: 'Pinions', 'scale-accessory': 'Scale accessories', screw: 'Screws', servo: 'Servos', charger: 'Chargers', shock: 'Shocks',
+  'engine-fuel': 'Engine and fuel', gear: 'Gears and transmission', light: 'Lights', motor: 'Motors', nut: 'Nuts', 'o-ring-seal': 'O-rings and seals',
+  'oil-grease': 'Oils and greases', pin: 'Pins', clip: 'Clips', pinion: 'Pinions', radio: 'Radios', 'scale-accessory': 'Scale accessories', screw: 'Screws', servo: 'Servos', charger: 'Chargers', shock: 'Shocks',
   'shock-spring': 'Shock springs', 'spur-gear': 'Spur gears', steering: 'Steering', suspension: 'Suspension', tire: 'Tires',
   tool: 'Tools', 'parts-tree': 'Parts trees', manual: 'Manuals', 'washer-shim': 'Washers, shims and spacers', wheel: 'Wheels', wing: 'Wings',
 };
