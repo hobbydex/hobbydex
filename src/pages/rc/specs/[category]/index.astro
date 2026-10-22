@@ -19,6 +19,7 @@ const cols: Record<string, [string, string][]> = {
   eclip: [['shaft_mm', 'Shaft mm'], ['thickness_mm', 'Thickness mm'], ['outer_mm', 'Outer mm'], ['variant', 'Variant']],
   washer: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['thickness_mm', 'Thickness mm'], ['shape', 'Shape']],
   connector: [['family', 'Family'], ['pins', 'Pins'], ['contact_mm', 'Contact mm'], ['current_a', 'A'], ['anti_spark', 'Anti-spark']],
+  wire: [['awg', 'Gauge (AWG)'], ['conductor_mm', 'Diameter mm'], ['cross_section_mm2', 'Cross-section mm2']],
   nut: [['thread', 'Thread'], ['type', 'Type'], ['profile', 'Profile'], ['across_flats_mm', 'Across flats mm'], ['height_mm', 'Height mm']],
 };
 const show = cols[category!] ?? [];
