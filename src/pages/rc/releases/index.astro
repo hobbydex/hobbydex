@@ -84,6 +84,7 @@ import SeenNote from '../../../components/SeenNote.astro';
   .yearstep button:not(#y-all) { min-width: 2.2rem; }
   .release-filters button { justify-self: start; padding: 0.35rem 0.8rem; }
   #release-results .relart, #release-results .icon { color: var(--muted); margin-right: 0.15rem; }
+  #release-results .relart-edge { display: inline-block; filter: drop-shadow(0.5px 0 0 var(--fg)) drop-shadow(-0.5px 0 0 var(--fg)) drop-shadow(0 0.5px 0 var(--fg)) drop-shadow(0 -0.5px 0 var(--fg)); }
   @media (max-width: 600px) {
     .release-filters { grid-template-columns: 1fr 1fr; gap: 0.5rem 0.6rem; }
     .release-filters button { grid-column: 1 / -1; }

@@ -64,5 +64,7 @@ function tableColour(s: { c: string; see?: boolean }) {
   if (s.see) return 'rgba(150,150,160,0.35)';
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(s.c.slice(i, i + 2), 16) / 255);
   const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return lum < 0.15 ? 'var(--fg)' : lum > 0.85 ? 'var(--muted)' : s.c;
+  // a very dark or very light colour is kept and marked with a leading '!': the table draws it with a thin outline
+  // in the text colour, as ReleaseArt does, so black reads on a dark page and white on a light one
+  return lum < 0.15 || lum > 0.85 ? '!' + s.c : s.c;
 }
