@@ -8,9 +8,13 @@ import { byCategory, categories, countOf, specFor } from '../../../../lib/catego
 import { columns } from '../../../../lib/categoryColumns';
 import { MOTOR_SPEED_NOTE, BATTERY_NOTE } from '../../../../lib/specs';
 export function getStaticPaths() {
-  return categories.map((category) => ({ params: { category } }));
+  // a former category id (a category split or renamed) keeps working: its page redirects to the current one
+  const moved = db.categories.flatMap((c) => (c.former_ids ?? []).map((f) => ({ params: { category: f.split('/')[1] }, props: { redirect: `/rc/categories/${c.id.split('/')[1]}/` } })));
+  return [...categories.map((category) => ({ params: { category } })), ...moved];
 }
 const { category } = Astro.params;
+const { redirect } = Astro.props as { redirect?: string };
+if (redirect) return Astro.redirect(redirect, 301);
 const brands = [...byCategory.get(category)!.entries()].sort((a, b) => brandName(a[0]).localeCompare(brandName(b[0])));
 const parts = brands.flatMap(([, ps]) => ps);
 // A category of a few thousand parts is not listed on one page (bearings alone are 12,000 rows and 9 MB):
