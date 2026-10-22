@@ -46,6 +46,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
     <Fragment set:html={drawing.svg} />
     {spec.category === 'screw' ? <figcaption class="muted">To scale. {drawStd ? <>Head and socket sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : drawing.standard ? <>Head and socket sizes from {drawing.standard}</> : <>Head proportions as usual for this type</>}{drawing.approximate && drawing.standard && '; this size is outside the standard\'s table, so the head is drawn with the usual proportions'}{spec.thread_type === 'self-tapping' && '; the point is drawn flat (ISO 7049-F style) and the thread per ISO 1478'}.</figcaption>
       : spec.category === 'nut' ? <figcaption class="muted">{drawing.approximate ? 'Drawn to the sizes the spec gives' : 'To scale'}{drawStd ? <>; sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : ''}.{drawing.note && ` ${drawing.note}.`}{String(spec.type).endsWith('nylon-lock') ? ' The nylon ring is shaded.' : ''}</figcaption>
+      : spec.category === 'connector' ? <figcaption class="muted">{drawing.approximate ? 'Not to scale: the shape of the connector family' : 'To scale, from the contact diameter'}.</figcaption>
       : <figcaption class="muted">{drawing.approximate ? 'Drawn to the usual sizes' : 'To scale'}.{drawing.note && ` ${drawing.note}.`}</figcaption>}
   </figure>}
   {specSinks.length > 0 && <><h2>Heat sinks and fan mounts for a {specCan} mm can <span class="muted">({specSinks.length}, any brand)</span></h2>
