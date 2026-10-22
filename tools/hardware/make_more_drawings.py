@@ -40,9 +40,10 @@ PAD = 0.3                # mm around the drawing in the viewBox
 PROCS = 8                # FreeCAD processes at most
 FLAT_VIEW = (1, -1, 1.4)  # looking onto the face at an angle
 UPRIGHT_VIEW = (1, -1, 0.5)  # long upright parts (pins)
-STROKE = "0.06"
 GEAR_FACE = 4.0          # mm; the data gives no face width for pinions
 GEAR_PRESSURE = 20.0     # degrees
+BORE_MM = 3.17           # bore of the 32 and 48 dp pinions, where the data states none
+STROKE_PX = 1           # line weight in CSS px, the same on every drawing
 
 # ISO hex nut heights (mm) by nominal diameter, used when the spec states no height
 REG_H = {1.6: 1.3, 2: 1.6, 2.5: 2.0, 3: 2.4, 4: 3.2, 5: 4.7, 6: 5.2, 8: 6.8}     # ISO 4032
@@ -115,34 +116,30 @@ def plan_pin(s):
     return {"op": "pin", "d": d, "L": L, "c": max(0.1, 0.1 * d)}, None
 
 
-def eclip_inner(shaft, groove):
-    """The inner edge of a DIN 6799 e-clip: arcs at the shaft radius, and three prongs
-    reaching in to the groove radius (the prongs sit in the groove)."""
-    rA, rT, half = shaft / 2, groove / 2, math.radians(16)
-    prongs = [30, 150, 270]
-    pts = []
-    for i, th in enumerate(prongs):
-        prev = prongs[i - 1] - 360 if i == 0 else prongs[i - 1]
-        a0, a1 = prev + math.degrees(half), th - math.degrees(half)
-        for k in range(10):
-            a = math.radians(a0 + (a1 - a0) * k / 9)
-            pts.append((rA * math.cos(a), rA * math.sin(a)))
-        t = math.radians(th)
-        pts.append((rT * math.cos(t), rT * math.sin(t)))
-    return pts
+# DIN 6799 sizes in the Fasteners add-on (its Diameter is the shaft range):
+# (name, shaft from, shaft to, outer diameter, thickness), as the add-on builds them
+DIN6799 = [
+    ("2-2.5 mm", 2, 2.5, 4.25, 0.4), ("2.5-3 mm", 2.5, 3, 4.8, 0.5), ("3-4 mm", 3, 4, 6.3, 0.6),
+    ("4-5 mm", 4, 5, 7.3, 0.6), ("5-7 mm", 5, 7, 9.3, 0.7), ("6-8 mm", 6, 8, 11.3, 0.7),
+    ("7-9 mm", 7, 9, 12.3, 0.7), ("8-11 mm", 8, 11, 14.3, 0.9), ("9-12 mm", 9, 12, 16.3, 1.0),
+    ("10-14 mm", 10, 14, 18.8, 1.1), ("11-15 mm", 11, 15, 20.4, 1.2), ("13-18 mm", 13, 18, 23.4, 1.3),
+    ("16-24 mm", 16, 24, 29.4, 1.5), ("20-31 mm", 20, 31, 37.6, 1.75), ("25-38 mm", 25, 38, 44.6, 2.0),
+    ("32-42 mm", 32, 42, 52.6, 2.5),
+]
 
 
 def plan_eclip(s):
     if s.get("variant") == "bowed":
         return None, "bowed E-ring: shape not in the data"
-    if "groove_mm" not in s or "din_outer_mm" not in s:
-        return None, "e-clip: groove diameter not stated"
-    shaft, groove = s["shaft_mm"], s["groove_mm"]
-    t = s.get("din_thickness_mm", s.get("thickness_mm"))
-    if not (0 < groove < shaft < s["din_outer_mm"]) or not t:
-        return None, "e-clip: dimensions not usable"
-    return {"op": "eclip", "R": s["din_outer_mm"] / 2, "t": t, "shaft": shaft,
-            "inner": eclip_inner(shaft, groove), "slot": 0.5 * shaft}, None
+    if "din_outer_mm" not in s or "din_thickness_mm" not in s:
+        return None, "e-clip: no DIN 6799 size stated"
+    shaft, outer, t = s["shaft_mm"], s["din_outer_mm"], s["din_thickness_mm"]
+    hits = [r for r in DIN6799 if r[1] <= shaft <= r[2] and abs(r[3] - outer) < 0.05 and abs(r[4] - t) < 0.05]
+    if not hits:
+        if shaft < DIN6799[0][1]:
+            return None, "e-clip: shaft below the DIN 6799 sizes in the add-on (2 mm)"
+        return None, "e-clip: the add-on has no DIN 6799 size with this outer diameter and thickness"
+    return {"op": "eclip", "size": hits[0][0]}, None
 
 
 def plan_pinion(s):
@@ -150,14 +147,27 @@ def plan_pinion(s):
     m = s["module"] if "module" in s else 25.4 / s["pitch_dp"]
     if z < 6:
         return None, "pinion: too few teeth for the profile"
-    return {"op": "gear", "pts": gear_points(z, m), "t": GEAR_FACE}, None
+    root = m * (z - 2.5)                  # root diameter, mm
+    job = {"op": "gear", "pts": gear_points(z, m), "t": GEAR_FACE, "bore": 0.0, "hub": 0.0}
+    if s.get("pitch_dp") in (32, 48) and BORE_MM <= 0.8 * root:
+        job["bore"] = BORE_MM
+    else:
+        job["hub"] = 0.3 * root               # plain hub circle: no bore is stated
+    return job, None
 
 
 def gear_points(z, m):
     """The involute tooth profile (mm), from the Gears add-on's pygears core."""
     from pygears.profile import InvoluteProfile
     prof = InvoluteProfile(m=m, num_teeth=z, pressure_angle=math.radians(GEAR_PRESSURE), clearance=0.25, shift=0.0)
-    return [(round(float(x), 4), round(float(y), 4)) for x, y in prof.profile(num=2)]
+    pts = [(round(float(x), 4), round(float(y), 4)) for x, y in prof.profile(num=2)]
+    out = []
+    for q in pts:                         # the sampler repeats points where flank and root meet
+        if not out or out[-1] != q:
+            out.append(q)
+    if out[-1] == out[0]:
+        out.pop()
+    return out
 
 
 def plan(kind, s):
@@ -247,13 +257,22 @@ def build(job, filled):
         r, c, L = job["d"] / 2, job["c"], job["L"]
         return rev([(0, 0), (r - c, 0), (r, c), (r, L - c), (r - c, L), (0, L)])
     if op == "gear":
-        return poly_face(job["pts"], job["t"])
-    if op == "eclip":
-        outer = Part.makeCylinder(job["R"], job["t"])
-        slot = Part.makeBox(job["slot"], job["R"] + 1, job["t"] + 2, V(-job["slot"] / 2, 0, -1))
+        g = poly_face(job["pts"], job["t"])
         if filled:
-            return outer.cut(slot)
-        return outer.cut(poly_face(job["inner"], job["t"] + 2, -1)).cut(slot)
+            return g
+        if job["bore"] > 0:
+            return g.cut(Part.makeCylinder(job["bore"] / 2, job["t"] + 2, V(0, 0, -1)))
+        if job["hub"] > 0:
+            # a hub boss 0.2 mm proud of the face: its top circle is an edge the projection shows
+            return g.fuse(Part.makeCylinder(job["hub"] / 2, job["t"] + 0.2, V(0, 0, 0)))
+        return g
+    if op == "eclip":
+        doc = FreeCAD.ActiveDocument
+        obj = doc.addObject("Part::FeaturePython", "Eclip")
+        FastenersCmd.FSScrewObject(obj, "DIN6799", None)
+        obj.Diameter = job["size"]
+        doc.recompute()
+        return obj.Shape
     if op == "flange":
         doc = FreeCAD.ActiveDocument
         obj = doc.addObject("Part::FeaturePython", "Flange")
@@ -496,7 +515,7 @@ def trace(mask, x0, y0, name):
     """potrace of the mask, back to mm: the outline as one path."""
     pbm = WORK / f"{name}-sil.pbm"; svg = WORK / f"{name}-sil.svg"
     Image.fromarray(np.where(mask, 0, 255).astype("uint8")).convert("1", dither=Image.Dither.NONE).save(pbm)
-    subprocess.run(["potrace", "-s", "--flat", "-o", str(svg), str(pbm)], check=True)
+    subprocess.run(["potrace", "-s", "--flat", "-a", "0", "-o", str(svg), str(pbm)], check=True)
     text = svg.read_text()
     d = re.search(r'\sd="([^"]*)"', text).group(1)
     t = re.search(r'transform="([^"]*)"', text)
@@ -601,11 +620,11 @@ def main(argv):
         vw, vh = bx1 - bx0 + 2 * PAD, by1 - by0 + 2 * PAD
         dx, dy = nesting(mask)
         pitch_x, pitch_y = math.ceil(dx / PX * 100) / 100, math.ceil(dy / PX * 100) / 100
-        body = f'<path d="{body_d(line_segs)}"/>'
+        body = f'<path d="{body_d(line_segs)}" vector-effect="non-scaling-stroke"/>'
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{fmt(vx)} {fmt(vy)} {fmt(vw)} {fmt(vh)}" '
                f'data-pitch-x="{pitch_x:g}" data-pitch-y="{pitch_y:g}">'
                f'<path class="sil" d="{d_string(sil)}"/>'
-               f'<g class="lines" fill="none" stroke="currentColor" stroke-width="{STROKE}" '
+               f'<g class="lines" fill="none" stroke="currentColor" stroke-width="{STROKE_PX}" '
                f'stroke-linecap="butt" stroke-linejoin="miter">{body}</g></svg>\n')
         name = f"{slug}.svg"
         (OUT / name).write_text(svg)
