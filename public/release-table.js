@@ -229,10 +229,16 @@ if (root) {
       const span = document.createElement('span');
       span.className = 'relart inrow';
       span.setAttribute('aria-hidden', 'true');
-      span.style.backgroundColor = r.colour || 'currentColor';
+      const edge = r.colour.startsWith('!');
+      span.style.backgroundColor = (edge ? r.colour.slice(1) : r.colour) || 'currentColor';
       span.dataset.art = `${r.art}`;
       showArt(span);
-      return span;
+      if (!edge) return span;
+      // black or white: a wrapper draws a thin outline in the text colour round the masked shape
+      const wrap = document.createElement('span');
+      wrap.className = 'relart-edge';
+      wrap.append(span);
+      return wrap;
     }
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('class', 'icon');
