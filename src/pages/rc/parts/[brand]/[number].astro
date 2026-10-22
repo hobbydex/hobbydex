@@ -24,6 +24,8 @@ import { colourDot } from '../../../../lib/colourDot';
 import { partDrawing } from '../../../../lib/specDrawings';
 import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
 import { fileRows, makerOwnLinks, listedBelow, hostLabel } from '../../../../lib/docFacts';
+import { describe, count } from '../../../../lib/descriptions';
+import { partSpecs } from '../../../../lib/partFacts';
 export function getStaticPaths() {
   // a former id (renamed or corrected) or another number the part is sold under (numbers) keeps working:
   // its page redirects to the current one; a number listed twice is one route
@@ -103,10 +105,18 @@ import RealVehicle from '../../../../components/RealVehicle.astro';
 const indexWords = [brand?.name, part.number, ...(part.numbers ?? []), ...(part.former_ids ?? []).map((f) => key(f)[1]), part.name, ...(part.former_names ?? []),
   part.category && catName(part.category), ...new Set((part.equivalent_to ?? []).map((e) => db.spec.get(e.spec)?.name)),
   ...kitsOf.map((k) => (k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : '')), ...uses.map((u) => `${brandName(u.release.brand)} ${u.release.name}`)].filter(Boolean).join(' ');
+// the meta description: the category, the spec clauses the record states, the platforms it fits and the releases it is in
+const lcfirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+const bearingIncludes = (part.includes ?? []).filter((i) => i.spec?.startsWith('spec/bearing/'));
+const bearingPcs = bearingIncludes.reduce((n, i) => n + (i.qty ?? 1), 0);
+const fitsPlatforms = new Set((part.fits ?? []).map((f) => f.kit)).size;
+const metaDescription = describe(`${brand?.name} ${numName}`,
+  [part.category && lcfirst(catName(part.category)), ...partSpecs(part, bearingIncludes.map((i) => i.spec!.split('/').pop()!), bearingPcs), part.applies_to && `for ${part.applies_to}`].filter((x): x is string => !!x),
+  [part.status === 'discontinued' && 'Discontinued.', fitsPlatforms > 0 && `Fits ${count(fitsPlatforms, 'platform')}.`, uses.length > 0 && `In ${count(uses.length, 'release')}.`].filter((x): x is string => !!x));
 const indexFilters = [part.category && `category:${catName(part.category)}`, part.status === 'discontinued' && 'status:discontinued',
   part.depicts?.make && `make:${part.depicts.make}`].filter((x): x is string => !!x);
 ---
-<Base title={numName} description={`${brand?.name} ${numName}: which platforms use it.`} kind="part" sub={brand?.name} words={indexWords} filters={indexFilters} icon={part.category}>
+<Base title={numName} description={metaDescription} kind="part" sub={brand?.name} words={indexWords} filters={indexFilters} icon={part.category}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
   <h1><span>{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</span><Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
   {part.sources?.name && <p><FactSource field="name" url={part.sources.name} dot={false} /></p>}
@@ -235,14 +245,17 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
   {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
     <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {partLabel(o)}</a> {shortName(o)}<Discontinued item={o} /><span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
   <Videos videos={db.videosByPart.get(part.id) ?? []} />
+  {(uses.length > 0 || kitsOf.length === 0) && <>
   <h2>Used in</h2>
   {uses.length === 0 ? <p class="muted">No release lists this part yet.</p> :
+  <>
   <table>
     <tr><th class="num">Year</th><th>Release</th><th>Role</th></tr>
     {uses.map((u) => <tr><td class="num"><DateText r={u.release} year /><DateDoubt reason={yearDoubt(u.release)} /></td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a><Discontinued item={u.release} /></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
   </table>
   <DoubtNote on={uses.some((u) => !!yearDoubt(u.release))} />
-  <SeenNote rows={uses.map((u) => u.release)} />}
-  <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p>
+  <SeenNote rows={uses.map((u) => u.release)} />
+  <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p></>}
+  </>}
   <DataLink path={part.toml_path} id={part.id} />
 </Base>

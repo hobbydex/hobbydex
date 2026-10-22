@@ -8,14 +8,17 @@ import { db, brandName, byPartNo, key, url } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import { byCategory, categories } from '../../../../lib/categoryIndex';
 import { columns } from '../../../../lib/categoryColumns';
+import { describe, count } from '../../../../lib/descriptions';
 export function getStaticPaths() {
   return categories.flatMap((category) => [...byCategory.get(category)!.keys()].map((b) => ({ params: { category, brand: key(b)[0] }, props: { brandId: b } })));
 }
 const { category } = Astro.params;
 const { brandId } = Astro.props;
 const parts = [...byCategory.get(category)!.get(brandId)!].sort(byPartNo);
+const platforms = new Set(parts.flatMap((p) => (p.fits ?? []).map((f) => f.kit))).size;
+const metaDescription = describe(`${brandName(brandId)} ${catName(category).toLowerCase()}`, [count(parts.length, 'part'), platforms > 0 && `${count(platforms, 'platform')} fitted`].filter((x): x is string => !!x));
 ---
-<Base title={`${brandName(brandId)} ${catName(category).toLowerCase()}`} description={`${parts.length} ${catName(category).toLowerCase()} from ${brandName(brandId)}.`} kind="category" words={`${brandName(brandId)} ${catName(category)}`}>
+<Base title={`${brandName(brandId)} ${catName(category).toLowerCase()}`} description={metaDescription} kind="category" words={`${brandName(brandId)} ${catName(category)}`}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/categories/">Categories</a> / <a href={`/rc/categories/${category}/`}>{catName(category)}</a> / {brandName(brandId)}</div>
   <h1>{brandName(brandId)} <span class="muted">·</span> {catName(category)}</h1>
   {columns[category] ? <PartTable category={category} parts={parts} showBrand={false} /> :
