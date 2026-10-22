@@ -1,6 +1,7 @@
 // Key spec columns per part category, from the category definitions in the data
 // (data/categories/<slug>.toml): each value comes from the part or its linked spec.
 import { db, type Part, type Spec, type KeyField } from './data';
+import { radioUnitLabel } from './radio';
 
 export type Column = { label: string; num?: boolean; field: KeyField; get: (p: Part, s?: Spec) => string | number | undefined };
 const cat = new Map(db.categories.map((c) => [c.id.split('/')[1], c]));
@@ -13,6 +14,7 @@ function format(v: unknown, f: KeyField): string | number | undefined {
   if (f.format === 'cells' && Array.isArray(v)) return v[0] === v[1] ? `${v[0]}S` : `${v[0]}-${v[1]}S`;
   if (f.format === 'range' && Array.isArray(v)) return `${v[0]}-${v[1]}`;
   if (f.format === 'volts') return `${Array.isArray(v) ? v.join('/') : v} V`;
+  if (f.field === 'radio_unit' && typeof v === 'string') return radioUnitLabel[v] ?? v;   // Transmitter, Receiver, Set..., Gyro
   if (typeof v === 'number') return v;
   if (typeof v === 'string' && f.field === 'position') return POSITION[v] ?? v.replace(/-/g, ' ');
   if (typeof v === 'string') return v.replace(/-/g, ' ');
