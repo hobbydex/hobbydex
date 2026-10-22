@@ -98,6 +98,9 @@ S["copy"] = "M5 2.5h9.5a2.5 2.5 0 0 1 2.5 2.5v1.5h-2V5H5v10h1.5v2H5a2.5 2.5 0 0 
 S["check"] = poly([(3.2, 12.8), (5.4, 10.6), (9.4, 14.6), (18.6, 5.4), (20.8, 7.6), (9.4, 19.0)])
 S["barcode"] = "".join(rect(x, 4, w, 17.5 if g else 15) for x, w, g in [(2, 1.5, True), (4.5, 1, False), (6.5, 2, False), (9.5, 1, False), (11.5, 1.5, True), (14, 1, False), (16, 2, False), (19, 1, False), (21, 1.5, True)])   # EAN-like: longer guard bars
 
+# body accessories: a mirror on its arm and foot (the arm meets the mirror edge to edge: an overlap would be a hole)
+S["body-accessory"] = "M6 5L14 5Q16 5 16 7L16 13Q16 15 14 15L6 15Q3 15 3 12L3 8Q3 5 6 5ZM5.5 7.5L5.5 12.5L13.5 12.5L13.5 7.5ZM11.5 15L14.2 15L18.5 20.5L15.8 20.5ZM14.4 20.5H20.6A0.9 0.9 0 0 1 21.5 21.4V21.4A0.9 0.9 0 0 1 20.6 22.3H14.4A0.9 0.9 0 0 1 13.5 21.4V21.4A0.9 0.9 0 0 1 14.4 20.5Z"
+
 rays = "".join(f'<rect x="11" y="0.8" width="2" height="4" rx="1" transform="rotate({45*i} 12 12)"/>' for i in range(8))
 out = ['<svg xmlns="http://www.w3.org/2000/svg">\n<!-- Hobbydex icons: 24x24 filled silhouettes in currentColor (follow the light and dark themes).\n     Used as <svg class="icon"><use href="/icons.svg#id"/></svg>. Generated; holes use fill-rule evenodd. -->']
 for k, d in S.items():
