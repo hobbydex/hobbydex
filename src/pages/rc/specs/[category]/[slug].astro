@@ -56,10 +56,10 @@ import SeenNote from '../../../../components/SeenNote.astro';
   <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>
   {spec.category === 'battery' && plugs.length > 1 && <p data-pagefind-ignore><label>Plug <select id="plugfilter"><option value="">any (plugs can be changed)</option>{plugs.map((c) => <option value={c}>{c}</option>)}</select></label></p>}
   {linked.length === 0 ? <p class="muted">None linked yet.</p> :
-  <table class={spec.category === 'servo' ? 'stacked' : undefined}>
+  <div class="tablescroll"><table class={spec.category === 'servo' ? 'stacked' : undefined}>
     <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Material</th>{spec.category === 'bearing' && <th>Seal</th>}{spec.category === 'pinion' && <th class="num">Bore mm</th>}{spec.category === 'battery' && <><th class="num">C</th><th>Case</th><th>Size mm</th><th class="num">g</th><th>Plug</th></>}<th>Match</th></tr>
     {linked.map(({ part, link }) => <tr data-plug={part.connector ?? ''}><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td class="num" data-label="Pack">{part.pack_qty ?? ''}</td><td data-label="Material">{part.material ?? ''}</td>{spec.category === 'bearing' && <td>{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num">{part.bore_mm ?? ''}</td>}{spec.category === 'battery' && <><td class="num">{part.c_rating ?? ''}</td><td>{part.case ?? ''}</td><td>{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num">{part.weight_g ?? ''}</td><td>{part.connector ?? ''}</td></>}<td data-label="Match">{link.match}</td></tr>)}
-  </table>}
+  </table></div>}
   {(db.setsBySpec.get(spec.id) ?? []).length > 0 && <>
     <h2>In sets</h2>
     <table>
