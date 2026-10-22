@@ -18,7 +18,14 @@ const num = (v: unknown) => (typeof v === 'number' ? String(v) : String(v ?? '')
 const shortName = (id: string) => {
   const s = db.spec.get(id) as Record<string, unknown> | undefined;
   if (!s) return id.split('/').pop()!;
-  return s.category === 'bearing' ? `${num(s.bore_mm)}x${num(s.outer_mm)}x${num(s.width_mm)}` : `${num(s.thread)}x${num(s.length_mm)}`;
+  switch (s.category) {
+    case 'bearing': return `${num(s.bore_mm)}x${num(s.outer_mm)}x${num(s.width_mm)}`;
+    case 'nut': return `${num(s.thread)} ${num(s.type)}`;
+    case 'washer': return `${num(s.bore_mm)}x${num(s.outer_mm)}x${num(s.thickness_mm)}`;
+    case 'eclip': return `${num(s.shaft_mm)} mm e-clip`;
+    case 'pinion': return s.pitch_dp ? `${num(s.teeth)}T ${num(s.pitch_dp)}dp` : `${num(s.teeth)}T mod ${num(s.module)}`;
+    default: return `${num(s.thread ?? s.diameter_mm)}x${num(s.length_mm)}`;
+  }
 };
 const fullName = (id: string) => db.spec.get(id)?.name ?? id.split('/').pop()!;
 const luminance = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
