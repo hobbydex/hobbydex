@@ -53,6 +53,7 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
     {sisters.length > 0 && <><dt>Sister brands</dt><dd>{sisters.map((b, i) => <>{i > 0 && ', '}<a href={url.brand(b.id)}>{b.name}</a></>)}</dd></>}
     {brand.country && <><dt>Country</dt><dd>{countryName(brand.country)}</dd></>}
     {brand.website && <><dt>Website</dt><dd><a href={brand.website} rel="nofollow">{brand.website}</a></dd></>}
+    {brand.youtube?.length ? <><dt>YouTube</dt><dd>{brand.youtube.map((u, i) => <>{i > 0 && ', '}<a href={u} rel="nofollow noopener">@{u.split('@')[1]}</a></>)}</dd></> : null}
     <dt>Status</dt><dd>
       {brand.status === 'active' && <>Active{launchedText && <> since {sourceHref(brand.launched_source) ? <a href={sourceHref(brand.launched_source)} rel="nofollow">{launchedText}</a> : launchedText}<DateDoubt reason={brand.launched_doubt} /></>}</>}
       {brand.status === 'dormant' && 'Inactive: no new products'}
