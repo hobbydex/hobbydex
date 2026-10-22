@@ -362,6 +362,35 @@ def mesh_mask(mesh_path, frame, x0, y0, nx, ny):
     return np.array(img) > 0, p2
 
 
+def convex_hull(pts):
+    """Convex hull (counter-clockwise) of 2D points, monotone chain."""
+    pts = sorted({(round(float(x), 6), round(float(y), 6)) for x, y in pts})
+    def cross(o, a, b): return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    lower, upper = [], []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0: lower.pop()
+        lower.append(p)
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0: upper.pop()
+        upper.append(p)
+    return lower[:-1] + upper[:-1]
+
+
+def bearing_mask(frame, d, D, B, x0, y0, nx, ny):
+    """A bearing's silhouette: the outer cylinder's projected hull, less the see-through bore
+    (the part of the bore seen through both open ends, the two inner end circles' overlap)."""
+    def circle(R, z):
+        return project(frame, [(R * math.cos(a), R * math.sin(a), z) for a in np.linspace(0, 2 * math.pi, 129)[:-1]])
+    def fill(pts):
+        img = Image.new("L", (nx, ny), 0)
+        ImageDraw.Draw(img).polygon([((x - x0) * PX, (y - y0) * PX) for x, y in pts], fill=255)
+        return np.array(img) > 0
+    hull = convex_hull(np.vstack([circle(D / 2, 0), circle(D / 2, B)]))
+    outer = fill(hull)
+    bore = fill(circle(d / 2, B)) & fill(circle(d / 2, 0))
+    return outer & ~bore
+
+
 def run_freecad(jobs):
     WORK.mkdir(parents=True, exist_ok=True)
     jobs_path = WORK / "jobs.json"; script = WORK / "freecad_jobs.py"
@@ -378,19 +407,24 @@ def slug_of(spec):
 def main():
     data = json.loads((ROOT / "data/hobbydex-rc.json").read_text())
     bearings, ranked, skipped, links = select_specs(data)
-    candidates = {**bearings, **dict(ranked[:SCREW_CANDIDATES])}
+    only_bearings = "--bearings" in sys.argv   # redraw the bearings only; the screws already in index.json stay
+    candidates = dict(bearings) if only_bearings else {**bearings, **dict(ranked[:SCREW_CANDIDATES])}
     jobs = [{**p, "out": str(WORK / f"{slug_of(spec)}.svgfrag")} for spec, p in candidates.items()]
     WORK.mkdir(parents=True, exist_ok=True)
-    for f in WORK.glob("*.svgfrag"):
-        f.unlink()
+    if not only_bearings:
+        for f in WORK.glob("*.svgfrag"):
+            f.unlink()
     run_freecad(jobs)
 
     OUT.mkdir(parents=True, exist_ok=True)
     index, failed = {}, []
+    old_index = json.loads((OUT / "index.json").read_text()) if only_bearings else {}
     screws_ok = [sid for sid, _ in ranked if (WORK / f"{slug_of(sid)}.svgfrag").exists()][:SCREW_TOP]
+    if only_bearings:
+        screws_ok = ["spec/" + k for k in old_index if k.startswith("screw/")]
     skipped["screw, FreeCAD failed"] = sum(1 for sid, _ in ranked[:SCREW_CANDIDATES] if sid not in screws_ok)
     skipped["screw, outside the top %d drawn" % SCREW_TOP] = len(ranked) - SCREW_CANDIDATES
-    specs = {**bearings, **{sid: dict(ranked)[sid] for sid in screws_ok}}
+    specs = dict(bearings) if only_bearings else {**bearings, **{sid: dict(ranked)[sid] for sid in screws_ok}}
     for spec, p in specs.items():
         slug = slug_of(spec)
         frag_path = WORK / f"{slug}.svgfrag"
@@ -411,7 +445,10 @@ def main():
         x0 = min(min(xs), mesh_pts[:, 0].min()) - 1; y0 = min(min(ys), mesh_pts[:, 1].min()) - 1
         x1 = max(max(xs), mesh_pts[:, 0].max()) + 1; y1 = max(max(ys), mesh_pts[:, 1].max()) + 1
         nx, ny = math.ceil((x1 - x0) * PX), math.ceil((y1 - y0) * PX)
-        mask, _ = mesh_mask(WORK / f"{slug}.svgfrag.mesh.json", frame, x0, y0, nx, ny)
+        if is_screw:
+            mask, _ = mesh_mask(WORK / f"{slug}.svgfrag.mesh.json", frame, x0, y0, nx, ny)
+        else:
+            mask = bearing_mask(frame, p["d"], p["D"], p["B"], x0, y0, nx, ny)
         sil = trace(mask, x0, y0, slug)
         sil_pts = [pt for _, pts in sil for pt in pts]
         bx0 = min(min(xs), min(x for x, _ in sil_pts)); bx1 = max(max(xs), max(x for x, _ in sil_pts))
@@ -423,12 +460,14 @@ def main():
         body = f'<path vector-effect="non-scaling-stroke" d="{d_string(segs)}"/>'
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{fmt(vx)} {fmt(vy)} {fmt(vw)} {fmt(vh)}" '
                f'data-pitch-x="{pitch_x:g}" data-pitch-y="{pitch_y:g}">'
-               f'<path class="sil" d="{d_string(sil)}"/>{seal}'
+               f'<path class="sil" d="{d_string(sil)}" fill-rule="evenodd"/>{seal}'
                f'<g class="lines" fill="none" stroke="currentColor" stroke-width="1.2" '
                f'stroke-linecap="butt" stroke-linejoin="miter">{body}</g></svg>\n')
         (OUT / f"{slug}.svg").write_text(svg)
         index[spec.removeprefix("spec/")] = f"{slug}.svg"
         print(f"{slug}.svg {len(svg.encode())} bytes, viewBox {vw:.2f} x {vh:.2f} mm, pitch {pitch_x:g} x {pitch_y:g} mm")
+    if only_bearings:
+        index = {**{k: v for k, v in old_index.items() if k.startswith("screw/")}, **index}
     # remove only the drawings this generator made before (its old index) that are no longer in it
     index_path = OUT / "index.json"
     previous = json.loads(index_path.read_text()).values() if index_path.exists() else []
