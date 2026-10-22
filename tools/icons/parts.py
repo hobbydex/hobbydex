@@ -73,6 +73,37 @@ S["esc"] = rrect(2.5, 3, 19, 17, 1.5) + "".join(rect(4 + 3.65*i, 5, 1.4, 6.5) fo
 # a pistol-grip transmitter from the side, drawn over the FlySky FS-GT2 manual's side view: body, a low fin
 # antenna, the wheel as a ring with its hub, the trigger blade and its pull arm, the grip and the base
 S["radio"] = "M4.42 4.40L15.65 2.73L17.78 0.93Q18.38 0.47 18.72 1.13L19.12 3.13L20.12 4.93L20.12 7.60L18.32 10.47L15.12 10.27C17.05 10.40 17.92 11.47 17.25 12.67Q16.98 13.13 16.65 12.80C17.25 11.73 16.58 11.07 15.32 10.93L15.45 13.20Q15.38 13.80 14.78 13.53L13.92 10.67Q13.72 10.07 13.12 9.90L10.65 19.13L19.65 20.20Q20.12 20.27 20.12 20.73L20.12 22.80Q20.12 23.20 19.72 23.20L5.05 23.20Q4.65 23.20 4.65 22.80L4.65 20.47Q4.65 20.07 5.12 20.00Q6.05 14.47 8.25 11.80Q9.12 9.47 6.92 9.20L4.38 9.00Q3.92 8.93 3.92 8.40L3.92 4.97Q3.92 4.47 4.42 4.40ZM13.05 6.67a3.00 3.00 0 1 0 6.00 0a3.00 3.00 0 1 0 -6.00 0ZM13.58 6.67a2.47 2.47 0 1 0 4.93 0a2.47 2.47 0 1 0 -4.93 0ZM15.32 6.67a0.73 0.73 0 1 0 1.47 0a0.73 0.73 0 1 0 -1.47 0Z"
+def band(p0, p1, p2, w):   # a quadratic curve from p0 to p2 (control p1) as a filled band of width w
+    pts = [((1-t)**2*p0[0] + 2*(1-t)*t*p1[0] + t*t*p2[0], (1-t)**2*p0[1] + 2*(1-t)*t*p1[1] + t*t*p2[1]) for t in [i/24 for i in range(25)]]
+    out, back = [], []
+    for i, (x, y) in enumerate(pts):
+        a, b = pts[max(i-1, 0)], pts[min(i+1, 24)]
+        dx, dy = b[0]-a[0], b[1]-a[1]; L = math.hypot(dx, dy)
+        nx, ny = -dy/L*w/2, dx/L*w/2
+        out.append((x+nx, y+ny)); back.append((x-nx, y-ny))
+    return poly(out + back[::-1])
+# wire: a two-pin plug (housing with two pin holes and two pins) and its lead, a band curving out of the back
+S["wire"] = (rrect(9.5, 6.5, 6.5, 11, 1.4) + circ(12.75, 10.1, 1.05) + circ(12.75, 13.9, 1.05)
+             + rect(4.5, 9.4, 5, 1.3) + rect(4.5, 13.3, 5, 1.3)
+             + band((16, 12), (21.5, 12), (20.5, 19.5), 1.7))
+# cooling: a fan from the front: a square frame with a round opening, six curved blades and a hub
+_blades = ""
+for _i in range(6):
+    _a = 2*math.pi*_i/6
+    _c = [(2.6 + 5.0*t, _a + 0.6*t) for t in [j/12 for j in range(13)]]   # (radius, angle) of the blade's centre line
+    _w = lambda t: 0.95 + 0.7*t
+    _o = []; _b = []
+    for k, (r, th) in enumerate(_c):
+        r2, th2 = _c[min(k+1, 12)]
+        r1, th1 = _c[max(k-1, 0)]
+        x, y = 12 + r*math.sin(th), 12 - r*math.cos(th)
+        x1, y1 = 12 + r1*math.sin(th1), 12 - r1*math.cos(th1)
+        x2, y2 = 12 + r2*math.sin(th2), 12 - r2*math.cos(th2)
+        dx, dy = x2-x1, y2-y1; L = math.hypot(dx, dy) or 1
+        nx, ny = -dy/L*_w(k/12), dx/L*_w(k/12)
+        _o.append((x+nx, y+ny)); _b.append((x-nx, y-ny))
+    _blades += poly(_o + _b[::-1])
+S["cooling"] = rrect(2, 2, 20, 20, 3) + circ(12, 12, 8.9) + _blades + circ(12, 12, 2.6)
 # light: a lamp (ring with a bulb) and three rays
 def bar(p, q, w):   # a straight bar of width w from p to q
     dx, dy = q[0] - p[0], q[1] - p[1]; L = math.hypot(dx, dy); nx, ny = -dy / L * w / 2, dx / L * w / 2
