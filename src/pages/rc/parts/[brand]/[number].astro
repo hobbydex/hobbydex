@@ -23,6 +23,9 @@ import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
 import { colourDot } from '../../../../lib/colourDot';
 import { gauges, gaugeLink, INSULATION, mmText, shrinksTo } from '../../../../lib/wire';
 import { partDrawing } from '../../../../lib/specDrawings';
+import HardwareBag from '../../../../components/HardwareBag.astro';
+import PartDimensions from '../../../../components/PartDimensions.astro';
+import { bagItems } from '../../../../lib/hardwareBag';
 import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
 import { fileRows, makerOwnLinks, listedBelow, hostLabel } from '../../../../lib/docFacts';
 import { describe, count } from '../../../../lib/descriptions';
@@ -82,6 +85,8 @@ const wheelFacts = [part.wheel_size && `${part.wheel_size} rim`, part.compound &
   part.wheel_color && { dot: colourDot(part.wheel_color), text: `${part.wheel_color} wheels` }, part.color && { dot: colourDot(part.color), text: part.color },
   part.offset_mm !== undefined && `offset ${part.offset_mm > 0 ? '+' : ''}${part.offset_mm} mm`, part.beadlock && 'beadlock'].filter((x): x is string | { dot: string; text: string } => !!x);
 const drawing = partDrawing(part);
+// a hardware bag: the part's pack of a pilot spec, or every spec its includes lists (when all of them have a drawing)
+const bag = bagItems(part);
 const drawStd = drawing?.standard ? db.standardByCode.get(drawing.standard) : undefined;
 // a part of a brand that prints no item numbers has none: the name is its title, there is no number to copy
 const numName = part.number ? `${part.number} ${part.name}` : part.name;
@@ -194,16 +199,14 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
-  {part.art ? <span class="typeicon"><ReleaseArt id={part.id} category={part.category} color={part.color} art={part.art} size="12rem" class="hero" /></span>
+  {bag ? <span class="typeicon bagicon" data-pagefind-ignore><HardwareBag items={bag} seal={part.seal} color={part.color} /></span>
+    : part.art ? <span class="typeicon"><ReleaseArt id={part.id} category={part.category} color={part.color} art={part.art} size="12rem" class="hero" /></span>
+    : drawing ? <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />
     : part.category && <span class="typeicon" title={catName(part.category)}><Icon name={part.category} size="8rem" /></span>}
   </div>
   <DoubtNote on={!!dateDoubt(part)} />
   <FanLinks links={part.links} />
-  {drawing && <figure class="drawing" data-pagefind-ignore>
-    <Fragment set:html={drawing.svg} />
-    <figcaption class="muted">{drawing.spec ? <>{part.category === 'nut' && drawing.approximate ? 'Drawn' : 'To scale'}, from the generic size <a href={url.spec(drawing.spec.id)}>{drawing.spec.name}</a>{part.category === 'bearing' && part.seal && part.seal !== 'open' && ', with the shields or seals this part lists'}{part.category === 'screw' && (drawStd ? <>; head and socket sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : '; head proportions as usual for this type')}.</>
-      : drawing.approximate ? 'Not to scale: the pitch of this gear is not in our data, so only its tooth count is drawn.' : 'To scale, from the tooth count and the pitch.'}{drawing.note && ` ${drawing.note}.`}</figcaption>
-  </figure>}
+  {drawing && (bag || part.art) && <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />}
   {upgrades.length > 0 && <>
     <h2>Upgrades for this part <span class="muted">({upgrades.length})</span></h2>
     <table>
