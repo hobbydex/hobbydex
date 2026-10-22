@@ -38,8 +38,7 @@ MOD = Path.home() / ".var/app/org.freecad.FreeCAD/data/FreeCAD/v1-1/Mod"
 PX = 30                  # raster pixels per mm for the silhouette
 PAD = 0.3                # mm around the drawing in the viewBox
 PROCS = 8                # FreeCAD processes at most
-FLAT_VIEW = (1, -1, 1.4)  # looking onto the face at an angle
-UPRIGHT_VIEW = (1, -1, 0.5)  # long upright parts (pins)
+CAMERA = (1, -1, 1)      # one true isometric camera for every drawing; world Z is turned to point up
 GEAR_FACE = 4.0          # mm; the data gives no face width for pinions
 GEAR_PRESSURE = 20.0     # degrees
 BORE_MM = 3.17           # bore of the 32 and 48 dp pinions, where the data states none
@@ -475,19 +474,22 @@ def d_string(segs):
 
 def read_fragment(svg, transform):
     """The projected lines of a TechDraw fragment, transformed to mm (y down, as the SVG shows them).
-    Arcs stay arcs: the transform must be a scale by +-1 on each axis, which keeps an ellipse's
-    radii and mirrors its rotation and sweep."""
+    Arcs stay arcs: the transform must be orthogonal (a turn and maybe a mirror). A turn adds to an
+    ellipse's rotation; a mirror negates it and flips the sweep."""
     m = transform_matrix(transform)
-    if abs(m[0, 1]) > 1e-9 or abs(m[1, 0]) > 1e-9 or abs(abs(m[0, 0]) - 1) > 1e-9 or abs(abs(m[1, 1]) - 1) > 1e-9:
-        raise ValueError("fragment transform must be a mirror")
-    mirror = m[0, 0] * m[1, 1] < 0
+    R = m[:2, :2]
+    if not np.allclose(R @ R.T, np.eye(2), atol=1e-9):
+        raise ValueError("fragment transform must be orthogonal")
+    mirror = np.linalg.det(R) < 0
+    turn = math.degrees(math.atan2(R[1, 0], R[0, 0]))
     segs = []
     for d in re.findall(r'\sd="([^"]*)"', svg):
         for seg in path_segments(d):
             cmd, pts = seg[0], seg[1]
             if cmd == "A":
                 rx, ry, phi, large, sweep = seg[2]
-                params = (rx, ry, -phi if mirror else phi, large, 1 - sweep if mirror else sweep)
+                phi2 = (turn - phi) if mirror else (phi + turn)
+                params = (rx, ry, phi2, large, 1 - sweep if mirror else sweep)
                 segs.append(("A", apply(m, pts), params))
             else:
                 segs.append((cmd, apply(m, pts)))
@@ -651,7 +653,7 @@ def main(argv):
             skipped[f"{kind}: {why}"] += 1
             continue
         slug = slug_of(s["id"])
-        job.update({"slug": slug, "kind": kind, "id": s["id"], "view": UPRIGHT_VIEW if kind == "pin" else FLAT_VIEW,
+        job.update({"slug": slug, "kind": kind, "id": s["id"], "view": CAMERA,
                     "lines": str(WORK / f"{slug}.lines.svgfrag"), "fill": str(WORK / f"{slug}.fill.svgfrag"),
                     "holes": str(WORK / f"{slug}.holes.json"),
                     "axes": [str(WORK / f"{slug}.axis{i}.svgfrag") for i in range(3)]})
@@ -671,16 +673,22 @@ def main(argv):
         if slug in failed or not Path(job["fill"]).exists():
             skipped[f"{job['kind']}: FreeCAD could not build it"] += 1
             continue
-        line_segs = read_fragment(Path(job["lines"]).read_text(), "scale(1, -1)")
+        # the page: scale to y-down mm, then turn so that world Z points up
+        flat = [read_fragment(Path(a).read_text(), "scale(1, -1)") for a in job["axes"]]
+        f0 = axis_frame(flat)
+        zx, zy = f0(0, 0, 1)[0] - f0(0, 0, 0)[0], f0(0, 0, 1)[1] - f0(0, 0, 0)[1]
+        turn = math.degrees(-math.pi / 2 - math.atan2(zy, zx))
+        page = f"rotate({turn:.9f}) scale(1, -1)"
+        line_segs = read_fragment(Path(job["lines"]).read_text(), page)
         lines = sample_segments(line_segs)
-        fill = read_fragment(Path(job["fill"]).read_text(), "scale(1, -1)")
+        fill = read_fragment(Path(job["fill"]).read_text(), page)
         fill_lines = sample_segments(fill)
         xs = [x for l in lines + fill_lines for x, _ in l]
         ys = [y for l in lines + fill_lines for _, y in l]
         x0, y0 = min(xs) - 1, min(ys) - 1
         nx, ny = math.ceil((max(xs) + 1 - x0) * PX), math.ceil((max(ys) + 1 - y0) * PX)
         mask = silhouette(fill, x0, y0, nx, ny)
-        axes = [read_fragment(Path(a).read_text(), "scale(1, -1)") for a in job["axes"]]
+        axes = [read_fragment(Path(a).read_text(), page) for a in job["axes"]]
         holes = json.loads(Path(job["holes"]).read_text())
         mask = mask & ~hole_mask(holes, axis_frame(axes), x0, y0, nx, ny)
         sil = trace(mask, x0, y0, slug)
