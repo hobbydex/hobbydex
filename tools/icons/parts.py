@@ -98,6 +98,9 @@ S["copy"] = "M5 2.5h9.5a2.5 2.5 0 0 1 2.5 2.5v1.5h-2V5H5v10h1.5v2H5a2.5 2.5 0 0 
 S["check"] = poly([(3.2, 12.8), (5.4, 10.6), (9.4, 14.6), (18.6, 5.4), (20.8, 7.6), (9.4, 19.0)])
 S["barcode"] = "".join(rect(x, 4, w, 17.5 if g else 15) for x, w, g in [(2, 1.5, True), (4.5, 1, False), (6.5, 2, False), (9.5, 1, False), (11.5, 1.5, True), (14, 1, False), (16, 2, False), (19, 1, False), (21, 1.5, True)])   # EAN-like: longer guard bars
 
+# scale accessories: a jerrycan from the side: handle bar with its opening, the X pressed into the side, the spout
+# square to the cut top corner with its cap
+S["scale-accessory"] = "M6.2 6L15.4 6L19 9.6L19 21L17.6 22.4L6.4 22.4L5 21L5 7.2ZM6.2 6L6.2 3.2L7 2.4L13.4 2.4L14.2 3.2L14.2 6ZM7.6 3.6L12.8 3.6L12.8 5L7.6 5ZM16.32 6.92L18.09 8.69L19.22 7.56L19.57 7.91L20.7 6.78L18.23 4.3L17.1 5.43L17.45 5.79ZM7.4 9.85L8.55 8.7L12 12.8L15.45 8.7L16.6 9.85L13.35 14.3L16.6 18.75L15.45 19.9L12 15.8L8.55 19.9L7.4 18.75L10.65 14.3Z"
 # body accessories: a mirror on its arm and upright mounting plate (the arm meets the mirror edge to edge: an overlap would be a hole)
 S["body-accessory"] = "M6 5L14 5Q16 5 16 7L16 13Q16 15 14 15L6 15Q3 15 3 12L3 8Q3 5 6 5ZM5.5 7.5L5.5 12.5L13.5 12.5L13.5 7.5ZM11.5 15L14.2 15L18.6 18.9L18.6 21.7ZM19.5 16H20.5A0.9 0.9 0 0 1 21.4 16.9V22.3A0.9 0.9 0 0 1 20.5 23.2H19.5A0.9 0.9 0 0 1 18.6 22.3V16.9A0.9 0.9 0 0 1 19.5 16Z"
 
