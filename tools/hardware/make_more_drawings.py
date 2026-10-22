@@ -702,7 +702,7 @@ def main(argv):
         body = f'<path d="{body_d(line_segs)}" vector-effect="non-scaling-stroke"/>'
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{fmt(vx)} {fmt(vy)} {fmt(vw)} {fmt(vh)}" '
                f'data-pitch-x="{pitch_x:g}" data-pitch-y="{pitch_y:g}">'
-               f'<path class="sil" fill-rule="evenodd" d="{d_string(sil)}"/>'
+               f'<path class="sil" d="{d_string(sil)}" fill-rule="evenodd"/>'
                f'<g class="lines" fill="none" stroke="currentColor" stroke-width="{STROKE_PX}" '
                f'stroke-linecap="butt" stroke-linejoin="miter">{body}</g></svg>\n')
         name = f"{slug}.svg"
@@ -713,7 +713,12 @@ def main(argv):
         for old in OUT.glob(f"{kind}-*.svg"):
             if old.name not in index.values():
                 old.unlink()
-    (OUT / "index-more.json").write_text(json.dumps(index, indent=2) + "\n")
+    # one index for the bags: keep the entries of the other drawings, replace this generator's kinds
+    index_path = OUT / "index.json"
+    merged = json.loads(index_path.read_text()) if index_path.exists() else {}
+    merged = {k: v for k, v in merged.items() if k.split("/", 1)[0] not in KINDS}
+    merged.update(index)
+    index_path.write_text(json.dumps(dict(sorted(merged.items())), indent=2) + "\n")
     total = sum((OUT / n).stat().st_size for n in index.values())
     print("drawn", dict(drawn_kind), "total", sum(drawn_kind.values()))
     print("skipped", sum(skipped.values()))
