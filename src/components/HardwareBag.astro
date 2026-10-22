@@ -1,16 +1,16 @@
 ---
-// A hardware bag drawn at 1:1 mm: one group per spec, largest first, each group as rows of 5 copies with its size and
-// count above it (up to 20 copies, then "+N"), and one 1 cm scale in the corner. The drawings come from
-// src/assets/hardware (tools/hardware/make_drawings.py) and are inlined as symbols at build time. Lines are
-// currentColor; the silhouette takes the part's colour, or the page background when it has none. A rubber seal
-// fills the bearing's shield face.
+// A hardware bag drawn at 1:1 mm: one figure per spec, largest first, each with its size and count as a label and
+// its copies in rows (5 per row, 3 below 40rem), up to 20 copies then "+N". A 1 cm scale sits in the corner under the
+// last row. The drawings come from src/assets/hardware (tools/hardware/make_drawings.py), inlined as symbols at build
+// time. Lines are currentColor; the silhouette takes the part's colour, or the page background when it has none.
+// A rubber seal fills the bearing's shield face.
 import { colourShades } from '../lib/colourDot';
 import { db } from '../lib/data';
 import { hardwareFile, hardwareSvg, type BagItem } from '../lib/hardwareBag';
 
 interface Props { items: BagItem[]; seal?: string; color?: string }
 const { items, seal, color } = Astro.props;
-const COLS = 5, CAP = 20, LABEL = 2.2, GAP = 1.5;
+const CAP = 20, MARGIN_L = 2.5, SCALE = 10;
 const SEAL_FILL = '#4a4e57';
 
 const num = (v: unknown) => (typeof v === 'number' ? String(v) : String(v ?? ''));
@@ -23,87 +23,89 @@ const fullName = (id: string) => db.spec.get(id)?.name ?? id.split('/').pop()!;
 const luminance = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
   .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
 
-// the part's colour, its silhouette fill and the ink for its lines on that fill (light ink on a dark fill)
+// the part's colour: silhouette fill, and the ink for the lines on it (light ink on a dark fill)
 const shade = colourShades(color)?.[0]?.c;
 const fill = shade ?? 'var(--bg, #fff)';
 const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : 'currentColor';
 
-interface Sym { id: string; vb: [number, number, number, number]; pitchX: number; pitchY: number; body: string }
-const symbols = new Map<string, Sym>();
-const symbolId = (spec: string) => {
-  const file = hardwareFile(spec)!;
-  const useSeal = !!seal && (seal === 'rubber' || seal === 'rubber-metal') && spec.startsWith('spec/bearing/');
-  return { id: `hb-${file.replace(/\.svg$/, '')}${useSeal ? '-seal' : ''}`, useSeal, file };
-};
-for (const it of items) {
-  if (!hardwareFile(it.spec)) continue;
-  const { id, useSeal, file } = symbolId(it.spec);
-  if (!symbols.has(id)) {
-    const svg = hardwareSvg(file)!;
-    const vb = svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number) as [number, number, number, number];
-    const pitchX = Number(svg.match(/data-pitch-x="([^"]+)"/)![1]);
-    const pitchY = Number(svg.match(/data-pitch-y="([^"]+)"/)![1]);
-    const sil = svg.match(/<path class="sil" d="([^"]*)"/)![1];
-    const seg = svg.match(/<path class="seal" d="([^"]*)"/)?.[1];
-    const lines = svg.match(/<g class="lines"[^>]*>([\s\S]*?)<\/g>/)![0];
-    const sealPath = useSeal && seg ? `<path d="${seg}" fill-rule="evenodd" style="fill:${SEAL_FILL}"/>` : '';
-    const body = `<path d="${sil}" fill-rule="evenodd"/>${sealPath}${lines}`;
-    symbols.set(id, { id, vb, pitchX, pitchY, body });
-  }
-}
-// groups: largest drawing first, one per spec (a spec listed twice is summed)
+// the groups, largest drawing first; a spec listed twice is one group
 const groups = [...new Map(items.filter((i) => hardwareFile(i.spec)).map((i) => [i.spec, i.qty])).entries()]
   .map(([spec, qty]) => {
-    const sym = symbols.get(symbolId(spec).id)!;
-    return { spec, qty, sym };
+    const useSeal = !!seal && (seal === 'rubber' || seal === 'rubber-metal') && spec.startsWith('spec/bearing/');
+    return { spec, qty, useSeal, file: hardwareFile(spec)! };
   })
-  .sort((a, b) => b.sym.vb[2] * b.sym.vb[3] - a.sym.vb[2] * a.sym.vb[3]);
+  .map((g) => ({ ...g, svg: hardwareSvg(g.file)! }))
+  .map((g) => {
+    const vb = g.svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number) as [number, number, number, number];
+    return { ...g, vb, pitchX: Number(g.svg.match(/data-pitch-x="([^"]+)"/)![1]), pitchY: Number(g.svg.match(/data-pitch-y="([^"]+)"/)![1]),
+      sil: g.svg.match(/<path class="sil" d="([^"]*)"/)![1], seg: g.svg.match(/<path class="seal" d="([^"]*)"/)?.[1],
+      lines: g.svg.match(/<g class="lines"[^>]*>([\s\S]*?)<\/g>/)![0] };
+  })
+  .sort((a, b) => b.vb[2] * b.vb[3] - a.vb[2] * a.vb[3]);
 
-// layout in mm: each group a label line, then rows of COLS copies at the group's nesting pitch
-let y = 0, width = 0, lastBottom = 0;
-const parts: string[] = [];
-const defs: string[] = [];
-const seen = new Set<string>();
-for (const g of groups) {
-  const n = Math.min(g.qty, CAP), more = g.qty - n;
-  const [vx, vy, vw, vh] = g.sym.vb;
-  if (!seen.has(g.sym.id)) { seen.add(g.sym.id); defs.push(`<symbol id="${g.sym.id}" viewBox="${g.sym.vb.join(' ')}">${g.sym.body}</symbol>`); }
-  parts.push(`<text x="0" y="${(y + LABEL).toFixed(2)}" font-size="${LABEL}" fill="currentColor">${shortName(g.spec)} x ${g.qty}</text>`);
-  const top = y + LABEL * 1.4;
-  let last = { x: 0, y: top };
-  for (let k = 0; k < n; k++) {
-    const x = (k % COLS) * g.sym.pitchX, yy = top + Math.floor(k / COLS) * g.sym.pitchY;
-    parts.push(`<use href="#${g.sym.id}" x="${x.toFixed(2)}" y="${yy.toFixed(2)}" width="${vw.toFixed(2)}" height="${vh.toFixed(2)}" style="fill:${fill};color:${ink}"/>`);
-    last = { x: x + vw, y: yy + vh / 2 };
-    width = Math.max(width, x + vw);
-  }
-  if (more > 0) parts.push(`<text x="${(last.x + 1).toFixed(2)}" y="${(last.y + LABEL / 2).toFixed(2)}" font-size="${LABEL}" fill="currentColor">+${more}</text>`);
-  const rows = Math.ceil(n / COLS);
-  lastBottom = top + (rows - 1) * g.sym.pitchY + vh;
-  y = lastBottom + GAP;
+// one figure per group, laid out with `cols` copies per row; the scale goes under the last group's last row
+function figures(cols: number, widthRem: number, prefix: string) {
+  const out: string[] = [];
+  groups.forEach((g, gi) => {
+    const n = Math.min(g.qty, CAP), more = g.qty - n;
+    const [vx, vy, vw, vh] = g.vb;
+    const id = `${prefix}-${g.file.replace(/\.svg$/, '')}${g.useSeal ? '-seal' : ''}`;
+    const rows = Math.ceil(n / cols), inRow = Math.min(n, cols);
+    const contentW = (inRow - 1) * g.pitchX + vw, contentH = (rows - 1) * g.pitchY + vh;
+    const last = gi === groups.length - 1;
+    const body: string[] = [];
+    for (let k = 0; k < n; k++) {
+      const x = (k % cols) * g.pitchX, y = Math.floor(k / cols) * g.pitchY;
+      body.push(`<use href="#${id}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${vw.toFixed(2)}" height="${vh.toFixed(2)}" style="fill:${fill};color:${ink}"/>`);
+    }
+    let w = contentW, h = contentH;
+    if (more > 0) {
+      const lastX = ((n - 1) % cols + 1) * g.pitchX;
+      body.push(`<text x="${(lastX + 0.5).toFixed(2)}" y="${(contentH - vh / 2 + 0.8).toFixed(2)}" font-size="2.4" fill="currentColor">+${more}</text>`);
+      w = Math.max(w, lastX + 6);
+    }
+    let scaleSvg = '';
+    if (last) {
+      // the corner: 1 mm left of and below the last row's bottom-left, the L's arms running down and right
+      const cx = -1, cy = contentH + 1;
+      const ticks = [`<path d="M0 0 L0 ${SCALE} M0 0 L${SCALE} 0" fill="none"/>`];
+      for (let m = 0; m <= SCALE; m++) {
+        const k = m === 0 || m === SCALE ? 1.2 : m === SCALE / 2 ? 0.85 : 0.6;
+        ticks.push(`<line x1="${m}" y1="0" x2="${m}" y2="${k}"/>`, `<line x1="0" y1="${m}" x2="${-k}" y2="${m}"/>`);
+      }
+      scaleSvg = `<g transform="translate(${cx},${cy.toFixed(2)})" stroke="currentColor" stroke-width="0.12" fill="none">${ticks.join('')}`
+        + `<text x="5" y="3.4" text-anchor="middle" font-size="2" fill="currentColor" stroke="none">1 cm</text></g>`;
+      h = cy + SCALE + 0.5;
+      w = Math.max(w, SCALE + 1);
+    }
+    const vbox = [-MARGIN_L, 0, w + MARGIN_L, h].map((v) => v.toFixed(2)).join(' ');
+    const label = `${shortName(g.spec)} x ${g.qty}`;
+    out.push(`<figure class="hbg"><figcaption class="hbl">${label}</figcaption>`
+      + `<svg viewBox="${vbox}" style="width:min(100%, ${((w + MARGIN_L) * widthRem).toFixed(2)}rem)">`
+      + `<defs><symbol id="${id}" viewBox="${g.vb.join(' ')}"><path d="${g.sil}" fill-rule="evenodd"/>`
+      + `${g.useSeal && g.seg ? `<path d="${g.seg}" fill-rule="evenodd" style="fill:${SEAL_FILL}"/>` : ''}${g.lines}</symbol></defs>`
+      + `${body.join('')}${scaleSvg}</svg></figure>`);
+  });
+  return out.join('');
 }
-// the 1 cm scale: an L under the last row, left-aligned; its upright arm rises 10 mm from the corner
-const sy = lastBottom + 11.5;
-const ticks: string[] = [`<path d="M0 -10 L0 0 L10 0" fill="none"/>`];
-for (let m = 0; m <= 10; m++) {
-  const k = m === 0 || m === 10 ? 1.2 : m === 5 ? 0.85 : 0.6;
-  ticks.push(`<line x1="${m}" y1="0" x2="${m}" y2="${k}"/>`, `<line x1="0" y1="${-m}" x2="${-k}" y2="${-m}"/>`);
-}
-const scale = `<g transform="translate(0.5,${sy.toFixed(2)})" stroke="currentColor" stroke-width="0.12" class="hbscale">${ticks.join('')}`
-  + `<text x="5" y="3.1" text-anchor="middle" font-size="1.4" fill="currentColor" stroke="none">1 cm</text></g>`;
-width = Math.max(width, 12);
-const H = sy + 5;
 const label = groups.map((g) => `${g.qty} x ${fullName(g.spec)}`).join(', ');
+const wide = figures(5, 0.45, 'hbw');
+const narrow = figures(3, 0.8, 'hbn');
 ---
 {groups.length > 0 && (
-  <svg class="hardwarebag" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={label}
-    viewBox={`0 0 ${width.toFixed(2)} ${H.toFixed(2)}`} style={`width:min(100%, ${(width * 0.45).toFixed(2)}rem)`}
-    font-family="sans-serif">
-    <defs set:html={defs.join('')} />
-    <Fragment set:html={parts.join('')} />
-    <Fragment set:html={scale} />
-  </svg>
+  <div class="hardwarebag" role="img" aria-label={label}>
+    <div class="hbv hbv-wide" set:html={wide}></div>
+    <div class="hbv hbv-narrow" set:html={narrow}></div>
+  </div>
 )}
 <style>
-  .hardwarebag { display: block; height: auto; margin: 0.5rem 0 1rem; }
+  .hardwarebag { margin: 0.5rem 0 1rem; }
+  .hardwarebag .hbg { margin: 0 0 0.7rem; }
+  .hardwarebag .hbl { font-size: 0.8rem; color: var(--muted); margin: 0 0 0.2rem; }
+  .hardwarebag svg { display: block; height: auto; overflow: visible; }
+  .hardwarebag .hbv-narrow { display: none; }
+  @media (max-width: 40rem) {
+    .hardwarebag .hbv-wide { display: none; }
+    .hardwarebag .hbv-narrow { display: block; }
+  }
 </style>

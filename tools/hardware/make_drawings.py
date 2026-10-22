@@ -272,8 +272,9 @@ def d_string(segs):
     return " ".join(out)
 
 
-def read_fragment(svg, transform):
-    """The projected lines of a TechDraw fragment, transformed to mm (y down, as the SVG shows them)."""
+def read_fragment(svg, transform, skip=None):
+    """The projected lines of a TechDraw fragment, transformed to mm (y down, as the SVG shows them).
+    A path that skip(segments) accepts is left out."""
     m = transform_matrix(transform)
     lin = m[:2, :2]
     if not np.allclose(lin @ lin.T, np.eye(2), atol=1e-6):
@@ -281,7 +282,10 @@ def read_fragment(svg, transform):
     flip = np.linalg.det(lin) < 0
     segs = []
     for d in re.findall(r'\sd="([^"]*)"', svg):
-        for seg in path_segments(d):
+        parsed = path_segments(d)
+        if skip is not None and skip(parsed):
+            continue
+        for seg in parsed:
             cmd, pts = seg[0], seg[1]
             if cmd == "A":
                 rx, ry, phi, large, sweep = seg[2]
@@ -391,6 +395,25 @@ def bearing_mask(frame, d, D, B, x0, y0, nx, ny):
     return outer & ~bore
 
 
+def bearing_rims(frame, d, D, B):
+    """The bore's top rim (the whole ellipse: its far half shows through the hole) and the front half of the
+    inner ring face's outer edge, at the top of the bearing, in the drawing's mm frame."""
+    t = (D - d) / 2
+    angles = np.linspace(0, 2 * math.pi, 129)
+    segs = []
+    def ring_path(r, a0, a1):
+        pts = [project(frame, [(r * math.cos(a), r * math.sin(a), B)])[0] for a in angles[(angles >= a0) & (angles <= a1)]]
+        if len(pts) > 1:
+            segs.append(("M", [tuple(pts[0])]))
+            segs.extend(("L", [tuple(q)]) for q in pts[1:])
+    ring_path(d / 2, 0, 2 * math.pi)
+    # the viewer is on the +x, -y side: the front half of a horizontal circle has cos(a) - sin(a) > 0
+    front = [a for a in angles if math.cos(a) - math.sin(a) >= 0]
+    if front:
+        ring_path(d / 2 + t * 0.28, front[0], front[-1])
+    return segs
+
+
 def run_freecad(jobs):
     WORK.mkdir(parents=True, exist_ok=True)
     jobs_path = WORK / "jobs.json"; script = WORK / "freecad_jobs.py"
@@ -433,9 +456,11 @@ def main():
         frag = frag_path.read_text()
         is_screw = p["kind"] == "screw"
         frag_transform = SCREW_FRAG if is_screw else BEARING_FRAG
-        segs = read_fragment(frag, frag_transform)
-        lines = sample_segments(segs)
         frame = axis_frame([read_fragment((WORK / f"{slug}.svgfrag.axis{i}").read_text(), frag_transform) for i in range(3)])
+        segs = read_fragment(frag, frag_transform)
+        if not is_screw:
+            segs += bearing_rims(frame, p["d"], p["D"], p["B"])
+        lines = sample_segments(segs)
         seal = ""
         if not is_screw:
             seal = f'<path class="seal" d="{seal_path(p["d"], p["D"], p["B"], lambda x, y, z: project(frame, [(x, y, z)])[0])}" fill-rule="evenodd"/>'
