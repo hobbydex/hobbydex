@@ -18,6 +18,7 @@ const cols: Record<string, [string, string][]> = {
   pin: [['diameter_mm', 'Diameter mm'], ['length_mm', 'Length mm']],
   eclip: [['shaft_mm', 'Shaft mm'], ['thickness_mm', 'Thickness mm'], ['outer_mm', 'Outer mm'], ['variant', 'Variant']],
   washer: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['thickness_mm', 'Thickness mm'], ['shape', 'Shape']],
+  connector: [['family', 'Family'], ['pins', 'Pins'], ['contact_mm', 'Contact mm'], ['current_a', 'A'], ['anti_spark', 'Anti-spark']],
   nut: [['thread', 'Thread'], ['type', 'Type'], ['profile', 'Profile'], ['across_flats_mm', 'Across flats mm'], ['height_mm', 'Height mm']],
 };
 const show = cols[category!] ?? [];
@@ -37,7 +38,7 @@ const washerNames: [string, string][] = [['under 1 mm', 'shim'], ['1 mm to under
   <div class="tablescroll"><table>
     <tr><th>Spec</th>{show.map(([, l]) => <th>{l}</th>)}<th class="num">Parts</th><th class="num">Brands</th></tr>
     {specs.map((s) => { const n = linkedCount(s.id); return <tr>
-      <td><a href={url.spec(s.id)}>{s.name ?? s.id}</a></td>{show.map(([k]) => <td>{s[k] === undefined ? '' : String(s[k])}</td>)}<td class="num">{n.parts}</td><td class="num">{n.brands}</td>
+      <td><a href={url.spec(s.id)}>{s.name ?? s.id}</a></td>{show.map(([k]) => <td>{typeof s[k] === 'boolean' ? (s[k] ? 'yes' : 'no') : s[k] === undefined ? '' : String(s[k])}</td>)}<td class="num">{n.parts}</td><td class="num">{n.brands}</td>
     </tr>; })}
   </table></div>
 </Base>
