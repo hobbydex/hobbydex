@@ -1,17 +1,18 @@
 ---
-// A hardware bag drawn at 1:1 mm: one figure per spec, largest first, each with its size and count as a label and
-// its copies in rows (5 per row, 3 below 40rem), up to 20 copies then "+N". A 1 cm scale sits in the corner under the
-// last row. The drawings come from src/assets/hardware (tools/hardware/make_drawings.py), inlined as symbols at build
-// time. Lines are currentColor; the silhouette takes the part's colour, or the page background when it has none.
-// A rubber seal fills the bearing's shield face.
+// A hardware bag: one inline SVG in millimetres. Each spec is a symbol (its drawing from src/assets/hardware,
+// made by tools/hardware/make_drawings.py); its copies are <use> elements placed in mm, five per row, up to 20 per
+// spec and then "+N". Groups run largest drawing first, each with a caption. One 1 cm bar sits under the last row,
+// left-aligned with the bottom-left item, its ticks pointing down. The svg is as wide as its page column, but at most
+// 12 px per mm, so a single small part is not blown up. Lines are currentColor with non-scaling strokes; the silhouette
+// takes the part's colour, or the page background when it has none. A rubber seal fills the bearing's shield face.
 import { colourShades } from '../lib/colourDot';
 import { db } from '../lib/data';
 import { hardwareFile, hardwareSvg, type BagItem } from '../lib/hardwareBag';
 
 interface Props { items: BagItem[]; seal?: string; color?: string }
 const { items, seal, color } = Astro.props;
-const CAP = 20, MARGIN_L = 2.5, SCALE = 10;
-const SEAL_FILL = '#4a4e57';
+const COLS = 5, CAP = 20, BAR = 10, MARGIN = 0.5, FONT = 2.2, MAX_PX_PER_MM = 12;
+const SEAL_FILL = 'var(--seal-rubber, #8a8f98)'; // a rubber seal (2RS/RS) face; a metal shield keeps the part's fill
 
 const num = (v: unknown) => (typeof v === 'number' ? String(v) : String(v ?? ''));
 const shortName = (id: string) => {
@@ -32,80 +33,69 @@ const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : 'currentC
 const groups = [...new Map(items.filter((i) => hardwareFile(i.spec)).map((i) => [i.spec, i.qty])).entries()]
   .map(([spec, qty]) => {
     const useSeal = !!seal && (seal === 'rubber' || seal === 'rubber-metal') && spec.startsWith('spec/bearing/');
-    return { spec, qty, useSeal, file: hardwareFile(spec)! };
-  })
-  .map((g) => ({ ...g, svg: hardwareSvg(g.file)! }))
-  .map((g) => {
-    const vb = g.svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number) as [number, number, number, number];
-    return { ...g, vb, pitchX: Number(g.svg.match(/data-pitch-x="([^"]+)"/)![1]), pitchY: Number(g.svg.match(/data-pitch-y="([^"]+)"/)![1]),
-      sil: g.svg.match(/<path class="sil" d="([^"]*)"/)![1], seg: g.svg.match(/<path class="seal" d="([^"]*)"/)?.[1],
-      lines: g.svg.match(/<g class="lines"[^>]*>([\s\S]*?)<\/g>/)![0] };
+    const file = hardwareFile(spec)!;
+    const svg = hardwareSvg(file)!;
+    const vb = svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number) as [number, number, number, number];
+    return {
+      spec, qty, useSeal, vb,
+      id: `hb-${file.replace(/\.svg$/, '')}${useSeal ? '-seal' : ''}`,
+      pitchX: Number(svg.match(/data-pitch-x="([^"]+)"/)![1]), pitchY: Number(svg.match(/data-pitch-y="([^"]+)"/)![1]),
+      sil: svg.match(/<path class="sil" d="([^"]*)"/)![1], seg: svg.match(/<path class="seal" d="([^"]*)"/)?.[1],
+      lines: svg.match(/<g class="lines"[^>]*>([\s\S]*?)<\/g>/)![0],
+    };
   })
   .sort((a, b) => b.vb[2] * b.vb[3] - a.vb[2] * a.vb[3]);
 
-// one figure per group, laid out with `cols` copies per row; the scale goes under the last group's last row
-function figures(cols: number, widthRem: number, prefix: string) {
-  const out: string[] = [];
-  groups.forEach((g, gi) => {
-    const n = Math.min(g.qty, CAP), more = g.qty - n;
-    const [vx, vy, vw, vh] = g.vb;
-    const id = `${prefix}-${g.file.replace(/\.svg$/, '')}${g.useSeal ? '-seal' : ''}`;
-    const rows = Math.ceil(n / cols), inRow = Math.min(n, cols);
-    const contentW = (inRow - 1) * g.pitchX + vw, contentH = (rows - 1) * g.pitchY + vh;
-    const last = gi === groups.length - 1;
-    const body: string[] = [];
-    for (let k = 0; k < n; k++) {
-      const x = (k % cols) * g.pitchX, y = Math.floor(k / cols) * g.pitchY;
-      body.push(`<use href="#${id}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${vw.toFixed(2)}" height="${vh.toFixed(2)}" style="fill:${fill};color:${ink}"/>`);
-    }
-    let w = contentW, h = contentH;
-    if (more > 0) {
-      const lastX = ((n - 1) % cols + 1) * g.pitchX;
-      body.push(`<text x="${(lastX + 0.5).toFixed(2)}" y="${(contentH - vh / 2 + 0.8).toFixed(2)}" font-size="2.4" fill="currentColor">+${more}</text>`);
-      w = Math.max(w, lastX + 6);
-    }
-    let scaleSvg = '';
-    if (last) {
-      // the corner: 1 mm left of and below the last row's bottom-left, the L's arms running down and right
-      const cx = -1, cy = contentH + 1;
-      const ticks = [`<path d="M0 0 L0 ${SCALE} M0 0 L${SCALE} 0" fill="none"/>`];
-      for (let m = 0; m <= SCALE; m++) {
-        const k = m === 0 || m === SCALE ? 1.2 : m === SCALE / 2 ? 0.85 : 0.6;
-        ticks.push(`<line x1="${m}" y1="0" x2="${m}" y2="${k}"/>`, `<line x1="0" y1="${m}" x2="${-k}" y2="${m}"/>`);
-      }
-      scaleSvg = `<g transform="translate(${cx},${cy.toFixed(2)})" stroke="currentColor" stroke-width="0.12" fill="none">${ticks.join('')}`
-        + `<text x="5" y="3.4" text-anchor="middle" font-size="2" fill="currentColor" stroke="none">1 cm</text></g>`;
-      h = cy + SCALE + 0.5;
-      w = Math.max(w, SCALE + 1);
-    }
-    const vbox = [-MARGIN_L, 0, w + MARGIN_L, h].map((v) => v.toFixed(2)).join(' ');
-    const label = `${shortName(g.spec)} x ${g.qty}`;
-    out.push(`<figure class="hbg"><figcaption class="hbl">${label}</figcaption>`
-      + `<svg viewBox="${vbox}" style="width:min(100%, ${((w + MARGIN_L) * widthRem).toFixed(2)}rem)">`
-      + `<defs><symbol id="${id}" viewBox="${g.vb.join(' ')}"><path d="${g.sil}" fill-rule="evenodd"/>`
-      + `${g.useSeal && g.seg ? `<path d="${g.seg}" fill-rule="evenodd" style="fill:${SEAL_FILL}"/>` : ''}${g.lines}</symbol></defs>`
-      + `${body.join('')}${scaleSvg}</svg></figure>`);
-  });
-  return out.join('');
+// the layout in mm: captions, rows of copies, the bar
+const symbols = new Map<string, string>();
+const parts: string[] = [];
+let y = 0, width = BAR;
+groups.forEach((g) => {
+  const [, , vw, vh] = g.vb;
+  if (!symbols.has(g.id)) {
+    symbols.set(g.id, `<symbol id="${g.id}" viewBox="${g.vb.join(' ')}"><path d="${g.sil}" fill-rule="evenodd"/>`
+      + `${g.useSeal && g.seg ? `<path d="${g.seg}" fill-rule="evenodd" style="fill:${SEAL_FILL}"/>` : ''}${g.lines}</symbol>`);
+  }
+  const n = Math.min(g.qty, CAP), more = g.qty - n;
+  const caption = `${shortName(g.spec)} x ${g.qty}`;
+  parts.push(`<text x="0" y="${(y + FONT).toFixed(2)}" font-size="${FONT}" fill="currentColor">${caption}</text>`);
+  const top = y + FONT * 1.5;
+  let lastX = 0, lastY = top;
+  for (let k = 0; k < n; k++) {
+    const x = (k % COLS) * g.pitchX, yy = top + Math.floor(k / COLS) * g.pitchY;
+    parts.push(`<use href="#${g.id}" x="${x.toFixed(2)}" y="${yy.toFixed(2)}" width="${vw.toFixed(2)}" height="${vh.toFixed(2)}" style="fill:${fill};color:${ink}"/>`);
+    lastX = x + vw; lastY = yy + vh / 2;
+    width = Math.max(width, x + vw);
+  }
+  if (more > 0) {
+    parts.push(`<text x="${(lastX + 0.5).toFixed(2)}" y="${(lastY + FONT / 3).toFixed(2)}" font-size="${FONT}" fill="currentColor">+${more}</text>`);
+    width = Math.max(width, lastX + 0.5 + FONT * 2);
+  }
+  const rows = Math.ceil(n / COLS);
+  y = top + (rows - 1) * g.pitchY + vh + FONT * 0.8;
+});
+// the bar: 1.5 mm below the last row's bottom, left-aligned with the first item, ticks down; "1 cm" below it
+const barY = y - FONT * 0.8 + 1.5;
+const ticks: string[] = [];
+for (let m = 0; m <= BAR; m++) {
+  const k = m === 0 || m === BAR ? 1.2 : m === BAR / 2 ? 0.85 : 0.6;
+  ticks.push(`<line x1="${m}" y1="${barY.toFixed(2)}" x2="${m}" y2="${(barY + k).toFixed(2)}"/>`);
 }
+parts.push(`<g class="hbbar" stroke="currentColor" stroke-width="0.12" fill="none"><path d="M0 ${barY.toFixed(2)} H${BAR}"/>${ticks.join('')}</g>`);
+parts.push(`<text x="${BAR / 2}" y="${(barY + 1.2 + FONT).toFixed(2)}" font-size="${FONT}" text-anchor="middle" fill="currentColor">1 cm</text>`);
+const height = barY + 1.2 + FONT * 1.3;
 const label = groups.map((g) => `${g.qty} x ${fullName(g.spec)}`).join(', ');
-const wide = figures(5, 0.45, 'hbw');
-const narrow = figures(3, 0.8, 'hbn');
+const vbox = [-MARGIN, -MARGIN, width + 2 * MARGIN, height + 2 * MARGIN].map((v) => v.toFixed(2)).join(' ');
+const maxWidth = ((width + 2 * MARGIN) * MAX_PX_PER_MM).toFixed(0);
 ---
 {groups.length > 0 && (
-  <div class="hardwarebag" role="img" aria-label={label}>
-    <div class="hbv hbv-wide" set:html={wide}></div>
-    <div class="hbv hbv-narrow" set:html={narrow}></div>
-  </div>
+  <svg class="hardwarebag" viewBox={vbox} role="img" aria-label={label} style={`max-width: ${maxWidth}px`} font-family="sans-serif">
+    <defs set:html={[...symbols.values()].join('')} />
+    <Fragment set:html={parts.join('')} />
+  </svg>
 )}
 <style>
-  .hardwarebag { margin: 0.5rem 0 1rem; }
-  .hardwarebag .hbg { margin: 0 0 0.7rem; }
-  .hardwarebag .hbl { font-size: 0.8rem; color: var(--muted); margin: 0 0 0.2rem; }
-  .hardwarebag svg { display: block; height: auto; overflow: visible; }
-  .hardwarebag .hbv-narrow { display: none; }
-  @media (max-width: 40rem) {
-    .hardwarebag .hbv-wide { display: none; }
-    .hardwarebag .hbv-narrow { display: block; }
-  }
+  .hardwarebag { display: block; width: 100%; height: auto; margin: 0.5rem 0 1rem; overflow: visible; --seal-rubber: #8a8f98; }
+  @media (prefers-color-scheme: dark) { .hardwarebag { --seal-rubber: #6b7079; } }
+  .hardwarebag [vector-effect] { vector-effect: non-scaling-stroke; }
 </style>

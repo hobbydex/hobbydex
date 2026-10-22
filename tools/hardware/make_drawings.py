@@ -40,8 +40,7 @@ SCREW_TYPES = {
 SCREW_TOP = 40                       # most linked screw specs drawn
 SCREW_CANDIDATES = 80                # the most linked screw specs tried (some fail in FreeCAD)
 ISO_DIAMETERS = {"M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10"}
-SCREW_FRAG = "rotate(180) scale(1, -1)"   # head on top
-BEARING_FRAG = "scale(1, -1)"
+FRAG = "scale(1, -1)"   # TechDraw's SVG y runs down; every drawing uses it, then the axis is levelled up
 
 
 def select_specs(data):
@@ -108,9 +107,9 @@ for job in json.loads(open(JOBS_JSON).read()):
             else:
                 obj.Length = "Custom"; obj.LengthCustom = job["length"]
             doc.recompute()
-            shape, view = obj.Shape, V(1, -1, 0.5)
+            shape, view = obj.Shape, V(1, -1, 1)
         else:
-            shape, view = bearing(job["d"], job["D"], job["B"]), V(1, -1, 1.4)
+            shape, view = bearing(job["d"], job["D"], job["B"]), V(1, -1, 1)
         if shape.isNull() or not shape.isValid() or not shape.Edges:
             raise ValueError("empty shape")
         open(job["out"], "w").write(TechDraw.projectToSVG(shape, view, ""))
@@ -350,6 +349,29 @@ def axis_frame(paths):
     return origin, np.array([[ax, bx, cx], [ay, by, cy]])
 
 
+def level_axis(frame):
+    """A 2D rotation of the drawing that makes the part's axis project vertically. Then a circle that lies
+    across the axis spans its true diameter horizontally, so horizontal distances are true size."""
+    origin, m = frame
+    vx, vy = m[0, 2], m[1, 2]
+    a = math.atan2(vx, vy) + math.pi   # the axis points up the page
+    r = np.array([[math.cos(a), -math.sin(a)], [math.sin(a), math.cos(a)]])
+    return (r @ origin, r @ m), a, r
+
+
+def rotate_segs(segs, r, a):
+    out = []
+    for seg in segs:
+        cmd, pts = seg[0], seg[1]
+        new = [tuple(r @ np.array(p)) for p in pts]
+        if cmd == "A":
+            rx, ry, phi, large, sweep = seg[2]
+            out.append(("A", new, (rx, ry, phi + math.degrees(a), large, sweep)))
+        else:
+            out.append((cmd, new))
+    return out
+
+
 def project(frame, pts3):
     origin, m = frame
     return origin + np.asarray(pts3, dtype=float) @ m.T
@@ -455,9 +477,10 @@ def main():
             failed.append(spec); continue
         frag = frag_path.read_text()
         is_screw = p["kind"] == "screw"
-        frag_transform = SCREW_FRAG if is_screw else BEARING_FRAG
+        frag_transform = FRAG
         frame = axis_frame([read_fragment((WORK / f"{slug}.svgfrag.axis{i}").read_text(), frag_transform) for i in range(3)])
-        segs = read_fragment(frag, frag_transform)
+        frame, a, r = level_axis(frame)
+        segs = rotate_segs(read_fragment(frag, frag_transform), r, a)
         if not is_screw:
             segs += bearing_rims(frame, p["d"], p["D"], p["B"])
         lines = sample_segments(segs)
@@ -477,6 +500,12 @@ def main():
         sil = trace(mask, x0, y0, slug)
         sil_pts = [pt for _, pts in sil for pt in pts]
         bx0 = min(min(xs), min(x for x, _ in sil_pts)); bx1 = max(max(xs), max(x for x, _ in sil_pts))
+        if not is_screw:
+            # the outer ring's horizontal extent is its true diameter: the box takes it exactly, not the raster's edge
+            t_ = (p["D"] - p["d"]) / 2
+            outer_x = project(frame, [(p["D"] / 2 * math.cos(a), p["D"] / 2 * math.sin(a), z)
+                                      for z in (0, p["B"]) for a in np.linspace(0, 2 * math.pi, 361)])[:, 0]
+            bx0, bx1 = outer_x.min(), outer_x.max()
         by0 = min(min(ys), min(y for _, y in sil_pts)); by1 = max(max(ys), max(y for _, y in sil_pts))
         vx, vy = bx0 - PAD, by0 - PAD
         vw, vh = bx1 - bx0 + 2 * PAD, by1 - by0 + 2 * PAD
