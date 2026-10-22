@@ -23,18 +23,18 @@ export function eclipDrawing(spec: Spec): ScrewDrawing | undefined {
   const R = (D / 2) * s, r = (G / 2) * s;
   const cx = W / 2, cy = 60 + R;
   // the DIN 6799 outline, mouth at the bottom: the outer ring; two feet whose inner edges bear on the groove, with the
-  // mouth a (about 0.84 x the groove, as in the DIN table) between them; two kidney-shaped cut-outs; the tongue at the
+  // mouth a (about 0.84 x the groove, as in the DIN table) between them; two kidney-shaped cut-outs; the lip at the
   // top that bears on the groove. Key points in units of the outer radius, smoothed with a Catmull-Rom spline.
   const k = r / R, h = 0.42 * k;
   const pol = (deg: number, rad: number): [number, number] => [rad * Math.cos((deg * Math.PI) / 180), rad * Math.sin((deg * Math.PI) / 180)];
-  const band = (deg: number) => 0.8 - 0.16 * Math.max(0, Math.cos(((deg + 90) * Math.PI) / 180)) ** 3;
+  const band = () => 0.74;   // the ring keeps one width all round
   const key: [number, number][] = [];
   for (let a = 60; a >= -240; a -= 12) key.push(pol(a, 1));
-  key.push([-0.36, 0.96], [-h - 0.05, 0.84], [-h, 0.66], pol(128, k), [-0.42, 0.22], pol(170, 0.74));
-  for (let a = 186; a < 252; a += 11) key.push(pol(a, band(a)));
-  key.push([-0.17, -0.62], [-0.1, -k - 0.01], [0.1, -k - 0.01], [0.17, -0.62]);
-  for (let a = -72; a < -5; a += 11) key.push(pol(a, band(a)));
-  key.push(pol(10, 0.74), [0.42, 0.22], pol(52, k), [h, 0.66], [h + 0.05, 0.84], [0.36, 0.96]);
+  key.push([-0.33, 0.93], [-h - 0.05, 0.84], [-h, 0.66], pol(128, k), [-0.42, 0.22], pol(170, 0.74));
+  for (let a = 186; a < 238; a += 10) key.push(pol(a, band()));
+  key.push([-0.28, -0.67], [-0.19, -0.58], [-0.13, -0.47], [-0.06, -k - 0.01], [0.06, -k - 0.01], [0.13, -0.47], [0.19, -0.58], [0.28, -0.67]);   // the lip: a smooth inverted bell down to the groove
+  for (let a = -58; a < -5; a += 10) key.push(pol(a, band()));
+  key.push(pol(10, 0.74), [0.42, 0.22], pol(52, k), [h, 0.66], [h + 0.05, 0.84], [0.33, 0.93]);
   const pts: string[] = [];
   for (let i = 0; i < key.length; i++) {
     const p0 = key[(i - 1 + key.length) % key.length], p1 = key[i], p2 = key[(i + 1) % key.length], p3 = key[(i + 2) % key.length];
