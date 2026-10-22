@@ -10,3 +10,16 @@ import { db } from './data';
 // labels from the category definitions in the data, with the built-in list as fallback
 for (const c of db.categories) categoryLabel[c.id.split('/')[1]] = c.name;
 export const catName = (c?: string) => (c ? categoryLabel[c] ?? c : '');
+
+// The groups of the categories overview page (/rc/categories/), in page order; a category in no group is listed under Other.
+export const categoryGroups: [string, string[]][] = [
+  ['Electronics and power', ['esc', 'motor', 'servo', 'radio', 'battery', 'charger', 'light', 'electronics']],
+  ['Drivetrain', ['gear', 'spur-gear', 'pinion', 'differential', 'drivetrain', 'bearing']],
+  ['Suspension and steering', ['suspension', 'shock', 'shock-spring', 'steering', 'ball-end']],
+  ['Chassis and body', ['chassis', 'bumper-guard', 'body', 'body-accessory', 'wing', 'decal', 'scale-accessory']],
+  ['Wheels and tires', ['wheel', 'tire']],
+  ['Hardware', ['screw', 'nut', 'washer-shim', 'pin', 'clip', 'o-ring-seal']],
+  ['Engine', ['engine-fuel']],
+  ['Workshop', ['tool', 'glue', 'oil-grease', 'paint', 'hydraulic']],
+  ['Other', ['manual', 'parts-tree']],
+];
