@@ -61,6 +61,7 @@ ul.search-results:empty { border: 0; }
 ul.search-results li { display: flex; gap: 0.75rem; align-items: baseline; padding: 0.5rem 0.75rem; border-top: 1px solid var(--border-muted); }
 ul.search-results li:first-child { border-top: 0; }
 ul.search-results li:hover { background: var(--surface); }
+ul.search-results li > .icon { width: 1.2rem; height: 1.2rem; color: var(--muted); flex: none; align-self: center; }
 ul.search-results .sub { color: var(--muted); font-size: 0.8rem; margin-left: auto; white-space: nowrap; }
 ul.search-results mark { background: var(--mark); color: inherit; border-radius: 2px; }
 .search-more { margin-top: 0.75rem; }
