@@ -1,0 +1,108 @@
+---
+// A hardware bag drawn at 1:1 mm: one group per spec, largest first, each group as rows of 5 copies with its size and
+// count above it (up to 20 copies, then "+N"), and one 1 cm scale in the corner. The drawings come from
+// src/assets/hardware (tools/hardware/make_drawings.py) and are inlined as symbols at build time. Lines are
+// currentColor; the silhouette takes the part's colour, or the page background when it has none. A rubber seal
+// fills the bearing's shield face.
+import { colourShades } from '../lib/colourDot';
+import { db } from '../lib/data';
+import { hardwareFile, hardwareSvg, type BagItem } from '../lib/hardwareBag';
+
+interface Props { items: BagItem[]; seal?: string; color?: string }
+const { items, seal, color } = Astro.props;
+const COLS = 5, CAP = 20, LABEL = 2.2, GAP = 1.5, SCALE_ROOM = 12;
+const SEAL_FILL = '#4a4e57';
+
+const num = (v: unknown) => (typeof v === 'number' ? String(v) : String(v ?? ''));
+const shortName = (id: string) => {
+  const s = db.spec.get(id) as Record<string, unknown> | undefined;
+  if (!s) return id.split('/').pop()!;
+  return s.category === 'bearing' ? `${num(s.bore_mm)}x${num(s.outer_mm)}x${num(s.width_mm)}` : `${num(s.thread)}x${num(s.length_mm)}`;
+};
+const fullName = (id: string) => db.spec.get(id)?.name ?? id.split('/').pop()!;
+const luminance = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+  .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+
+// the part's colour, its silhouette fill and the ink for its lines on that fill (light ink on a dark fill)
+const shade = colourShades(color)?.[0]?.c;
+const fill = shade ?? 'var(--bg, #fff)';
+const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : 'currentColor';
+
+interface Sym { id: string; vb: [number, number, number, number]; pitchX: number; pitchY: number; body: string }
+const symbols = new Map<string, Sym>();
+const symbolId = (spec: string) => {
+  const file = hardwareFile(spec)!;
+  const useSeal = !!seal && (seal === 'rubber' || seal === 'rubber-metal') && spec.startsWith('spec/bearing/');
+  return { id: `hb-${file.replace(/\.svg$/, '')}${useSeal ? '-seal' : ''}`, useSeal, file };
+};
+for (const it of items) {
+  if (!hardwareFile(it.spec)) continue;
+  const { id, useSeal, file } = symbolId(it.spec);
+  if (!symbols.has(id)) {
+    const svg = hardwareSvg(file)!;
+    const vb = svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number) as [number, number, number, number];
+    const pitchX = Number(svg.match(/data-pitch-x="([^"]+)"/)![1]);
+    const pitchY = Number(svg.match(/data-pitch-y="([^"]+)"/)![1]);
+    const sil = svg.match(/<path class="sil" d="([^"]*)"/)![1];
+    const seg = svg.match(/<path class="seal" d="([^"]*)"/)?.[1];
+    const lines = svg.match(/<g class="lines"[^>]*>([\s\S]*?)<\/g>/)![0];
+    const sealPath = useSeal && seg ? `<path d="${seg}" fill-rule="evenodd" style="fill:${SEAL_FILL}"/>` : '';
+    const body = `<path d="${sil}"/>${sealPath}${lines}`;
+    symbols.set(id, { id, vb, pitchX, pitchY, body });
+  }
+}
+// groups: largest drawing first, one per spec (a spec listed twice is summed)
+const groups = [...new Map(items.filter((i) => hardwareFile(i.spec)).map((i) => [i.spec, i.qty])).entries()]
+  .map(([spec, qty]) => {
+    const sym = symbols.get(symbolId(spec).id)!;
+    return { spec, qty, sym };
+  })
+  .sort((a, b) => b.sym.vb[2] * b.sym.vb[3] - a.sym.vb[2] * a.sym.vb[3]);
+
+// layout in mm: each group a label line, then rows of COLS copies at the group's nesting pitch
+let y = 0, width = 0;
+const parts: string[] = [];
+const defs: string[] = [];
+const seen = new Set<string>();
+for (const g of groups) {
+  const n = Math.min(g.qty, CAP), more = g.qty - n;
+  const [vx, vy, vw, vh] = g.sym.vb;
+  if (!seen.has(g.sym.id)) { seen.add(g.sym.id); defs.push(`<symbol id="${g.sym.id}" viewBox="${g.sym.vb.join(' ')}">${g.sym.body}</symbol>`); }
+  parts.push(`<text x="0" y="${(y + LABEL).toFixed(2)}" font-size="${LABEL}" fill="currentColor">${shortName(g.spec)} x ${g.qty}</text>`);
+  const top = y + LABEL * 1.4;
+  let last = { x: 0, y: top };
+  for (let k = 0; k < n; k++) {
+    const x = (k % COLS) * g.sym.pitchX, yy = top + Math.floor(k / COLS) * g.sym.pitchY;
+    parts.push(`<use href="#${g.sym.id}" x="${x.toFixed(2)}" y="${yy.toFixed(2)}" width="${vw.toFixed(2)}" height="${vh.toFixed(2)}" style="fill:${fill};color:${ink}"/>`);
+    last = { x: x + vw, y: yy + vh / 2 };
+    width = Math.max(width, x + vw);
+  }
+  if (more > 0) parts.push(`<text x="${(last.x + 1).toFixed(2)}" y="${(last.y + LABEL / 2).toFixed(2)}" font-size="${LABEL}" fill="currentColor">+${more}</text>`);
+  const rows = Math.ceil(n / COLS);
+  y = top + (rows - 1) * g.sym.pitchY + vh + GAP;
+}
+// the 1 cm scale: an L in the bottom-left corner, ticks at each mm
+const sy = y + SCALE_ROOM;
+const ticks: string[] = [`<path d="M0 -10 L0 0 L10 0" fill="none"/>`];
+for (let m = 0; m <= 10; m++) {
+  const k = m === 0 || m === 10 ? 1.2 : m === 5 ? 0.85 : 0.6;
+  ticks.push(`<line x1="${m}" y1="0" x2="${m}" y2="${k}"/>`, `<line x1="0" y1="${-m}" x2="${-k}" y2="${-m}"/>`);
+}
+const scale = `<g transform="translate(1,${sy.toFixed(2)})" stroke="currentColor" stroke-width="0.12" class="hbscale">${ticks.join('')}`
+  + `<text x="5" y="3.1" text-anchor="middle" font-size="1.4" fill="currentColor" stroke="none">1 cm</text></g>`;
+width = Math.max(width, 12);
+const H = sy + 5;
+const label = groups.map((g) => `${g.qty} x ${fullName(g.spec)}`).join(', ');
+---
+{groups.length > 0 && (
+  <svg class="hardwarebag" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={label}
+    viewBox={`0 0 ${width.toFixed(2)} ${H.toFixed(2)}`} style={`width:min(100%, ${(width * 0.45).toFixed(2)}rem)`}
+    font-family="sans-serif">
+    <defs set:html={defs.join('')} />
+    <Fragment set:html={parts.join('')} />
+    <Fragment set:html={scale} />
+  </svg>
+)}
+<style>
+  .hardwarebag { display: block; height: auto; margin: 0.5rem 0 1rem; }
+</style>
