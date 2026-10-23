@@ -4,9 +4,22 @@ import { db, type Spec } from './data';
 export const specIcon: Record<string, string> = { screw: 'screw', nut: 'nut', washer: 'washer-shim', bearing: 'bearing', pin: 'pin', eclip: 'eclip', pinion: 'pinion', oil: 'oil-grease', battery: 'battery', servo: 'servo', motor: 'motor', engine: 'engine-fuel', 'wheel-hex': 'wheel', connector: 'wire', wire: 'wire' };
 export const specLabel: Record<string, string> = { screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims', eclip: 'E-clips', connector: 'Connectors', wire: 'Wire gauges' };
 
+/** Per category, what each column of the spec table means: [term, explanation], shown under the intro. */
+export const specGuide: Record<string, [string, string][]> = {
+  screw: [
+    ['Thread', 'The ISO metric size: M3 is 3 mm across the thread with the standard 0.5 mm pitch. A self-tapping screw named M3 is about the same diameter (ST2.9 in ISO terms) with a coarser, sharper thread.'],
+    ['Length', 'In mm, under the head for pan, button, truss and cap heads, and over the whole screw for countersunk heads, which sit flush. A grub screw is measured end to end.'],
+    ['Head', 'Pan: a round head with a flat top, the usual screw in a Tamiya kit. Button: a low dome (ISO 7380). Truss or binding: a wide, low dome that spreads the load on plastic. Cap: a tall cylinder (ISO 4762). Countersunk: a 90 degree cone that sits flush in a chamfered hole. Set or grub: no head at all, driven from the end and used to lock a pinion or hex on a shaft.'],
+    ['Drive', 'The tool it takes. Hex: a hex key, sized by the socket (2 mm for most M3 button heads, 2.5 mm for M3 caps). JIS cross: the shallow cross of Japanese screws (JIS B 1012); a Phillips driver fits but slips out under load, so use a JIS driver. Phillips: the deeper cross of ISO 4757. Torx: a six-lobe star.'],
+    ['Thread type', 'Machine screws go into a nut, a threaded insert or a tapped hole. Self-tapping screws cut their own thread into plastic, so they hold in a plain hole; turn them in gently the second time so they follow the thread they cut.'],
+    ['Point', 'For self-tapping screws: a cone point (ISO 7049-C) finds the hole by itself; a flat point (ISO 7049-F), as on Tamiya tapping screws, has a short taper and needs a pilot hole. Machine screws have a plain chamfered end.'],
+    ['Material and finish', 'Not part of the spec: steel, stainless, titanium or aluminium, and finishes such as bright zinc or black, are on the branded parts linked to each spec. Aluminium screws are light but weak, best kept away from load paths.'],
+  ],
+};
+
 /** One short paragraph per spec category: what the part is and which figures decide the fit. */
 export const specIntro: Record<string, string> = {
-  screw: 'Machine screws by thread, length, head and drive. M3x10 is a 3 mm thread 10 mm long, measured under the head on button and cap heads and over the whole screw on countersunk ones. The head decides the seat (a countersunk head needs a chamfered hole) and the drive the tool: hex socket, Torx or Phillips.',
+  screw: 'Screws by thread, length, head and drive. M3x10 is a 3 mm thread 10 mm long, measured under the head on button and cap heads and over the whole screw on countersunk ones. The head decides the seat (a countersunk head needs a chamfered hole) and the drive the tool: hex socket, Torx or Phillips.',
   bearing: 'Ball bearings by bore, outer diameter and width in mm, with the trade designation where one exists (10x15x4 is a 6700). Shielded, rubber-sealed and flanged bearings of one size swap freely in most places; a flanged one needs room for its lip.',
   oil: 'Silicone oils by viscosity in cSt (centistokes), for shocks and differentials. Thin oils of a few hundred cSt go in shocks, thick ones from 1,000 to 1,000,000 cSt in differentials. Makers who rate oils in weight use scales that differ by brand, so only oils stated in cSt are listed.',
   battery: 'Battery packs by chemistry, cell count and capacity. 2S LiPo is two lithium-polymer cells in series at 7.4 V nominal; NiMH packs count cells of 1.2 V. Capacity in mAh sets the run time. The plug and the pack\'s outer size decide whether it fits the car and are on the branded parts.',
@@ -18,7 +31,7 @@ export const specIntro: Record<string, string> = {
   washer: 'Washers, shims and spacers share one spec: bore, outer diameter and thickness in mm. The generic name follows the thickness, whatever the maker calls its own part; countersunk and conical ones carry a prefix.',
   eclip: 'E-clips (E-rings, DIN 6799 type) by the shaft they fit, in mm: a 3 mm E-clip goes on a 3 mm shaft, as the RC makers name them. Clips that state a thickness, and bowed (wave) E-rings, are listed apart from the plain clip of the same shaft.',
   connector: 'Power and signal connectors by family and size: the XT, EC and Deans plugs of the electric cars, Tamiya and JST balance and servo plugs, and the bullet and banana plugs of chargers and motors. A spec is one family and size; the pins, contact diameter and anti-spark design belong to the family, and a current is listed only where the maker states it, with its wire.',
-  wire: 'Bare solid round copper conductors by AWG gauge, from 8 to 30. The smaller the number, the thicker the wire: a 12 AWG conductor is 2.05 mm across and 3.31 mm² in section, from the AWG formula of ASTM B258. Insulation, strands and length are the branded part\'s own, and a wire part links to the gauge it names.',
+  wire: 'Bare solid round copper conductors by AWG gauge, from 8 to 30. The smaller the number, the thicker the wire: a 12 AWG conductor is 0.0808 in (2.05 mm) across and 3.31 mm² in section. AWG is an inch system: ASTM B258 defines the diameters in inches, so the mm values are conversions. Insulation, strands and length are the branded part\'s own, and a wire part links to the gauge it names.',
   pinion: 'Pinion gears by tooth count and pitch. The pitch (48, 32 or 64 DP, or module 1 and 0.8 in metric) must match the spur gear; the tooth count sets the gearing. The bore, 3.175 or 5 mm, follows the motor shaft and is on the branded parts.',
 };
 
