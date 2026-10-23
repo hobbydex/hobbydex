@@ -10,6 +10,7 @@ import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 import DataLink from '../../../../components/DataLink.astro';
+import { wheelNutsForHex } from '../../../../lib/wheelNuts';
 export function getStaticPaths() {
   return db.specs.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } }));
 }
@@ -41,6 +42,10 @@ const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c
 const leads = spec.category === 'connector' ? db.leadsBySpec.get(spec.id) ?? [] : [];
 const specCan = spec.category === 'motor' ? canDiameter(spec as { diameter_mm?: number; can?: unknown }) : undefined;
 const specSinks = specCan ? (heatsinksByCan.get(specCan) ?? []) : [];
+// a wheel hex: the wheel nuts for it; a big-bore wheel nut: the wheel hex it is made for
+const wheelNuts = spec.category === 'wheel-hex' ? wheelNutsForHex(spec) : undefined;
+const wheelHexId = typeof spec.wheel_hex_mm === 'number' ? `spec/wheel-hex/${spec.wheel_hex_mm}mm` : undefined;
+const wheelHex = wheelHexId ? db.spec.get(wheelHexId) : undefined;
 import SeenNote from '../../../../components/SeenNote.astro';
 ---
 <Base title={title} description={`${title}: generic ${spec.category} spec, and which branded parts and kits match it.`} kind="spec" sub={spec.category} words={spec.category}>
@@ -58,6 +63,18 @@ import SeenNote from '../../../../components/SeenNote.astro';
       : spec.category === 'nut' ? <figcaption class="muted">{drawing.approximate ? 'Drawn to the sizes the spec gives' : 'To scale'}{drawStd ? <>; sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : ''}.{drawing.note && ` ${drawing.note}.`}{String(spec.type).endsWith('nylon-lock') ? ' The nylon ring is shaded.' : ''}</figcaption>
       : <figcaption class="muted">{drawing.approximate ? 'Drawn to the usual sizes' : 'To scale'}.{drawing.note && ` ${drawing.note}.`}</figcaption>}
   </figure>}
+  {wheelHex && <p>Made for the <a href={url.spec(wheelHex.id)}>{String(wheelHex.hex_mm)} mm wheel hex</a>: the wheel hex this big-bore nut's collar fits into.</p>}
+  {wheelNuts && <>
+    <h2>Wheel nuts for this hex</h2>
+    {wheelNuts.bigBore.length + wheelNuts.generic.length === 0 ? <p class="muted">No wheel nut spec is linked to this hex yet.</p> : <>
+    <div class="tablescroll"><table>
+      <tr><th>Nut spec</th><th>Thread</th><th>Type</th><th class="num">Parts</th></tr>
+      {wheelNuts.bigBore.map(({ spec: n, parts }) => <tr><td><a href={url.spec(n.id)}>{n.name ?? n.id}</a></td><td>{String(n.thread)}</td><td>{String(n.type)}</td><td class="num">{parts}</td></tr>)}
+      {wheelNuts.generic.map(({ spec: n, parts }) => <tr><td><a href={url.spec(n.id)}>{n.name ?? n.id}</a></td><td>{String(n.thread)}</td><td>{String(n.type)}</td><td class="num">{parts}</td></tr>)}
+    </table></div>
+    <p class="muted">Big-bore nuts count the branded parts linked to their spec. Other nuts count the wheel nut parts that fit a kit whose wheels or hexes use this hex{wheelNuts.unlinked > 0 && `; ${wheelNuts.unlinked} more wheel nut parts of those kits have no nut spec yet`}.</p>
+    </>}
+  </>}
   {specSinks.length > 0 && <><h2>Heat sinks and fan mounts for a {specCan} mm can <span class="muted">({specSinks.length}, any brand)</span></h2>
     <ul>{specSinks.map((h) => <li><a href={url.part(h.id)}>{brandName(h.brand)} {partLabel(h)}</a>{h.number && <span class="muted"> {h.name}</span>}</li>)}</ul></>}
   <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>

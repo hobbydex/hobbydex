@@ -1,6 +1,7 @@
 ---
 import Base from '../../../../layouts/Base.astro';
 import { url } from '../../../../lib/data';
+import { wheelNutThreads } from '../../../../lib/wheelNuts';
 import { specLabel, specIntro, specsByCategory, linkedCount, MOTOR_SPEED_NOTE, BATTERY_NOTE } from '../../../../lib/specs';
 export function getStaticPaths() {
   return [...specsByCategory.keys()].map((category) => ({ params: { category } }));
@@ -37,9 +38,9 @@ const washerNames: [string, string][] = [['under 1 mm', 'shim'], ['1 mm to under
   </table>}
   <p class="muted">{specs.length} specs, sorted by size. Counts are branded parts linked to each spec.</p>
   <div class="tablescroll"><table>
-    <tr><th>Spec</th>{show.map(([, l]) => <th>{l}</th>)}<th class="num">Parts</th><th class="num">Brands</th></tr>
+    <tr><th>Spec</th>{show.map(([, l]) => <th>{l}</th>)}{category === 'wheel-hex' && <th>Wheel nut thread</th>}<th class="num">Parts</th><th class="num">Brands</th></tr>
     {specs.map((s) => { const n = linkedCount(s.id); return <tr>
-      <td><a href={url.spec(s.id)}>{s.name ?? s.id}</a></td>{show.map(([k]) => <td>{typeof s[k] === 'boolean' ? (s[k] ? 'yes' : 'no') : s[k] === undefined ? '' : String(s[k])}</td>)}<td class="num">{n.parts}</td><td class="num">{n.brands}</td>
+      <td><a href={url.spec(s.id)}>{s.name ?? s.id}</a></td>{show.map(([k]) => <td>{typeof s[k] === 'boolean' ? (s[k] ? 'yes' : 'no') : s[k] === undefined ? '' : String(s[k])}</td>)}{category === 'wheel-hex' && <td>{wheelNutThreads(s) || '-'}</td>}<td class="num">{n.parts}</td><td class="num">{n.brands}</td>
     </tr>; })}
   </table></div>
 </Base>
