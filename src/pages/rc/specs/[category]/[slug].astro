@@ -68,8 +68,8 @@ import SeenNote from '../../../../components/SeenNote.astro';
     {linked.map(({ part, link }) => <tr data-plug={part.connector ?? ''}><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td class="num" data-label="Pack">{part.pack_qty ?? ''}</td><td data-label="Material">{part.material ?? ''}</td>{spec.category === 'bearing' && <td>{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num">{part.bore_mm ?? ''}</td>}{spec.category === 'battery' && <><td class="num">{part.c_rating ?? ''}</td><td>{part.case ?? ''}</td><td>{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num">{part.weight_g ?? ''}</td><td>{part.connector ?? ''}</td></>}<td data-label="Match">{link.match}</td></tr>)}
   </table></div>}
   {leads.length > 0 && <>
-    <h2>Leads and adapters with this plug <span class="muted">({leads.length})</span></h2>
-    <div class="tablescroll"><table>
+    <h2 id="leads">Leads and adapters with this plug <span class="muted">({leads.length})</span></h2>
+    <div class="tablescroll"><table class="stacked">
       <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th>Plugs</th></tr>
       {leads.map((part) => <tr><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td data-label="Plugs">{part.connectors!.join(', ')}</td></tr>)}
     </table></div></>}
