@@ -53,7 +53,7 @@ const OWN_ROW: Record<string, (p: Part) => boolean> = {
   pitch_dp: (p) => p.category === 'spur-gear' && p.teeth !== undefined && p.pitch_dp !== undefined,
   module: (p) => p.category === 'spur-gear' && p.teeth !== undefined && p.pitch_dp === undefined && p.module !== undefined,
   thread_type: (p) => p.thread_type !== undefined,
-  notes: (p) => p.notes !== undefined,
+  notes: () => true,   // a spec's notes explain the spec; they belong on the spec page, not in a part's facts
 };
 
 // the facts a part inherits from its equivalent spec. One spec: all its fields. Several of one category: the

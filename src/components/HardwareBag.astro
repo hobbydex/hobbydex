@@ -37,7 +37,9 @@ const luminance = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i 
 const sealed = (seal === 'rubber' || seal === 'rubber-metal') && items.length > 0 && items.every((i) => i.spec.startsWith('spec/bearing/'));
 const sealShade = sealed ? colourShades(color)?.[0]?.c : undefined;
 const shade = sealed ? undefined : colourShades(color)?.[0]?.c;
-const tone = shade ? undefined : metalTone(finish, material);
+// metal hardware (screws, nuts, washers, pins, e-clips, bearings) is steel unless the part says otherwise: silver rather than the page background
+const steelByDefault = items.length > 0 && items.every((i) => /^spec\/(eclip|bearing|screw|nut|washer|pin)\//.test(i.spec));
+const tone = shade ? undefined : metalTone(finish, material) ?? (steelByDefault ? 'steel' : undefined);
 const fill = shade ?? (tone ? `var(--hb-${tone})` : 'var(--bg, #fff)');
 const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : tone ? `var(--hb-${tone}-ink)` : 'currentColor';
 
