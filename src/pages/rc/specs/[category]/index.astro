@@ -1,7 +1,7 @@
 ---
 import Base from '../../../../layouts/Base.astro';
 import { url } from '../../../../lib/data';
-import { specLabel, specIntro, specsByCategory, linkedCount, MOTOR_SPEED_NOTE, BATTERY_NOTE } from '../../../../lib/specs';
+import { specLabel, specIntro, specGuide, specsByCategory, linkedCount, MOTOR_SPEED_NOTE, BATTERY_NOTE } from '../../../../lib/specs';
 import SpecFilter from '../../../../components/SpecFilter.astro';
 export function getStaticPaths() {
   return [...specsByCategory.keys()].map((category) => ({ params: { category } }));
@@ -32,6 +32,7 @@ const washerNames: [string, string][] = [['under 1 mm', 'shim'], ['1 mm to under
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">specs</a> / {category}</div>
   <h1>{title}</h1>
   {specIntro[category!] && <p>{specIntro[category!]}</p>}
+  {specGuide[category!] && <dl class="specguide">{specGuide[category!].map(([t, d]) => <><dt>{t}</dt><dd>{d}</dd></>)}</dl>}
   {category === 'motor' && MOTOR_SPEED_NOTE.map((t) => <p>{t}</p>)}
   {category === 'battery' && BATTERY_NOTE.map(([h, t]) => <p><b>{h}.</b> {t}</p>)}
   {category === 'washer' && <table style="width:auto;margin-bottom:1rem">
