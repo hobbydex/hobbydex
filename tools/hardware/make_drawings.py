@@ -13,11 +13,19 @@ the specs that have a drawing. Run from the repo root:
 
 FreeCAD runs through flatpak; its work files go to ~/.cache/hobbydex-hardware, or to
 $HOBBYDEX_HARDWARE_WORK (under the home dir: the flatpak cannot read /tmp).
+
+The Fasteners add-on is run from a copy with tools/hardware/fasteners-sizes.patch applied: rows for the sizes its
+tables lack, interpolated between the table's neighbouring sizes (never extrapolated). The installed add-on is not
+changed. The drawings of those sizes are listed in approx.json.
+
+    python3 tools/hardware/make_drawings.py --sizes   # only the screws whose size the patch adds
 """
+import csv
 import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 from collections import deque
@@ -30,6 +38,8 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "src/assets/hardware"
 # HOBBYDEX_HARDWARE_WORK gives a run its own work dir, so runs at the same time do not share jobs.json
 WORK = Path(os.environ.get("HOBBYDEX_HARDWARE_WORK") or Path.home() / ".cache/hobbydex-hardware")
+INSTALLED_FASTENERS = Path.home() / ".var/app/org.freecad.FreeCAD/data/FreeCAD/v1-1/Mod/fasteners"
+FASTENERS_PATCH = Path(__file__).with_name("fasteners-sizes.patch")
 PX = 30            # raster pixels per mm for the silhouette
 PAD = 0.3          # mm around the drawing in the viewBox
 
@@ -49,20 +59,13 @@ TAP_HEAD_TYPES = {**SCREW_TYPES, ("countersunk", "jis"): "ISO7046"}
 # the ISO 1478 sizes the add-on's ISO 7049 has: M2.5 and below take ST2.2, M2.6 and M3 ST2.9
 TAP_ST = {"M1.6": "ST2.2", "M2": "ST2.2", "M2.3": "ST2.2", "M2.5": "ST2.2", "M2.6": "ST2.9", "M3": "ST2.9",
           "M3.5": "ST3.5", "M4": "ST4.2"}
-# the head sizes the add-on has, where a tapping screw's head+drive takes one (others are skipped and counted)
-TAP_HEAD_SIZES = {
-    "ISO7380-1": {"M3", "M4", "M5", "M6", "M8", "M10", "M12", "M16"},
-    "ISO4762": {"M1.6", "M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10", "M12", "M16", "M20"},
-    "ISO10642": {"M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10"},
-    "ISO7045": {"M1.6", "M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10"},
-    "ISO7046": {"M1.6", "M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10"},
-}
+HEAD_ISOS = ("ISO7380-1", "ISO4762", "ISO10642", "ISO7045", "ISO7046")   # the tapping screw's head types
 SCREW_TOP = 40                       # most linked screw specs drawn
 SCREW_CANDIDATES = 80                # the most linked screw specs tried (some fail in FreeCAD)
 FRAG = "scale(1, -1)"   # TechDraw's SVG y runs down; every drawing uses it, then the axis is levelled up
 
 
-def select_specs(data):
+def select_specs(data, head_sizes):
     """The pilot: all radial ball bearings, and the screws of the six Fasteners types, most linked first.
     Returns the bearing jobs, the ranked screw candidates [(spec id, job)], the counts of what was left out
     by reason, and the link count of every spec."""
@@ -103,7 +106,7 @@ def select_specs(data):
                 st = TAP_ST.get(spec.get("thread"))
                 if not head:
                     skipped["tapping, head or drive has no head builder"] += 1
-                elif spec["thread"] not in TAP_HEAD_SIZES[head]:
+                elif spec["thread"] not in head_sizes.get(head, set()):
                     skipped["tapping, head size not in the add-on"] += 1
                 elif not st:
                     skipped["tapping, thread size has no ISO 1478 size"] += 1
@@ -134,8 +137,9 @@ def select_specs(data):
 # the FreeCAD side: one projection per job, written as TechDraw SVG fragments
 FREECAD = r'''
 import sys, json, math, FreeCAD, Part, TechDraw
-sys.path.append(FreeCAD.getUserAppDataDir() + "Mod/fasteners")
+sys.path.insert(0, FASTENERS)
 import FastenersCmd
+assert FastenersCmd.__file__.startswith(FASTENERS), FastenersCmd.__file__
 V = FreeCAD.Vector
 def ring(ro, ri, h, z=0):
     return Part.makeCylinder(ro, h, V(0, 0, z)).cut(Part.makeCylinder(ri, h, V(0, 0, z)))
@@ -215,7 +219,14 @@ def tapping(doc, job):
         head_shape = head_shape.fuse(rim).removeSplitter()
     # no removeSplitter on the fused screw: it merges the core cylinder's strips between the thread turns into
     # one face, and the hidden-line projection then loses the core (no outline, the back of every turn shows)
-    res = head_shape.fuse(tap.Shape.common(below))
+    tap_below = tap.Shape.common(below)
+    if job.get("trim_collar"):
+        # the ISO 7049 shank's top collar (dk 5.6 for ST2.9) is wider than an interpolated head's underside (M2.6 pan:
+        # dk 5.1): it stands out as a ring under the head. Trimmed to the underside's radius, the collar is flush with
+        # the head, as the M3 head's collar is
+        r_under = max(w.BoundBox.XMax for w in head.Shape.slice(V(0, 0, 1), zu + 0.05))
+        tap_below = tap_below.common(Part.makeCylinder(r_under, big, V(0, 0, zu - big)))
+    res = head_shape.fuse(tap_below)
     if job.get("head") == "countersunk":
         # a countersunk head widens towards its top: the top's diameter is more than the underside's
         top_r = max(w.BoundBox.XMax for w in res.slice(V(0, 0, 1), -0.02))
@@ -660,11 +671,59 @@ def thread_check(base, frame, segs):
         shares.append(len(hit) / max(1, len(bins)))
     return hidden, shares[0], shares[1]
 
-def run_freecad(jobs):
+def fasteners_copy():
+    """A copy of the installed Fasteners add-on with the patch applied; FreeCAD imports the copy."""
+    dst = WORK / "fasteners"
+    shutil.rmtree(dst, ignore_errors=True)
+    shutil.copytree(INSTALLED_FASTENERS, dst, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+    subprocess.run(["patch", "-p1", "-s", "-d", str(dst), "-i", str(FASTENERS_PATCH)], check=True)
+    return dst
+
+
+def fs_dias(folder, table):
+    """The Dia column of a table in the add-on's FsData csv files (parentheses stripped), or None. A table name is
+    a line of its own; names on consecutive lines share the table that follows them."""
+    for path in sorted((folder / "FsData").glob("*.csv")):
+        names, rows, last_name = [], [], False
+        for cells in csv.reader(path.read_text().splitlines()):
+            if len(cells) == 1 and cells[0]:
+                if not last_name:
+                    if table in names:
+                        return dias_of(rows)
+                    names, rows = [], []
+                names.append(cells[0]); last_name = True
+            elif any(cells):
+                last_name = False; rows.append(cells)
+        if table in names:
+            return dias_of(rows)
+    return None
+
+
+def dias_of(rows):
+    if not rows or rows[0][0] != "Dia":
+        return None
+    out = set()
+    for cells in rows[1:]:
+        if len(cells) < 2:
+            break
+        out.add(cells[0].strip("()"))
+    return out
+
+
+def added_sizes(installed, patched):
+    """The (type, size) pairs the patch adds to a dimension table: the sizes drawn by interpolation."""
+    added = set()
+    for iso in HEAD_ISOS:
+        before = fs_dias(installed, iso + "def") or set()
+        added |= {(iso, d) for d in (fs_dias(patched, iso + "def") or set()) - before}
+    return added
+
+
+def run_freecad(jobs, fasteners):
     WORK.mkdir(parents=True, exist_ok=True)
     jobs_path = WORK / "jobs.json"; script = WORK / "freecad_jobs.py"
     jobs_path.write_text(json.dumps(jobs))
-    script.write_text(f"JOBS_JSON = {str(jobs_path)!r}\n" + FREECAD)
+    script.write_text(f"JOBS_JSON = {str(jobs_path)!r}\nFASTENERS = {str(fasteners)!r}\n" + FREECAD)
     subprocess.run(["flatpak", "run", "--filesystem=home", "--command=FreeCADCmd",
                     "org.freecad.FreeCAD", str(script)], check=True)
 
@@ -680,9 +739,16 @@ def slug_of(spec):
 
 def main():
     data = json.loads((ROOT / "data/hobbydex-rc.json").read_text())
-    direct, ranked, skipped, links = select_specs(data)   # bearings and tapping screws, then the other screws
+    fasteners = fasteners_copy()
+    head_sizes = {iso: fs_dias(fasteners, iso + "def") or set() for iso in HEAD_ISOS}
+    added = added_sizes(INSTALLED_FASTENERS, fasteners)   # the (type, size) rows the patch interpolates
+    direct, ranked, skipped, links = select_specs(data, head_sizes)   # bearings and tapping screws, then the other screws
+    screw_jobs = [(sid, p) for sid, p in direct.items() if p.get("kind") == "tapping" or p.get("group") == "pan-jis"] + ranked
+    for sid, p in screw_jobs:
+        if p["kind"] == "tapping" and (p["iso"], p["thread"]) in added:
+            p["trim_collar"] = True   # the interpolated heads: see tapping()
     # --bearings and --tapping redraw one group; the other drawings already in index.json stay as they are
-    only = next((flag for flag in ("--bearings", "--tapping", "--flanged-thrust", "--missing") if flag in sys.argv), None)
+    only = next((flag for flag in ("--bearings", "--tapping", "--flanged-thrust", "--missing", "--sizes") if flag in sys.argv), None)
     old_index = json.loads((OUT / "index.json").read_text()) if only else {}
     if only == "--bearings":
         jobs = {sid: p for sid, p in direct.items() if p["kind"] == "bearing" and "type" not in p}
@@ -690,6 +756,10 @@ def main():
     elif only == "--missing":
         # every screw the generator maps and index.json lacks (no ranking cap); the other drawings stay as they are
         jobs = {sid: job for sid, job in ranked if key_of(sid) not in old_index}
+        keep = old_index
+    elif only == "--sizes":
+        # the screws whose size the patch adds (interpolated rows), and no drawing yet; the other drawings stay
+        jobs = {sid: p for sid, p in screw_jobs if (p["iso"], p["thread"]) in added and key_of(sid) not in old_index}
         keep = old_index
     elif only == "--flanged-thrust":
         # the flanged and thrust bearings: only these are drawn, every other drawing in index.json stays
@@ -709,12 +779,12 @@ def main():
         for f in WORK.glob("*.svgfrag"):
             f.unlink()
     WORK.mkdir(parents=True, exist_ok=True)
-    run_freecad([{**p, "out": str(WORK / f"{slug_of(spec)}.svgfrag")} for spec, p in jobs.items()])
+    run_freecad([{**p, "out": str(WORK / f"{slug_of(spec)}.svgfrag")} for spec, p in jobs.items()], fasteners)
 
     OUT.mkdir(parents=True, exist_ok=True)
     index, failed, thread_failed = {}, [], []
     screws_ok = []
-    if only == "--missing":
+    if only in ("--missing", "--sizes"):
         screws_ok = []   # every job is a screw, written below from its own fragment
     elif not only:
         screws_ok = [sid for sid, _ in ranked if (WORK / f"{slug_of(sid)}.svgfrag").exists()][:SCREW_TOP]
@@ -781,6 +851,10 @@ def main():
         sys.exit(f"tapping drawings whose thread reads as a spring (hidden back halves drawn or no core outline) "
                  f"failed; index.json is unchanged: {thread_failed}")
     index = {**keep, **index}
+    # the keys of the interpolated sizes' drawings, for the site's note (index.json stays a plain map of drawings)
+    approx = sorted(k for k in index if k in {key_of(sid) for sid, p in screw_jobs if (p["iso"], p["thread"]) in added})
+    (OUT / "approx.json").write_text(json.dumps(approx, indent=2) + "\n")
+    print(f"approximate (interpolated sizes): {len(approx)}")
     # remove only the drawings this generator made before (its old index) that are no longer in it
     index_path = OUT / "index.json"
     previous = json.loads(index_path.read_text()).values() if index_path.exists() else []

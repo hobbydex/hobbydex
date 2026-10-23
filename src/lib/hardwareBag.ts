@@ -3,6 +3,7 @@
 // equivalent_to spec (its pack of one spec, from pack_qty). A self-tapping screw shows the spec's "-flat" drawing
 // (the flat point, as the technical drawing) unless the part says point "cone".
 import index from '../assets/hardware/index.json';
+import approx from '../assets/hardware/approx.json';
 import type { Part } from './data';
 
 const files = index as Record<string, string>;
@@ -12,6 +13,13 @@ const svgs = import.meta.glob('../assets/hardware/*.svg', { query: '?raw', impor
 /** The SVG text of a drawing file (from index.json), or undefined. */
 export function hardwareSvg(file: string): string | undefined {
   return svgs[`../assets/hardware/${file}`];
+}
+
+const approxKeys = new Set(approx as string[]);
+
+/** True when the spec's drawing is for a size the Fasteners tables lack: its head is interpolated (approx.json). */
+export function isApproxDrawing(specId: string | undefined): boolean {
+  return !!specId && approxKeys.has(specId.replace(/^spec\//, ''));
 }
 
 /** The drawing file of a spec id (spec/...), or undefined when the spec has none. */
