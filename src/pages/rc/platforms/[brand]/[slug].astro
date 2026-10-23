@@ -32,6 +32,10 @@ export function getStaticPaths() {
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const kit = Astro.props.kit!;   // set on every page that is not a redirect
 const releases = [...(db.releasesByKit.get(kit.id) ?? [])].sort(byReleaseDate);
+// the parts in a release's box: its rows with a part (the release page's In the box count)
+const boxCount = (r: Release) => (r.contains ?? []).filter((c) => c.role === 'kit' && db.part.get(c.part)).length;
+// one release: its In the box section is the note's link
+const only = releases.length === 1 && boxCount(releases[0]) > 0 ? releases[0] : undefined;
 // the list: current releases (on sale or announced) first, then the discontinued ones;
 // newest first in each, dated before undated (undated ones by item number, higher numbers being newer)
 const dateKey = (r: (typeof releases)[number]) => dateKeyOf(r) || (yearOf(r) ? String(yearOf(r)) : '');
@@ -133,7 +137,10 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name} ${kitTypeOne[kit.category ?? 'car'] ?? kit.category} platform`} description={metaDescription} kind="platform" sub={brandName(kit.brand)} words={indexWords} filters={indexFilters}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
+  <p class="pagetype">Platform</p>
   <h1>{brandName(kit.brand)} {kit.name}</h1>
+  {releases.length > 0 && (only ? <p class="muted pagenote">What's in the box: <a href={`${url.release(only.id)}#kit`}>{only.name} ({boxCount(only)} parts)</a> →</p>
+    : <p class="muted pagenote">A platform groups the releases built on one chassis. What's in the box is on each release page: {[...current, ...discontinued].slice(0, 4).map((r, i) => <>{i > 0 && ' · '}<a href={url.release(r.id)}>{r.name}</a></>)}{releases.length > 4 && <> · <a href="#releases">all {releases.length}</a></>}.</p>)}
   {kit.sources?.name && <p><FactSource field="name" url={kit.sources.name} dot={false} /></p>}
   <WebSearch query={`${brandName(kit.brand)} ${kit.name}`} links={kit.links} />
   <div class="factsrow">
@@ -170,7 +177,7 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
     {files.map(([label, ds]) => <><h3>{label}</h3>
       <ul>{ds.map((d) => { const n = docRels.get(d.id)!.length; return <li><a href={d.page} rel="nofollow">{d.title}</a>{n < releases.length && <span class="muted"> ({n} of {releases.length} releases)</span>}</li>; })}</ul></>)}
     {moreFiles > 0 && <p class="muted">{moreFiles} more on the release pages</p>}</>}
-  <h2>Releases</h2>
+  <h2 id="releases">Releases</h2>
   {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
   {(() => {
     // one table: current releases first, then the discontinued ones; unchecking "Show discontinued" hides those rows,

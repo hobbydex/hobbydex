@@ -281,3 +281,6 @@ body { overflow-x: clip; }
 .specguide { margin: 0.5rem 0 1rem; max-width: 46rem; }
 .specguide dt { font-weight: 600; margin-top: 0.5rem; }
 .specguide dd { margin: 0.1rem 0 0; }
+/* the page type above the title: a platform (a chassis and its releases) or a release (one box) */
+.pagetype { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.pagenote { margin: 0 0 0.75rem; }
