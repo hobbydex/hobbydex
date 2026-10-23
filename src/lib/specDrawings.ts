@@ -1,4 +1,4 @@
-// Dimensioned drawings for bearing, washer, pinion, pin and wheel hex specs, drawn in currentColor (light and dark).
+// Dimensioned drawings for bearing, washer, pinion, pin (parallel and screw) and wheel hex specs, drawn in currentColor (light and dark).
 // Screws and nuts have their own modules (screwDrawing.ts, nutDrawing.ts); specDrawing() picks the right one for a spec.
 import { db, type Part, type Spec, type MountHoles } from './data';
 import { screwDrawing, type ScrewDrawing } from './screwDrawing';
@@ -202,6 +202,39 @@ function pin(spec: Spec): ScrewDrawing | undefined {
   return { svg: svgWrap(Math.max(300, x0 + w + 70), Math.max(120, cy + r + 40), `${f(d)}x${f(L)} parallel pin`, o.join('')), standard: std || undefined, approximate: false };
 }
 
+// Screw pin (type screw): a smooth pin with a head at one end and a short thread right under the head, the rest of
+// the shank smooth, the tip chamfered. The head and the thread length are not stated: drawn approximately (a flat
+// head 1.6 x the diameter across and 0.5 x high, the thread 1.5 x the diameter long).
+function screwPin(spec: Spec): ScrewDrawing | undefined {
+  const d = Number(spec.diameter_mm), L = Number(spec.length_mm);
+  if (!d || !L) return undefined;
+  const dk = 1.6 * d, k = 0.5 * d, T = Math.min(1.5 * d, L), p = 0.16 * d;   // head, thread length (mm), thread pitch (mm)
+  const s = Math.min(14, 220 / (k + L), 60 / dk), x0 = 50, cy = 60;
+  const rk = (dk / 2) * s, r = (d / 2) * s, xs = x0 + k * s, w = L * s, c = Math.min(r * 0.35, 4), t = T * s;
+  const o: string[] = [];
+  // head: a flat cylinder with its corners rounded, its hex socket hidden
+  o.push(`<rect class="fill" x="${f(x0)}" y="${f(cy - rk)}" width="${f(k * s)}" height="${f(2 * rk)}" rx="1.5"/>`);
+  // shank outline: the thread's crest is the full radius, its root a half pitch on (the outline stays smooth
+  // under the head's end and at the tip); the tip chamfered
+  o.push(`<path d="M${f(xs)} ${f(cy - r)}H${f(xs + w - c)}L${f(xs + w)} ${f(cy - r + c)}V${f(cy + r - c)}L${f(xs + w - c)} ${f(cy + r)}H${f(xs)}Z"/>`);
+  // thread lines, as on the screws: the near half of each turn, from a crest on top to the next crest below
+  let teeth = '';
+  for (let a = 0; a + p / 2 < T; a += p) {
+    const a0 = xs + a * s, a1 = xs + (a + p / 2) * s;
+    teeth += `M${f(a0)} ${f(cy - r)}L${f(a1)} ${f(cy - r * 0.78)}M${f(a0)} ${f(cy + r)}L${f(a1)} ${f(cy + r * 0.78)}`;
+  }
+  o.push(`<path class="thin" d="${teeth}"/>`);
+  // the thread's end, a faint line where the smooth shank starts
+  o.push(`<path class="thin dash" d="M${f(xs + t)} ${f(cy - r)}V${f(cy + r)}"/>`);
+  const y = cy + Math.max(rk, r) + 18;
+  o.push(hdim(xs, xs + w, y, `L ${f(L)}`), `<path class="thin" d="M${f(xs)} ${f(cy + r + 3)}V${f(y + 4)}M${f(xs + w)} ${f(cy + r + 3)}V${f(y + 4)}"/>`);
+  o.push(hdim(xs, xs + t, cy - r - 12, `thread ~${f(T)}`));
+  o.push(vdim(xs + w + 16, cy - r, cy + r, `⌀${f(d)}`));
+  o.push(vdim(x0 - 14, cy - rk, cy + rk, `⌀${f(dk)}`, true));
+  const std = (spec.standards ?? []).join(' / ');
+  return { svg: svgWrap(Math.max(300, xs + w + 70), Math.max(120, cy + Math.max(rk, r) + 40), `${f(d)}x${f(L)} screw pin`, o.join('')), standard: std || undefined, approximate: true, note: 'The head and the thread length are not stated: drawn approximately' };
+}
+
 // Electric motor: side view (can, front bearing cap line, shaft with its flat) and the end view from the shaft
 // side, with the can diameter, length and shaft diameter. Brushed specs give only a can code, so their sizes
 // are the usual ones for that can; the shaft length is never part of the spec. Mounting holes: the patterns
@@ -285,7 +318,7 @@ export function specDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | un
   if (spec.category === 'bearing') return bearingDrawing(spec);
   if (spec.category === 'pinion') return gearDrawing({ teeth: spec.teeth, module: spec.module, pitch_dp: spec.pitch_dp });
   if (spec.category === 'wheel-hex') return wheelHex(spec);
-  if (spec.category === 'pin') return pin(spec);
+  if (spec.category === 'pin') return spec.type === 'screw' ? screwPin(spec) : pin(spec);
   if (spec.category === 'nut') return nutDrawing(spec);
   if (spec.category === 'washer') return washerDrawing(spec);
   if (spec.category === 'eclip') return eclipDrawing(spec);
@@ -317,6 +350,8 @@ export function partDrawing(part: Part): (ScrewDrawing & { note?: string; spec?:
   }
   const ws = eq.find((x) => x.category === 'washer');
   if (ws && part.category === 'washer-shim') { const dr = washerDrawing(ws); return dr && { ...dr, spec: ws }; }
+  const ps = eq.find((x) => x.category === 'pin' && x.type === 'screw');
+  if (ps && part.category === 'pin') { const dr = screwPin(ps); return dr && { ...dr, spec: ps }; }
   const ms = eq.find((x) => x.category === 'motor');
   if (ms && part.category === 'motor') { const dr = motorDrawing(ms, part.mount_holes); return dr && { ...dr, spec: ms }; }
   return undefined;
