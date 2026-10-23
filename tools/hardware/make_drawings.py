@@ -9,10 +9,12 @@ the specs that have a drawing. Run from the repo root:
 
     python3 tools/hardware/make_drawings.py
 
-FreeCAD runs through flatpak; its work files go to ~/.cache/hobbydex-hardware.
+FreeCAD runs through flatpak; its work files go to ~/.cache/hobbydex-hardware, or to
+$HOBBYDEX_HARDWARE_WORK (under the home dir: the flatpak cannot read /tmp).
 """
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -24,7 +26,8 @@ from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "src/assets/hardware"
-WORK = Path.home() / ".cache/hobbydex-hardware"
+# HOBBYDEX_HARDWARE_WORK gives a run its own work dir, so runs at the same time do not share jobs.json
+WORK = Path(os.environ.get("HOBBYDEX_HARDWARE_WORK") or Path.home() / ".cache/hobbydex-hardware")
 PX = 30            # raster pixels per mm for the silhouette
 PAD = 0.3          # mm around the drawing in the viewBox
 
@@ -170,8 +173,10 @@ def tapping(doc, job):
         rt = head.Shape.BoundBox.XMax
         tri = [V(rt - 0.7, 0, -0.7), V(rt, 0, 0), V(rt - 0.7, 0, 0)]
         rim = Part.Face(Part.makePolygon(tri + [tri[0]])).revolve(V(0, 0, 0), V(0, 0, 1), 360)
-        head_shape = head_shape.fuse(rim)
-    res = head_shape.fuse(tap.Shape.common(below)).removeSplitter()
+        head_shape = head_shape.fuse(rim).removeSplitter()
+    # no removeSplitter on the fused screw: it merges the core cylinder's strips between the thread turns into
+    # one face, and the hidden-line projection then loses the core (no outline, the back of every turn shows)
+    res = head_shape.fuse(tap.Shape.common(below))
     if job.get("head") == "countersunk":
         # a countersunk head widens towards its top: the top's diameter is more than the underside's
         top_r = max(w.BoundBox.XMax for w in res.slice(V(0, 0, 1), -0.02))
@@ -210,6 +215,21 @@ for job in json.loads(open(JOBS_JSON).read()):
             open(f"{job['out']}.axis{i}", "w").write(TechDraw.projectToSVG(Part.makeLine(V(0, 0, 0), end), view, ""))
         pts, tris = shape.tessellate(0.03)   # coarse: the silhouette is drawn at 30 px per mm
         json.dump({"pts": [[p.x, p.y, p.z] for p in pts], "tris": [list(t) for t in tris]}, open(f"{job['out']}.mesh.json", "w"))
+        if job["kind"] == "tapping":
+            # for the thread check: every edge of the solid, sampled in 3D, and the core radius (the smallest
+            # constant radius of the helix edges below the head)
+            edges, core = [], []
+            for e in shape.Edges:
+                if e.Length < 1e-6:
+                    continue
+                pts = e.discretize(Distance=0.04) if e.Length > 0.08 else [e.Vertexes[0].Point, e.Vertexes[-1].Point]
+                edges.append([[round(q.x, 4), round(q.y, 4), round(q.z, 4)] for q in pts])
+                rs = [(q.x ** 2 + q.y ** 2) ** 0.5 for q in pts]
+                if e.Length > 2 and e.BoundBox.ZMax < -0.3 and max(rs) - min(rs) < 0.02:
+                    core.append((sum(rs) / len(rs), e.BoundBox.ZMin, e.BoundBox.ZMax))
+            r_core = min(c[0] for c in core)
+            json.dump({"edges": edges, "core_r": r_core, "z": [min(c[1] for c in core), max(c[2] for c in core)]},
+                      open(f"{job['out']}.thread.json", "w"))
         print("OK", job["out"])
     except Exception as err:
         print("FAILED", job["out"], err)
@@ -528,6 +548,76 @@ def bearing_rims(frame, d, D, B):
     return segs
 
 
+HIDDEN_MAX = 0.06     # share of the drawn shank lines that may lie where no edge of the solid is seen (a spring: 0.15+)
+CORE_MIN = 0.08       # share of the threaded length where the core's outline must show, on each side (drawn: 0.13+)
+ZBUF_PX = 40          # the depth buffer's pixels per mm
+DEPTH_TOL = 0.08      # mm: an edge this far behind the front surface still counts as seen
+
+
+def depth_buffer(mesh_path, frame, view):
+    """The solid's front surface: per pixel of the drawing's frame, the largest depth along the view."""
+    mesh = json.loads(Path(mesh_path).read_text())
+    P3 = np.array(mesh["pts"], float); T = np.array(mesh["tris"], int)
+    Q = project(frame, P3); lo = Q.min(axis=0) - 0.5
+    W = math.ceil((Q[:, 0].max() - lo[0] + 0.5) * ZBUF_PX); H = math.ceil((Q[:, 1].max() - lo[1] + 0.5) * ZBUF_PX)
+    Q = (Q - lo) * ZBUF_PX; D = P3 @ view
+    zb = np.full((H, W), -np.inf)
+    for a, b, c in T:
+        qa, qb, qc = Q[a], Q[b], Q[c]
+        det = (qb[1] - qc[1]) * (qa[0] - qc[0]) + (qc[0] - qb[0]) * (qa[1] - qc[1])
+        if abs(det) < 1e-12:
+            continue
+        x0 = max(int(min(qa[0], qb[0], qc[0])), 0); x1 = min(int(max(qa[0], qb[0], qc[0])) + 1, W - 1)
+        y0 = max(int(min(qa[1], qb[1], qc[1])), 0); y1 = min(int(max(qa[1], qb[1], qc[1])) + 1, H - 1)
+        xs, ys = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+        w1 = ((qb[1] - qc[1]) * (xs - qc[0]) + (qc[0] - qb[0]) * (ys - qc[1])) / det
+        w2 = ((qc[1] - qa[1]) * (xs - qc[0]) + (qa[0] - qc[0]) * (ys - qc[1])) / det
+        w3 = 1 - w1 - w2
+        inside = (w1 >= -1e-6) & (w2 >= -1e-6) & (w3 >= -1e-6)
+        sub = zb[y0:y1 + 1, x0:x1 + 1]
+        np.maximum(sub, np.where(inside, w1 * D[a] + w2 * D[b] + w3 * D[c], -np.inf), out=sub)
+    return zb, lo
+
+
+def thread_check(base, frame, segs):
+    """How a tapping screw's thread reads: (share of the drawn lines on the threaded shank that lie where no edge
+    of the solid is seen, share of the threaded length where the core's outline is drawn on the left, and on
+    the right). A thread drawn as a spring shows the back half of every turn, which the core hides, and loses
+    the core's outline. The seen edges: the solid's edges whose points are not behind its front surface (a
+    depth buffer of its triangles)."""
+    t = json.loads(Path(f"{base}.thread.json").read_text())
+    view = np.array([1.0, -1.0, 1.0]) / math.sqrt(3)
+    zb, lo = depth_buffer(f"{base}.mesh.json", frame, view)
+    E = np.array([q for e in t["edges"] for q in e], float)
+    q = ((project(frame, E) - lo) * ZBUF_PX).astype(int)
+    q[:, 0] = q[:, 0].clip(0, zb.shape[1] - 1); q[:, 1] = q[:, 1].clip(0, zb.shape[0] - 1)
+    front = np.zeros(zb.shape, bool)
+    seen = E @ view >= zb[q[:, 1], q[:, 0]] - DEPTH_TOL
+    front[q[seen, 1], q[seen, 0]] = True
+    # grow the seen pixels by 0.05 mm: a drawn line within that of a seen edge is explained
+    grow = front.copy()
+    for _ in range(2):
+        grow = grow | np.roll(grow, 1, 0) | np.roll(grow, -1, 0) | np.roll(grow, 1, 1) | np.roll(grow, -1, 1)
+    pts = []
+    for line in sample_segments(segs):
+        for a, b in zip(line, line[1:]):
+            n = max(1, int(math.hypot(b[0] - a[0], b[1] - a[1]) / 0.01))
+            pts.extend((a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n) for k in range(n + 1))
+    pts = np.array(pts)
+    (ax, ya), (_, yb) = project(frame, [(0, 0, t["z"][0]), (0, 0, t["z"][1])])
+    shank = pts[(pts[:, 1] > min(ya, yb)) & (pts[:, 1] < max(ya, yb))]
+    g = ((shank - lo) * ZBUF_PX).astype(int)
+    g[:, 0] = g[:, 0].clip(0, zb.shape[1] - 1); g[:, 1] = g[:, 1].clip(0, zb.shape[0] - 1)
+    hidden = float((~grow[g[:, 1], g[:, 0]]).mean()) if len(g) else 1.0
+    # the axis is vertical in the levelled frame: the core's outline runs at its x +- the core radius
+    bins = np.arange(min(ya, yb), max(ya, yb), 0.05)
+    shares = []
+    for side in (-1, 1):
+        on = pts[np.abs(pts[:, 0] - (ax + side * t["core_r"])) < 0.03]
+        hit = {int((y - bins[0]) / 0.05) for y in on[:, 1] if bins[0] <= y < bins[-1] + 0.05}
+        shares.append(len(hit) / max(1, len(bins)))
+    return hidden, shares[0], shares[1]
+
 def run_freecad(jobs):
     WORK.mkdir(parents=True, exist_ok=True)
     jobs_path = WORK / "jobs.json"; script = WORK / "freecad_jobs.py"
@@ -571,7 +661,7 @@ def main():
     run_freecad([{**p, "out": str(WORK / f"{slug_of(spec)}.svgfrag")} for spec, p in jobs.items()])
 
     OUT.mkdir(parents=True, exist_ok=True)
-    index, failed = {}, []
+    index, failed, thread_failed = {}, [], []
     screws_ok = []
     if not only:
         screws_ok = [sid for sid, _ in ranked if (WORK / f"{slug_of(sid)}.svgfrag").exists()][:SCREW_TOP]
@@ -589,6 +679,11 @@ def main():
         frame = axis_frame([read_fragment((WORK / f"{slug}.svgfrag.axis{i}").read_text(), frag_transform) for i in range(3)])
         frame, a, r = level_axis(frame)
         segs = rotate_segs(read_fragment(frag, frag_transform), r, a)
+        if p["kind"] == "tapping":
+            hidden, left, right = thread_check(WORK / f"{slug}.svgfrag", frame, segs)
+            print(f"THREAD {slug}: lines over hidden edges {hidden:.0%}, core outline left {left:.0%} right {right:.0%}")
+            if hidden > HIDDEN_MAX or min(left, right) < CORE_MIN:
+                thread_failed.append(spec); continue
         if not is_screw:
             segs += bearing_rims(frame, p["d"], p["D"], p["B"])
         lines = sample_segments(segs)
@@ -627,6 +722,9 @@ def main():
         (OUT / f"{slug}.svg").write_text(svg)
         index[key_of(spec)] = f"{slug}.svg"
         print(f"{slug}.svg {len(svg.encode())} bytes, viewBox {vw:.2f} x {vh:.2f} mm, pitch {pitch_x:g} x {pitch_y:g} mm")
+    if thread_failed:
+        sys.exit(f"tapping drawings whose thread reads as a spring (hidden back halves drawn or no core outline) "
+                 f"failed; index.json is unchanged: {thread_failed}")
     index = {**keep, **index}
     # remove only the drawings this generator made before (its old index) that are no longer in it
     index_path = OUT / "index.json"
