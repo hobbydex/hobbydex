@@ -1,6 +1,7 @@
 // Which specs have a hardware bag drawing (src/assets/hardware/index.json, written by tools/hardware/make_drawings.py),
 // and the bag items a part shows: its `includes` when it lists specs (every one must have a drawing), else its
-// equivalent_to spec (its pack of one spec, from pack_qty).
+// equivalent_to spec (its pack of one spec, from pack_qty). A self-tapping screw part with point "flat" shows the
+// spec's "-flat" drawing (the flat point); every other part shows the spec's drawing, the cone point.
 import index from '../assets/hardware/index.json';
 import type { Part } from './data';
 
@@ -14,23 +15,25 @@ export function hardwareSvg(file: string): string | undefined {
 }
 
 /** The drawing file of a spec id (spec/...), or undefined when the spec has none. */
-export function hardwareFile(specId: string | undefined): string | undefined {
-  return specId ? files[specId.replace(/^spec\//, '')] : undefined;
+export function hardwareFile(specId: string | undefined, point?: string): string | undefined {
+  if (!specId) return undefined;
+  const key = specId.replace(/^spec\//, '');
+  return (point === 'flat' && files[`${key}-flat`]) || files[key];
 }
 
-export type BagItem = { spec: string; qty: number };
+export type BagItem = { spec: string; qty: number; point?: string };
 
 /** The bag items for a part, or undefined when it has no drawing to show. */
 export function bagItems(part: Part): BagItem[] | undefined {
   if (part.includes?.length) {
     const specs = part.includes.filter((i) => i.spec);
-    if (specs.length === 0 || !specs.every((i) => hardwareFile(i.spec))) return undefined;
+    if (specs.length === 0 || !specs.every((i) => hardwareFile(i.spec, part.point))) return undefined;
     const sum = new Map<string, number>();
     for (const i of specs) sum.set(i.spec!, (sum.get(i.spec!) ?? 0) + (i.qty ?? 1));
-    return [...sum].map(([spec, qty]) => ({ spec, qty }));
+    return [...sum].map(([spec, qty]) => ({ spec, qty, point: part.point }));
   }
-  const e = (part.equivalent_to ?? []).find((x) => hardwareFile(x.spec));
-  return e ? [{ spec: e.spec, qty: part.pack_qty ?? 1 }] : undefined;
+  const e = (part.equivalent_to ?? []).find((x) => hardwareFile(x.spec, part.point));
+  return e ? [{ spec: e.spec, qty: part.pack_qty ?? 1, point: part.point }] : undefined;
 }
 
 // A metal or plastic tone for a bag with no colour: the tone's CSS variables are set on the bag (HardwareBag.astro).

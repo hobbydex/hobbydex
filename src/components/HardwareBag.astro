@@ -39,10 +39,10 @@ const fill = shade ?? (tone ? `var(--hb-${tone})` : 'var(--bg, #fff)');
 const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : tone ? `var(--hb-${tone}-ink)` : 'currentColor';
 
 // the groups, largest drawing first; a spec listed twice is one group
-const groups = [...new Map(items.filter((i) => hardwareFile(i.spec)).map((i) => [i.spec, i.qty])).entries()]
-  .map(([spec, qty]) => {
+const groups = [...new Map(items.filter((i) => hardwareFile(i.spec, i.point)).map((i) => [hardwareFile(i.spec, i.point)!, i])).values()]
+  .map(({ spec, qty, point }) => {
     const useSeal = !!seal && (seal === 'rubber' || seal === 'rubber-metal') && spec.startsWith('spec/bearing/');
-    const file = hardwareFile(spec)!;
+    const file = hardwareFile(spec, point)!;
     const svg = hardwareSvg(file)!;
     const vb = svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number) as [number, number, number, number];
     return {

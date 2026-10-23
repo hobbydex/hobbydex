@@ -35,7 +35,22 @@ SCREW_TYPES = {
     ("socket-cap", "hex"): "ISO4762",
     ("set", "hex"): "ISO4029",
     ("pan", "phillips"): "ISO7045",
+    ("pan", "jis"): "ISO7045",          # the JIS cross recess is drawn as Phillips
     ("countersunk", "phillips"): "ISO7046",
+}
+# self-tapping screws: the head+drive maps as above, with JIS drawn as Phillips; the shank is an ISO 7049-F
+# tapping screw of the ISO 1478 size for the spec's diameter
+TAP_HEAD_TYPES = {**SCREW_TYPES, ("countersunk", "jis"): "ISO7046"}
+# the ISO 1478 sizes the add-on's ISO 7049 has: M2.5 and below take ST2.2, M2.6 and M3 ST2.9
+TAP_ST = {"M1.6": "ST2.2", "M2": "ST2.2", "M2.3": "ST2.2", "M2.5": "ST2.2", "M2.6": "ST2.9", "M3": "ST2.9",
+          "M3.5": "ST3.5", "M4": "ST4.2"}
+# the head sizes the add-on has, where a tapping screw's head+drive takes one (others are skipped and counted)
+TAP_HEAD_SIZES = {
+    "ISO7380-1": {"M3", "M4", "M5", "M6", "M8", "M10", "M12", "M16"},
+    "ISO4762": {"M1.6", "M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10", "M12", "M16", "M20"},
+    "ISO10642": {"M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10"},
+    "ISO7045": {"M1.6", "M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10"},
+    "ISO7046": {"M1.6", "M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10"},
 }
 SCREW_TOP = 40                       # most linked screw specs drawn
 SCREW_CANDIDATES = 80                # the most linked screw specs tried (some fail in FreeCAD)
@@ -51,7 +66,9 @@ def select_specs(data):
     for part in data["parts"]:
         for e in part.get("equivalent_to") or []:
             links[e.get("spec")] = links.get(e.get("spec"), 0) + 1
-    skipped = {"bearing, flanged or thrust": 0, "screw, self-tapping": 0, "screw, head or drive not mapped": 0,
+    skipped = {"bearing, flanged or thrust": 0, "screw, head or drive not mapped": 0,
+               "tapping, head or drive has no head builder": 0, "tapping, head size not in the add-on": 0,
+               "tapping, thread size has no ISO 1478 size": 0,
                "screw, not an ISO metric diameter": 0}
     jobs = {}
     screws = []
@@ -63,13 +80,32 @@ def select_specs(data):
             else:
                 skipped["bearing, flanged or thrust"] += 1
         elif spec.get("category") == "screw":
-            if "tapping" in sid:
-                skipped["screw, self-tapping"] += 1; continue
+            if spec.get("thread_type") == "self-tapping":
+                head = TAP_HEAD_TYPES.get((spec.get("head"), spec.get("drive")))
+                st = TAP_ST.get(spec.get("thread"))
+                if not head:
+                    skipped["tapping, head or drive has no head builder"] += 1
+                elif spec["thread"] not in TAP_HEAD_SIZES[head]:
+                    skipped["tapping, head size not in the add-on"] += 1
+                elif not st:
+                    skipped["tapping, thread size has no ISO 1478 size"] += 1
+                else:
+                    # two drawings: the cone point (ISO 7049-C) by default, the flat point (ISO 7049-F) as "#flat"
+                    job = {"kind": "tapping", "iso": head, "head_dia": spec["thread"], "thread": spec["thread"],
+                           "st": st, "length": spec["length_mm"], "head": spec.get("head")}
+                    jobs[sid] = {**job, "point": "cone"}
+                    jobs[sid + "#flat"] = {**job, "point": "flat"}
+                continue
             iso = SCREW_TYPES.get((spec.get("head"), spec.get("drive")))
             if not iso:
                 skipped["screw, head or drive not mapped"] += 1; continue
             if spec.get("thread") not in ISO_DIAMETERS:
                 skipped["screw, not an ISO metric diameter"] += 1; continue
+            if spec.get("head") == "pan" and spec.get("drive") == "jis":
+                # the Tamiya round-head screws: all drawn, not only the most linked screws
+                jobs[sid] = {"kind": "screw", "iso": iso, "thread": spec["thread"], "length": spec["length_mm"],
+                             "group": "pan-jis"}
+                continue
             screws.append((links.get(sid, 0), sid, {"kind": "screw", "iso": iso, "thread": spec["thread"], "length": spec["length_mm"]}))
     screws.sort(key=lambda t: (-t[0], t[1]))
     ranked = [(sid, job) for _, sid, job in screws]   # the candidates, most linked first
@@ -94,6 +130,64 @@ def bearing(d, D, B):
         f = r.makeFillet(min(0.3, B/10), [e for e in r.Edges if e.Curve.TypeId == 'Part::GeomCircle'])
         return f if f.isValid() else r
     return Part.makeCompound([rounded(outer), rounded(inner), ring(D/2 - t*0.28, d/2 + t*0.28, B*0.05, B*0.88)])
+def set_length(obj, length):
+    # a length the add-on's table has; any other length is a custom one
+    if str(length) in obj.getEnumerationsOfProperty("Length"):
+        obj.Length = str(length)
+    else:
+        obj.Length = "Custom"; obj.LengthCustom = length
+def head_underside(shape, shank_r):
+    """The z of the head's underside: the lowest z where the solid's cross-section is wider than the shank.
+    Pan and button heads sit above z = 0 (underside at 0); countersunk heads sit below it (underside at -k)."""
+    bb = shape.BoundBox
+    z = bb.ZMin + 0.01
+    while z <= bb.ZMax:
+        wires = shape.slice(V(0, 0, 1), z)
+        if wires and max(w.BoundBox.XMax for w in wires) > shank_r + 0.2:
+            return z
+        z += 0.02
+    raise ValueError("no head found on the machine screw")
+def tapping(doc, job):
+    # the machine head of the spec's head+drive, on the add-on's ISO 7049 tapping shank (cone point C, or flat
+    # point F). The shank is kept below the head's underside, the head above it; the total height must be the
+    # length plus the head height, or the head was lost
+    L = float(job["length"])
+    head = doc.addObject("Part::FeaturePython", "Head")
+    FastenersCmd.FSScrewObject(head, job["iso"], None)
+    head.Diameter = job["head_dia"]; head.Thread = False; set_length(head, job["length"])
+    tap = doc.addObject("Part::FeaturePython", "Tap")
+    FastenersCmd.FSScrewObject(tap, "ISO7049-F" if job["point"] == "flat" else "ISO7049-C", None)
+    tap.Diameter = job["st"]; tap.Thread = True; set_length(tap, job["length"])
+    doc.recompute()
+    zu = head_underside(head.Shape, float(job["thread"][1:]) / 2)
+    big = 60
+    above = Part.makeBox(big, big, big, V(-big / 2, -big / 2, zu))
+    below = Part.makeBox(big, big, big, V(-big / 2, -big / 2, zu - big))
+    head_shape = head.Shape.common(above)
+    if job.get("head") == "countersunk":
+        # the add-on's countersunk head has a rounded top rim, which reads as a dome: a 45 degree rim fill
+        # makes the top a flat face at z = 0 out to the head's widest radius, and the cross recess stays
+        rt = head.Shape.BoundBox.XMax
+        tri = [V(rt - 0.7, 0, -0.7), V(rt, 0, 0), V(rt - 0.7, 0, 0)]
+        rim = Part.Face(Part.makePolygon(tri + [tri[0]])).revolve(V(0, 0, 0), V(0, 0, 1), 360)
+        head_shape = head_shape.fuse(rim)
+    res = head_shape.fuse(tap.Shape.common(below)).removeSplitter()
+    if job.get("head") == "countersunk":
+        # a countersunk head widens towards its top: the top's diameter is more than the underside's
+        top_r = max(w.BoundBox.XMax for w in res.slice(V(0, 0, 1), -0.02))
+        under_r = max(w.BoundBox.XMax for w in res.slice(V(0, 0, 1), zu + 0.05))
+        print("CSHEAD", job["iso"], job["thread"], L, "top r %.3f underside r %.3f" % (top_r, under_r), flush=True)
+        if top_r <= under_r:
+            raise ValueError("countersunk head does not widen towards its top (%.3f <= %.3f)" % (top_r, under_r))
+    # the length runs from the underside of a pan or button head (it adds to the head), but a countersunk
+    # head's length is overall, from its top: the head is within the length
+    head_top = head.Shape.BoundBox.ZMax
+    expect = L + max(0.0, head_top)
+    total = res.BoundBox.ZMax - res.BoundBox.ZMin
+    print("HEIGHT", job["iso"], job["thread"], L, "head top %.3f total %.3f expect %.3f" % (head_top, total, expect), flush=True)
+    if not res.isValid() or abs(total - expect) > 0.05 * expect:
+        raise ValueError("height %.3f, expected %.3f (length %.3f, head above it %.3f)" % (total, expect, L, max(0.0, head_top)))
+    return res
 for job in json.loads(open(JOBS_JSON).read()):
     try:
         doc = FreeCAD.newDocument("job")
@@ -101,13 +195,11 @@ for job in json.loads(open(JOBS_JSON).read()):
             obj = doc.addObject("Part::FeaturePython", "Screw")
             FastenersCmd.FSScrewObject(obj, job["iso"], None)
             obj.Diameter = job["thread"]; obj.Thread = True
-            # a length the add-on's table has; any other length is a custom one
-            if str(job["length"]) in obj.getEnumerationsOfProperty("Length"):
-                obj.Length = str(job["length"])
-            else:
-                obj.Length = "Custom"; obj.LengthCustom = job["length"]
+            set_length(obj, job["length"])
             doc.recompute()
             shape, view = obj.Shape, V(1, -1, 1)
+        elif job["kind"] == "tapping":
+            shape, view = tapping(doc, job), V(1, -1, 1)
         else:
             shape, view = bearing(job["d"], job["D"], job["B"]), V(1, -1, 1)
         if shape.isNull() or not shape.isValid() or not shape.Edges:
@@ -445,38 +537,54 @@ def run_freecad(jobs):
                     "org.freecad.FreeCAD", str(script)], check=True)
 
 
+def key_of(spec):
+    """The index key of a drawing: its spec id without spec/; the flat-point variant is '-flat'."""
+    return spec.removeprefix("spec/").replace("#", "-")
+
+
 def slug_of(spec):
-    return spec.removeprefix("spec/").replace("/", "-")
+    return key_of(spec).replace("/", "-")
 
 
 def main():
     data = json.loads((ROOT / "data/hobbydex-rc.json").read_text())
-    bearings, ranked, skipped, links = select_specs(data)
-    only_bearings = "--bearings" in sys.argv   # redraw the bearings only; the screws already in index.json stay
-    candidates = dict(bearings) if only_bearings else {**bearings, **dict(ranked[:SCREW_CANDIDATES])}
-    jobs = [{**p, "out": str(WORK / f"{slug_of(spec)}.svgfrag")} for spec, p in candidates.items()]
-    WORK.mkdir(parents=True, exist_ok=True)
-    if not only_bearings:
+    direct, ranked, skipped, links = select_specs(data)   # bearings and tapping screws, then the other screws
+    # --bearings and --tapping redraw one group; the other drawings already in index.json stay as they are
+    only = next((flag for flag in ("--bearings", "--tapping") if flag in sys.argv), None)
+    old_index = json.loads((OUT / "index.json").read_text()) if only else {}
+    if only == "--bearings":
+        jobs = {sid: p for sid, p in direct.items() if p["kind"] == "bearing"}
+        keep = {k: v for k, v in old_index.items() if k.startswith("screw/")}
+    elif only == "--tapping":
+        # the tapping screws and the pan JIS screws: every drawing they make is redrawn, the rest kept
+        jobs = {sid: p for sid, p in direct.items() if p["kind"] == "tapping" or p.get("group") == "pan-jis"}
+        redrawn = {key_of(sid) for sid in jobs}
+        keep = {k: v for k, v in old_index.items() if k not in redrawn}
+    else:
+        jobs = dict(direct)
+        jobs.update(dict(ranked[:SCREW_CANDIDATES]))
+        keep = {}
+    if not only:
         for f in WORK.glob("*.svgfrag"):
             f.unlink()
-    run_freecad(jobs)
+    WORK.mkdir(parents=True, exist_ok=True)
+    run_freecad([{**p, "out": str(WORK / f"{slug_of(spec)}.svgfrag")} for spec, p in jobs.items()])
 
     OUT.mkdir(parents=True, exist_ok=True)
     index, failed = {}, []
-    old_index = json.loads((OUT / "index.json").read_text()) if only_bearings else {}
-    screws_ok = [sid for sid, _ in ranked if (WORK / f"{slug_of(sid)}.svgfrag").exists()][:SCREW_TOP]
-    if only_bearings:
-        screws_ok = ["spec/" + k for k in old_index if k.startswith("screw/")]
-    skipped["screw, FreeCAD failed"] = sum(1 for sid, _ in ranked[:SCREW_CANDIDATES] if sid not in screws_ok)
-    skipped["screw, outside the top %d drawn" % SCREW_TOP] = len(ranked) - SCREW_CANDIDATES
-    specs = dict(bearings) if only_bearings else {**bearings, **{sid: dict(ranked)[sid] for sid in screws_ok}}
+    screws_ok = []
+    if not only:
+        screws_ok = [sid for sid, _ in ranked if (WORK / f"{slug_of(sid)}.svgfrag").exists()][:SCREW_TOP]
+        skipped["screw, FreeCAD failed"] = sum(1 for sid, _ in ranked[:SCREW_CANDIDATES] if sid not in screws_ok)
+        skipped["screw, outside the top %d drawn" % SCREW_TOP] = len(ranked) - SCREW_CANDIDATES
+    specs = {**jobs, **{sid: dict(ranked)[sid] for sid in screws_ok}}
     for spec, p in specs.items():
         slug = slug_of(spec)
         frag_path = WORK / f"{slug}.svgfrag"
         if not frag_path.exists():
             failed.append(spec); continue
         frag = frag_path.read_text()
-        is_screw = p["kind"] == "screw"
+        is_screw = p["kind"] in ("screw", "tapping")
         frag_transform = FRAG
         frame = axis_frame([read_fragment((WORK / f"{slug}.svgfrag.axis{i}").read_text(), frag_transform) for i in range(3)])
         frame, a, r = level_axis(frame)
@@ -502,7 +610,6 @@ def main():
         bx0 = min(min(xs), min(x for x, _ in sil_pts)); bx1 = max(max(xs), max(x for x, _ in sil_pts))
         if not is_screw:
             # the outer ring's horizontal extent is its true diameter: the box takes it exactly, not the raster's edge
-            t_ = (p["D"] - p["d"]) / 2
             outer_x = project(frame, [(p["D"] / 2 * math.cos(a), p["D"] / 2 * math.sin(a), z)
                                       for z in (0, p["B"]) for a in np.linspace(0, 2 * math.pi, 361)])[:, 0]
             bx0, bx1 = outer_x.min(), outer_x.max()
@@ -518,10 +625,9 @@ def main():
                f'<g class="lines" fill="none" stroke="currentColor" stroke-width="1.2" '
                f'stroke-linecap="butt" stroke-linejoin="miter">{body}</g></svg>\n')
         (OUT / f"{slug}.svg").write_text(svg)
-        index[spec.removeprefix("spec/")] = f"{slug}.svg"
+        index[key_of(spec)] = f"{slug}.svg"
         print(f"{slug}.svg {len(svg.encode())} bytes, viewBox {vw:.2f} x {vh:.2f} mm, pitch {pitch_x:g} x {pitch_y:g} mm")
-    if only_bearings:
-        index = {**{k: v for k, v in old_index.items() if k.startswith("screw/")}, **index}
+    index = {**keep, **index}
     # remove only the drawings this generator made before (its old index) that are no longer in it
     index_path = OUT / "index.json"
     previous = json.loads(index_path.read_text()).values() if index_path.exists() else []
@@ -529,9 +635,12 @@ def main():
         if name not in index.values() and (OUT / name).exists():
             (OUT / name).unlink()
     index_path.write_text(json.dumps(index, indent=2) + "\n")
+    tapping_failed = [spec for spec in failed if specs[spec]["kind"] == "tapping"]
+    if tapping_failed:
+        sys.exit(f"tapping drawings failed the height check: {tapping_failed}")
     print(f"drawn {len(index)}, screws {len(screws_ok)}, FreeCAD failed {len(failed)}: {failed}")
     print("left out:", skipped)
-    print("links of drawn specs:", sum(links.get(s, 0) for s in specs if s not in failed))
+    print("links of drawn specs:", sum(links.get(s.split("#")[0], 0) for s in specs if s not in failed))
 
 
 if __name__ == "__main__":
