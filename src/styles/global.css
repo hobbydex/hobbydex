@@ -272,7 +272,8 @@ body { overflow-x: clip; }
 .home-hero .home-search { margin: 0 auto; }
 .hero-edge { display: block; width: 100vw; height: auto; aspect-ratio: 1200 / 170; margin: -0.75rem calc(50% - 50vw) -1px; }
 /* the whole wave and the jump scale with the width, down to a phone; on very wide screens the height stops
-   growing and the edge is trimmed on the left (the crest stays: the drawing is anchored right) */
+   growing and the drawing, anchored right, shows more of the flat ground on the left (never trimmed at the top,
+   where the car flies) */
 @media (min-width: 1600px) { .hero-edge { height: 227px; aspect-ratio: auto; } }
 @media (max-width: 700px) { .hero-edge { margin-top: 0.75rem; } }   /* the scaled-down car clears the search box */
 .hero-edge .below { fill: var(--bg); }   /* the page below the wave; above it the band's gradient shows through */
