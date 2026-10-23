@@ -18,7 +18,7 @@ export function hardwareFile(specId: string | undefined): string | undefined {
   return specId ? files[specId.replace(/^spec\//, '')] : undefined;
 }
 
-export type BagItem = { spec: string; qty: number };
+export type BagItem = { spec: string; qty?: number };
 
 /** The bag items for a part, or undefined when it has no drawing to show. */
 export function bagItems(part: Part): BagItem[] | undefined {
@@ -31,4 +31,14 @@ export function bagItems(part: Part): BagItem[] | undefined {
   }
   const e = (part.equivalent_to ?? []).find((x) => hardwareFile(x.spec));
   return e ? [{ spec: e.spec, qty: part.pack_qty ?? 1 }] : undefined;
+}
+
+/**
+ * The bag of a release's row: a single-spec bag takes the release's qty for the part (the kit's count; undefined when
+ * the release gives none, which draws one piece with no count); a bag of several specs keeps its own counts.
+ */
+export function releaseBagItems(part: Part, qty: number | undefined): BagItem[] | undefined {
+  const items = bagItems(part);
+  if (!items) return undefined;
+  return items.length === 1 ? [{ spec: items[0].spec, qty }] : items;
 }

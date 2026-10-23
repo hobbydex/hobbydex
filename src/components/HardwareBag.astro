@@ -66,8 +66,8 @@ function layout(FONT: number) {
   let y = 0, width = BAR;
   groups.forEach((g) => {
     const [, , vw, vh] = g.vb;
-    const n = Math.min(g.qty, CAP), more = g.qty - n;
-    parts.push(`<text x="0" y="${(y + FONT).toFixed(2)}" font-size="${FONT.toFixed(2)}" fill="currentColor">${shortName(g.spec)} x ${g.qty}</text>`);
+    const total = g.qty ?? 1, n = Math.min(total, CAP), more = total - n;
+    parts.push(`<text x="0" y="${(y + FONT).toFixed(2)}" font-size="${FONT.toFixed(2)}" fill="currentColor">${shortName(g.spec)}${g.qty !== undefined ? ` x ${g.qty}` : ''}</text>`);
     const top = y + FONT * 1.5;
     let lastX = 0, lastY = top;
     for (let k = 0; k < n; k++) {
@@ -97,7 +97,7 @@ function layout(FONT: number) {
 const first = layout(2.2);
 const FONT = Math.max(2.2, (first.width + 2 * MARGIN) / 28);
 const { parts: body, width, height } = FONT === 2.2 ? first : layout(FONT);
-const label = groups.map((g) => `${g.qty} x ${fullName(g.spec)}`).join(', ');
+const label = groups.map((g) => `${g.qty !== undefined ? `${g.qty} x ` : ''}${fullName(g.spec)}`).join(', ');
 const vbox = [-MARGIN, -MARGIN, width + 2 * MARGIN, height + 2 * MARGIN].map((v) => v.toFixed(2)).join(' ');
 const maxWidth = ((width + 2 * MARGIN) * MAX_PX_PER_MM).toFixed(0);
 ---

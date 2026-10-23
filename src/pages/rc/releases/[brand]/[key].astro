@@ -23,6 +23,8 @@ import DataLink from '../../../../components/DataLink.astro';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 import { driveLabel } from '../../../../lib/drive';
 import { bearingList } from '../../../../lib/bearingList';
+import { releaseBagItems } from '../../../../lib/hardwareBag';
+import HardwareBag from '../../../../components/HardwareBag.astro';
 import { colourSiblings, colourName } from '../../../../lib/colourSiblings';
 import { gearing } from '../../../../lib/gearing';
 import { fileRows, pageLabel, hostLabel, makerOwnLinks } from '../../../../lib/docFacts';
@@ -70,7 +72,9 @@ const needs = (release.needs ?? []).map((n) => ({ ...n, p: n.part ? db.part.get(
 // the same release in other colours (colourSiblings.ts); a release with no parts list of its own shows the one of the sibling with the most rows
 const siblings = colourSiblings(release, db.releases);
 const listedFrom = (release.contains ?? []).length === 0 ? siblings.filter((s) => (s.contains ?? []).length > 0).sort((a, b) => b.contains!.length - a.contains!.length)[0] : undefined;
-const rows = ((listedFrom ?? release).contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
+// a hardware row carries its bag: the drawing of its spec, counted as the release lists the part (the kit's qty)
+const rows = ((listedFrom ?? release).contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p)
+  .map((c) => ({ ...c, bag: releaseBagItems(c.p, c.qty) }));
 // current parts before discontinued ones, each group in part-number order
 const section = (role: string) => rows.filter((c) => c.role === role).sort((a, b) => (a.p.status === 'discontinued' ? 1 : 0) - (b.p.status === 'discontinued' ? 1 : 0) || byPartNo(a.p, b.p));
 const hasSplit = rows.some((c) => c.role !== 'listed');
@@ -208,7 +212,7 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({gr.length})</span></h3>
         <table>
           <tr><th class="num numcol" style={`--numn:${numW}`}>Number</th><th>Name</th>{hasQty && <th class="num w-qty">Qty</th>}<th class="num w-qty">Pack</th><th class="w-brand c-brand">Brand</th>{hasStep && <th class="w-step c-step">Step</th>}</tr>
-          {gr.map((c) => <tr><td class="num">{c.p.number && <a href={url.part(c.p.id)}>{c.p.number}</a>}</td><td><Fragment set:html={c.p.category === 'paint' ? (paintChip(c.p, 14, 'circle') ?? '') : colourDot(c.p.color)} />{c.p.number ? c.p.name : <a href={url.part(c.p.id)}>{c.p.name}</a>}<Discontinued item={c.p} /></td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted c-step">{c.step ?? ''}</td>}</tr>)}
+          {gr.map((c) => <tr><td class="num">{c.p.number && <a href={url.part(c.p.id)}>{c.p.number}</a>}</td><td><Fragment set:html={c.p.category === 'paint' ? (paintChip(c.p, 14, 'circle') ?? '') : colourDot(c.p.color)} />{c.p.number ? c.p.name : <a href={url.part(c.p.id)}>{c.p.name}</a>}<Discontinued item={c.p} />{c.bag && <span class="relbag" data-pagefind-ignore><HardwareBag items={c.bag} seal={c.p.seal} color={c.p.color} /></span>}</td>{hasQty && <td class="num">{c.qty ?? ''}</td>}<td class="num">{c.p.pack_qty ?? ''}</td><td class="c-brand">{brandName(c.p.brand)}</td>{hasStep && <td class="muted c-step">{c.step ?? ''}</td>}</tr>)}
         </table></div>; })}
     </section>; })}</div>; })()}
   {needs.length > 0 && <section data-pagefind-ignore class="needs">
@@ -264,6 +268,9 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     :global(body.hastabs) .panelhead { display: none; }
     .catgroup table { table-layout: fixed; width: 100%; }
     .catgroup td.num { white-space: normal; overflow-wrap: anywhere; }
+    /* a hardware row's bag: under its name, no wider than a phone column */
+    .relbag { display: block; max-width: 14rem; }
+    :global(.relbag .hardwarebag) { margin: 0.3rem 0 0; }
     .w-qty { width: 4rem; } .w-brand { width: 8rem; } .w-step { width: 9rem; }
     /* the manual's build step per part: hidden until asked for, the column is wide on race kits */
     :global(body:not(.steps-on)) .c-step { display: none; }
