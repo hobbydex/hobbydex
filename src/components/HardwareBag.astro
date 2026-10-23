@@ -114,9 +114,13 @@ const maxWidth = ((width + 2 * MARGIN) * MAX_PX_PER_MM).toFixed(0);
     --hb-steel: #c9ccd1; --hb-steel-ink: #3b3f46; --hb-darkzinc: #807e72; --hb-darkzinc-ink: #26241f; --hb-black: #2b2e33; --hb-black-ink: #f2f2f5;
     --hb-titanium: #a39e96; --hb-titanium-ink: #3a3733; --hb-aluminium: #dfe2e6; --hb-aluminium-ink: #4a4f57; --hb-brass: #c8a24a; --hb-brass-ink: #5a4312;
     --hb-copper: #b8683d; --hb-copper-ink: #5a2b14; --hb-plastic: #f2efe6; --hb-plastic-ink: #5c5850; }
-  @media (prefers-color-scheme: dark) { .hardwarebag { --seal-rubber: #6b7079;
-    --hb-steel: #8d929a; --hb-steel-ink: #1e2126; --hb-darkzinc: #6f6d64; --hb-darkzinc-ink: #1c1b18; --hb-black: #4a4e55; --hb-black-ink: #e6e8ec;
-    --hb-titanium: #8f8a84; --hb-titanium-ink: #1e1c1a; --hb-aluminium: #b5bac2; --hb-aluminium-ink: #20232a; --hb-brass: #a8843a; --hb-brass-ink: #2a1f08;
+  @media (prefers-color-scheme: dark) { :root:not([data-color-mode="light"]) .hardwarebag { --seal-rubber: #6b7079;
+    --hb-steel: #b9bec6; --hb-steel-ink: #1e2126; --hb-darkzinc: #6f6d64; --hb-darkzinc-ink: #1c1b18; --hb-black: #4a4e55; --hb-black-ink: #e6e8ec;
+    --hb-titanium: #8f8a84; --hb-titanium-ink: #1e1c1a; --hb-aluminium: #cfd3d9; --hb-aluminium-ink: #20232a; --hb-brass: #a8843a; --hb-brass-ink: #2a1f08;
     --hb-copper: #a3583a; --hb-copper-ink: #2a1208; --hb-plastic: #d8d4c9; --hb-plastic-ink: #2c2a26; } }
+  :root[data-color-mode="dark"] .hardwarebag { --seal-rubber: #6b7079;
+    --hb-steel: #b9bec6; --hb-steel-ink: #1e2126; --hb-darkzinc: #6f6d64; --hb-darkzinc-ink: #1c1b18; --hb-black: #4a4e55; --hb-black-ink: #e6e8ec;
+    --hb-titanium: #8f8a84; --hb-titanium-ink: #1e1c1a; --hb-aluminium: #cfd3d9; --hb-aluminium-ink: #20232a; --hb-brass: #a8843a; --hb-brass-ink: #2a1f08;
+    --hb-copper: #a3583a; --hb-copper-ink: #2a1208; --hb-plastic: #d8d4c9; --hb-plastic-ink: #2c2a26; }
   .hardwarebag [vector-effect] { vector-effect: non-scaling-stroke; }
 </style>
