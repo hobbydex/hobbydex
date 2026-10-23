@@ -18,7 +18,7 @@ export function releaseList() {
   const brandIds = [...new Set(db.releases.map((r) => r.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));
   const types = [...new Set(db.releases.map(releaseType))].sort((a, b) => (kitTypeOrder.indexOf(a) + 1 || 99) - (kitTypeOrder.indexOf(b) + 1 || 99));
   const scales = [...new Set(db.releases.map(releaseScale))].sort((a, b) => (a ? Number(a.split('/')[1]) : 999) - (b ? Number(b.split('/')[1]) : 999));
-  const builds = ['kit', 'rtr', 'arr', ''].filter((b) => db.releases.some((r) => (r.kind ?? '') === b));
+  const builds = ['kit', 'rtr', 'arr', 'roller', ''].filter((b) => db.releases.some((r) => (r.kind ?? '') === b));
   const statuses = ['released', 'announced', 'discontinued'].filter((s) => db.releases.some((r) => r.status === s));
   const colours: string[] = [], doubts: string[] = [];
   const index = (xs: string[], x: string) => { let i = xs.indexOf(x); if (i < 0) i = xs.push(x) - 1; return i; };
