@@ -4,6 +4,22 @@ import { db, type Spec } from './data';
 export const specIcon: Record<string, string> = { screw: 'screw', nut: 'nut', washer: 'washer-shim', bearing: 'bearing', pin: 'pin', eclip: 'eclip', pinion: 'pinion', oil: 'oil-grease', battery: 'battery', servo: 'servo', motor: 'motor', engine: 'engine-fuel', 'wheel-hex': 'wheel', connector: 'wire', wire: 'wire' };
 export const specLabel: Record<string, string> = { screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims', eclip: 'E-clips', connector: 'Connectors', wire: 'Wire gauges' };
 
+/** Per spec category, the spec's own fields as table columns: [field, header, value shown when the field is unset]. */
+export const specColumns: Record<string, [string, string, string?][]> = {
+  screw: [['thread', 'Thread'], ['length_mm', 'Length mm'], ['head', 'Head'], ['drive', 'Drive'], ['thread_type', 'Type', 'machine']],
+  bearing: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['width_mm', 'Width mm'], ['designation', 'Designation'], ['type', 'Type']],
+  oil: [['viscosity_cst', 'cSt'], ['base', 'Base']],
+  battery: [['chemistry', 'Chemistry'], ['cells', 'Cells'], ['capacity_mah', 'mAh'], ['nominal_v', 'V']],
+  servo: [['size_class', 'Size'], ['spline_teeth', 'Spline']],
+  pinion: [['teeth', 'Teeth'], ['pitch_dp', 'Pitch'], ['module', 'Module']],
+  pin: [['diameter_mm', 'Diameter mm'], ['length_mm', 'Length mm']],
+  eclip: [['shaft_mm', 'Shaft mm'], ['thickness_mm', 'Thickness mm'], ['outer_mm', 'Outer mm'], ['variant', 'Variant']],
+  washer: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['thickness_mm', 'Thickness mm'], ['shape', 'Shape']],
+  connector: [['family', 'Family'], ['pins', 'Pins'], ['contact_mm', 'Contact mm'], ['current_a', 'A'], ['anti_spark', 'Anti-spark']],
+  wire: [['awg', 'Gauge (AWG)'], ['conductor_mm', 'Diameter mm'], ['conductor_in', 'Diameter in'], ['cross_section_mm2', 'Cross-section mm2']],
+  nut: [['thread', 'Thread'], ['type', 'Type'], ['profile', 'Profile'], ['across_flats_mm', 'Across flats mm'], ['height_mm', 'Height mm']],
+};
+
 /** Per category, what each column of the spec table means: [term, explanation], shown under the intro. */
 export const specGuide: Record<string, [string, string][]> = {
   screw: [
