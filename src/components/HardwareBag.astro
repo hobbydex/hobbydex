@@ -33,7 +33,10 @@ const luminance = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i 
 
 // the part's colour: silhouette fill, and the ink for the lines on it (light ink on a dark fill). With no colour, the
 // tone of its finish or material (CSS variables --hb-<tone>, set below), else the page background.
-const shade = colourShades(color)?.[0]?.c;
+// a rubber-sealed bearing's colour is the colour of its seals: the rings stay metal and the seal face takes the colour
+const sealed = (seal === 'rubber' || seal === 'rubber-metal') && items.length > 0 && items.every((i) => i.spec.startsWith('spec/bearing/'));
+const sealShade = sealed ? colourShades(color)?.[0]?.c : undefined;
+const shade = sealed ? undefined : colourShades(color)?.[0]?.c;
 const tone = shade ? undefined : metalTone(finish, material);
 const fill = shade ?? (tone ? `var(--hb-${tone})` : 'var(--bg, #fff)');
 const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : tone ? `var(--hb-${tone}-ink)` : 'currentColor';
@@ -61,7 +64,7 @@ const symbols = new Map<string, string>();
 groups.forEach((g) => {
   if (symbols.has(g.id)) return;
   symbols.set(g.id, `<symbol id="${g.id}" viewBox="${g.vb.join(' ')}"><path d="${g.sil}" fill-rule="evenodd"/>`
-    + `${g.useSeal && g.seg ? `<path d="${g.seg}" fill-rule="evenodd" style="fill:${SEAL_FILL}"/>` : ''}${g.lines}</symbol>`);
+    + `${g.useSeal && g.seg ? `<path d="${g.seg}" fill-rule="evenodd" style="fill:${sealShade ?? SEAL_FILL}"/>` : ''}${g.lines}</symbol>`);
 });
 function layout(FONT: number) {
   const parts: string[] = [];
