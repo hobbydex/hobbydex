@@ -130,9 +130,22 @@ def set_length(obj, length):
         obj.Length = str(length)
     else:
         obj.Length = "Custom"; obj.LengthCustom = length
+def head_underside(shape, shank_r):
+    """The z of the head's underside: the lowest z where the solid's cross-section is wider than the shank.
+    Pan and button heads sit above z = 0 (underside at 0); countersunk heads sit below it (underside at -k)."""
+    bb = shape.BoundBox
+    z = bb.ZMin + 0.01
+    while z <= bb.ZMax:
+        wires = shape.slice(V(0, 0, 1), z)
+        if wires and max(w.BoundBox.XMax for w in wires) > shank_r + 0.2:
+            return z
+        z += 0.02
+    raise ValueError("no head found on the machine screw")
 def tapping(doc, job):
     # the machine head of the spec's head+drive, on the add-on's ISO 7049 tapping shank (cone point C, or flat
-    # point F), keeping the shank below the head underside
+    # point F). The shank is kept below the head's underside, the head above it; the total height must be the
+    # length plus the head height, or the head was lost
+    L = float(job["length"])
     head = doc.addObject("Part::FeaturePython", "Head")
     FastenersCmd.FSScrewObject(head, job["iso"], None)
     head.Diameter = job["head_dia"]; head.Thread = False; set_length(head, job["length"])
@@ -140,10 +153,20 @@ def tapping(doc, job):
     FastenersCmd.FSScrewObject(tap, "ISO7049-F" if job["point"] == "flat" else "ISO7049-C", None)
     tap.Diameter = job["st"]; tap.Thread = True; set_length(tap, job["length"])
     doc.recompute()
+    zu = head_underside(head.Shape, float(job["thread"][1:]) / 2)
     big = 60
-    above = Part.makeBox(big, big, big, V(-big / 2, -big / 2, 0))
-    below = Part.makeBox(big, big, big, V(-big / 2, -big / 2, -big))
-    return head.Shape.common(above).fuse(tap.Shape.common(below)).removeSplitter()
+    above = Part.makeBox(big, big, big, V(-big / 2, -big / 2, zu))
+    below = Part.makeBox(big, big, big, V(-big / 2, -big / 2, zu - big))
+    res = head.Shape.common(above).fuse(tap.Shape.common(below)).removeSplitter()
+    # the length runs from the underside of a pan or button head (it adds to the head), but a countersunk
+    # head's length is overall, from its top: the head is within the length
+    head_top = head.Shape.BoundBox.ZMax
+    expect = L + max(0.0, head_top)
+    total = res.BoundBox.ZMax - res.BoundBox.ZMin
+    print("HEIGHT", job["iso"], job["thread"], L, "head top %.3f total %.3f expect %.3f" % (head_top, total, expect), flush=True)
+    if not res.isValid() or abs(total - expect) > 0.05 * expect:
+        raise ValueError("height %.3f, expected %.3f (length %.3f, head above it %.3f)" % (total, expect, L, max(0.0, head_top)))
+    return res
 for job in json.loads(open(JOBS_JSON).read()):
     try:
         doc = FreeCAD.newDocument("job")
@@ -589,6 +612,9 @@ def main():
         if name not in index.values() and (OUT / name).exists():
             (OUT / name).unlink()
     index_path.write_text(json.dumps(index, indent=2) + "\n")
+    tapping_failed = [spec for spec in failed if specs[spec]["kind"] == "tapping"]
+    if tapping_failed:
+        sys.exit(f"tapping drawings failed the height check: {tapping_failed}")
     print(f"drawn {len(index)}, screws {len(screws_ok)}, FreeCAD failed {len(failed)}: {failed}")
     print("left out:", skipped)
     print("links of drawn specs:", sum(links.get(s.split("#")[0], 0) for s in specs if s not in failed))
