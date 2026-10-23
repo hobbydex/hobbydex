@@ -32,7 +32,7 @@ h2 { font-size: 1rem; font-weight: 600; margin: 1.75rem 0 0.5rem; padding-bottom
 .crumbs { color: var(--muted); font-size: 0.85rem; } .crumbs a { color: var(--muted); }
 .muted { color: var(--muted); font-weight: 400; }
 dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.15rem 1.25rem; margin: 0.5rem 0 1rem; }
-dl.facts dt { color: var(--muted); } dl.facts dd { margin: 0; }
+dl.facts dt { color: var(--muted); } dl.facts dd { margin: 0; overflow-wrap: anywhere; }
 table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 0.875rem; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 th, td { text-align: left; padding: 0.4rem 0.75rem; border-top: 1px solid var(--border-muted); vertical-align: top; }
 tr:first-child th, tr:first-child td { border-top: 0; }
@@ -234,6 +234,9 @@ table.sortable th[aria-sort="descending"] .sortbtn::after { content: " \2193"; }
 /* per-car sets of other makers on a kit page (KitSets.astro), one collapsed line per kind */
 .kitsets { margin: 0.4rem 0; }
 .kitsets > summary { cursor: pointer; color: var(--muted); }
+/* the former names past the first two on a part page: "+N more" opens the rest */
+details.morefmt > summary { cursor: pointer; color: var(--muted); display: inline; }
+details.morefmt > summary:hover { color: var(--fg); }
 .kitsets h4 { margin: 0.6rem 0 0.2rem; }
 
 /* homepage latest releases: the platform follows the name on a wide screen, on its own line on a phone */
