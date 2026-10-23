@@ -1359,5 +1359,20 @@
   "screw/m4x15-button-hex-tapping": "screw-m4x15-button-hex-tapping.svg",
   "screw/m4x15-button-hex-tapping-flat": "screw-m4x15-button-hex-tapping-flat.svg",
   "screw/m4x60-pan-jis": "screw-m4x60-pan-jis.svg",
-  "screw/m5x10-pan-jis": "screw-m5x10-pan-jis.svg"
+  "screw/m5x10-pan-jis": "screw-m5x10-pan-jis.svg",
+  "bearing/thrust-2.6x6x1": "bearing-thrust-2.6x6x1.svg",
+  "bearing/thrust-2x6x2.5": "bearing-thrust-2x6x2.5.svg",
+  "bearing/thrust-2x6x3": "bearing-thrust-2x6x3.svg",
+  "bearing/thrust-3x8x3.5": "bearing-thrust-3x8x3.5.svg",
+  "bearing/thrust-4x8x3.5": "bearing-thrust-4x8x3.5.svg",
+  "bearing/thrust-4x9x3.5": "bearing-thrust-4x9x3.5.svg",
+  "bearing/thrust-4x9x4": "bearing-thrust-4x9x4.svg",
+  "bearing/thrust-5x10x4": "bearing-thrust-5x10x4.svg",
+  "bearing/thrust-5x11x3.5": "bearing-thrust-5x11x3.5.svg",
+  "bearing/thrust-5x11x4": "bearing-thrust-5x11x4.svg",
+  "bearing/thrust-5x11x4.5": "bearing-thrust-5x11x4.5.svg",
+  "bearing/thrust-5x12x5": "bearing-thrust-5x12x5.svg",
+  "bearing/thrust-6.35x9.525x3.175": "bearing-thrust-6.35x9.525x3.175.svg",
+  "bearing/thrust-6x14x5": "bearing-thrust-6x14x5.svg",
+  "bearing/thrust-8x16x5": "bearing-thrust-8x16x5.svg"
 }
