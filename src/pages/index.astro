@@ -50,7 +50,10 @@ const AIR = 'M-200 140 C 0 140 100 112 250 112 S 520 150 680 142 C 779.2 137.0 8
 // debris: thrown back and up from under the rear wheel while the car leaves the crest; the specks ride along
 // with the car (they are in its frame) and hang just behind it at the end. [x, y, r] in the car's frame
 // (its middle at 0, wheels on y=0, front to the right): the rear wheel touches down near x=-30.
-const KICK = [-30, -1], KICK_AT = 3.1;
+// RUN_IN: before the path the car drives in along the flat from further left (RUN_IN seconds at the path's
+// speed, about 372 units/s), so on very wide screens, which show more of the left, it still enters unseen.
+const RUN_IN = 1.4, RUN_DX = 521, T0 = RUN_IN;
+const KICK = [-30, -1], KICK_AT = T0 + 2.7;
 const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], [-74, -11, 1.2], [-82, -26, 0.9], [-40, -2, 1.5]];
 ---
 <Base title="Open hobby parts database" description="Hobbydex: which parts are in my RC car, what fits it, and what is it equivalent to. Open data, no prices, no images of our own.">
@@ -69,12 +72,13 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
       </div>
       <button type="submit" aria-label="Search"><Icon name="search" /><span class="label">Search</span></button>
     </form>
-    <svg class="hero-edge" viewBox="0 0 1200 170" preserveAspectRatio="xMaxYMax slice" aria-hidden="true" focusable="false">
-      <path class="below" d={`${GROUND} V 400 H -200 Z`} />
+    <svg class="hero-edge" viewBox="0 0 1200 170" preserveAspectRatio="xMaxYMax meet" aria-hidden="true" focusable="false">
+      <path class="below" d={`M-3000 140 L${GROUND.slice(1)} V 171 H -3000 Z`} />
+      <g><animateTransform attributeName="transform" type="translate" from={`${-RUN_DX} 0`} to="0 0" dur={`${RUN_IN}s`} fill="freeze" />
       <g class="car">
         <g transform="translate(-48 -46.4) scale(2)"><g transform="translate(48 0) scale(-1 1)">
           <path d={WHEELS} fill-rule="evenodd" />
-          <g><path d={BODY} fill-rule="evenodd" /><animateTransform attributeName="transform" type="translate" values="0 0; 0 0; 0 1.2; 0 -1" keyTimes="0; 0.7; 0.9; 1" calcMode="spline" keySplines="0 0 1 1; 0.4 0 0.6 1; 0.3 0 0.4 1" dur="3.2s" begin="0.4s" fill="freeze" /></g>
+          <g><path d={BODY} fill-rule="evenodd" /><animateTransform attributeName="transform" type="translate" values="0 0; 0 0; 0 1.2; 0 -1" keyTimes="0; 0.7; 0.9; 1" calcMode="spline" keySplines="0 0 1 1; 0.4 0 0.6 1; 0.3 0 0.4 1" dur="3.2s" begin={`${T0}s`} fill="freeze" /></g>
         </g></g>
         <g class="dirt">{DIRT.map(([x, y, r], i) => <circle cx={KICK[0]} cy={KICK[1]} r={r} opacity="0">
           <animate attributeName="cx" from={KICK[0]} to={x} begin={`${KICK_AT + i * 0.04}s`} dur="0.5s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.2 0.6 0.4 1" />
@@ -82,14 +86,14 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
           <set attributeName="opacity" to="1" begin={`${KICK_AT + i * 0.04}s`} fill="freeze" />
         </circle>)}</g>
         <!-- nose up in the air: the car pitches back as it leaves the crest and stays so -->
-        <animateTransform attributeName="transform" type="rotate" values="0; 0; -5" keyTimes="0; 0.85; 1" calcMode="spline" keySplines="0 0 1 1; 0.3 0 0.4 1" dur="3.2s" begin="0.4s" fill="freeze" additive="sum" />
-        <animateMotion dur="3.2s" begin="0.4s" fill="freeze" rotate="auto" path={AIR} />
-      </g>
+        <animateTransform attributeName="transform" type="rotate" values="0; 0; -5" keyTimes="0; 0.85; 1" calcMode="spline" keySplines="0 0 1 1; 0.3 0 0.4 1" dur="3.2s" begin={`${T0}s`} fill="freeze" additive="sum" />
+        <animateMotion dur="3.2s" begin={`${T0}s`} fill="freeze" rotate="auto" path={AIR} />
+      </g></g>
     </svg>
   </section>
   <script is:inline>
     // reduced motion: the hero car stands where its drive would end
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { const e = document.querySelector('.hero-edge'); e && e.setCurrentTime && (e.pauseAnimations(), e.setCurrentTime(5)); }
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { const e = document.querySelector('.hero-edge'); e && e.setCurrentTime && (e.pauseAnimations(), e.setCurrentTime(7)); }
   </script>
   <script is:inline>
     // suggestions as you type: the best few results of the /search/ ranking under the box. Arrow keys pick one,
