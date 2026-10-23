@@ -207,7 +207,7 @@ function ecDrawing(slug: string, e: Ec) {
   const ribX = e.blueLeft ? shellW : 0, shellX = e.blueLeft ? 0 : ribW;
   let side = rect(ribX, 0, ribW, fh);
   for (let i = 1; i * 1.3 < e.ribL; i++) side += `<path class="thin" d="M${f(ribX + i * 1.3 * s)} 0V${f(fh)}"/>`;
-  for (const [a, b] of e.shells) side += rect(shellX, a * s, shellW, (b - a) * s, 'metal');
+  for (const [a, b] of e.shells) side += rect(shellX, a * s, shellW, (b - a) * s);
   side += hdim(0, L, -8, `${e.L.toFixed(2)} mm`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`);
   const name = slug.toUpperCase();
   return { face: ecFace(e, s), side: part(side, L, fh, 'Side'), note: EC_NOTE(name) };
