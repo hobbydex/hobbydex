@@ -1,0 +1,77 @@
+---
+// Filter row over a generic spec table (wrapped in .specbox with the table after it). One control per column worth
+// filtering: a select when the column has 2 to 24 values, a text box for more (exact for numbers, a substring
+// otherwise), none when the column has one value or every row has its own. Filters combine (AND) and live in the
+// URL (?thread=M3&type=self-tapping). Hidden until the script runs, so the full table shows without JS.
+interface Column { label: string; values: string[] }
+interface Props { columns: Column[]; total: number }
+const { columns, total } = Astro.props;
+const SELECT_MAX = 24;
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const isNum = (v: string) => /^-?\d+(\.\d+)?$/.test(v);
+const controls = columns.flatMap((c, i) => {
+  const filled = c.values.filter(Boolean);
+  const distinct = [...new Set(filled)];
+  if (distinct.length < 2 || distinct.length === filled.length) return [];
+  const numeric = distinct.every(isNum);
+  const choices = numeric
+    ? distinct.sort((a, b) => Number(a) - Number(b))
+    : distinct.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  return [{ i, label: c.label, param: slug(c.label), numeric, choices: distinct.length <= SELECT_MAX ? choices : undefined }];
+});
+---
+{controls.length > 0 && <div class="websearch specfilter" data-pagefind-ignore hidden>
+  {controls.map((c) => c.choices
+    ? <select data-col={c.i} data-param={c.param} aria-label={c.label}><option value="">any {c.label.toLowerCase()}</option>{c.choices.map((v) => <option>{v}</option>)}</select>
+    : <input type="search" class="search-box" data-col={c.i} data-param={c.param} data-numeric={c.numeric ? '' : undefined} placeholder={c.label.toLowerCase()} aria-label={c.label} />)}
+  <a href="#" class="reset" hidden>Reset</a>
+  <span class="muted count">{total} of {total}</span>
+</div>}
+<style>
+  .specfilter[hidden] { display: none; }
+  .specfilter input { width: 8.5rem; font-size: 0.85rem; padding: 0.3rem 0.5rem; }
+  .specfilter .reset { font-size: 0.85rem; }
+</style>
+<script>
+  type Ctrl = HTMLSelectElement | HTMLInputElement;
+  for (const box of document.querySelectorAll<HTMLElement>('.specfilter')) {
+    const table = box.closest('.specbox')?.querySelector('table');
+    if (!table) continue;
+    const body = table.tBodies[0];
+    const ctrls = [...box.querySelectorAll<Ctrl>('[data-col]')];
+    const count = box.querySelector<HTMLElement>('.count')!, reset = box.querySelector<HTMLAnchorElement>('.reset')!;
+    const cell = (tr: HTMLTableRowElement, c: Ctrl) => tr.cells[Number(c.dataset.col) + 1].textContent!.trim();
+    const matches = (tr: HTMLTableRowElement, c: Ctrl) => {
+      const v = c.value.trim();
+      if (!v) return true;
+      const text = cell(tr, c);
+      if (c instanceof HTMLSelectElement) return text === v;
+      if (c.dataset.numeric !== undefined) return /^-?\d+(\.\d+)?$/.test(v) && Number(text) === Number(v);
+      return text.toLowerCase().includes(v.toLowerCase());
+    };
+    const apply = () => {
+      const u = new URL(location.href);
+      let active = 0;
+      for (const c of ctrls) {
+        const v = c.value.trim();
+        if (v) { active++; u.searchParams.set(c.dataset.param!, v); } else u.searchParams.delete(c.dataset.param!);
+      }
+      history.replaceState(null, '', u);
+      let shown = 0;
+      for (const tr of body.rows) { const ok = ctrls.every((c) => matches(tr, c)); tr.hidden = !ok; if (ok) shown++; }
+      count.textContent = `${shown} of ${body.rows.length}`;
+      reset.hidden = active === 0;
+    };
+    const params = new URLSearchParams(location.search);
+    for (const c of ctrls) {
+      const want = params.get(c.dataset.param!);
+      if (want === null) continue;
+      if (c instanceof HTMLSelectElement) { if ([...c.options].some((o) => o.value === want)) c.value = want; }
+      else c.value = want;
+    }
+    for (const c of ctrls) c.addEventListener(c instanceof HTMLSelectElement ? 'change' : 'input', apply);
+    reset.addEventListener('click', (e) => { e.preventDefault(); for (const c of ctrls) c.value = ''; apply(); });
+    box.hidden = false;
+    apply();
+  }
+</script>
