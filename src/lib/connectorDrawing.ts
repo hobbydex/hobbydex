@@ -1,7 +1,7 @@
-// Drawings of connector specs, drawn in currentColor like the other spec drawings. Amass's dimensioned spec sheets
-// give the EC plugs (EC2, EC3, EC5: mating face and side, to scale), their contacts (the bullets, to scale), and the
-// AM-1015 T-plug (the Deans housing, to scale). Other plugs have no dimensioned drawing in our sources: they are drawn
-// at their usual shape and marked not to scale.
+// Drawings of connector specs, drawn in currentColor like the other spec drawings. Amass's dimensioned drawings give
+// the EC plugs (EC2, EC3, EC5), the XT plugs (XT30, XT60, XT60H, XT90, XT90S, XT150), the AS150, the AM-1015 T-plug
+// (Deans) and the bullet contacts: these are to scale, each view in its own mm coordinates. Other plugs have no
+// dimensioned drawing in our sources: they are drawn at their usual shape and marked not to scale.
 import type { Spec } from './data';
 import type { ScrewDrawing } from './screwDrawing';
 
@@ -16,8 +16,6 @@ function housing(x: number, y: number, w: number, h: number, c: [number, number,
   const [tl, tr, br, bl] = c;
   return `<path class="fill" d="M${f(x + tl)} ${f(y)}H${f(x + w - tr)}L${f(x + w)} ${f(y + tr)}V${f(y + h - br)}L${f(x + w - br)} ${f(y + h)}H${f(x + bl)}L${f(x)} ${f(y + h - bl)}V${f(y + tl)}Z"/>`;
 }
-// the anti-spark contact: a hollow pin inside one contact
-const sparkPin = (x: number, y: number, r: number) => circ(x, y, r * 0.45, 'ball');
 
 // a dimension line with its value above it (horizontal) or beside it (vertical)
 const hdim = (x1: number, x2: number, y: number, t: string) => `<path class="thin" d="M${f(x1)} ${f(y)}H${f(x2)}M${f(x1)} ${f(y - 3)}V${f(y + 3)}M${f(x2)} ${f(y - 3)}V${f(y + 3)}"/>${label((x1 + x2) / 2, y - 4, t)}`;
@@ -26,17 +24,18 @@ const vdim = (x: number, y1: number, y2: number, t: string) => `<path class="thi
 // a drawn view with room for its dimensions (left and above) and its caption (below); the content is in its own
 // coordinates, origin at its top left
 const ML = 40, MR = 10, MT = 24, MB = 22;
-type Part = { o: string; w: number; h: number; cap: string };
-function part(content: string, w: number, h: number, cap: string): Part {
-  return { o: `<g transform="translate(${ML} ${MT})">${content}</g>`, w: w + ML + MR, h: h + MT + MB, cap };
+type Part = { o: string; w: number; h: number; cap: string; ml: number };
+function part(content: string, w: number, h: number, cap: string, ml = ML): Part {
+  return { o: `<g transform="translate(${ml} ${MT})">${content}</g>`, w: w + ml + MR, h: h + MT + MB, cap, ml };
 }
-// parts side by side, centred on a common baseline, each with its caption
-function row(parts: Part[], gap = 18): { o: string; w: number; h: number } {
-  const total = parts.reduce((a, p) => a + p.w, 0) + gap * (parts.length - 1);
+// parts side by side, centred on a common baseline (in a drawing `within` px wide), each with its caption
+const rowWidth = (parts: Part[], gap = 18) => parts.reduce((a, p) => a + p.w, 0) + gap * (parts.length - 1);
+function row(parts: Part[], gap = 18, within = W): { o: string; w: number; h: number } {
+  const total = rowWidth(parts, gap);
   const H = Math.max(...parts.map((p) => p.h));
-  let x = Math.max(0, (W - total) / 2), o = '';
+  let x = Math.max(0, (within - total) / 2), o = '';
   for (const p of parts) {
-    o += `<g transform="translate(${f(x)} 0)">${p.o}${label((p.w + ML - MR) / 2, H - 6, p.cap)}</g>`;
+    o += `<g transform="translate(${f(x)} 0)">${p.o}${label((p.w + p.ml - MR) / 2, H - 6, p.cap)}</g>`;
     x += p.w + gap;
   }
   return { o, w: Math.max(W, total + 12), h: H };
@@ -46,30 +45,143 @@ function svgOf(name: string, r: { o: string; w: number; h: number }) {
   return `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f(r.w)} ${h}" width="${f(r.w)}" height="${h}" role="img" aria-label="${name}"><g class="s">${r.o}</g></svg>`;
 }
 
-// XT family: the shell with its two bottom corners cut, two round contacts; XT150 and AS150 are single-pin pairs
-function xtShell(w: number, h: number, r: number, dx: number, spark: boolean) {
-  const x = cx - w / 2, y = top + 4, cut = Math.round(w * 0.14), cy = y + h / 2;
-  let o = housing(x, y, w, h, [0, 0, cut, cut]);
-  o += circ(cx - dx, cy, r, 'solid') + circ(cx + dx, cy, r, 'solid');
-  if (spark) o += sparkPin(cx + dx, cy, r);
-  return { o, bottom: y + h };
-}
-function xtPair(dx: number, r: number, spark: boolean) {
-  const cy = top + 30;
-  let o = circ(cx - dx, cy, r, 'solid') + circ(cx + dx, cy, r, 'solid');
-  if (spark) o += sparkPin(cx + dx, cy, r);
-  return { o, bottom: cy + r };
+// A pen that draws in mm at s px per mm. A corner is a radius (number) or a chamfer [along x, along y].
+type Pt = [number, number];
+type Corner = number | Pt;
+type Pen = ReturnType<typeof pen>;
+function pen(s: number) {
+  const n = (v: number) => f(v * s);
+  const pt = ([x, y]: Pt) => `${n(x)} ${n(y)}`;
+  return {
+    n,
+    rect: (x: number, y: number, w: number, h: number, cls = 'fill') => rect(x * s, y * s, w * s, h * s, cls),
+    circ: (x: number, y: number, d: number, cls = 'fill') => circ(x * s, y * s, (d / 2) * s, cls),
+    poly: (pts: Pt[], cls = 'fill', close = true) => `<path class="${cls}" d="M${pts.map(pt).join('L')}${close ? 'Z' : ''}"/>`,
+    // a quadratic curve from a through the control point c to b
+    curve: (a: Pt, c: Pt, b: Pt, cls = 'thin') => `<path class="${cls}" d="M${pt(a)}Q${pt(c)} ${pt(b)}"/>`,
+    shape(x: number, y: number, w: number, h: number, c: [Corner, Corner, Corner, Corner], cls = 'fill') {
+      const k = (v: Corner): [number, number, boolean] => (typeof v === 'number' ? [v, v, true] : [v[0], v[1], false]);
+      const [tl, tr, br, bl] = c.map(k);
+      const turn = (round: boolean, cx: number, cy: number, ex: number, ey: number) => (round ? `Q${n(cx)} ${n(cy)} ${n(ex)} ${n(ey)}` : `L${n(ex)} ${n(ey)}`);
+      let d = `M${n(x + tl[0])} ${n(y)}H${n(x + w - tr[0])}` + turn(tr[2], x + w, y, x + w, y + tr[1]);
+      d += `V${n(y + h - br[1])}` + turn(br[2], x + w, y + h, x + w - br[0], y + h);
+      d += `H${n(x + bl[0])}` + turn(bl[2], x, y + h, x, y + h - bl[1]);
+      d += `V${n(y + tl[1])}` + turn(tl[2], x, y, x + tl[0], y);
+      return `<path class="${cls}" d="${d}Z"/>`;
+    },
+  };
 }
 
-// EC and IC without a dimensioned drawing: a rectangular housing with one corner cut for the polarity
-const EC_SIZE: Record<string, [number, number, number, number]> = { '2': [96, 62, 8, 19], '3': [112, 72, 9.5, 24], '5': [132, 84, 12, 30], '8': [160, 100, 15, 38] };
-function ecShell(size: string) {
-  const [w, h, r, dx] = EC_SIZE[size] ?? EC_SIZE['5'];
-  const x = cx - w / 2, y = top + 4, cy = y + h / 2;
-  let o = housing(x, y, w, h, [w * 0.16, 0, 0, 0]);
-  o += circ(cx - dx, cy, r, 'ball') + circ(cx + dx, cy, r, 'ball');
-  return { o, bottom: y + h };
+// A drawing of views side by side (or rows of them, one under the other), all at one scale (px per mm) that keeps a
+// row about 220 px wide and the views at most 150 px high. Each view is drawn in mm from its top left; dw and dh are
+// the dimensions printed along its top and left edges.
+type View = { w: number; h: number; cap: string; draw: (p: Pen) => string; dw?: string; dh?: string };
+function views(name: string, vs: View[] | View[][], budget = 220) {
+  const rows = (Array.isArray(vs[0]) ? vs : [vs]) as View[][];
+  const s = Math.min(16, budget / Math.max(...rows.map((r) => r.reduce((a, v) => a + v.w, 0))), 150 / Math.max(...rows.flat().map((v) => v.h)));
+  const p = pen(s);
+  const parts = rows.map((r) => r.map((v) => part(v.draw(p) + (v.dw ? hdim(0, v.w * s, -8, v.dw) : '') + (v.dh ? vdim(-8, 0, v.h * s, v.dh) : ''), v.w * s, v.h * s, v.cap, v.dh ? ML : 12)));
+  const within = Math.max(W, ...parts.map((r) => rowWidth(r) + 12));
+  let o = '', y = 0;
+  for (const r of parts.map((r) => row(r, 18, within))) { o += `<g transform="translate(0 ${f(y)})">${r.o}</g>`; y += r.h; }
+  return svgOf(name, { o, w: within, h: y });
 }
+// a male contact seen end on: the cavity around it, the pin with its cross slot
+function pin(p: Pen, x: number, y: number, cavity: number, d: number) {
+  const sw = d * 0.14;
+  return p.circ(x, y, cavity, 'ball') + p.circ(x, y, d, 'solid') + p.rect(x - d / 2, y - sw / 2, d, sw, 'bg') + p.rect(x - sw / 2, y - d / 2, sw, d, 'bg');
+}
+const line = (p: Pen, x1: number, y1: number, x2: number, y2: number) => p.poly([[x1, y1], [x2, y2]], 'thin', false);
+
+// The XT, XT150 and AS150 plugs from the drawings on Amass's product pages: mating face (male) and side, in mm. The
+// outline sizes are dimensioned there; contact positions and the other details are read off the drawing.
+const READ_OFF = 'the contact positions and other details are read off the drawing';
+const XT: Record<string, { note: string; views: View[] }> = {
+  xt30: {
+    note: `the XT30U drawing on Amass's XT30U page: the 5.60 x 10.20 face and 13.70 length are dimensioned, in mm; ${READ_OFF} (contacts 5.0 apart)`,
+    views: [
+      { w: 5.6, h: 10.2, cap: 'Mating face', dw: '5.60', dh: '10.20', draw: (p) =>
+        p.shape(0, 0, 5.6, 10.2, [0.6, 0.6, [1.9, 1.55], [1.9, 1.55]]) + p.shape(0.45, 0.45, 4.7, 9.3, [0.3, 0.3, [1.6, 1.3], [1.6, 1.3]], 'thin')
+        + p.curve([0.45, 3.9], [1.5, 5.1], [0.45, 6.3]) + p.curve([5.15, 3.9], [4.1, 5.1], [5.15, 6.3])
+        + pin(p, 2.8, 2.6, 3.1, 2) + pin(p, 2.8, 7.6, 3.1, 2) },
+      { w: 13.7, h: 10.2, cap: 'Side', dw: '13.70 mm', draw: (p) =>
+        p.rect(0, 0, 7.74, 10.2) + p.rect(7.74, 0, 2.46, 10.2) + p.rect(10.2, 1.38, 0.97, 7.56)
+        + p.rect(11.17, 2.52, 2.53, 1.29) + p.rect(11.17, 6.39, 2.53, 1.29) },
+    ],
+  },
+  xt60: {
+    note: `Amass's XT60 drawing: the 8.10 x 16.00 face and 20.50 length are dimensioned, in mm; ${READ_OFF} (contacts 7.2 apart)`,
+    views: [
+      { w: 8.1, h: 16, cap: 'Mating face', dw: '8.10', dh: '16.00', draw: (p) =>
+        p.shape(0, 0, 8.1, 16, [[0.6, 0.6], [0.6, 0.6], [2.85, 3.24], [2.85, 3.24]]) + p.shape(0.68, 0.68, 6.74, 14.64, [[0.3, 0.3], [0.3, 0.3], [2.5, 2.85], [2.5, 2.85]], 'thin')
+        + pin(p, 4.05, 4.3, 4.45, 3.5) + pin(p, 4.05, 11.5, 4.45, 3.5) + p.rect(0.92, 6.98, 5.31, 1.84) },
+      { w: 20.5, h: 16, cap: 'Side', dw: '20.50 mm', draw: (p) =>
+        p.rect(0, 0, 15.93, 16) + line(p, 0, 0.5, 15.93, 0.5) + line(p, 0, 12.83, 15.93, 12.83) + p.rect(9.39, 1.52, 5.55, 10.37, 'thin') + p.rect(11.6, -0.3, 2.2, 0.3)
+        + p.poly([[15.93, 2.08], [17.53, 2.08], [17.53, 4.24], [20.5, 4.24], [20.5, 6.53], [15.93, 6.53]])
+        + p.poly([[15.93, 9.4], [20.5, 9.4], [20.5, 11.76], [17.53, 11.76], [17.53, 14.02], [15.93, 14.02]]) },
+    ],
+  },
+  xt60h: {
+    note: `Amass's XT60H drawing: the 9.20 x 16.40 face and 23.90 length are dimensioned, in mm; ${READ_OFF} (contacts 7.2 apart)`,
+    views: [
+      { w: 9.2, h: 16.4, cap: 'Mating face', dw: '9.20', dh: '16.40', draw: (p) =>
+        p.shape(0, 0, 9.2, 16.4, [1.75, 1.75, 1.75, 1.75]) + p.shape(0.56, 0.56, 8.08, 15.28, [1.3, 1.3, 1.3, 1.3], 'thin')
+        + p.shape(1.08, 1.21, 7.07, 14.15, [[2.27, 2.43], [2.27, 2.43], 0.3, 0.3], 'ball')
+        + pin(p, 4.57, 4.69, 4.54, 3.5) + pin(p, 4.57, 11.89, 4.54, 3.5) + p.rect(2.04, 7.38, 4.89, 1.73) + p.rect(6.93, 7.55, 0.93, 1.04, 'thin') },
+      { w: 23.9, h: 16.4, cap: 'Side', dw: '23.90 mm', draw: (p) =>
+        p.rect(0, 0.45, 12.21, 15.53) + line(p, 0, 1.04, 8.55, 1.04) + line(p, 0, 13.55, 8.55, 13.55) + p.rect(8.55, 1.74, 3.49, 11.29, 'thin')
+        + p.rect(12.21, 0, 1.22, 16.4) + p.poly([[13.43, 0], [16.57, 0], [23.9, 0.69], [23.9, 15.71], [16.57, 16.4], [13.43, 16.4]])
+        + line(p, 13.43, 4.5, 16.57, 4.5) + line(p, 13.43, 12, 16.57, 12)
+        + p.shape(16.75, 3.47, 2.25, 9.39, [0.9, 0.9, 0.9, 0.9], 'thin') + p.shape(19, 3.47, 1.9, 9.39, [0.9, 0.9, 0.9, 0.9], 'thin') + p.shape(20.9, 3.47, 2.8, 9.39, [0.9, 0.9, 0.9, 0.9], 'thin') },
+    ],
+  },
+  xt90: {
+    note: `the XT90 drawing on Amass's XT90H page (the plug without its rear cover): the 10.90 x 20.80 face and 25.20 length are dimensioned, in mm; ${READ_OFF} (contacts 10.8 apart)`,
+    views: [
+      { w: 10.9, h: 20.8, cap: 'Mating face', dw: '10.90', dh: '20.80', draw: (p) =>
+        p.shape(0, 0, 10.9, 20.8, [[0.7, 0.7], [0.7, 0.7], [3.6, 3.9], [3.6, 3.9]]) + p.shape(0.6, 0.6, 9.7, 19.6, [[0.4, 0.4], [0.4, 0.4], [3.3, 3.55], [3.3, 3.55]], 'thin')
+        + [4.89, 15.69].map((y) => p.circ(5.45, y, 7.1, 'thin') + p.circ(5.45, y, 5.5, 'ball') + p.circ(5.45, y, 3.5, 'thin')).join('')
+        + p.curve([1.92, 8.32], [5.45, 10.4], [8.98, 8.32]) + p.curve([1.92, 12.33], [5.45, 10.25], [8.98, 12.33]) + line(p, 1.92, 8.32, 1.92, 12.33) + line(p, 8.98, 8.32, 8.98, 12.33) },
+      { w: 25.2, h: 20.8, cap: 'Side', dw: '25.20 mm', draw: (p) =>
+        p.rect(0, 0.61, 11.73, 19.39) + line(p, 0, 1.83, 11.73, 1.83) + line(p, 0, 17.1, 11.73, 17.1)
+        + p.rect(11.73, 0, 7.97, 20.8) + line(p, 11.73, 1.15, 19.7, 1.15) + line(p, 11.73, 17.4, 19.7, 17.4) + p.rect(15.2, -0.35, 2.5, 0.35) + p.rect(12.1, 2.48, 0.98, 12.9, 'thin')
+        + p.rect(19.7, 2.1, 0.96, 5.65) + p.rect(19.7, 12.9, 0.96, 5.7) + p.rect(20.66, 4.1, 4.54, 3.65) + p.rect(20.66, 12.9, 4.54, 3.6)
+        + [21.6, 22.6, 23.6, 24.6].map((x) => line(p, x, 4.1, x, 7.75) + line(p, x, 12.9, x, 16.5)).join('') },
+    ],
+  },
+  xt90s: {
+    note: `Amass's XT90S drawing: the 21.50 x 31.20 front and 9.90 side are dimensioned, in mm, and the other details are read off it; Amass does not draw the XT90S mating face, so it is not shown`,
+    views: [
+      { w: 21.5, h: 31.2, cap: 'Front', dw: '21.50', dh: '31.20', draw: (p) =>
+        p.rect(1.07, 0, 19.43, 13.07) + line(p, 2.17, 0, 2.17, 13.07) + line(p, 17.67, 0, 17.67, 13.07)
+        + p.rect(0.28, 13.07, 20.92, 8.13) + p.rect(0.47, 21.2, 20.56, 2.6) + p.poly([[0.67, 23.8], [20.83, 23.8], [19.84, 31.2], [1.66, 31.2]])
+        + line(p, 4.7, 21.2, 4.7, 31.2) + line(p, 15.4, 21.2, 15.4, 31.2) },
+      { w: 9.9, h: 31.2, cap: 'Side', dw: '9.90', draw: (p) =>
+        p.rect(0.71, 0, 8.39, 13.07) + line(p, 1.78, 0, 1.78, 13.07) + line(p, 8.12, 0, 8.12, 13.07)
+        + p.rect(0, 13.07, 9.9, 8.13) + p.rect(0.12, 21.2, 9.66, 2.6) + p.poly([[0.2, 23.8], [9.7, 23.8], [8.6, 31.2], [1.3, 31.2]]) + line(p, 4.95, 23.8, 4.95, 31.2) },
+    ],
+  },
+  xt150: {
+    note: `Amass's XT150 drawing (male): the 10.00 x 11.00 face and 30.20 length are dimensioned, in mm; ${READ_OFF}; one pole of the pair`,
+    views: [
+      { w: 10, h: 11, cap: 'Mating face', dw: '10.00', dh: '11.00', draw: (p) =>
+        p.shape(0, 0, 10, 10.13, [2, 2, 2, 2]) + p.poly([[4.06, 10.13], [5.8, 10.13], [6.34, 11], [3.55, 11]]) + p.shape(0.45, 0.45, 9.1, 9.23, [1.6, 1.6, 1.6, 1.6], 'thin')
+        + p.circ(5, 5, 8.2, 'thin') + p.circ(5, 5, 7, 'ball') },
+      { w: 30.2, h: 11, cap: 'Side', dw: '30.20 mm', draw: (p) =>
+        p.rect(0, 0, 19.44, 10.07) + p.rect(19.44, 0, 10.76, 10.07) + p.rect(22.1, 10.07, 8.1, 0.93)
+        + line(p, 19.44, 2.95, 21.94, 2.95) + line(p, 28, 2.95, 30.2, 2.95) + line(p, 19.44, 7.12, 21.94, 7.12) + line(p, 28, 7.12, 30.2, 7.12) + p.rect(21.94, 1.98, 6.06, 6.08, 'thin') },
+    ],
+  },
+  as150: {
+    note: `Amass's AS150 drawing: the 13.50 diameter and 35.10 length are dimensioned, in mm, and the other details are read off it; one pole of the pair. Amass does not draw the AS150 mating face, so it is not shown`,
+    views: [
+      { w: 35.1, h: 13.5, cap: 'Side', dw: '35.10 mm', dh: '⌀13.50', draw: (p) =>
+        p.shape(0, 0.81, 16.57, 11.97, [0.3, 0, 0, 0.3]) + p.rect(16.57, 0, 3.01, 13.5) + p.rect(19.58, 0, 8.22, 13.5)
+        + [19.7, 21, 22.8, 24.4, 25.9].map((x) => line(p, x, 0, x, 13.5)).join('')
+        + p.poly([[27.8, 0.42], [30.06, 0.81], [34.2, 1.8], [35.1, 2.74], [35.1, 10.93], [34.2, 11.9], [30.06, 12.78], [27.8, 13.08]]) + line(p, 30.06, 0.81, 30.06, 12.78) },
+    ],
+  },
+};
 
 // Amass EC plugs, from their dimensioned spec sheets (mm). Face: the housing outline, the two sockets (hole) at
 // pitch, the waist on one side. Side: the ribbed rear of length ribL and the two contact shells, each as Amass draws
@@ -81,12 +193,16 @@ const EC: Record<string, Ec> = {
   ec5: { w: 9.9, h: 19.6, hole: 7, pitch: 10.1, L: 24, ribL: 8, blueLeft: false, shells: [[0.4, 8], [11.6, 19.2]] },
 };
 const EC_NOTE = (n: string) => `dimensions from Amass's spec sheet for ${n} (V1.2), in mm`;
-function ecDrawing(slug: string, e: Ec) {
-  const s = Math.min(16, 180 / (e.w + e.L));
+// the EC mating face at s px per mm; dims prints the sizes
+function ecFace(e: Ec, s: number, dims = true) {
   const fw = e.w * s, fh = e.h * s, r = 0.8 * s, mid = fh / 2, wr = fh * 0.12, wd = fw * 0.12, dy = (e.pitch * s) / 2, hx = fw / 2;
   const outline = `M${f(r)} 0H${f(fw - r)}Q${f(fw)} 0 ${f(fw)} ${f(r)}V${f(mid - wr)}Q${f(fw - 2 * wd)} ${f(mid)} ${f(fw)} ${f(mid + wr)}V${f(fh - r)}Q${f(fw)} ${f(fh)} ${f(fw - r)} ${f(fh)}H${f(r)}Q0 ${f(fh)} 0 ${f(fh - r)}V${f(r)}Q0 0 ${f(r)} 0Z`;
-  const face = `<path class="fill" d="${outline}"/>` + circ(hx, mid - dy, (e.hole / 2) * s, 'ball') + circ(hx, mid + dy, (e.hole / 2) * s, 'ball')
-    + hdim(0, fw, -8, `${e.w.toFixed(2)}`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`);
+  return part(`<path class="fill" d="${outline}"/>` + circ(hx, mid - dy, (e.hole / 2) * s, 'ball') + circ(hx, mid + dy, (e.hole / 2) * s, 'ball')
+    + (dims ? hdim(0, fw, -8, `${e.w.toFixed(2)}`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`) : ''), fw, fh, 'Mating face');
+}
+function ecDrawing(slug: string, e: Ec) {
+  const s = Math.min(16, 180 / (e.w + e.L));
+  const fh = e.h * s;
   const L = e.L * s, ribW = e.ribL * s, shellW = L - ribW;
   const ribX = e.blueLeft ? shellW : 0, shellX = e.blueLeft ? 0 : ribW;
   let side = rect(ribX, 0, ribW, fh);
@@ -94,7 +210,7 @@ function ecDrawing(slug: string, e: Ec) {
   for (const [a, b] of e.shells) side += rect(shellX, a * s, shellW, (b - a) * s);
   side += hdim(0, L, -8, `${e.L.toFixed(2)} mm`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`);
   const name = slug.toUpperCase();
-  return { face: part(face, fw, fh, 'Mating face'), side: part(side, L, fh, 'Side'), note: EC_NOTE(name) };
+  return { face: ecFace(e, s), side: part(side, L, fh, 'Side'), note: EC_NOTE(name) };
 }
 
 // Amass contacts (bullets): the length from the EC contact drawing, mm, keyed by diameter; other sizes are 4.2 times
@@ -110,9 +226,43 @@ function bulletPart(d: number, L: number, banana: boolean) {
   const sw = D * (banana ? 0.3 : 0.18);
   o += rect(0, r - sw / 2, Lp * (banana ? 0.5 : 0.42), sw, 'bg');     // spring slot, open at the tip
   o += rect(Lp * 0.68, r - D * 0.25, Lp * 0.32, D * 0.5, 'bg');       // solder cup bore, open at the rear
-  o += hdim(0, Lp, -8, `${L.toFixed(1)} mm`) + vdim(-8, 0, D, `\u2300${d}`);
+  o += hdim(0, Lp, -8, `${L.toFixed(1)} mm`) + vdim(-8, 0, D, `⌀${d}`);
   return { w: Lp, h: D, o };
 }
+
+// The AM-1015-M (male T-plug) on Amass's spec sheet: the housing is dimensioned (6.30 lip, 7.60 x 13.30, 19.10 long
+// with the 5.00 solder tabs); the blades are not, and are read off the drawing: both 4.2 x 1.4 mm, the one across the
+// lip standing upright, the one in the wide part lying flat, each with its spring bow.
+const DEANS: View[] = [
+  { w: 7.6, h: 13.3, cap: 'Mating face', dw: '7.60', dh: '13.30', draw: (p) =>
+    `<path class="fill" d="${deansFace(p)}"/>`
+    + p.rect(2.65, 1.7, 1.4, 4.2, 'solid') + p.curve([2.65, 2.26], [0.87, 3.81], [2.65, 5.36]) + p.rect(4.05, 2.94, 0.3, 1.72, 'thin')
+    + p.rect(1.7, 9.1, 4.2, 1.41, 'solid') + p.curve([2.24, 9.1], [3.81, 7.28], [5.38, 9.1]) + p.rect(2.94, 10.51, 1.7, 0.29, 'thin') },
+  { w: 19.1, h: 13.3, cap: 'Side', dw: '19.10 mm', draw: (p) =>
+    p.shape(0, 1.94, 5.1, 3.63, [0.25, 0, 0, 0.25]) + p.rect(3.29, 2.96, 1.59, 1.59, 'thin') + p.shape(0.1, 9.21, 5, 1.3, [0.25, 0, 0, 0.25])
+    + p.rect(5.1, 0, 6.3, 13.3) + [1, 6.6, 7.3, 12.3].map((y) => line(p, 5.1, y, 11.4, y)).join('')
+    + p.shape(11.4, 1.7, 7.7, 4.11, [0, 0.25, 0.25, 0]) + p.shape(11.4, 2.2, 7.5, 3.1, [0, 0.2, 0.2, 0], 'thin')
+    + p.shape(11.4, 9.21, 7.7, 1.3, [0, 0.25, 0.25, 0]) + p.curve([11.4, 8.95], [14.6, 7.45], [18.9, 9.21]) + p.curve([11.4, 9.21], [14.8, 7.95], [18.6, 9.21]) },
+];
+function deansFace(p: Pen) {
+  // the outline: the 6.30 lip with round top corners, a short slope out to the 7.60 body, round bottom corners
+  const n = p.n;
+  return `M${n(1.55)} 0H${n(6.05)}Q${n(6.95)} 0 ${n(6.95)} ${n(0.9)}V${n(6.57)}L${n(7.6)} ${n(7.3)}V${n(12.4)}Q${n(7.6)} ${n(13.3)} ${n(6.7)} ${n(13.3)}H${n(0.9)}Q0 ${n(13.3)} 0 ${n(12.4)}V${n(7.3)}L${n(0.65)} ${n(6.57)}V${n(0.9)}Q${n(0.65)} 0 ${n(1.55)} 0Z`;
+}
+
+// JR and Futaba servo plugs: three sockets at 2.54 mm pitch in a slim face, JR with its two corners bevelled on one
+// side, Futaba with its key, and the long body from the side. Typical sizes: no dimensioned servo-plug drawing is in
+// our sources.
+const SERVO: View[][] = (() => {
+  const w = 7.6, h = 2.6, L = 14;
+  const holes = (p: Pen, y = 0) => [-1, 0, 1].map((i) => p.rect(w / 2 + i * 2.54 - 0.5, y + h / 2 - 0.5, 1, 1, 'ball')).join('');
+  return [[
+    { w, h, cap: 'JR face', dw: '7.6', dh: '2.6', draw: (p) => p.shape(0, 0, w, h, [[0.7, 0.7], [0.7, 0.7], 0, 0]) + holes(p) },
+    { w, h: h + 0.6, cap: 'Futaba face', draw: (p) => p.rect(w / 2 - 0.8, 0, 1.6, 0.6) + p.rect(0, 0.6, w, h) + holes(p, 0.6) },
+  ], [
+    { w: L + 4, h, cap: 'Side', dh: '2.6', draw: (p) => p.rect(0, 0, L, h) + line(p, 0.6, 0, 0.6, h) + p.rect(L, h / 2 - 0.45, 4, 0.9, 'thin') + hdim(0, Number(p.n(L)), -8, '14 mm') },
+  ]];
+})();
 
 export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
   const slug = String(spec.id).split('/').pop() ?? '';
@@ -135,17 +285,16 @@ export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
   }
 
   if (slug === 'deans') {
-    // the housing from the AM-1015 spec sheet: a 6.30 mm lip, then 7.60 mm wide, 13.30 mm high
-    const s = Math.min(13, 180 / 13.3), fw = 7.6 * s, fh = 13.3 * s, c = fw / 2, lip = 1.8 * s, lipW = 6.3 * s, rr = 1.6 * s;
-    let o = `<path class="fill" d="M${f(c - lipW / 2)} 0H${f(c + lipW / 2)}V${f(lip)}H${f(fw)}V${f(fh - rr)}Q${f(fw)} ${f(fh)} ${f(fw - rr)} ${f(fh)}H${f(rr)}Q0 ${f(fh)} 0 ${f(fh - rr)}V${f(lip)}H${f(c - lipW / 2)}Z"/>`;
-    // two flat blades at right angles: one across, one hanging from its middle (blade sizes are not dimensioned)
-    const y0 = fh * 0.42, bt = 0.9 * s;
-    o += rect(c - 2.4 * s, y0, 4.8 * s, bt, 'bg') + rect(c - bt / 2, y0 + bt, bt, 2.6 * s, 'bg');
-    o += hdim(0, fw, -8, `7.60 mm`) + vdim(-8, 0, fh, `13.30`);
     return {
-      svg: svgOf(name, row([part(o, fw, fh, 'Mating face')])), standard: undefined, approximate: false,
-      note: `housing from Amass's AM-1015 spec sheet (V1.2), in mm; the blades are not dimensioned, so they are drawn at the usual size`,
+      svg: views(name, DEANS), standard: undefined, approximate: false,
+      note: `Amass's AM-1015-M spec sheet (V1.2): the housing (6.30 and 7.60 wide, 13.30 high, 19.10 long) is dimensioned, in mm; the blade sizes (4.2 x 1.4) and positions are not, and are read off the drawing`,
     };
+  }
+
+  if (XT[slug]) return { svg: views(name, XT[slug].views), standard: undefined, approximate: false, note: XT[slug].note };
+
+  if (slug === 'servo-jr-futaba') {
+    return { svg: views(name, SERVO), standard: undefined, approximate: true, note: 'no dimensioned servo-plug drawing is in our sources; drawn at typical sizes: three contacts 2.54 mm apart, a face about 7.6 x 2.6 mm and a body about 14 mm long' };
   }
 
   if (EC[slug]) {
@@ -153,14 +302,19 @@ export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
     return { svg: svgOf(name, row([e.face, e.side])), standard: undefined, approximate: false, note: e.note };
   }
 
+  // IC3 and IC5 mate with EC3 and EC5: their face is drawn as the EC plug's; EC8 as a larger EC5
+  if (slug === 'ic3' || slug === 'ic5' || slug === 'ec8') {
+    const e = EC[slug === 'ic3' ? 'ec3' : 'ec5'];
+    const k = slug === 'ec8' ? 1.3 : 1;
+    const g = { ...e, w: e.w * k, h: e.h * k, hole: slug === 'ec8' ? 8 : e.hole, pitch: e.pitch * k };
+    const note = slug === 'ec8'
+      ? 'drawn as a larger EC5 (Amass\'s EC5 sheet) with 8 mm contacts; no dimensioned EC8 drawing is in our sources'
+      : `drawn as the ${slug === 'ic3' ? 'EC3' : 'EC5'} it mates with (Amass's spec sheet); no dimensioned ${slug.toUpperCase()} drawing is in our sources`;
+    return { svg: svgOf(name, row([ecFace(g, Math.min(16, 110 / g.h), false)])), standard: undefined, approximate: true, note };
+  }
+
   let r: { o: string; bottom: number; extra?: string } | undefined;
-  if (slug === 'xt30') r = xtShell(110, 70, 9, 22, spark);
-  else if (slug === 'xt60' || slug === 'xt60h') r = xtShell(150, 96, 12.5, 32, spark);
-  else if (slug === 'xt90' || slug === 'xt90s') r = xtShell(176, 110, 14, 42, spark);
-  else if (slug === 'xt150') r = xtPair(34, 11, false);
-  else if (slug === 'as150') r = xtPair(34, 11, true);
-  else if (slug === 'qs8') r = xtShell(120, 74, 10, 26, true);
-  else if (/^(ec|ic)\d+$/.test(slug)) r = ecShell(size);
+  if (slug === 'qs8') r = qs8();
   else if (slug === 'tamiya') r = tamiya(116, 62, 14, 26);
   else if (slug === 'tamiya-mini') r = tamiya(80, 46, 10, 18);
   else if (slug === 'traxxas-trx-id' || slug === 'traxxas-high-current') r = traxxas();
@@ -169,9 +323,6 @@ export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
     const n = Number(spec.pins) > 2 ? Number(spec.pins) : 4;
     r = jstXh(n);
     r.extra = label(cx, r.bottom + 18, Number(spec.pins) > 2 ? `${n} pins` : `${n} pins drawn; the pin count is not in the spec`);
-  } else if (slug === 'servo-jr-futaba') {
-    const y = top + 10;
-    r = { o: servoPlug(cx - 66, true, 'JR', y) + servoPlug(cx + 6, false, 'Futaba', y), bottom: y + 46 + 20 };
   }
   if (!r) return undefined;
   const sparkNote = spark ? label(cx, r.bottom + (r.extra ? 36 : 18), 'anti-spark contact') : '';
@@ -179,6 +330,14 @@ export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
   const h = Math.ceil(Math.max(bottom + 8, 110));
   const svg = `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" role="img" aria-label="${name}"><g class="s">${r.o}${r.extra ?? ''}${sparkNote}</g></svg>`;
   return { svg, standard: undefined, approximate: true, note: NOT_DIMENSIONED };
+}
+
+// QS8: a long housing with two 8 mm contacts, the anti-spark one marked by its inner sleeve
+function qs8() {
+  const w = 150, h = 72, x = cx - w / 2, y = top + 4, cy = y + h / 2, r = 22, dx = 38;
+  let o = housing(x, y, w, h, [10, 10, 10, 10]);
+  o += circ(cx - dx, cy, r, 'ball') + circ(cx - dx, cy, r * 0.62, 'solid') + circ(cx + dx, cy, r, 'ball') + circ(cx + dx, cy, r * 0.62, 'solid') + circ(cx + dx, cy, r * 0.3, 'ball');
+  return { o, bottom: y + h };
 }
 
 // Tamiya: a rectangular housing, one round-cornered key (top right), two flat contacts
@@ -211,13 +370,4 @@ function jstXh(n: number) {
   let o = housing(x, y, w, h, [0, 0, 0, 0]);
   for (let i = 0; i < n; i++) o += rect(cx - ((n - 1) * pitch) / 2 + i * pitch - 3.5, y + 9, 7, 16, 'solid');
   return { o, bottom: y + h };
-}
-
-// JR and Futaba servo plugs side by side, three pins each: JR with the bevel on one side, Futaba with the key notch
-function servoPlug(x: number, jr: boolean, name: string, y: number) {
-  const w = 60, h = 46;
-  let o = jr ? housing(x, y, w, h, [0, 0, 14, 0]) : rect(x, y, w, h);
-  if (!jr) o += rect(x + w / 2 - 6, y + h - 6, 12, 6, 'bg');
-  for (let i = 0; i < 3; i++) o += rect(x + 12 + i * 12 - 2.5, y + 12, 5, 16, 'solid');
-  return o + label(x + w / 2, y + h + 16, name);
 }
