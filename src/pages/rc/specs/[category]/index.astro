@@ -2,14 +2,16 @@
 import Base from '../../../../layouts/Base.astro';
 import { url } from '../../../../lib/data';
 import { specLabel, specIntro, specsByCategory, linkedCount, MOTOR_SPEED_NOTE, BATTERY_NOTE } from '../../../../lib/specs';
+import SpecFilter from '../../../../components/SpecFilter.astro';
 export function getStaticPaths() {
   return [...specsByCategory.keys()].map((category) => ({ params: { category } }));
 }
 const { category } = Astro.params;
 const specs = specsByCategory.get(category!)!;
 const title = specLabel[category!] ?? category!;
-const cols: Record<string, [string, string][]> = {
-  screw: [['thread', 'Thread'], ['length_mm', 'Length mm'], ['head', 'Head'], ['drive', 'Drive']],
+// [field, header, value shown when the field is unset]
+const cols: Record<string, [string, string, string?][]> = {
+  screw: [['thread', 'Thread'], ['length_mm', 'Length mm'], ['head', 'Head'], ['drive', 'Drive'], ['thread_type', 'Type', 'machine']],
   bearing: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['width_mm', 'Width mm'], ['designation', 'Designation'], ['type', 'Type']],
   oil: [['viscosity_cst', 'cSt'], ['base', 'Base']],
   battery: [['chemistry', 'Chemistry'], ['cells', 'Cells'], ['capacity_mah', 'mAh'], ['nominal_v', 'V']],
@@ -23,6 +25,7 @@ const cols: Record<string, [string, string][]> = {
   nut: [['thread', 'Thread'], ['type', 'Type'], ['profile', 'Profile'], ['across_flats_mm', 'Across flats mm'], ['height_mm', 'Height mm']],
 };
 const show = cols[category!] ?? [];
+const cell = (s: Record<string, unknown>, k: string, unset = '') => typeof s[k] === 'boolean' ? (s[k] ? 'yes' : 'no') : s[k] === undefined ? unset : String(s[k]);
 const washerNames: [string, string][] = [['under 1 mm', 'shim'], ['1 mm to under 3 mm', 'washer'], ['3 mm and up', 'spacer']];
 ---
 <Base title={`${title}: generic specs`} description={`Every generic ${category} spec in Hobbydex and how many branded parts match it.`}>
@@ -36,10 +39,13 @@ const washerNames: [string, string][] = [['under 1 mm', 'shim'], ['1 mm to under
     {washerNames.map(([t, n]) => <tr><td>{t}</td><td>{n}</td></tr>)}
   </table>}
   <p class="muted">{specs.length} specs, sorted by size. Counts are branded parts linked to each spec.</p>
-  <div class="tablescroll"><table>
-    <tr><th>Spec</th>{show.map(([, l]) => <th>{l}</th>)}<th class="num">Parts</th><th class="num">Brands</th></tr>
-    {specs.map((s) => { const n = linkedCount(s.id); return <tr>
-      <td><a href={url.spec(s.id)}>{s.name ?? s.id}</a></td>{show.map(([k]) => <td>{typeof s[k] === 'boolean' ? (s[k] ? 'yes' : 'no') : s[k] === undefined ? '' : String(s[k])}</td>)}<td class="num">{n.parts}</td><td class="num">{n.brands}</td>
-    </tr>; })}
-  </table></div>
+  <div class="specbox">
+    <SpecFilter columns={show.map(([k, l, unset]) => ({ label: l, values: specs.map((s) => cell(s, k, unset)) }))} total={specs.length} />
+    <div class="tablescroll"><table>
+      <thead><tr><th>Spec</th>{show.map(([, l]) => <th>{l}</th>)}<th class="num">Parts</th><th class="num">Brands</th></tr></thead>
+      <tbody>{specs.map((s) => { const n = linkedCount(s.id); return <tr>
+        <td><a href={url.spec(s.id)}>{s.name ?? s.id}</a></td>{show.map(([k, , unset]) => <td>{cell(s, k, unset)}</td>)}<td class="num">{n.parts}</td><td class="num">{n.brands}</td>
+      </tr>; })}</tbody>
+    </table></div>
+  </div>
 </Base>
