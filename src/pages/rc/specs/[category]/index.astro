@@ -1,7 +1,7 @@
 ---
 import Base from '../../../../layouts/Base.astro';
 import { url } from '../../../../lib/data';
-import { specLabel, specIntro, specGuide, specsByCategory, linkedCount, MOTOR_SPEED_NOTE, BATTERY_NOTE } from '../../../../lib/specs';
+import { specLabel, specIntro, specGuide, specColumns, specsByCategory, linkedCount, MOTOR_SPEED_NOTE, BATTERY_NOTE } from '../../../../lib/specs';
 import SpecFilter from '../../../../components/SpecFilter.astro';
 export function getStaticPaths() {
   return [...specsByCategory.keys()].map((category) => ({ params: { category } }));
@@ -9,22 +9,7 @@ export function getStaticPaths() {
 const { category } = Astro.params;
 const specs = specsByCategory.get(category!)!;
 const title = specLabel[category!] ?? category!;
-// [field, header, value shown when the field is unset]
-const cols: Record<string, [string, string, string?][]> = {
-  screw: [['thread', 'Thread'], ['length_mm', 'Length mm'], ['head', 'Head'], ['drive', 'Drive'], ['thread_type', 'Type', 'machine']],
-  bearing: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['width_mm', 'Width mm'], ['designation', 'Designation'], ['type', 'Type']],
-  oil: [['viscosity_cst', 'cSt'], ['base', 'Base']],
-  battery: [['chemistry', 'Chemistry'], ['cells', 'Cells'], ['capacity_mah', 'mAh'], ['nominal_v', 'V']],
-  servo: [['size_class', 'Size'], ['spline_teeth', 'Spline']],
-  pinion: [['teeth', 'Teeth'], ['pitch_dp', 'Pitch'], ['module', 'Module']],
-  pin: [['diameter_mm', 'Diameter mm'], ['length_mm', 'Length mm']],
-  eclip: [['shaft_mm', 'Shaft mm'], ['thickness_mm', 'Thickness mm'], ['outer_mm', 'Outer mm'], ['variant', 'Variant']],
-  washer: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['thickness_mm', 'Thickness mm'], ['shape', 'Shape']],
-  connector: [['family', 'Family'], ['pins', 'Pins'], ['contact_mm', 'Contact mm'], ['current_a', 'A'], ['anti_spark', 'Anti-spark']],
-  wire: [['awg', 'Gauge (AWG)'], ['conductor_mm', 'Diameter mm'], ['conductor_in', 'Diameter in'], ['cross_section_mm2', 'Cross-section mm2']],
-  nut: [['thread', 'Thread'], ['type', 'Type'], ['profile', 'Profile'], ['across_flats_mm', 'Across flats mm'], ['height_mm', 'Height mm']],
-};
-const show = cols[category!] ?? [];
+const show = specColumns[category!] ?? [];
 const cell = (s: Record<string, unknown>, k: string, unset = '') => typeof s[k] === 'boolean' ? (s[k] ? 'yes' : 'no') : s[k] === undefined ? unset : String(s[k]);
 const washerNames: [string, string][] = [['under 1 mm', 'shim'], ['1 mm to under 3 mm', 'washer'], ['3 mm and up', 'spacer']];
 ---
