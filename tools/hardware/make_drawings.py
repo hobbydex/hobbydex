@@ -2,12 +2,14 @@
 """Hardware bag drawings: one SVG per pilot spec, written to src/assets/hardware/.
 
 FreeCAD models each spec and projects it (screws: the Fasteners add-on; bearings:
-a shielded radial ball bearing built with Part). The projected lines are rounded
+radial ball bearings with a shield, flanged ones with the flange_mm and flange_width_mm of the spec, and thrust
+bearings, all built with Part). The projected lines are rounded
 to 0.01 mm; a filled silhouette is traced from the raster of those lines
 (dilate, flood fill from outside, erode, potrace). The index.json manifest lists
 the specs that have a drawing. Run from the repo root:
 
     python3 tools/hardware/make_drawings.py
+    python3 tools/hardware/make_drawings.py --flanged-thrust   # only the flanged and thrust bearings
 
 FreeCAD runs through flatpak; its work files go to ~/.cache/hobbydex-hardware.
 """
@@ -66,7 +68,8 @@ def select_specs(data):
     for part in data["parts"]:
         for e in part.get("equivalent_to") or []:
             links[e.get("spec")] = links.get(e.get("spec"), 0) + 1
-    skipped = {"bearing, flanged or thrust": 0, "screw, head or drive not mapped": 0,
+    skipped = {"flanged, no flange size in the data": 0, "flanged, flange size not outside the bearing": 0,
+               "bearing, type not drawn": 0, "screw, head or drive not mapped": 0,
                "tapping, head or drive has no head builder": 0, "tapping, head size not in the add-on": 0,
                "tapping, thread size has no ISO 1478 size": 0,
                "screw, not an ISO metric diameter": 0}
@@ -75,10 +78,23 @@ def select_specs(data):
     for spec in data["specs"]:
         sid = spec["id"]
         if spec.get("category") == "bearing":
-            if spec.get("type") == "radial-ball" and spec.get("bore_mm") and spec.get("outer_mm") and spec.get("width_mm"):
-                jobs[sid] = {"kind": "bearing", "d": spec["bore_mm"], "D": spec["outer_mm"], "B": spec["width_mm"]}
+            size = {"d": spec.get("bore_mm"), "D": spec.get("outer_mm"), "B": spec.get("width_mm")}
+            if spec.get("type") == "radial-ball" and all(size.values()):
+                jobs[sid] = {"kind": "bearing", **size}
+            elif spec.get("type") == "thrust" and all(size.values()):
+                jobs[sid] = {"kind": "bearing", "type": "thrust", **size}
+            elif spec.get("type") == "flanged" and all(size.values()):
+                # the flange's diameter and thickness are the spec's flange_mm and flange_width_mm; a flanged
+                # spec without them, or whose flange is not bigger than the bearing, is left out and counted
+                F, T = spec.get("flange_mm"), spec.get("flange_width_mm")
+                if not (F and T):
+                    skipped["flanged, no flange size in the data"] += 1
+                elif not (F > size["D"] and 0 < T < size["B"]):
+                    skipped["flanged, flange size not outside the bearing"] += 1
+                else:
+                    jobs[sid] = {"kind": "bearing", "type": "flanged", **size, "F": F, "T": T}
             else:
-                skipped["bearing, flanged or thrust"] += 1
+                skipped["bearing, type not drawn"] += 1
         elif spec.get("category") == "screw":
             if spec.get("thread_type") == "self-tapping":
                 head = TAP_HEAD_TYPES.get((spec.get("head"), spec.get("drive")))
@@ -114,22 +130,45 @@ def select_specs(data):
 
 # the FreeCAD side: one projection per job, written as TechDraw SVG fragments
 FREECAD = r'''
-import sys, json, FreeCAD, Part, TechDraw
+import sys, json, math, FreeCAD, Part, TechDraw
 sys.path.append(FreeCAD.getUserAppDataDir() + "Mod/fasteners")
 import FastenersCmd
 V = FreeCAD.Vector
 def ring(ro, ri, h, z=0):
     return Part.makeCylinder(ro, h, V(0, 0, z)).cut(Part.makeCylinder(ri, h, V(0, 0, z)))
-def bearing(d, D, B):
-    # outer and inner race with rounded edges, and the shield that hides the balls
+def bearing(d, D, B, F=0, T=0):
+    # outer and inner race with rounded edges, and the shield that hides the balls; a flange F wide and T thick
+    # on the top face of the outer ring
     t = (D - d) / 2
     outer = ring(D/2, D/2 - t*0.28, B)
     inner = ring(d/2 + t*0.28, d/2, B)
     # the rounded edges; a thin ring whose fillet is not valid keeps its sharp edges
     def rounded(r):
-        f = r.makeFillet(min(0.3, B/10), [e for e in r.Edges if e.Curve.TypeId == 'Part::GeomCircle'])
+        try:
+            f = r.makeFillet(min(0.3, B/10), [e for e in r.Edges if e.Curve.TypeId == 'Part::GeomCircle'])
+        except Exception:
+            return r
         return f if f.isValid() else r
-    return Part.makeCompound([rounded(outer), rounded(inner), ring(D/2 - t*0.28, d/2 + t*0.28, B*0.05, B*0.88)])
+    if F:
+        # the flange is fused on after the outer ring's edges are rounded (its own edges stay sharp)
+        outer = rounded(outer).fuse(ring(F/2, D/2 - t*0.28, T, B - T)).removeSplitter()
+    else:
+        outer = rounded(outer)
+    return Part.makeCompound([outer, rounded(inner), ring(D/2 - t*0.28, d/2 + t*0.28, B*0.05, B*0.88)])
+def thrust(d, D, B):
+    # two flat washers, 0.3 B high each, with a ball cage between them and the balls in it
+    h = 0.3 * B; gap = B - 2 * h; Dw = 0.8 * gap; rm = (D + d) / 4
+    parts = [ring(D/2, d/2, h, B - h), ring(D/2, d/2, h, 0),
+             ring(rm + 0.35 * Dw, rm - 0.35 * Dw, gap * 0.5, B / 2 - gap * 0.25)]
+    n = max(5, min(14, int(2 * math.pi * rm / (Dw * 1.45))))
+    for i in range(n):
+        a = 2 * math.pi * i / n
+        parts.append(Part.makeSphere(Dw / 2, V(rm * math.cos(a), rm * math.sin(a), B / 2)))
+    return parts[0].fuse(parts[1:]).removeSplitter()
+def bearing_job(job):
+    if job.get("type") == "thrust":
+        return thrust(job["d"], job["D"], job["B"])
+    return bearing(job["d"], job["D"], job["B"], job.get("F", 0), job.get("T", 0))
 def set_length(obj, length):
     # a length the add-on's table has; any other length is a custom one
     if str(length) in obj.getEnumerationsOfProperty("Length"):
@@ -201,7 +240,7 @@ for job in json.loads(open(JOBS_JSON).read()):
         elif job["kind"] == "tapping":
             shape, view = tapping(doc, job), V(1, -1, 1)
         else:
-            shape, view = bearing(job["d"], job["D"], job["B"]), V(1, -1, 1)
+            shape, view = bearing_job(job), V(1, -1, 1)
         if shape.isNull() or not shape.isValid() or not shape.Edges:
             raise ValueError("empty shape")
         open(job["out"], "w").write(TechDraw.projectToSVG(shape, view, ""))
@@ -494,9 +533,10 @@ def convex_hull(pts):
     return lower[:-1] + upper[:-1]
 
 
-def bearing_mask(frame, d, D, B, x0, y0, nx, ny):
-    """A bearing's silhouette: the outer cylinder's projected hull, less the see-through bore
-    (the part of the bore seen through both open ends, the two inner end circles' overlap)."""
+def bearing_mask(frame, d, D, B, x0, y0, nx, ny, F=0, T=0):
+    """A bearing's silhouette: the outer cylinder's projected hull (and the flange's, F wide and T thick on
+    top), less the see-through bore (the part of the bore seen through both open ends, the two inner end
+    circles' overlap)."""
     def circle(R, z):
         return project(frame, [(R * math.cos(a), R * math.sin(a), z) for a in np.linspace(0, 2 * math.pi, 129)[:-1]])
     def fill(pts):
@@ -505,11 +545,13 @@ def bearing_mask(frame, d, D, B, x0, y0, nx, ny):
         return np.array(img) > 0
     hull = convex_hull(np.vstack([circle(D / 2, 0), circle(D / 2, B)]))
     outer = fill(hull)
+    if F:
+        outer |= fill(convex_hull(np.vstack([circle(F / 2, B - T), circle(F / 2, B)])))
     bore = fill(circle(d / 2, B)) & fill(circle(d / 2, 0))
     return outer & ~bore
 
 
-def bearing_rims(frame, d, D, B):
+def bearing_rims(frame, d, D, B, thrust=False):
     """The bore's top rim (the whole ellipse: its far half shows through the hole) and the front half of the
     inner ring face's outer edge, at the top of the bearing, in the drawing's mm frame."""
     t = (D - d) / 2
@@ -523,7 +565,7 @@ def bearing_rims(frame, d, D, B):
     ring_path(d / 2, 0, 2 * math.pi)
     # the viewer is on the +x, -y side: the front half of a horizontal circle has cos(a) - sin(a) > 0
     front = [a for a in angles if math.cos(a) - math.sin(a) >= 0]
-    if front:
+    if front and not thrust:
         ring_path(d / 2 + t * 0.28, front[0], front[-1])
     return segs
 
@@ -550,11 +592,16 @@ def main():
     data = json.loads((ROOT / "data/hobbydex-rc.json").read_text())
     direct, ranked, skipped, links = select_specs(data)   # bearings and tapping screws, then the other screws
     # --bearings and --tapping redraw one group; the other drawings already in index.json stay as they are
-    only = next((flag for flag in ("--bearings", "--tapping") if flag in sys.argv), None)
+    only = next((flag for flag in ("--bearings", "--tapping", "--flanged-thrust") if flag in sys.argv), None)
     old_index = json.loads((OUT / "index.json").read_text()) if only else {}
     if only == "--bearings":
-        jobs = {sid: p for sid, p in direct.items() if p["kind"] == "bearing"}
-        keep = {k: v for k, v in old_index.items() if k.startswith("screw/")}
+        jobs = {sid: p for sid, p in direct.items() if p["kind"] == "bearing" and "type" not in p}
+        keep = {k: v for k, v in old_index.items() if k.startswith(("screw/", "bearing/flanged-", "bearing/thrust-"))}
+    elif only == "--flanged-thrust":
+        # the flanged and thrust bearings: only these are drawn, every other drawing in index.json stays
+        jobs = {sid: p for sid, p in direct.items() if p.get("type") in ("flanged", "thrust")}
+        redrawn = {key_of(sid) for sid in jobs}
+        keep = {k: v for k, v in old_index.items() if k not in redrawn}
     elif only == "--tapping":
         # the tapping screws and the pan JIS screws: every drawing they make is redrawn, the rest kept
         jobs = {sid: p for sid, p in direct.items() if p["kind"] == "tapping" or p.get("group") == "pan-jis"}
@@ -590,10 +637,10 @@ def main():
         frame, a, r = level_axis(frame)
         segs = rotate_segs(read_fragment(frag, frag_transform), r, a)
         if not is_screw:
-            segs += bearing_rims(frame, p["d"], p["D"], p["B"])
+            segs += bearing_rims(frame, p["d"], p["D"], p["B"], p.get("type") == "thrust")
         lines = sample_segments(segs)
         seal = ""
-        if not is_screw:
+        if not is_screw and p.get("type") != "thrust":
             seal = f'<path class="seal" d="{seal_path(p["d"], p["D"], p["B"], lambda x, y, z: project(frame, [(x, y, z)])[0])}" fill-rule="evenodd"/>'
         xs = [x for l in lines for x, _ in l]; ys = [y for l in lines for _, y in l]
         # the mesh's 2D box decides the raster's frame (it can reach past the lines)
@@ -604,14 +651,16 @@ def main():
         if is_screw:
             mask, _ = mesh_mask(WORK / f"{slug}.svgfrag.mesh.json", frame, x0, y0, nx, ny)
         else:
-            mask = bearing_mask(frame, p["d"], p["D"], p["B"], x0, y0, nx, ny)
+            mask = bearing_mask(frame, p["d"], p["D"], p["B"], x0, y0, nx, ny, p.get("F", 0), p.get("T", 0))
         sil = trace(mask, x0, y0, slug)
         sil_pts = [pt for _, pts in sil for pt in pts]
         bx0 = min(min(xs), min(x for x, _ in sil_pts)); bx1 = max(max(xs), max(x for x, _ in sil_pts))
         if not is_screw:
             # the outer ring's horizontal extent is its true diameter: the box takes it exactly, not the raster's edge
-            outer_x = project(frame, [(p["D"] / 2 * math.cos(a), p["D"] / 2 * math.sin(a), z)
-                                      for z in (0, p["B"]) for a in np.linspace(0, 2 * math.pi, 361)])[:, 0]
+            # (the flange, on top, is the widest part of a flanged bearing)
+            rings = [(p["D"] / 2, 0), (p["D"] / 2, p["B"])] + ([(p["F"] / 2, p["B"])] if p.get("F") else [])
+            outer_x = project(frame, [(R * math.cos(a), R * math.sin(a), z)
+                                      for R, z in rings for a in np.linspace(0, 2 * math.pi, 361)])[:, 0]
             bx0, bx1 = outer_x.min(), outer_x.max()
         by0 = min(min(ys), min(y for _, y in sil_pts)); by1 = max(max(ys), max(y for _, y in sil_pts))
         vx, vy = bx0 - PAD, by0 - PAD

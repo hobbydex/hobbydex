@@ -27,7 +27,9 @@ export function bearingDrawing(spec: Spec, seal?: string): ScrewDrawing | undefi
   const D = Number(spec.outer_mm), d = Number(spec.bore_mm), B = Number(spec.width_mm);
   if (!D || !d || !B || d >= D) return undefined;
   const flanged = spec.type === 'flanged', thrust = spec.type === 'thrust';
-  const flD = D + Math.max(1, D * 0.12), flW = Math.max(0.5, B * 0.15);
+  // the flange's size is the spec's flange_mm and flange_width_mm; without them it is drawn at the usual size
+  const sized = flanged && !!spec.flange_mm && !!spec.flange_width_mm, estimated = flanged && !sized;
+  const flD = sized ? Number(spec.flange_mm) : D + Math.max(1, D * 0.12), flW = sized ? Number(spec.flange_width_mm) : Math.max(0.5, B * 0.15);
   const Dmax = flanged ? flD : D;
   const s = Math.min(16, 120 / Dmax);   // px per mm
   const Rm = (Dmax / 2) * s, cy = 26 + Rm, fx = 14 + Rm;   // face view centre
@@ -80,11 +82,11 @@ export function bearingDrawing(spec: Spec, seal?: string): ScrewDrawing | undefi
   o.push(`<path class="thin" d="M${f(sx)} ${f(cy + (flanged ? F : R) + 2)}V${f(by + 4)}M${f(sx + w)} ${f(cy + R + 2)}V${f(by + 4)}"/>`);
   const under = w < 34;   // too narrow for the label above the line
   o.push(hdim(sx, sx + w, by, `${f(B)}`, under));
-  if (flanged) o.push(`<text x="${f(sx - 4)}" y="${f(cy - F + 4)}" text-anchor="end" class="std">flange ⌀${f(flD)}*</text>`);
+  if (flanged) o.push(`<text x="${f(sx - 4)}" y="${f(cy - F + 4)}" text-anchor="end" class="std">flange ⌀${f(flD)}${estimated ? '*' : ''}</text>`);
   const W = Math.max(300, Math.ceil(sx + w + 64)), H = Math.ceil(Math.max(cy + Rm + 14, by + (under ? 20 : 8)));
   const sealTxt = shielded ? ({ metal: ', shielded (ZZ)', rubber: ', sealed (2RS)', 'rubber-metal': ', one seal, one shield' } as Record<string, string>)[seal!] : '';
   const label = `${f(d)}x${f(D)}x${f(B)}${flanged ? ' flanged' : thrust ? ' thrust' : ''} bearing${sealTxt}`;
-  return { svg: svgWrap(W, H, label, o.join('')), standard: undefined, approximate: flanged, note: flanged ? '* flange diameter drawn at the usual size; check the part' : undefined };
+  return { svg: svgWrap(W, H, label, o.join('')), standard: undefined, approximate: estimated, note: estimated ? '* flange diameter drawn at the usual size; check the part' : undefined };
 }
 const circlePath = (cx: number, cy: number, r: number) => `M${f(cx - r)} ${f(cy)}a${f(r)} ${f(r)} 0 1 0 ${f(2 * r)} 0a${f(r)} ${f(r)} 0 1 0 ${f(-2 * r)} 0Z`;
 const ring = (cx: number, cy: number, R: number, r: number) => circlePath(cx, cy, R) + circlePath(cx, cy, r);
