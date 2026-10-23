@@ -132,6 +132,9 @@ figure.drawing figcaption { font-size: 0.8rem; }
 .screwdrawing .dash { stroke-dasharray: 3 3; }
 .screwdrawing text.std { opacity: 0.7; font-size: 11px; }
 .screwdrawing .fill { fill: currentColor; fill-opacity: 0.12; }
+.screwdrawing.plug .fill { fill: var(--plug); fill-opacity: 1; }
+.screwdrawing .metal { fill: #c9a54a; }
+.screwdrawing.plug .ln { stroke: var(--plug-line, currentColor); }
 .screwdrawing .bg { fill: var(--bg); }
 .screwdrawing .ball { fill: var(--bg); stroke-width: 1.2; }
 .screwdrawing .shield { fill: currentColor; fill-opacity: 0.35; stroke-width: 0.8; }
