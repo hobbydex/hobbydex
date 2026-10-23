@@ -151,7 +151,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {soldAs.length > 0 && <><dt>Also sold as</dt><dd>{soldAs.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
     {upgradeFor.length > 0 && <><dt>Upgrade for</dt><dd>{upgradeFor.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
     {replacedBy.length > 0 && <><dt>Replaced by</dt><dd>{replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
-    {part.pack_qty && <><dt>Pack</dt><dd>{part.pack_qty} pcs</dd></>}
+    {part.pack_qty && <><dt>Pack</dt><dd>{part.pack_qty} pcs{(part.pack_qty_basis === 'photo' || part.pack_qty_basis === 'photos') && <span class="muted"> (counted on the maker's photo{part.pack_qty_basis === 'photos' ? 's' : ''})</span>}</dd></>}
     {part.gtin && <><dt>{gtinLabel(part.gtin)}</dt><dd><Icon name="barcode" /> {part.gtin}</dd></>}
     {part.former_names && part.former_names.length > 0 && <><dt>Formerly listed as</dt><dd>{part.former_names.slice(0, 2).join('; ')}{part.former_names.length > 2 && <>{' '}<details class="morefmt"><summary>+{part.former_names.length - 2} more</summary>{part.former_names.slice(2).join('; ')}</details></>}</dd></>}
     {part.material && <><dt>Material</dt><dd>{part.material === 'carbon' ? 'carbon fibre' : part.material}{part.material_grade && ` ${part.material_grade}`}{part.strength_class && ` ${part.strength_class}`}{part.finish && `, ${part.finish}`}</dd></>}
