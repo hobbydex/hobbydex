@@ -1,6 +1,6 @@
 ---
 import { specLabel } from '../../../../lib/specs';
-import { specFacts } from '../../../../lib/specFacts';
+import { specFacts, threadRows } from '../../../../lib/specFacts';
 import FactRows from '../../../../components/FactRows.astro';
 import Base from '../../../../layouts/Base.astro';
 import Standards from '../../../../components/Standards.astro';
@@ -38,7 +38,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
   <h1>{title}</h1>
   <dl class="facts">
     <dt>Category</dt><dd><a href={`/rc/specs/${spec.category}/`}>{specLabel[spec.category] ?? spec.category}</a></dd>
-    <FactRows rows={specFacts(spec)} />
+    <FactRows rows={threadRows(specFacts(spec))} />
     {spec.standards && <><dt>Standards</dt><dd><Standards codes={spec.standards} /></dd></>}
   </dl>
   {hardwareFile(spec.id) && <div data-pagefind-ignore><HardwareBag items={[{ spec: spec.id, qty: 1 }]} /></div>}

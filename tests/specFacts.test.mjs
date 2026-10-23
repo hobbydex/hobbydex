@@ -9,15 +9,16 @@ const labels = (r) => r.facts.map((f) => f.label);
 
 test('a screw takes thread, length, head, drive and thread type; its own point comes last', () => {
   const r = partSpecFacts({ id: 'part/tamiya/60677', brand: 'brand/tamiya', category: 'screw', point: 'flat' }, [screw]);
-  assert.deepEqual(labels(r), ['Thread', 'Length (mm)', 'Head', 'Drive', 'Thread type', 'Point']);
-  assert.deepEqual(r.facts.map((f) => f.text), ['M3', '10', 'pan', 'jis', 'self-tapping', 'flat']);
+  assert.deepEqual(labels(r), ['Thread', 'Length (mm)', 'Head', 'Drive', 'Point']);
+  assert.deepEqual(r.facts.map((f) => f.text), ['M3, self-tapping', '10', 'pan', 'jis', 'flat']);
   assert.deepEqual(r.specs, [screw]);
 });
 
-test('a field the part sets is not repeated from the spec', () => {
-  const r = partSpecFacts({ id: 'part/x/1', brand: 'brand/x', category: 'screw', thread_type: 'self-tapping' }, [screw]);
-  assert.ok(!labels(r).includes('Thread type'));
-  assert.ok(labels(r).includes('Thread'));
+test('a part thread type is combined with the spec size, once', () => {
+  const r = partSpecFacts({ id: 'part/x/1', brand: 'brand/x', category: 'screw', thread_type: 'tapping' }, [screw]);
+  assert.equal(r.facts.find((f) => f.key === 'thread').text, 'M3, tapping');
+  assert.equal(r.threadInFacts, true);
+  assert.equal(r.facts.filter((f) => f.label === 'Thread').length, 1);
 });
 
 test('several specs of one category give the fields they agree on', () => {
@@ -31,7 +32,7 @@ test('several specs of one category give the fields they agree on', () => {
 test('specs of different categories give nothing', () => {
   const wire = { id: 'spec/wire/10awg', category: 'wire', awg: 10, conductor_mm: 2.5882 };
   const r = partSpecFacts({ id: 'part/x/2', brand: 'brand/x', category: 'connector', point: 'flat' }, [screw, wire]);
-  assert.deepEqual(r, { specs: [], facts: [] });
+  assert.deepEqual(r, { specs: [], facts: [], threadInFacts: false });
 });
 
 test('a battery cell count the part shows as LiPo is not repeated', () => {

@@ -25,6 +25,16 @@ export function specFacts(spec: Record<string, unknown>): Fact[] {
   });
 }
 
+// a thread's size and type are one row: "Thread: M3, self-tapping". threadType: the type when the caller has it
+// (a part's own thread type), else the thread_type row's value
+export function threadRows(rows: Fact[], threadType?: string): Fact[] {
+  const i = rows.findIndex((f) => f.key === 'thread');
+  if (i < 0) return rows;
+  const type = rows.find((f) => f.key === 'thread_type')?.text ?? threadType;
+  if (!type) return rows;
+  return rows.filter((f) => f.key !== 'thread_type').map((f) => (f.key === 'thread' ? { ...f, text: `${f.text}, ${type}` } : f));
+}
+
 // the part page's own rows that already state a spec field's fact: that spec field is not repeated under them
 const OWN_ROW: Record<string, (p: Part) => boolean> = {
   bore_mm: (p) => p.bore_mm !== undefined,
@@ -48,8 +58,8 @@ const OWN_ROW: Record<string, (p: Part) => boolean> = {
 
 // the facts a part inherits from its equivalent spec. One spec: all its fields. Several of one category: the
 // fields they agree on. The part's own field, when it sets one, replaces the spec's value; `point` is the part's.
-export function partSpecFacts(part: Part, specs: Spec[]): { specs: Spec[]; facts: Fact[] } {
-  if (specs.length === 0 || specs.some((s) => s.category !== specs[0].category)) return { specs: [], facts: [] };
+export function partSpecFacts(part: Part, specs: Spec[]): { specs: Spec[]; facts: Fact[]; threadInFacts: boolean } {
+  if (specs.length === 0 || specs.some((s) => s.category !== specs[0].category)) return { specs: [], facts: [], threadInFacts: false };
   const base: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(specs[0])) {
     if (!isField(k, v)) continue;
@@ -68,6 +78,7 @@ export function partSpecFacts(part: Part, specs: Spec[]): { specs: Spec[]; facts
     else { merged[k] = v; if (base[`${k}_source`] !== undefined) merged[`${k}_source`] = base[`${k}_source`]; }
   }
   if (part.point !== undefined && merged.point === undefined && base.point === undefined) merged.point = part.point;
-  const facts = specFacts(merged);
-  return facts.length > 0 ? { specs, facts } : { specs: [], facts: [] };
+  const facts = threadRows(specFacts(merged), part.thread_type);
+  // the part's own Thread row is left out when the thread is in the facts above
+  return facts.length > 0 ? { specs, facts, threadInFacts: facts.some((f) => f.key === 'thread') } : { specs: [], facts: [], threadInFacts: false };
 }
