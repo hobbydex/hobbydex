@@ -1,15 +1,16 @@
-// The connector spec a part's `connector` field names (the plug a battery or ESC takes), or undefined when the
-// site has no spec for that name. The names are the ones the data uses on batteries and ESCs.
-import { db } from './data';
-
+// The connector spec a plug name means: a battery or ESC `connector` field, or one entry of a lead's `connectors`
+// (hobbydex-rc tools/validate.py PLUG_SPEC). undefined when the name has no spec.
 const SPEC_SLUG: Record<string, string> = {
   XT30: 'xt30', XT60: 'xt60', XT60H: 'xt60h', XT90: 'xt90', 'XT90-S': 'xt90s', XT150: 'xt150', AS150: 'as150', QS8: 'qs8',
   EC2: 'ec2', EC3: 'ec3', EC5: 'ec5', EC8: 'ec8', IC3: 'ic3', IC5: 'ic5',
-  Deans: 'deans', 'T-Plug': 'deans', Tamiya: 'tamiya', 'Mini Tamiya': 'tamiya-mini',
+  Deans: 'deans', 'T-Plug': 'deans', Tamiya: 'tamiya', 'Mini Tamiya': 'tamiya-mini', 'JST-RCY': 'jst-rcy', 'JST-XH': 'jst-xh',
+  JR: 'servo-jr-futaba', 'JR/Futaba': 'servo-jr-futaba', Futaba: 'servo-jr-futaba',
+  'Traxxas iD': 'traxxas-trx-id', 'Traxxas high-current': 'traxxas-high-current',
+  '2mm bullet': 'bullet-2mm', '3.5mm bullet': 'bullet-3.5mm', '4mm bullet': 'bullet-4mm', '5mm bullet': 'bullet-5mm',
+  '6mm bullet': 'bullet-6mm', '8mm bullet': 'bullet-8mm', '4mm banana': 'banana-4mm',
 };
 
-export function plugSpec(connector: string | undefined): string | undefined {
-  const slug = connector ? SPEC_SLUG[connector.trim()] : undefined;
-  const id = slug ? `spec/connector/${slug}` : undefined;
-  return id && db.spec.get(id) ? id : undefined;
+export function plugSpecId(name: string | undefined): string | undefined {
+  const slug = name ? SPEC_SLUG[name.trim()] : undefined;
+  return slug ? `spec/connector/${slug}` : undefined;
 }

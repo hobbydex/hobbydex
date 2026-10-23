@@ -30,7 +30,7 @@ import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
 import { fileRows, makerOwnLinks, listedBelow, hostLabel } from '../../../../lib/docFacts';
 import { describe, count } from '../../../../lib/descriptions';
 import { partSpecs } from '../../../../lib/partFacts';
-import { plugSpec } from '../../../../lib/plugs';
+import { plugSpecId } from '../../../../lib/plugs';
 export function getStaticPaths() {
   // a former id (renamed or corrected) or another number the part is sold under (numbers) keeps working:
   // its page redirects to the current one; a number listed twice is one route
@@ -176,7 +176,8 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.category === 'wire' && part.shrink_ratio && <><dt>Shrink ratio</dt><dd>{part.shrink_ratio}:1</dd></>}
     {part.category === 'wire' && shrinksTo(part) && <><dt>Shrinks to</dt><dd>{shrinksTo(part)!.join(', ')} mm</dd></>}
     {part.category === 'wire' && part.flat_width_mm && <><dt>Flat width</dt><dd>{part.flat_width_mm} mm</dd></>}
-    {part.connector && <><dt>Plug</dt><dd>{plugSpec(part.connector) ? <a href={url.spec(plugSpec(part.connector)!)}>{part.connector}</a> : part.connector}</dd></>}
+    {part.connector && <><dt>Plug</dt><dd>{plugSpecId(part.connector) ? <a href={url.spec(plugSpecId(part.connector)!)}>{part.connector}</a> : part.connector}</dd></>}
+    {part.connectors && <><dt>Plugs</dt><dd>{part.connectors.map((c, i) => <>{i > 0 && ', '}{plugSpecId(c) ? <a href={url.spec(plugSpecId(c)!)}>{c}</a> : c}</>)}</dd></>}
     {(part.kv || part.turns) && <><dt>Motor</dt><dd title="kV: rpm per volt without load. T: turns of wire per pole, fewer is faster.">{[part.kv && `${part.kv} kV`, part.turns && `${part.turns}T`, part.diameter_mm && part.length_mm && `${part.diameter_mm} x ${part.length_mm} mm`, part.shaft_mm && `${part.shaft_mm} mm shaft`].filter(Boolean).join(', ')}</dd></>}
     {part.kv && part.category === 'motor' && <><dt>No-load rpm</dt><dd title="kV x nominal LiPo voltage (3.7 V per cell), without load; under load a motor turns slower.">{noLoad(part.kv, part.lipo_cells).map(([c, v, r]) => `${c}S (${v} V): about ${r.toLocaleString('en-US')} rpm`).join(' · ')}</dd></>}
     {part.motor_can_mm && <><dt>Motor can</dt><dd>{part.motor_can_mm} mm diameter <span class="muted">(clamps on a motor of this size)</span></dd></>}
