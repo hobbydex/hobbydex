@@ -36,6 +36,7 @@ export function nutDrawing(spec: Spec): ScrewDrawing | undefined {
   const d = Number(dTxt);
   const type = String(spec.type ?? '');
   if (!d || !TYPE_TEXT[type]) return undefined;
+  if (type === 'wheel' && (d >= 8 || spec.wheel_hex_mm)) return wheelNutDrawing(spec, d);
   const flanged = type.startsWith('flanged') || type.startsWith('serrated') || type === 'wheel';
   const serrated = type.startsWith('serrated');
   const nylon = type.includes('nylon');
@@ -204,4 +205,125 @@ export function nutDrawing(spec: Spec): ScrewDrawing | undefined {
   const note = approximate ? '* not fixed by the spec: drawn with the usual proportions for this type' : undefined;
   const std = (spec.standards as string[] | undefined)?.[0];
   return { svg, standard: std, approximate, note };
+}
+
+// ISO 261 coarse pitches, for a thread named without its pitch
+const COARSE: Record<number, number> = { 8: 1.25, 10: 1.5, 12: 1.75, 14: 2, 16: 2 };
+const num = (v: unknown) => (typeof v === 'number' && v > 0 ? v : 0);
+
+// A big-bore wheel nut (1/8 and 1/5 scale): a wide, low hex that clamps the wheel against the hub's hex, its face
+// ribbed or serrated so it bites, the thread right through (open) or closed by a round cap that keeps dirt out of the
+// axle. A collar protruding from the face is drawn only where the spec states it. Sizes the spec does not give are
+// drawn with the proportions of the makers' own 17 mm nuts: the hex 0.35 of its width high, the cap 0.18.
+function wheelNutDrawing(spec: Spec, d: number): ScrewDrawing {
+  const thread = String(spec.thread);
+  const pitch = Number(thread.split('x')[1]) || COARSE[d] || 0.15 * d;
+  const afSpec = num(spec.across_flats_mm);
+  const af = afSpec || Math.round(1.42 * d);
+  const closed = spec.closed === true;
+  const serrated = spec.serrated !== false;
+  const collarL = num(spec.collar_length_mm), collarD = collarL ? num(spec.collar_diameter_mm) || 0.86 * af : 0;
+  const hSpec = num(spec.height_mm);
+  const th = serrated ? 0.5 : 0;                                  // height of the teeth on the face
+  let capH = closed ? 0.18 * af : 0;
+  let hexH = 0.35 * af;
+  if (hSpec) {                                                    // the stated overall height: the hex takes up the rest
+    const rest = hSpec - collarL - th;
+    hexH = closed ? Math.max(rest * 0.68, 0.2 * af) : Math.max(rest, 0.2 * af);
+    capH = closed ? Math.max(rest - hexH, 0) : 0;
+  }
+  const h = collarL + th + hexH + capH;
+  const approximate = !afSpec || !hSpec || spec.closed === undefined || spec.serrated === undefined;
+  const kind = `${closed ? 'closed ' : ''}${serrated ? 'serrated ' : ''}wheel nut`;
+  const label = `${thread} ${kind}`;
+  const id = `nh${++seq}`;
+  const e = af / Math.cos(Math.PI / 6);
+  const span = e;
+  const s = Math.min(16, 118 / span, 96 / h);
+  const o: string[] = [];
+  const L: string[] = [], R: string[] = [];
+  const P = (x: number, y: number) => `L${f(x)} ${f(y)}`;
+
+  // side view, standing on the face that clamps the wheel; x centred on sx, y up from y0
+  const sx = 24 + (span / 2) * s, y0 = 26 + 96;
+  const yFace = y0 - collarL * s;                                 // the tips of the teeth (the face on the wheel)
+  const yHexBot = yFace - th * s, yHexTop = yHexBot - hexH * s, top = yHexTop - capH * s;
+  const hw = (e / 2) * s, r0 = 0.95 * (af / 2) * s;              // across the corners; the chamfer circle
+  const dz = Math.min((hw - r0) * Math.tan(Math.PI / 6), (hexH * s) / 4);
+  const rMaj = (d / 2) * s, rMin = ((d - 1.0825 * pitch) / 2) * s;
+  const bore = sx + rMin;
+  const rRib = 0.47 * af * s;                                     // the ribbed ring reaches almost to the flats
+  const rIn = collarL ? (collarD / 2) * s : rMin;
+  const rTeeth = rIn + 0.8 * s;                                  // a plain ring round the bore or collar, then the ribs
+  const capR = 0.47 * af * s, rr = Math.min(1, capH / 3) * s;    // cap radius and its rounded edge
+  const wall = 1.2 * s;                                           // the cap's end wall over the blind bore
+  const hatch = `url(#${id}h)`;
+  // the teeth: points across the ring from -rRib to rRib, tips on yFace
+  const n = Math.max(3, Math.round((rRib - rTeeth) / s / 1.1));
+  const zig: [number, number][] = [];                            // one side: from rTeeth out to rRib
+  for (let i = 0; i <= 2 * n; i++) zig.push([rTeeth + (i * (rRib - rTeeth)) / (2 * n), i % 2 ? yFace : yHexBot]);
+
+  // outside view (left half)
+  if (collarL) L.push(`<path d="M${f(sx - collarD / 2 * s)} ${f(yFace)}V${f(y0 - 0.4 * s)}L${f(sx - collarD / 2 * s + 0.4 * s)} ${f(y0)}H${f(sx + collarD / 2 * s - 0.4 * s)}L${f(sx + collarD / 2 * s)} ${f(y0 - 0.4 * s)}V${f(yFace)}"/>`);
+  if (serrated) {
+    // seen from the side the ribs all round the ring show across the whole face
+    const m = Math.round((2 * rRib) / s / 1.1);
+    let band = `M${f(sx - rRib)} ${f(yHexBot)}`;
+    for (let i = 1; i <= 2 * m; i++) band += `L${f(sx - rRib + (i * rRib) / m)} ${f(i % 2 ? yFace : yHexBot)}`;
+    L.push(`<path d="${band}"/>`);
+  }
+  L.push(`<path d="M${f(sx - r0)} ${f(yHexBot)}L${f(sx - hw)} ${f(yHexBot - dz)}V${f(yHexTop + dz)}L${f(sx - r0)} ${f(yHexTop)}H${f(sx + r0)}L${f(sx + hw)} ${f(yHexTop + dz)}V${f(yHexBot - dz)}L${f(sx + r0)} ${f(yHexBot)}Z"/>`);
+  L.push(`<path class="thin" d="M${f(sx - hw / 2)} ${f(yHexTop + dz / 2)}V${f(yHexBot - dz / 2)}"/>`);
+  if (closed) L.push(`<path d="M${f(sx - capR)} ${f(yHexTop)}V${f(top + rr)}Q${f(sx - capR)} ${f(top)} ${f(sx - capR + rr)} ${f(top)}H${f(sx + capR - rr)}Q${f(sx + capR)} ${f(top)} ${f(sx + capR)} ${f(top + rr)}V${f(yHexTop)}"/>`);
+
+  // cut half (right): one metal part, from the foot of the bore round the outside
+  let body = `M${f(bore)} ${f(y0)}`;
+  if (collarL) {
+    const cr = sx + rIn;
+    body += P(cr - 0.4 * s, y0) + P(cr, y0 - 0.4 * s) + P(cr, yHexBot);
+  }
+  if (serrated) {
+    if (!collarL) body = `M${f(bore)} ${f(yHexBot)}`;
+    else body += P(sx + rIn, yHexBot);
+    for (const [x, y] of zig) body += P(sx + x, y);
+  } else if (!collarL) body = `M${f(bore)} ${f(yHexBot)}`;
+  body += P(sx + r0, yHexBot) + P(sx + hw, yHexBot - dz) + P(sx + hw, yHexTop + dz) + P(sx + r0, yHexTop);
+  let fillTail = '';
+  if (closed) {
+    body += P(sx + capR, yHexTop) + P(sx + capR, top + rr) + `Q${f(sx + capR)} ${f(top)} ${f(sx + capR - rr)} ${f(top)}` + P(sx, top);
+    fillTail = P(sx, top + wall) + P(bore, top + wall);
+  } else body += P(bore, yHexTop);
+  R.push(`<path d="${body}${fillTail}Z" fill="${hatch}" stroke="none"/>`, `<path d="${body}"/>`);
+  const holeTop = closed ? top + wall : yHexTop;
+  if (closed) R.push(`<path d="M${f(sx)} ${f(holeTop)}H${f(bore)}"/>`);
+  // the thread: the bore at its minor diameter, the major diameter a thin line in the metal, as far as the thread runs
+  const yBot = collarL ? y0 : yHexBot;                             // the foot of the bore
+  R.push(`<path class="thin" d="M${f(bore)} ${f(holeTop)}V${f(yBot)}M${f(sx + rMaj)} ${f(closed ? yHexTop : holeTop)}V${f(yBot)}"/>`);
+  o.push(`<path class="thin dashdot" d="M${f(sx)} ${f(top - 6)}V${f(y0 + 6)}"/>`);
+  const right = sx + hw;
+  o.push(`<path class="thin" d="M${f(right + 2)} ${f(top)}H${f(right + 16)}M${f(right + 2)} ${f(y0)}H${f(right + 16)}"/>`);
+  o.push(vdim(right + 12, top, y0, `${f(Math.round(h * 10) / 10)}${hSpec ? '' : '*'}`));
+
+  // view from above: the outer end, the cap or the open thread
+  const tx = right + 62 + (span / 2) * s, ty = 26 + 48, R0 = (e / 2) * s;
+  o.push(`<path d="M${hexPts(tx, ty, R0)}Z"/>`, circle(tx, ty, r0, 'thin'));
+  if (closed) o.push(circle(tx, ty, capR), circle(tx, ty, capR - rr, 'thin'));
+  else o.push(circle(tx, ty, rMaj, 'thin'), circle(tx, ty, rMin));
+  const fl = (af / 2) * s, by = ty + R0 + 14;
+  o.push(`<path class="thin" d="M${f(tx - fl)} ${f(ty)}V${f(by + 4)}M${f(tx + fl)} ${f(ty)}V${f(by + 4)}"/>`);
+  o.push(hdim(tx - fl, tx + fl, by, `${f(af)}${afSpec ? '' : '*'}`));
+  o.push(`<text x="${f(tx)}" y="${f(Math.max(by + 34, y0 + 30))}" text-anchor="middle" class="std">${label}</text>`);
+  const W = Math.ceil(Math.max(tx + R0 + 24, tx + (label.length * 5.6) / 2 + 6));
+  const H = Math.ceil(Math.max(by + 40, y0 + 36));
+  const p = 0.4 * s * Math.SQRT2;
+  const defs = `<defs>`
+    + `<pattern id="${id}h" width="${f(p)}" height="${f(p)}" patternUnits="userSpaceOnUse"><path d="M0 0L${f(p)} ${f(p)}" stroke="currentColor" stroke-width="0.4"/></pattern>`
+    + `<clipPath id="${id}L"><rect x="-999" y="-999" width="${f(sx + 999)}" height="9999"/></clipPath>`
+    + `<clipPath id="${id}R"><rect x="${f(sx)}" y="-999" width="9999" height="9999"/></clipPath>`
+    + `</defs>`;
+  const side = `<g clip-path="url(#${id}L)">${L.join('')}</g><g clip-path="url(#${id}R)">${R.join('')}</g>`;
+  const svg = `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${label}, from the side (half section) and from above">${defs}<g class="s">${side}${o.join('')}<text x="${W - 4}" y="12" text-anchor="end" class="std">dimensions in mm</text></g></svg>`;
+  const assumed = [spec.closed === undefined && 'open', spec.serrated === undefined && 'with a ribbed face'].filter(Boolean).join(', ');
+  const note = approximate ? `* not stated by the spec: drawn with the proportions of the makers' 17 mm wheel nuts${assumed ? ` (${assumed})` : ''}` : undefined;
+  return { svg, standard: undefined, approximate, note };
 }

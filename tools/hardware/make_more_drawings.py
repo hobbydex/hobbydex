@@ -14,10 +14,13 @@ counted. Run from the repo root:
 
 --links is the generated site data (link counts, for the order of the work); it is
 optional. FreeCAD runs through flatpak in up to 8 processes; its work files go to
-~/.cache/hobbydex-hardware-more (the flatpak cannot read /tmp).
+~/.cache/hobbydex-hardware-more, or $HARDWARE_WORK (the flatpak cannot read /tmp).
+--only <slug prefix> draws just those specs (nut-m12 for the wheel nuts) and keeps
+the other drawings.
 """
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -32,7 +35,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "src/assets/hardware"
-WORK = Path.home() / ".cache/hobbydex-hardware-more"
+WORK = Path(os.environ.get("HARDWARE_WORK", Path.home() / ".cache/hobbydex-hardware-more"))   # under home: flatpak
 SPECS = Path.home() / "workspace/somatik/hobbydex-rc/data/specs"
 MOD = Path.home() / ".var/app/org.freecad.FreeCAD/data/FreeCAD/v1-1/Mod"
 PX = 30                  # raster pixels per mm for the silhouette
@@ -60,10 +63,41 @@ def bore_of(d):
     return 0.84 * d      # minor diameter, a fixed share of the nominal one
 
 
+COARSE = {8: 1.25, 10: 1.5, 12: 1.75, 14: 2, 16: 2}   # ISO 261 coarse pitches
+
+
+def plan_wheel_nut(s, d):
+    """A big-bore wheel nut (1/8 and 1/5 scale): a low hex whose ribbed face clamps the wheel, the thread right
+    through or closed by a round cap; a collar under the face only where the spec states one. Unstated sizes take
+    the proportions of the makers' 17 mm nuts (as src/lib/nutDrawing.ts draws them): hex 0.35 of the across
+    flats high, cap 0.18, teeth 0.5 mm."""
+    af = s.get("across_flats_mm")
+    if af is None:
+        return None, "wheel nut: no across flats stated"
+    m = re.fullmatch(r"M\d+(?:\.\d+)?x(\d+(?:\.\d+)?)", s.get("thread") or "")
+    pitch = float(m.group(1)) if m else COARSE.get(d, 0.15 * d)
+    closed, serrated = s.get("closed") is True, s.get("serrated") is not False
+    collar_l = s.get("collar_length_mm") or 0
+    collar_d = (s.get("collar_diameter_mm") or 0.86 * af) if collar_l else 0
+    th = 0.5 if serrated else 0
+    hex_h, cap_h = 0.35 * af, (0.18 * af if closed else 0)
+    if s.get("height_mm"):
+        rest = s["height_mm"] - collar_l - th
+        hex_h = max(rest * 0.68, 0.2 * af) if closed else max(rest, 0.2 * af)
+        cap_h = max(rest - hex_h, 0) if closed else 0
+    return {"op": "wheel", "af": af, "hex_h": hex_h, "cap_h": cap_h, "th": th, "collar_l": collar_l,
+            "collar_d": collar_d, "bore": d - 1.0825 * pitch}, None
+
+
 def plan_nut(s):
     """A job for the nut, or the reason it is left out."""
     t, af, h = s.get("type"), s.get("across_flats_mm"), s.get("height_mm")
     d = thread_d(s.get("thread"))
+    if t == "wheel":
+        m = re.match(r"M(\d+(?:\.\d+)?)", s.get("thread") or "")
+        dw = float(m.group(1)) if m else 0
+        if dw >= 8 or s.get("wheel_hex_mm"):
+            return plan_wheel_nut(s, dw)
     if t == "hex":
         if d not in REG_H or af is None:
             return None, "hex nut: thread not an ISO metric size or no across flats stated"
@@ -94,7 +128,7 @@ def plan_nut(s):
         "dome": "dome (acorn) nut: height not stated",
         "knurled": "knurled thumb nut: no size stated",
         "wing": "wing nut: no size stated",
-        "wheel": "wheel nut: height and shape not stated",
+        "wheel": "small wheel nut: height and shape not stated",
     }
     return None, reasons.get(t, f"nut type {t} not handled")
 
@@ -267,8 +301,49 @@ def holes_of(shape):
             bottom.append(f)
     return {"top": face_loops(top), "bottom": face_loops(bottom)}
 
+def wheel_body(job, filled):
+    """Standing on its clamping face: the collar (if any) from z = 0, the teeth, the hex, the cap on top."""
+    af, hh, ch, th, cl = job["af"], job["hex_h"], job["cap_h"], job["th"], job["collar_l"]
+    z_face = cl + th
+    body = hex_body(af, hh, 0).translate(V(0, 0, z_face))
+    if ch > 0:
+        rc, rr = 0.47 * af, min(1.0, ch / 3)
+        cap = rev([(0, z_face + hh - 0.01), (rc, z_face + hh - 0.01), (rc, z_face + hh + ch - rr),
+                   (rc - rr * 0.3, z_face + hh + ch - rr * 0.3), (rc - rr, z_face + hh + ch), (0, z_face + hh + ch)])
+        body = body.fuse(cap)
+    r_in = job["collar_d"] / 2 if cl else job["bore"] / 2
+    if th > 0:
+        # radial ribs: triangular teeth, tips down on the face plane, from the bore (or collar) to near the flats
+        r_in, r_out, n = r_in + 0.8, 0.47 * af, 36   # a plain ring round the bore, as on the makers' nuts
+        a = math.pi * r_in / n
+        teeth = []
+        for k in range(n):
+            tri = Part.Face(Part.makePolygon([V(r_in - 0.3, -a, cl + th + 0.01), V(r_in - 0.3, a, cl + th + 0.01), V(r_in - 0.3, 0, cl), V(r_in - 0.3, -a, cl + th + 0.01)]))
+            tooth = tri.extrude(V(r_out - r_in + 0.3, 0, 0))
+            tooth.rotate(V(0, 0, 0), V(0, 0, 1), 360.0 * k / n)
+            teeth.append(tooth)
+        body = body.fuse(teeth).removeSplitter()
+    if cl > 0:
+        rc = job["collar_d"] / 2
+        body = body.fuse(rev([(0, 0), (rc - 0.4, 0), (rc, 0.4), (rc, z_face + 0.01), (0, z_face + 0.01)]))
+    if filled:
+        return body
+    top = z_face + hh + ch
+    depth = top - 1.2 if ch > 0 else top + 1   # a closed nut keeps a 1.2 mm end wall
+    return body.cut(Part.makeCylinder(job["bore"] / 2, depth + 1, V(0, 0, -1)))
+
+def wheel_holes(job):
+    """The bore of an open wheel nut, as the top and bottom loops (its toothed face has no flat bottom loop)."""
+    if job["cap_h"] > 0:
+        return {"top": [], "bottom": []}
+    r, top = job["bore"] / 2, job["collar_l"] + job["th"] + job["hex_h"]
+    circ = lambda z: [(r * math.cos(2 * math.pi * k / 160), r * math.sin(2 * math.pi * k / 160), z) for k in range(160)]
+    return {"top": [circ(top)], "bottom": [circ(0)]}
+
 def build(job, filled):
     op = job["op"]
+    if op == "wheel":
+        return wheel_body(job, filled)
     if op == "hex":
         return hex_body(job["af"], job["h"], 0 if filled else job["bore"])
     if op == "nylon":
@@ -323,7 +398,7 @@ for job in json.loads(open(JOBS_JSON).read()):
                 raise ValueError("empty shape")
             open(out, "w").write(TechDraw.projectToSVG(shape, view, ""))
             if not filled:
-                json.dump(holes_of(shape), open(job["holes"], "w"))
+                json.dump(wheel_holes(job) if job["op"] == "wheel" else holes_of(shape), open(job["holes"], "w"))
         print("OK", job["slug"])
     except Exception as err:
         print("FAILED", job["slug"], err)
@@ -630,11 +705,13 @@ def main(argv):
     sys.path.insert(0, str(MOD / "gears"))   # pygears, the Gears add-on's numpy core
     specs_dir = SPECS
     links_path = None
+    only = None          # a slug prefix: draw only those specs, keep every other drawing and index entry
     args = list(argv)
     while args:
         a = args.pop(0)
         if a == "--specs": specs_dir = Path(args.pop(0))
         elif a == "--links": links_path = Path(args.pop(0))
+        elif a == "--only": only = args.pop(0)
         else: raise SystemExit(f"unknown argument {a}")
     t0 = time.time()
     links = Counter()
@@ -658,10 +735,12 @@ def main(argv):
                     "holes": str(WORK / f"{slug}.holes.json"),
                     "axes": [str(WORK / f"{slug}.axis{i}.svgfrag") for i in range(3)]})
         jobs.append(job)
+    if only:
+        jobs = [j for j in jobs if j["slug"].startswith(only)]
     jobs.sort(key=lambda j: (-links[j["id"]], j["slug"]))
     print("planned", len(jobs), "of", sum(kinds_count.values()))
 
-    for f in WORK.glob("*.svgfrag"):
+    for f in WORK.glob(f"{only or ''}*.svgfrag"):
         f.unlink()
     failed = run_freecad(jobs)
     print("freecad done", round(time.time() - t0, 1), "s, failed", len(failed), failed[:10])
@@ -709,16 +788,17 @@ def main(argv):
         (OUT / name).write_text(svg)
         index[job["id"].removeprefix("spec/")] = name
         drawn_kind[job["kind"]] += 1
-    for kind in KINDS:
+    for kind in () if only else KINDS:
         for old in OUT.glob(f"{kind}-*.svg"):
             if old.name not in index.values():
                 old.unlink()
     # one index for the bags: keep the entries of the other drawings, replace this generator's kinds
     index_path = OUT / "index.json"
     merged = json.loads(index_path.read_text()) if index_path.exists() else {}
-    merged = {k: v for k, v in merged.items() if k.split("/", 1)[0] not in KINDS}
+    if not only:
+        merged = {k: v for k, v in merged.items() if k.split("/", 1)[0] not in KINDS}
     merged.update(index)
-    index_path.write_text(json.dumps(dict(sorted(merged.items())), indent=2) + "\n")
+    index_path.write_text(json.dumps(merged if only else dict(sorted(merged.items())), indent=2) + "\n")
     total = sum((OUT / n).stat().st_size for n in index.values())
     print("drawn", dict(drawn_kind), "total", sum(drawn_kind.values()))
     print("skipped", sum(skipped.values()))

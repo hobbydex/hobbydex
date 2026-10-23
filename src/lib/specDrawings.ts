@@ -306,7 +306,12 @@ export function partDrawing(part: Part): (ScrewDrawing & { note?: string; spec?:
   const ss = eq.find((x) => x.category === 'screw');
   if (ss && part.category === 'screw') { const dr = screwDrawing({ ...ss, thread_type: part.thread_type ?? ss.thread_type }); return dr && { ...dr, spec: ss }; }
   const ns = eq.find((x) => x.category === 'nut');
-  if (ns && part.category === 'nut') { const dr = nutDrawing(ns); return dr && { ...dr, spec: ns }; }
+  if (ns && part.category === 'nut') {
+    // a wheel nut "with cover" (covered, capped) is closed, though its spec covers the open ones too
+    const closed = ns.type === 'wheel' && ns.closed === undefined && /\b(with )?(cover|covered|capped|closed)\b/i.test(part.name) ? { closed: true } : {};
+    const dr = nutDrawing({ ...ns, ...closed });
+    return dr && { ...dr, spec: ns };
+  }
   const es = eq.find((x) => x.category === 'eclip');
   if (es && part.category === 'clip') {
     const dr = eclipDrawing(es);

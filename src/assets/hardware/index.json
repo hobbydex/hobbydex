@@ -1374,5 +1374,7 @@
   "bearing/thrust-5x12x5": "bearing-thrust-5x12x5.svg",
   "bearing/thrust-6.35x9.525x3.175": "bearing-thrust-6.35x9.525x3.175.svg",
   "bearing/thrust-6x14x5": "bearing-thrust-6x14x5.svg",
-  "bearing/thrust-8x16x5": "bearing-thrust-8x16x5.svg"
+  "bearing/thrust-8x16x5": "bearing-thrust-8x16x5.svg",
+  "nut/m12-wheel-17mm": "nut-m12-wheel-17mm.svg",
+  "nut/m12x1-wheel-17mm": "nut-m12x1-wheel-17mm.svg"
 }
