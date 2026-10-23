@@ -35,6 +35,7 @@ SCREW_TYPES = {
     ("socket-cap", "hex"): "ISO4762",
     ("set", "hex"): "ISO4029",
     ("pan", "phillips"): "ISO7045",
+    ("pan", "jis"): "ISO7045",          # the JIS cross recess is drawn as Phillips
     ("countersunk", "phillips"): "ISO7046",
 }
 # self-tapping screws: the head+drive maps as above, with JIS drawn as Phillips; the shank is an ISO 7049-F
@@ -100,6 +101,11 @@ def select_specs(data):
                 skipped["screw, head or drive not mapped"] += 1; continue
             if spec.get("thread") not in ISO_DIAMETERS:
                 skipped["screw, not an ISO metric diameter"] += 1; continue
+            if spec.get("head") == "pan" and spec.get("drive") == "jis":
+                # the Tamiya round-head screws: all drawn, not only the most linked screws
+                jobs[sid] = {"kind": "screw", "iso": iso, "thread": spec["thread"], "length": spec["length_mm"],
+                             "group": "pan-jis"}
+                continue
             screws.append((links.get(sid, 0), sid, {"kind": "screw", "iso": iso, "thread": spec["thread"], "length": spec["length_mm"]}))
     screws.sort(key=lambda t: (-t[0], t[1]))
     ranked = [(sid, job) for _, sid, job in screws]   # the candidates, most linked first
@@ -528,15 +534,17 @@ def slug_of(spec):
 def main():
     data = json.loads((ROOT / "data/hobbydex-rc.json").read_text())
     direct, ranked, skipped, links = select_specs(data)   # bearings and tapping screws, then the other screws
-    # --bearings and --tapping redraw one kind; the other drawings already in index.json stay as they are
+    # --bearings and --tapping redraw one group; the other drawings already in index.json stay as they are
     only = next((flag for flag in ("--bearings", "--tapping") if flag in sys.argv), None)
     old_index = json.loads((OUT / "index.json").read_text()) if only else {}
     if only == "--bearings":
         jobs = {sid: p for sid, p in direct.items() if p["kind"] == "bearing"}
         keep = {k: v for k, v in old_index.items() if k.startswith("screw/")}
     elif only == "--tapping":
-        jobs = {sid: p for sid, p in direct.items() if p["kind"] == "tapping"}
-        keep = {k: v for k, v in old_index.items() if "tapping" not in k}   # cone and flat drawings both redrawn
+        # the tapping screws and the pan JIS screws: every drawing they make is redrawn, the rest kept
+        jobs = {sid: p for sid, p in direct.items() if p["kind"] == "tapping" or p.get("group") == "pan-jis"}
+        redrawn = {key_of(sid) for sid in jobs}
+        keep = {k: v for k, v in old_index.items() if k not in redrawn}
     else:
         jobs = dict(direct)
         jobs.update(dict(ranked[:SCREW_CANDIDATES]))
