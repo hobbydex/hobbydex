@@ -130,8 +130,8 @@ export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
     const cap = banana ? 'Side, banana tip' : 'Side';
     const note = known
       ? `diameter and length from Amass's ${known.from} spec sheet (V1.2), in mm`
-      : `the diameter is the contact size; the length is 4.2 times it, the median of Amass's contacts, as no dimensioned drawing of this size is in our sources`;
-    return { svg: svgOf(name, row([part(b.o, b.w, b.h, cap)])), standard: undefined, approximate: false, note };
+      : `length estimated as 4.2 x the diameter (median of Amass's contacts); no dimensioned drawing of this size is in our sources`;
+    return { svg: svgOf(name, row([part(b.o, b.w, b.h, cap)])), standard: undefined, approximate: !known, note };
   }
 
   if (slug === 'deans') {
