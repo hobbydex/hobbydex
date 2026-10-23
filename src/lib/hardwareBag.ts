@@ -1,7 +1,7 @@
 // Which specs have a hardware bag drawing (src/assets/hardware/index.json, written by tools/hardware/make_drawings.py),
 // and the bag items a part shows: its `includes` when it lists specs (every one must have a drawing), else its
-// equivalent_to spec (its pack of one spec, from pack_qty). A self-tapping screw part with point "flat" shows the
-// spec's "-flat" drawing (the flat point); every other part shows the spec's drawing, the cone point.
+// equivalent_to spec (its pack of one spec, from pack_qty). A self-tapping screw shows the spec's "-flat" drawing
+// (the flat point, as the technical drawing) unless the part says point "cone".
 import index from '../assets/hardware/index.json';
 import type { Part } from './data';
 
@@ -18,7 +18,7 @@ export function hardwareSvg(file: string): string | undefined {
 export function hardwareFile(specId: string | undefined, point?: string): string | undefined {
   if (!specId) return undefined;
   const key = specId.replace(/^spec\//, '');
-  return (point === 'flat' && files[`${key}-flat`]) || files[key];
+  return (point !== 'cone' && files[`${key}-flat`]) || files[key];
 }
 
 export type BagItem = { spec: string; qty: number; point?: string };

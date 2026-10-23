@@ -203,7 +203,6 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.frequency_hz && <><dt>PWM frequency</dt><dd>{Array.isArray(part.frequency_hz) ? `${part.frequency_hz[0]} to ${part.frequency_hz[1]} Hz` : `${part.frequency_hz} Hz`}</dd></>}
     {part.channels && <><dt>Channels</dt><dd>{part.channels}</dd></>}
     {part.protocol && <><dt>Protocol</dt><dd>{part.protocol}</dd></>}
-    {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
     {specFact.facts.length > 0 && <><dt>Spec</dt><dd>{specFact.specs.map((s, i) => <>{i > 0 && ', '}<a href={url.spec(s.id)}>{s.name ?? s.id}</a></>)}</dd><FactRows rows={specFact.facts} /></>}
   </dl>
@@ -212,6 +211,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     : drawing ? <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />
     : part.category && <span class="typeicon" title={catName(part.category)}><Icon name={part.category} size="8rem" /></span>}
   </div>
+  {part.notes && <p class="muted partnotes">{part.notes}</p>}
   <DoubtNote on={!!dateDoubt(part)} />
   <FanLinks links={part.links} />
   {drawing && (bag || part.art) && <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />}
