@@ -1,8 +1,13 @@
-// Drawing of an E-clip (DIN 6799) from its spec's DIN fields: the front view with the outer diameter, the groove
-// diameter, the DIN outline (feet, cut-outs, tongue) and the thickness. Drawn in currentColor like the other drawings.
-// A spec without its DIN fields (non-standard thicknesses, bowed rings) has no drawing.
+// Drawing of an E-clip (DIN 6799) from its spec's DIN fields: the top view of the clip with its outline to scale (the
+// Fasteners add-on's DIN 6799 solid, eclipOutlines.json), the groove, outer diameter, opening a and thickness. Drawn in
+// currentColor like the other drawings. A spec without its DIN fields (non-standard thicknesses, bowed rings) has no
+// drawing; a DIN size the add-on has no solid for (groove 0.8 and 1.2) keeps the older hand-drawn sketch.
 import type { Spec } from './data';
 import type { ScrewDrawing } from './screwDrawing';
+import outlines from './eclipOutlines.json';
+
+type Size = { groove_mm: number; shaft_min_mm: number; shaft_max_mm: number; outer_mm: number; thickness_mm: number; a_mm: number; loops: number[][][] };
+const sizes = Object.values(outlines.sizes) as Size[];
 
 const f = (v: number) => String(Math.round(v * 100) / 100);
 const W = 300;
@@ -19,6 +24,40 @@ function vdim(x: number, y1: number, y2: number, label: string) {
 export function eclipDrawing(spec: Spec): ScrewDrawing | undefined {
   const G = Number(spec.groove_mm), D = Number(spec.din_outer_mm), T = Number(spec.din_thickness_mm);
   if (!G || !D || !T || G >= D) return undefined;
+  const size = sizes.find((z) => z.groove_mm === G);
+  return size ? outlineDrawing(spec, size, G, T) : sketchDrawing(spec, G, D, T);
+}
+
+// The clip's top view from the add-on's solid: the outline in mm around the groove centre, drawn y-up as the solid is.
+function outlineDrawing(spec: Spec, size: Size, G: number, T: number): ScrewDrawing {
+  const D = size.outer_mm, a = size.a_mm;
+  const s = Math.min(40, 140 / D);   // px per mm: the outer ring is about 140 px across; a small clip is drawn larger
+  const R = (D / 2) * s, r = (G / 2) * s;
+  const cx = W / 2, cy = 80 + R;
+  const o: string[] = [];
+  const pts = size.loops.map((loop) => loop.map(([x, y]) => `${f(cx + x * s)} ${f(cy - y * s)}`).join('L') + 'Z');
+  const minY = Math.min(...size.loops.flat().map((p) => p[1]));   // the lowest point: the feet, at the mouth
+  const Sh = Number(spec.shaft_mm);
+  o.push(`<defs><pattern id="eclip-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V4" style="stroke:currentColor;stroke-width:0.4px;stroke-opacity:.45"/></pattern></defs>`);
+  // the shaft's cross-section, lightly hatched behind the clip; the clip's light fill; the groove circle dashed on top
+  if (Sh > G) o.push(`<circle class="thin" cx="${f(cx)}" cy="${f(cy)}" r="${f((Sh / 2) * s)}" fill="url(#eclip-hatch)"/>`, hdim(cx - (Sh / 2) * s, cx + (Sh / 2) * s, cy - R - 30, `shaft ⌀${f(Sh)}`));
+  o.push(`<path class="fill" d="${pts.map((d) => `M${d}`).join('')}"/>`);
+  o.push(`<circle class="thin dash" cx="${f(cx)}" cy="${f(cy)}" r="${f(r)}" fill="none"/>`);
+  o.push(`<path class="thin dashdot" d="M${f(cx - R - 8)} ${f(cy)}H${f(cx + R + 8)}M${f(cx)} ${f(cy - R - 8)}V${f(cy + R + 8)}"/>`);
+  o.push(hdim(cx - R, cx + R, cy - R - 12, `⌀${f(D)}`));
+  o.push(hdim(cx - (a / 2) * s, cx + (a / 2) * s, cy - minY * s + 8, `a ${f(a)}`));   // the opening, just below the feet
+  o.push(hdim(cx - r, cx + r, cy + R + 40, `groove ⌀${f(G)}`));
+  o.push(`<text x="${f(cx)}" y="${f(cy + R + 66)}" text-anchor="middle" class="std">thickness ${f(T)}</text>`);
+  const H = Math.ceil(cy + R + 76);
+  return {
+    svg: `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${f(G)} / ${f(D)} x ${f(T)} E-clip"><g class="s">${o.join('')}<text x="${W - 4}" y="12" text-anchor="end" class="std">dimensions in mm</text></g></svg>`,
+    standard: 'DIN 6799', approximate: false,
+    note: 'The outline is the DIN 6799 solid of the Fasteners add-on, to scale; the groove, outer diameter, opening a and thickness are to scale',
+  };
+}
+
+// A DIN size with no solid in the add-on (groove 0.8 and 1.2 mm): the older hand-drawn sketch, not to scale in its outline.
+function sketchDrawing(spec: Spec, G: number, D: number, T: number): ScrewDrawing {
   const s = Math.min(40, 140 / D);   // px per mm: the outer ring is about 140 px across; a small clip is drawn larger
   const R = (D / 2) * s, r = (G / 2) * s;
   const cx = W / 2, cy = 60 + R;
@@ -60,6 +99,6 @@ export function eclipDrawing(spec: Spec): ScrewDrawing | undefined {
   return {
     svg: `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${f(G)} / ${f(D)} x ${f(T)} E-clip"><g class="s">${o.join('')}<text x="${W - 4}" y="12" text-anchor="end" class="std">dimensions in mm</text></g></svg>`,
     standard: 'DIN 6799', approximate: false,
-    note: 'The outline follows the DIN 6799 drawing; only the groove, outer diameter and thickness are to scale',
+    note: 'No DIN 6799 solid for this size in the Fasteners add-on: the outline is a sketch, not to scale; the groove, outer diameter and thickness are to scale',
   };
 }
