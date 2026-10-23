@@ -1,5 +1,7 @@
 ---
 import { specLabel } from '../../../../lib/specs';
+import { specFacts } from '../../../../lib/specFacts';
+import FactRows from '../../../../components/FactRows.astro';
 import Base from '../../../../layouts/Base.astro';
 import Standards from '../../../../components/Standards.astro';
 import { specDrawing } from '../../../../lib/specDrawings';
@@ -14,18 +16,6 @@ export function getStaticPaths() {
   return db.specs.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } }));
 }
 const { spec } = Astro.props;
-const skip = new Set(['id', 'category', 'name', 'standards', 'toml_path']);
-const attrs = Object.entries(spec).filter(([k, v]) => !skip.has(k) && !k.endsWith('_source') && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'));
-// a field name as a label: "din_outer_mm" -> "Outer, DIN (mm)", "shaft_mm" -> "Shaft (mm)"
-const fieldLabel = (k: string) => {
-  const WIRE: Record<string, string> = { awg: 'Gauge (AWG)', conductor_mm: 'Diameter (mm)', cross_section_mm2: 'Cross-section (mm²)' };
-  if (WIRE[k]) return WIRE[k];
-  let t = k.replace(/_/g, ' '), unit = '';
-  const u = t.match(/ (mm|g|kg|v|mah|cst|kv|t|deg|a)$/i);
-  if (u) { unit = ` (${u[1] === 'v' ? 'V' : u[1] === 'a' ? 'A' : u[1] === 'mah' ? 'mAh' : u[1] === 'cst' ? 'cSt' : u[1] === 'kv' ? 'kV' : u[1]})`; t = t.slice(0, -u[0].length); }
-  if (/^(din|iso|jis) /.test(t)) t = `${t.slice(4)}, ${t.slice(0, 3).toUpperCase()}`;
-  return t.charAt(0).toUpperCase() + t.slice(1) + unit;
-};
 const linked = db.partsBySpec.get(spec.id) ?? [];
 const uses = linked.flatMap(({ part, link }) => (db.usesByPart.get(part.id) ?? []).map((u) => ({ part, link, ...u })))
   .sort((a, b) => yearOf(a.release) - yearOf(b.release) || a.release.name.localeCompare(b.release.name));
@@ -48,7 +38,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
   <h1>{title}</h1>
   <dl class="facts">
     <dt>Category</dt><dd><a href={`/rc/specs/${spec.category}/`}>{specLabel[spec.category] ?? spec.category}</a></dd>
-    {attrs.map(([k, v]) => <><dt>{fieldLabel(k)}</dt><dd>{typeof v === 'boolean' ? (v ? 'yes' : 'no') : String(v)}{typeof spec[`${k}_source`] === 'string' && <> <span class="muted">(<a href={spec[`${k}_source`] as string}>source</a>)</span></>}</dd></>)}
+    <FactRows rows={specFacts(spec)} />
     {spec.standards && <><dt>Standards</dt><dd><Standards codes={spec.standards} /></dd></>}
   </dl>
   {hardwareFile(spec.id) && <div data-pagefind-ignore><HardwareBag items={[{ spec: spec.id, qty: 1 }]} /></div>}

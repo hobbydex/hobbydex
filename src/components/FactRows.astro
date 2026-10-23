@@ -1,0 +1,7 @@
+---
+// Fact rows for a facts list (dl.facts): a label, the value, and the page it was read from when the record gives one.
+import type { Fact } from '../lib/specFacts';
+interface Props { rows: Fact[] }
+const { rows } = Astro.props;
+---
+{rows.map((f) => <><dt>{f.label}</dt><dd>{f.text}{f.source && <> <span class="muted">(<a href={f.source}>source</a>)</span></>}</dd></>)}
