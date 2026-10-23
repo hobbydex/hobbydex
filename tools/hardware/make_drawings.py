@@ -59,7 +59,6 @@ TAP_HEAD_SIZES = {
 }
 SCREW_TOP = 40                       # most linked screw specs drawn
 SCREW_CANDIDATES = 80                # the most linked screw specs tried (some fail in FreeCAD)
-ISO_DIAMETERS = {"M2", "M2.5", "M3", "M4", "M5", "M6", "M8", "M10"}
 FRAG = "scale(1, -1)"   # TechDraw's SVG y runs down; every drawing uses it, then the axis is levelled up
 
 
@@ -75,7 +74,7 @@ def select_specs(data):
                "bearing, type not drawn": 0, "screw, head or drive not mapped": 0,
                "tapping, head or drive has no head builder": 0, "tapping, head size not in the add-on": 0,
                "tapping, thread size has no ISO 1478 size": 0,
-               "screw, not an ISO metric diameter": 0}
+               "screw, thread is not a metric size": 0}
     jobs = {}
     screws = []
     for spec in data["specs"]:
@@ -118,8 +117,9 @@ def select_specs(data):
             iso = SCREW_TYPES.get((spec.get("head"), spec.get("drive")))
             if not iso:
                 skipped["screw, head or drive not mapped"] += 1; continue
-            if spec.get("thread") not in ISO_DIAMETERS:
-                skipped["screw, not an ISO metric diameter"] += 1; continue
+            # the add-on's sizes are the test: a size it has no table for fails in FreeCAD and is counted there
+            if not re.fullmatch(r"M\d+(\.\d+)?", spec.get("thread") or ""):
+                skipped["screw, thread is not a metric size"] += 1; continue
             if spec.get("head") == "pan" and spec.get("drive") == "jis":
                 # the Tamiya round-head screws: all drawn, not only the most linked screws
                 jobs[sid] = {"kind": "screw", "iso": iso, "thread": spec["thread"], "length": spec["length_mm"],
@@ -682,11 +682,15 @@ def main():
     data = json.loads((ROOT / "data/hobbydex-rc.json").read_text())
     direct, ranked, skipped, links = select_specs(data)   # bearings and tapping screws, then the other screws
     # --bearings and --tapping redraw one group; the other drawings already in index.json stay as they are
-    only = next((flag for flag in ("--bearings", "--tapping", "--flanged-thrust") if flag in sys.argv), None)
+    only = next((flag for flag in ("--bearings", "--tapping", "--flanged-thrust", "--missing") if flag in sys.argv), None)
     old_index = json.loads((OUT / "index.json").read_text()) if only else {}
     if only == "--bearings":
         jobs = {sid: p for sid, p in direct.items() if p["kind"] == "bearing" and "type" not in p}
         keep = {k: v for k, v in old_index.items() if k.startswith(("screw/", "bearing/flanged-", "bearing/thrust-"))}
+    elif only == "--missing":
+        # every screw the generator maps and index.json lacks (no ranking cap); the other drawings stay as they are
+        jobs = {sid: job for sid, job in ranked if key_of(sid) not in old_index}
+        keep = old_index
     elif only == "--flanged-thrust":
         # the flanged and thrust bearings: only these are drawn, every other drawing in index.json stays
         jobs = {sid: p for sid, p in direct.items() if p.get("type") in ("flanged", "thrust")}
@@ -701,7 +705,7 @@ def main():
         jobs = dict(direct)
         jobs.update(dict(ranked[:SCREW_CANDIDATES]))
         keep = {}
-    if not only:
+    if not only or only == "--missing":
         for f in WORK.glob("*.svgfrag"):
             f.unlink()
     WORK.mkdir(parents=True, exist_ok=True)
@@ -710,7 +714,9 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     index, failed, thread_failed = {}, [], []
     screws_ok = []
-    if not only:
+    if only == "--missing":
+        screws_ok = []   # every job is a screw, written below from its own fragment
+    elif not only:
         screws_ok = [sid for sid, _ in ranked if (WORK / f"{slug_of(sid)}.svgfrag").exists()][:SCREW_TOP]
         skipped["screw, FreeCAD failed"] = sum(1 for sid, _ in ranked[:SCREW_CANDIDATES] if sid not in screws_ok)
         skipped["screw, outside the top %d drawn" % SCREW_TOP] = len(ranked) - SCREW_CANDIDATES
