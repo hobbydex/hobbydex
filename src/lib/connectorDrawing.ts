@@ -91,7 +91,7 @@ function pin(p: Pen, x: number, y: number, cavity: number, d: number) {
   const sw = d * 0.14;
   return p.circ(x, y, cavity, 'ball') + p.circ(x, y, d, 'solid') + p.rect(x - d / 2, y - sw / 2, d, sw, 'bg') + p.rect(x - sw / 2, y - d / 2, sw, d, 'bg');
 }
-const line = (p: Pen, x1: number, y1: number, x2: number, y2: number) => p.poly([[x1, y1], [x2, y2]], 'thin', false);
+const line = (p: Pen, x1: number, y1: number, x2: number, y2: number) => p.poly([[x1, y1], [x2, y2]], 'thin ln', false);
 
 // The XT, XT150 and AS150 plugs from the drawings on Amass's product pages: mating face (male) and side, in mm. The
 // outline sizes are dimensioned there; contact positions and the other details are read off the drawing.
@@ -207,7 +207,7 @@ function ecDrawing(slug: string, e: Ec) {
   const ribX = e.blueLeft ? shellW : 0, shellX = e.blueLeft ? 0 : ribW;
   let side = rect(ribX, 0, ribW, fh);
   for (let i = 1; i * 1.3 < e.ribL; i++) side += `<path class="thin" d="M${f(ribX + i * 1.3 * s)} 0V${f(fh)}"/>`;
-  for (const [a, b] of e.shells) side += rect(shellX, a * s, shellW, (b - a) * s);
+  for (const [a, b] of e.shells) side += rect(shellX, a * s, shellW, (b - a) * s, 'metal');
   side += hdim(0, L, -8, `${e.L.toFixed(2)} mm`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`);
   const name = slug.toUpperCase();
   return { face: ecFace(e, s), side: part(side, L, fh, 'Side'), note: EC_NOTE(name) };
@@ -264,7 +264,22 @@ const SERVO: View[][] = (() => {
   ]];
 })();
 
+// housing colours as sold: XT yellow (the XT90-S with green lines), EC blue, Deans dark red, JST battery plug red, servo plugs black (drawn grey for contrast)
+const TINT: Record<string, [string, string?]> = {
+  xt30: ['#f2c230'], xt60: ['#f2c230'], xt60h: ['#f2c230'], xt90: ['#f2c230'], xt150: ['#f2c230'], xt90s: ['#f2c230', '#2e9e4a'],
+  ec2: ['#2f6fd6'], ec3: ['#2f6fd6'], ec5: ['#2f6fd6'], ec8: ['#2f6fd6'],
+  deans: ['#8b1e1e'], 'jst-rcy': ['#d42a2a'], 'servo-jr-futaba': ['#6b6f76'],
+};
+
 export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
+  const d = draw(spec);
+  const t = TINT[String(spec.id).split('/').pop() ?? ''];
+  if (!d || !t) return d;
+  const style = `--plug:${t[0]}` + (t[1] ? `;--plug-line:${t[1]}` : '');
+  return { ...d, svg: d.svg.replace('<svg class="screwdrawing"', `<svg class="screwdrawing plug" style="${style}"`) };
+}
+
+function draw(spec: Spec): ScrewDrawing | undefined {
   const slug = String(spec.id).split('/').pop() ?? '';
   const spark = !!spec.anti_spark;
   const size = slug.replace(/^(ec|ic)/, '');
