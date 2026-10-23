@@ -4,7 +4,7 @@ import type { Part, Spec } from './data';
 
 // a field name as a label: "din_outer_mm" -> "Outer, DIN (mm)", "shaft_mm" -> "Shaft (mm)"
 export function fieldLabel(k: string): string {
-  const WIRE: Record<string, string> = { awg: 'Gauge (AWG)', conductor_mm: 'Diameter (mm)', cross_section_mm2: 'Cross-section (mm²)' };
+  const WIRE: Record<string, string> = { awg: 'Gauge (AWG)', conductor_mm: 'Diameter (mm)', conductor_in: 'Diameter (in)', cross_section_mm2: 'Cross-section (mm²)' };
   if (WIRE[k]) return WIRE[k];
   let t = k.replace(/_/g, ' '), unit = '';
   const u = t.match(/ (mm|g|kg|v|mah|cst|kv|t|deg|a)$/i);
