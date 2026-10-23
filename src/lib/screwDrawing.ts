@@ -67,11 +67,16 @@ export function screwDrawing(spec: Spec): ScrewDrawing | undefined {
     const rc = (tap.core / 2) * s, ch = tap.chamfer;   // core radius (px), end chamfer (mm)
     const e = end - ch, ro = end - pitch;   // chamfer start, runout start (mm)
     const crest = (mm: number) => (mm <= ro ? r : Math.max(rc, r - ((r - rc) * (mm - ro)) / (e - ro)));   // px
-    o.push(`<path d="M${f(X(start))} ${f(cy - r)}H${f(X(ro))}L${f(X(e))} ${f(cy - rc)}L${f(X(end))} ${f(cy - rc + ch * s)}V${f(cy + rc - ch * s)}L${f(X(e))} ${f(cy + rc)}L${f(X(ro))} ${f(cy + r)}H${f(X(start))}"/>`);
+    // the thread is the outline: a sharp crest every pitch and a sharp root half a pitch later at the core
+    const pts: [number, number][] = [];   // [mm, crest or root height (px)] from the head to the chamfer
     for (let a = start; a < e; a += pitch) {
-      const h = crest(a), b = X(a + pitch / 2);
-      teeth += `M${f(X(a))} ${f(cy - h)}L${f(b)} ${f(cy - rc)}M${f(X(a))} ${f(cy + h)}L${f(b)} ${f(cy + rc)}`;
+      pts.push([a, crest(a)]);
+      if (a + pitch / 2 < e) pts.push([a + pitch / 2, rc]);
     }
+    const P = (mm: number, h: number, sg: number) => `${f(X(mm))} ${f(cy + sg * h)}`;
+    const top = pts.map(([mm, h]) => `L${P(mm, h, -1)}`).join('');
+    const bottom = pts.slice().reverse().map(([mm, h]) => `L${P(mm, h, 1)}`).join('');
+    o.push(`<path stroke-linejoin="miter" d="M${f(X(start))} ${f(cy - r)}${top}L${f(X(e))} ${f(cy - rc)}L${f(X(end))} ${f(cy - rc + ch * s)}V${f(cy + rc - ch * s)}L${f(X(e))} ${f(cy + rc)}${bottom}"/>`);
   } else {
     o.push(`<path d="M${f(X(start))} ${f(cy - r)}H${f(X(end))}V${f(cy + r)}H${f(X(start))}${head === 'set' ? 'Z' : ''}"/>`);
     const n = Math.floor((end - start) / pitch);
