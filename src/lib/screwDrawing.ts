@@ -58,15 +58,32 @@ export function screwDrawing(spec: Spec): ScrewDrawing | undefined {
     o.push(`<rect x="${f(X(0))}" y="${f(cy - rk)}" width="${f(k * s)}" height="${f(2 * rk)}" rx="1"/>`);
     start = k; end = k + L;
   }
-  // shank: straight end, pointed for self-tapping, a cup point for set screws
-  const tip = tapping ? Math.min(d, (end - start) / 3) : 0;
-  o.push(`<path d="M${f(X(start))} ${f(cy - r)}H${f(X(end - tip))}${tapping ? `L${f(X(end))} ${cy}L${f(X(end - tip))} ${f(cy + r)}` : `V${f(cy + r)}`}H${f(X(start))}${head === 'set' ? 'Z' : ''}"/>`);
-  const pitch = tapping ? Math.max(p * 2, d * 0.45) : p;
-  const n = Math.floor((end - start - tip) / pitch);
+  // shank: a self-tapping screw has a flat end with a small chamfer, its ISO 1478 thread starts under the head
+  // and the last turn runs out to the core; a set screw ends straight (cup point not drawn)
+  const tap = tapping ? tapThread(d) : undefined;
+  const pitch = tap ? tap.pitch : p;
   let teeth = '';
-  for (let i = 0; i < n; i++) {
-    const a = X(start + i * pitch), b = X(start + (i + 0.5) * pitch);
-    teeth += `M${f(a)} ${f(cy - r)}L${f(b)} ${f(cy - r * 0.78)}M${f(a)} ${f(cy + r)}L${f(b)} ${f(cy + r * 0.78)}`;
+  if (tap) {
+    const rc = (tap.core / 2) * s, ch = tap.chamfer;   // core radius (px), end chamfer (mm)
+    const e = end - ch, ro = end - pitch;   // chamfer start, runout start (mm)
+    const crest = (mm: number) => (mm <= ro ? r : Math.max(rc, r - ((r - rc) * (mm - ro)) / (e - ro)));   // px
+    // the thread is the outline: a sharp crest every pitch and a sharp root half a pitch later at the core
+    const pts: [number, number][] = [];   // [mm, crest or root height (px)] from the head to the chamfer
+    for (let a = start; a < e; a += pitch) {
+      pts.push([a, crest(a)]);
+      if (a + pitch / 2 < e) pts.push([a + pitch / 2, rc]);
+    }
+    const P = (mm: number, h: number, sg: number) => `${f(X(mm))} ${f(cy + sg * h)}`;
+    const top = pts.map(([mm, h]) => `L${P(mm, h, -1)}`).join('');
+    const bottom = pts.slice().reverse().map(([mm, h]) => `L${P(mm, h, 1)}`).join('');
+    o.push(`<path stroke-linejoin="miter" d="M${f(X(start))} ${f(cy - r)}${top}L${f(X(e))} ${f(cy - rc)}L${f(X(end))} ${f(cy - rc + ch * s)}V${f(cy + rc - ch * s)}L${f(X(e))} ${f(cy + rc)}${bottom}"/>`);
+  } else {
+    o.push(`<path d="M${f(X(start))} ${f(cy - r)}H${f(X(end))}V${f(cy + r)}H${f(X(start))}${head === 'set' ? 'Z' : ''}"/>`);
+    const n = Math.floor((end - start) / pitch);
+    for (let i = 0; i < n; i++) {
+      const a = X(start + i * pitch), b = X(start + (i + 0.5) * pitch);
+      teeth += `M${f(a)} ${f(cy - r)}L${f(b)} ${f(cy - r * 0.78)}M${f(a)} ${f(cy + r)}L${f(b)} ${f(cy + r * 0.78)}`;
+    }
   }
   o.push(`<path class="thin" d="${teeth}"/>`);
   // dimensions: L under the screw, thread at the end, head diameter at the head
@@ -99,6 +116,13 @@ export function screwDrawing(spec: Spec): ScrewDrawing | undefined {
   const label = `${spec.thread}x${f(L)} ${head.replace('-', ' ')}${tapping ? ', self-tapping' : ''}`;
   const svg = `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${label}"><g class="s">${o.join('')}<text x="${W - 4}" y="12" text-anchor="end" class="std">dimensions in mm</text></g></svg>`;
   return { svg, standard, approximate };
+}
+
+// ISO 1478 tapping thread by outer diameter: pitch (M2 is ST2.2, M2.6 and M3 ST2.9, M3.5 ST3.5, M4 ST4.2),
+// core 0.75 x outer (mm), and the flat end's chamfer (mm). Drawn with the outer diameter of the spec.
+function tapThread(d: number) {
+  const pitch = d < 2.5 ? 0.8 : d < 3.25 ? 1.1 : d < 3.75 ? 1.3 : 1.4;
+  return { pitch, core: 0.75 * d, chamfer: 0.2 * d };
 }
 
 function hdim(x1: number, x2: number, y: number, label: string) {

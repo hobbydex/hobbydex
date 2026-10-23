@@ -6,6 +6,6 @@ const { drawing, drawStd, part } = Astro.props;
 ---
 <figure class="drawing" data-pagefind-ignore>
     <Fragment set:html={drawing.svg} />
-    <figcaption class="muted">{drawing.spec ? <>{part.category === 'nut' && drawing.approximate ? 'Drawn' : 'To scale'}, from the generic size <a href={url.spec(drawing.spec.id)}>{drawing.spec.name}</a>{part.category === 'bearing' && part.seal && part.seal !== 'open' && ', with the shields or seals this part lists'}{part.category === 'screw' && (drawStd ? <>; head and socket sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : '; head proportions as usual for this type')}.</>
+    <figcaption class="muted">{drawing.spec ? <>{part.category === 'nut' && drawing.approximate ? 'Drawn' : 'To scale'}, from the generic size <a href={url.spec(drawing.spec.id)}>{drawing.spec.name}</a>{part.category === 'bearing' && part.seal && part.seal !== 'open' && ', with the shields or seals this part lists'}{part.category === 'screw' && (drawStd ? <>; head and socket sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : '; head proportions as usual for this type')}{part.category === 'screw' && drawing.spec.thread_type === 'self-tapping' && '; the point is drawn flat (ISO 7049-F style) and the thread per ISO 1478'}.</>
       : drawing.approximate ? 'Not to scale: the pitch of this gear is not in our data, so only its tooth count is drawn.' : 'To scale, from the tooth count and the pitch.'}{drawing.note && ` ${drawing.note}.`}</figcaption>
   </figure>
