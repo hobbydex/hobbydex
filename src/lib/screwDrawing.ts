@@ -65,7 +65,7 @@ export function screwDrawing(spec: Spec): ScrewDrawing | undefined {
   let teeth = '';
   if (tap) {
     const rc = (tap.core / 2) * s, ch = tap.chamfer;   // core radius (px), end chamfer (mm)
-    const e = end - ch, ro = end - pitch;   // chamfer start, runout start (mm)
+    const e = end - ch, ro = end - pitch / 2;   // chamfer start, runout start (mm): the last half pitch fades
     const crest = (mm: number) => (mm <= ro ? r : Math.max(rc, r - ((r - rc) * (mm - ro)) / (e - ro)));   // px
     // the thread is the outline: a sharp crest every pitch and a sharp root half a pitch later at the core
     const pts: [number, number][] = [];   // [mm, crest or root height (px)] from the head to the chamfer
@@ -122,7 +122,7 @@ export function screwDrawing(spec: Spec): ScrewDrawing | undefined {
 // core 0.75 x outer (mm), and the flat end's chamfer (mm). Drawn with the outer diameter of the spec.
 function tapThread(d: number) {
   const pitch = d < 2.5 ? 0.8 : d < 3.25 ? 1.1 : d < 3.75 ? 1.3 : 1.4;
-  return { pitch, core: 0.75 * d, chamfer: 0.2 * d };
+  return { pitch, core: 0.75 * d, chamfer: 0.1 * d };
 }
 
 function hdim(x1: number, x2: number, y: number, label: string) {
