@@ -41,6 +41,10 @@ Hobbydex is built on open source. Thank you to the people behind:
 - [Primer Primitives](https://github.com/primer/primitives) - the colour and spacing tokens behind the light and dark themes
 - [Shapely](https://shapely.readthedocs.io) and [svgpathtools](https://github.com/mathandy/svgpathtools) - drawing the vehicle and part icons
 - [Inkscape](https://inkscape.org) - the hand-traced icons and checking renders
+- [FreeCAD](https://www.freecad.org) - the 3D models behind the hardware drawings (screws, nuts, washers, bearings, e-clips, pins and pinions), projected as line drawings
+- [Fasteners Workbench](https://github.com/shaise/FreeCAD_FastenersWB) for FreeCAD - screws, nuts, washers and e-clips built to their ISO, DIN and other standards
+- [FreeCAD Gears](https://github.com/looooo/freecad.gears) - the involute pinions
+- [Potrace](https://potrace.sourceforge.net) - tracing the filled outlines of the hardware drawings and icons
 
 The data itself is read from manufacturers' manuals and parts lists with the tools thanked in [hobbydex-rc](https://github.com/hobbydex/hobbydex-rc#thanks).
 
