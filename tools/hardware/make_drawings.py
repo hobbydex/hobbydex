@@ -92,7 +92,7 @@ def select_specs(data):
                 else:
                     # two drawings: the cone point (ISO 7049-C) by default, the flat point (ISO 7049-F) as "#flat"
                     job = {"kind": "tapping", "iso": head, "head_dia": spec["thread"], "thread": spec["thread"],
-                           "st": st, "length": spec["length_mm"]}
+                           "st": st, "length": spec["length_mm"], "head": spec.get("head")}
                     jobs[sid] = {**job, "point": "cone"}
                     jobs[sid + "#flat"] = {**job, "point": "flat"}
                 continue
@@ -163,7 +163,22 @@ def tapping(doc, job):
     big = 60
     above = Part.makeBox(big, big, big, V(-big / 2, -big / 2, zu))
     below = Part.makeBox(big, big, big, V(-big / 2, -big / 2, zu - big))
-    res = head.Shape.common(above).fuse(tap.Shape.common(below)).removeSplitter()
+    head_shape = head.Shape.common(above)
+    if job.get("head") == "countersunk":
+        # the add-on's countersunk head has a rounded top rim, which reads as a dome: a 45 degree rim fill
+        # makes the top a flat face at z = 0 out to the head's widest radius, and the cross recess stays
+        rt = head.Shape.BoundBox.XMax
+        tri = [V(rt - 0.7, 0, -0.7), V(rt, 0, 0), V(rt - 0.7, 0, 0)]
+        rim = Part.Face(Part.makePolygon(tri + [tri[0]])).revolve(V(0, 0, 0), V(0, 0, 1), 360)
+        head_shape = head_shape.fuse(rim)
+    res = head_shape.fuse(tap.Shape.common(below)).removeSplitter()
+    if job.get("head") == "countersunk":
+        # a countersunk head widens towards its top: the top's diameter is more than the underside's
+        top_r = max(w.BoundBox.XMax for w in res.slice(V(0, 0, 1), -0.02))
+        under_r = max(w.BoundBox.XMax for w in res.slice(V(0, 0, 1), zu + 0.05))
+        print("CSHEAD", job["iso"], job["thread"], L, "top r %.3f underside r %.3f" % (top_r, under_r), flush=True)
+        if top_r <= under_r:
+            raise ValueError("countersunk head does not widen towards its top (%.3f <= %.3f)" % (top_r, under_r))
     # the length runs from the underside of a pan or button head (it adds to the head), but a countersunk
     # head's length is overall, from its top: the head is within the length
     head_top = head.Shape.BoundBox.ZMax
