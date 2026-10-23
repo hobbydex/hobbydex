@@ -199,7 +199,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.notes && <><dt>Notes</dt><dd>{part.notes}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
   </dl>
-  {bag ? <span class="typeicon bagicon" data-pagefind-ignore><HardwareBag items={bag} seal={part.seal} color={part.color} /></span>
+  {bag ? <span class="typeicon bagicon" data-pagefind-ignore><HardwareBag items={bag} seal={part.seal} color={part.color} finish={part.finish} material={part.material} /></span>
     : part.art ? <span class="typeicon"><ReleaseArt id={part.id} category={part.category} color={part.color} art={part.art} size="12rem" class="hero" /></span>
     : drawing ? <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />
     : part.category && <span class="typeicon" title={catName(part.category)}><Icon name={part.category} size="8rem" /></span>}

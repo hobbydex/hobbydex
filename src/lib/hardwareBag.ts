@@ -32,3 +32,22 @@ export function bagItems(part: Part): BagItem[] | undefined {
   const e = (part.equivalent_to ?? []).find((x) => hardwareFile(x.spec));
   return e ? [{ spec: e.spec, qty: part.pack_qty ?? 1 }] : undefined;
 }
+
+// A metal or plastic tone for a bag with no colour: the tone's CSS variables are set on the bag (HardwareBag.astro).
+export type Tone = 'steel' | 'darkzinc' | 'black' | 'titanium' | 'aluminium' | 'brass' | 'copper' | 'plastic';
+const FINISH_TONE: Record<string, Tone> = {
+  'bright zinc': 'steel', silver: 'steel', zinc: 'steel', nickel: 'steel', chrome: 'steel',
+  'dark zinc': 'darkzinc', 'brown zinc': 'darkzinc', 'dark brown zinc': 'darkzinc',
+  'black oxide': 'black', black: 'black',
+  'yellow zinc': 'brass', 'yellow chromate': 'brass', gold: 'brass',
+  titanium: 'titanium', copper: 'copper',
+};
+const MATERIAL_TONE: Record<string, Tone> = {
+  steel: 'steel', stainless: 'steel', titanium: 'titanium', aluminium: 'aluminium', aluminum: 'aluminium',
+  brass: 'brass', copper: 'copper', plastic: 'plastic', nylon: 'plastic',
+};
+
+/** The tone of a part with no colour: its finish first, then its material; undefined for the page background. */
+export function metalTone(finish?: string, material?: string): Tone | undefined {
+  return FINISH_TONE[finish?.trim().toLowerCase() ?? ''] ?? MATERIAL_TONE[material?.trim().toLowerCase() ?? ''];
+}

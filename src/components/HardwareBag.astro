@@ -4,13 +4,13 @@
 // spec and then "+N". Groups run largest drawing first, each with a caption. One 1 cm bar sits under the last row,
 // left-aligned with the bottom-left item, its ticks pointing down. The svg is as wide as its page column, but at most
 // 12 px per mm, so a single small part is not blown up. Lines are currentColor with non-scaling strokes; the silhouette
-// takes the part's colour, or the page background when it has none. A rubber seal fills the bearing's shield face.
+// takes the part's colour, else its finish or material tone, else the page background. A rubber seal fills the bearing's shield face.
 import { colourShades } from '../lib/colourDot';
 import { db } from '../lib/data';
-import { hardwareFile, hardwareSvg, type BagItem } from '../lib/hardwareBag';
+import { hardwareFile, hardwareSvg, metalTone, type BagItem } from '../lib/hardwareBag';
 
-interface Props { items: BagItem[]; seal?: string; color?: string }
-const { items, seal, color } = Astro.props;
+interface Props { items: BagItem[]; seal?: string; color?: string; finish?: string; material?: string }
+const { items, seal, color, finish, material } = Astro.props;
 const COLS = 5, CAP = 20, BAR = 10, MARGIN = 0.5, MAX_PX_PER_MM = 12;
 const SEAL_FILL = 'var(--seal-rubber, #8a8f98)'; // a rubber seal (2RS/RS) face; a metal shield keeps the part's fill
 
@@ -31,10 +31,12 @@ const fullName = (id: string) => db.spec.get(id)?.name ?? id.split('/').pop()!;
 const luminance = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
   .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
 
-// the part's colour: silhouette fill, and the ink for the lines on it (light ink on a dark fill)
+// the part's colour: silhouette fill, and the ink for the lines on it (light ink on a dark fill). With no colour, the
+// tone of its finish or material (CSS variables --hb-<tone>, set below), else the page background.
 const shade = colourShades(color)?.[0]?.c;
-const fill = shade ?? 'var(--bg, #fff)';
-const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : 'currentColor';
+const tone = shade ? undefined : metalTone(finish, material);
+const fill = shade ?? (tone ? `var(--hb-${tone})` : 'var(--bg, #fff)');
+const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : tone ? `var(--hb-${tone}-ink)` : 'currentColor';
 
 // the groups, largest drawing first; a spec listed twice is one group
 const groups = [...new Map(items.filter((i) => hardwareFile(i.spec)).map((i) => [i.spec, i.qty])).entries()]
@@ -108,7 +110,13 @@ const maxWidth = ((width + 2 * MARGIN) * MAX_PX_PER_MM).toFixed(0);
   </svg>
 )}
 <style>
-  .hardwarebag { display: block; width: 100%; height: auto; margin: 0.5rem 0 1rem; overflow: visible; --seal-rubber: #8a8f98; }
-  @media (prefers-color-scheme: dark) { .hardwarebag { --seal-rubber: #6b7079; } }
+  .hardwarebag { display: block; width: 100%; height: auto; margin: 0.5rem 0 1rem; overflow: visible; --seal-rubber: #8a8f98;
+    --hb-steel: #c9ccd1; --hb-steel-ink: #3b3f46; --hb-darkzinc: #807e72; --hb-darkzinc-ink: #26241f; --hb-black: #2b2e33; --hb-black-ink: #f2f2f5;
+    --hb-titanium: #a39e96; --hb-titanium-ink: #3a3733; --hb-aluminium: #dfe2e6; --hb-aluminium-ink: #4a4f57; --hb-brass: #c8a24a; --hb-brass-ink: #5a4312;
+    --hb-copper: #b8683d; --hb-copper-ink: #5a2b14; --hb-plastic: #f2efe6; --hb-plastic-ink: #5c5850; }
+  @media (prefers-color-scheme: dark) { .hardwarebag { --seal-rubber: #6b7079;
+    --hb-steel: #8d929a; --hb-steel-ink: #1e2126; --hb-darkzinc: #6f6d64; --hb-darkzinc-ink: #1c1b18; --hb-black: #4a4e55; --hb-black-ink: #e6e8ec;
+    --hb-titanium: #8f8a84; --hb-titanium-ink: #1e1c1a; --hb-aluminium: #b5bac2; --hb-aluminium-ink: #20232a; --hb-brass: #a8843a; --hb-brass-ink: #2a1f08;
+    --hb-copper: #a3583a; --hb-copper-ink: #2a1208; --hb-plastic: #d8d4c9; --hb-plastic-ink: #2c2a26; } }
   .hardwarebag [vector-effect] { vector-effect: non-scaling-stroke; }
 </style>
