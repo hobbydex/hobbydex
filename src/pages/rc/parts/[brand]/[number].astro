@@ -228,14 +228,14 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     <ul>{below.map((id) => { const d = db.doc.get(id); const w = d && docPage(d, part.released); return <li>{w ? <a href={w} rel="nofollow">{d!.title}</a> : (d?.title ?? id)}{d && !w && d.url && <span class="muted"> · {new URL(d.url).hostname}</span>}{d?.date && <span class="muted"> · {d.date}</span>}</li>; })}</ul></>; })()}
   {part.includes && part.includes.length > 0 && <>
     <h2>Includes <span class="muted">({part.includes.reduce((n, i) => n + (i.qty ?? 1), 0)} pcs)</span></h2>
-    <table>
+    <div class="tablescroll"><table class="stacked">
       <tr><th class="num">Qty</th><th>Item</th><th>Spec</th><th>Notes</th><th>Source</th></tr>
       {part.includes.map((i) => { const p = i.part ? db.part.get(i.part) : undefined; const sp = db.spec.get(i.spec ?? p?.equivalent_to?.[0]?.spec ?? ''); const d = i.source ? db.doc.get(i.source) : undefined; return <tr>
-        <td class="num">{i.qty ?? ''}</td>
-        <td>{i.part ? <><a href={url.part(i.part)}>{p ? (p.number ? `${p.number} ${p.name}` : p.name) : i.part}</a>{p && <Discontinued item={p} />}</> : (i.notes ?? sp?.name ?? i.spec)}</td>
-        <td>{sp ? <a href={url.spec(sp.id)}>{sp.name}</a> : ''}</td><td class="muted">{i.part ? (i.notes ?? '') : ''}</td><td class="muted">{d?.title ?? i.source ?? ''}</td>
+        <td class="num" data-label="Qty">{i.qty ?? ''}</td>
+        <td class="name">{i.part ? <><a href={url.part(i.part)}>{p ? (p.number ? `${p.number} ${p.name}` : p.name) : i.part}</a>{p && <Discontinued item={p} />}</> : (i.notes ?? sp?.name ?? i.spec)}</td>
+        <td data-label="Spec">{sp ? <a href={url.spec(sp.id)}>{sp.name}</a> : ''}</td><td class="muted" data-label="Notes">{i.part ? (i.notes ?? '') : ''}</td><td class="muted" data-label="Source">{d?.title ?? i.source ?? ''}</td>
       </tr>; })}
-    </table></>}
+    </table></div></>}
   {(kitsOf.length > 1 || (part.fits?.length ?? 0) > 0) && <>
     <h2>Fits these platforms <span class="muted">({kitsOf.length})</span></h2>
     <table>
