@@ -1,23 +1,17 @@
 // Drawings of connector specs, drawn in currentColor like the other spec drawings. Amass's dimensioned drawings give
 // the EC plugs (EC2, EC3, EC5), the XT plugs (XT30, XT60, XT60H, XT90, XT90S, XT150), the AS150, the AM-1015 T-plug
-// (Deans) and the bullet contacts, JST's XH catalogue the JST-XH balance plugs: these are to scale, each view in its
-// own mm coordinates. Other plugs have no dimensioned drawing in our sources: they are drawn at their usual shape and
-// marked not to scale.
+// (Deans), JST's XH catalogue the JST-XH balance plugs: these are to scale, each view in its own mm coordinates. The
+// bullet drawings follow the dimensioned contacts of the EC plugs but are marked not to scale, as bullets differ by
+// maker. Other plugs have no dimensioned drawing in our sources: they are drawn after the makers' photos and marked
+// not to scale.
 import type { Spec } from './data';
 import type { ScrewDrawing } from './screwDrawing';
 
 const f = (v: number) => String(Math.round(v * 100) / 100);
-const W = 300, cx = W / 2, top = 26;
-const NOT_DIMENSIONED = 'the shape of the connector family; no dimensioned drawing of this plug is in our sources';
+const W = 300;
 const rect = (x: number, y: number, w: number, h: number, cls = 'fill') => `<rect class="${cls}" x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}"/>`;
 const circ = (x: number, y: number, r: number, cls: string) => `<circle class="${cls}" cx="${f(x)}" cy="${f(y)}" r="${f(r)}"/>`;
 const label = (x: number, y: number, text: string) => `<text x="${f(x)}" y="${f(y)}" text-anchor="middle" class="std">${text}</text>`;
-// a housing outline with its corners cut: c = [top-left, top-right, bottom-right, bottom-left] cuts in px, 0 = square
-function housing(x: number, y: number, w: number, h: number, c: [number, number, number, number]) {
-  const [tl, tr, br, bl] = c;
-  return `<path class="fill" d="M${f(x + tl)} ${f(y)}H${f(x + w - tr)}L${f(x + w)} ${f(y + tr)}V${f(y + h - br)}L${f(x + w - br)} ${f(y + h)}H${f(x + bl)}L${f(x)} ${f(y + h - bl)}V${f(y + tl)}Z"/>`;
-}
-
 // a dimension line with its value above it (horizontal) or beside it (vertical)
 const hdim = (x1: number, x2: number, y: number, t: string) => `<path class="thin" d="M${f(x1)} ${f(y)}H${f(x2)}M${f(x1)} ${f(y - 3)}V${f(y + 3)}M${f(x2)} ${f(y - 3)}V${f(y + 3)}"/>${label((x1 + x2) / 2, y - 4, t)}`;
 const vdim = (x: number, y1: number, y2: number, t: string) => `<path class="thin" d="M${f(x)} ${f(y1)}V${f(y2)}M${f(x - 3)} ${f(y1)}H${f(x + 3)}M${f(x - 3)} ${f(y2)}H${f(x + 3)}"/><text x="${f(x - 4)}" y="${f((y1 + y2) / 2 + 4)}" text-anchor="end" class="std">${t}</text>`;
@@ -94,10 +88,17 @@ function pin(p: Pen, x: number, y: number, cavity: number, d: number) {
 }
 const line = (p: Pen, x1: number, y1: number, x2: number, y2: number) => p.poly([[x1, y1], [x2, y2]], 'thin', false);
 
+// the AS150 pole from the side, its housing in class c (the red or the black pole)
+function as150Side(p: Pen, c: string) {
+  return p.shape(0, 0.81, 16.57, 11.97, [0.3, 0, 0, 0.3], c) + p.rect(16.57, 0, 3.01, 13.5, c) + p.rect(19.58, 0, 8.22, 13.5, c)
+    + [19.7, 21, 22.8, 24.4, 25.9].map((x) => line(p, x, 0, x, 13.5)).join('')
+    + p.poly([[27.8, 0.42], [30.06, 0.81], [34.2, 1.8], [35.1, 2.74], [35.1, 10.93], [34.2, 11.9], [30.06, 12.78], [27.8, 13.08]], c) + line(p, 30.06, 0.81, 30.06, 12.78);
+}
+
 // The XT, XT150 and AS150 plugs from the drawings on Amass's product pages: mating face (male) and side, in mm. The
 // outline sizes are dimensioned there; contact positions and the other details are read off the drawing.
 const READ_OFF = 'the contact positions and other details are read off the drawing';
-const XT: Record<string, { note: string; views: View[] }> = {
+const XT: Record<string, { note: string; views: View[] | View[][] }> = {
   xt30: {
     note: `the XT30U drawing on Amass's XT30U page: the 5.60 x 10.20 face and 13.70 length are dimensioned, in mm; ${READ_OFF} (contacts 5.0 apart)`,
     views: [
@@ -131,7 +132,7 @@ const XT: Record<string, { note: string; views: View[] }> = {
         + pin(p, 4.57, 4.69, 4.54, 3.5) + pin(p, 4.57, 11.89, 4.54, 3.5) + p.rect(2.04, 7.38, 4.89, 1.73) + p.rect(6.93, 7.55, 0.93, 1.04, 'thin') },
       { w: 23.9, h: 16.4, cap: 'Side', dw: '23.90 mm', draw: (p) =>
         p.rect(0, 0.45, 12.21, 15.53) + line(p, 0, 1.04, 8.55, 1.04) + line(p, 0, 13.55, 8.55, 13.55) + p.rect(8.55, 1.74, 3.49, 11.29, 'thin')
-        + p.rect(12.21, 0, 1.22, 16.4) + p.poly([[13.43, 0], [16.57, 0], [23.9, 0.69], [23.9, 15.71], [16.57, 16.4], [13.43, 16.4]])
+        + p.rect(12.21, 0, 1.22, 16.4) + p.poly([[13.43, 0], [16.57, 0], [23.9, 0.69], [23.9, 15.71], [16.57, 16.4], [13.43, 16.4]], 'cover')
         + line(p, 13.43, 4.5, 16.57, 4.5) + line(p, 13.43, 12, 16.57, 12)
         + p.shape(16.75, 3.47, 2.25, 9.39, [0.9, 0.9, 0.9, 0.9], 'thin') + p.shape(19, 3.47, 1.9, 9.39, [0.9, 0.9, 0.9, 0.9], 'thin') + p.shape(20.9, 3.47, 2.8, 9.39, [0.9, 0.9, 0.9, 0.9], 'thin') },
     ],
@@ -178,61 +179,108 @@ const XT: Record<string, { note: string; views: View[] }> = {
     ],
   },
   as150: {
-    note: `Amass's AS150 drawing: the 13.50 diameter and 35.10 length are dimensioned, in mm, and the other details are read off it; one pole of the pair. Amass does not draw the AS150 mating face, so it is not shown`,
+    note: `Amass's AS150 drawing: the 13.50 diameter and 35.10 length are dimensioned, in mm, and the other details are read off it; the pair is a red and a black pole, as on Amass's photos. Amass does not draw the AS150 mating face, so it is not shown`,
     views: [
-      { w: 35.1, h: 13.5, cap: 'Side', dw: '35.10 mm', dh: '⌀13.50', draw: (p) =>
-        p.shape(0, 0.81, 16.57, 11.97, [0.3, 0, 0, 0.3]) + p.rect(16.57, 0, 3.01, 13.5) + p.rect(19.58, 0, 8.22, 13.5)
-        + [19.7, 21, 22.8, 24.4, 25.9].map((x) => line(p, x, 0, x, 13.5)).join('')
-        + p.poly([[27.8, 0.42], [30.06, 0.81], [34.2, 1.8], [35.1, 2.74], [35.1, 10.93], [34.2, 11.9], [30.06, 12.78], [27.8, 13.08]]) + line(p, 30.06, 0.81, 30.06, 12.78) },
+      [{ w: 35.1, h: 13.5, cap: 'Side, red pole', dw: '35.10 mm', dh: '⌀13.50', draw: (p) => as150Side(p, 'fill') }],
+      [{ w: 35.1, h: 13.5, cap: 'Side, black pole', dh: '⌀13.50', draw: (p) => as150Side(p, 'blk') }],
     ],
   },
 };
 
-// Amass EC plugs, from their dimensioned spec sheets (mm). Face: the housing outline, the two sockets (hole) at
-// pitch, the waist on one side. Side: the ribbed rear of length ribL and the two contact shells, each as Amass draws
-// them (shell heights read from the drawing); blueLeft puts the shells at the back.
-type Ec = { w: number; h: number; hole: number; pitch: number; L: number; ribL: number; blueLeft: boolean; shells: [number, number][] };
+// Amass EC plugs, from their dimensioned spec sheets (mm). Face (the female's, as on the -F sheet): one end of the
+// housing square, the other round, a waist on one side (EC2) or both (EC3, EC5), a cavity round each socket (hole) at
+// pitch, the key slot between them. Side: the ribbed rear of length ribL around its label panel and the two contact
+// shells, each as Amass draws them (shell heights read from the drawing); blueLeft puts the shells at the back.
+type Ec = { w: number; h: number; hole: number; pitch: number; L: number; ribL: number; blueLeft: boolean; shells: [number, number][]; waists: 1 | 2 };
 const EC: Record<string, Ec> = {
-  ec2: { w: 6.1, h: 12.5, hole: 3.5, pitch: 6.25, L: 13, ribL: 5.8, blueLeft: false, shells: [[0.9, 5.3], [7.1, 11.6]] },
-  ec3: { w: 8, h: 16.6, hole: 5.2, pitch: 8.4, L: 17.5, ribL: 9.4, blueLeft: true, shells: [[0.7, 7], [9.5, 15.6]] },
-  ec5: { w: 9.9, h: 19.6, hole: 7, pitch: 10.1, L: 24, ribL: 8, blueLeft: false, shells: [[0.4, 8], [11.6, 19.2]] },
+  ec2: { w: 6.1, h: 12.5, hole: 3.5, pitch: 6.25, L: 13, ribL: 5.8, blueLeft: false, shells: [[0.9, 5.3], [7.1, 11.6]], waists: 1 },
+  ec3: { w: 8, h: 16.6, hole: 5.2, pitch: 8.4, L: 17.5, ribL: 9.4, blueLeft: true, shells: [[0.7, 7], [9.5, 15.6]], waists: 2 },
+  ec5: { w: 9.9, h: 19.6, hole: 7, pitch: 10.1, L: 24, ribL: 8, blueLeft: false, shells: [[0.4, 8], [11.6, 19.2]], waists: 2 },
 };
-const EC_NOTE = (n: string) => `dimensions from Amass's spec sheet for ${n} (V1.2), in mm`;
-// the EC mating face at s px per mm; dims prints the sizes
-function ecFace(e: Ec, s: number, dims = true) {
-  const fw = e.w * s, fh = e.h * s, r = 0.8 * s, mid = fh / 2, wr = fh * 0.12, wd = fw * 0.12, dy = (e.pitch * s) / 2, hx = fw / 2;
-  const outline = `M${f(r)} 0H${f(fw - r)}Q${f(fw)} 0 ${f(fw)} ${f(r)}V${f(mid - wr)}Q${f(fw - 2 * wd)} ${f(mid)} ${f(fw)} ${f(mid + wr)}V${f(fh - r)}Q${f(fw)} ${f(fh)} ${f(fw - r)} ${f(fh)}H${f(r)}Q0 ${f(fh)} 0 ${f(fh - r)}V${f(r)}Q0 0 ${f(r)} 0Z`;
-  return part(`<path class="fill" d="${outline}"/>` + circ(hx, mid - dy, (e.hole / 2) * s, 'ball') + circ(hx, mid + dy, (e.hole / 2) * s, 'ball')
-    + (dims ? hdim(0, fw, -8, `${e.w.toFixed(2)}`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`) : ''), fw, fh, 'Mating face');
+const EC_NOTE = (n: string) => `dimensions from Amass's spec sheets for ${n} (${n}-F and ${n}-M, V1.2), in mm; the face is the female's, its square and round ends, waists and key slot read off the drawing`;
+// the EC mating face at s px per mm, the round end at the bottom; dims prints the sizes; extra is drawn on top
+function ecFace(e: Ec, s: number, dims = true, cap = 'Mating face', extra = '') {
+  const fw = e.w * s, fh = e.h * s, r = 0.6 * s, R = fw / 2, mid = fh / 2, wr = fh * 0.1, wd = fw * 0.11, dy = (e.pitch * s) / 2, hx = fw / 2;
+  const left = e.waists === 2 ? `V${f(mid + wr)}Q${f(2 * wd)} ${f(mid)} 0 ${f(mid - wr)}` : '';
+  const outline = `M${f(r)} 0H${f(fw - r)}Q${f(fw)} 0 ${f(fw)} ${f(r)}V${f(mid - wr)}Q${f(fw - 2 * wd)} ${f(mid)} ${f(fw)} ${f(mid + wr)}V${f(fh - R)}A${f(R)} ${f(R)} 0 0 1 0 ${f(fh - R)}${left}V${f(r)}Q0 0 ${f(r)} 0Z`;
+  // the cavities: a D round the socket at the square end, a circle round the one at the round end
+  const i = 0.55 * s, rc = R - i, y1 = mid - dy, y2 = mid + dy;
+  const dCav = `M${f(i + r)} ${f(i)}H${f(fw - i - r)}Q${f(fw - i)} ${f(i)} ${f(fw - i)} ${f(i + r)}V${f(y1)}A${f(rc)} ${f(rc)} 0 0 1 ${f(i)} ${f(y1)}V${f(i + r)}Q${f(i)} ${f(i)} ${f(i + r)} ${f(i)}Z`;
+  // the key slot between them, its ends drawn in
+  const kx0 = fw * 0.27, kx1 = fw * 0.73, kh = Math.min(fh * 0.045, (dy - rc) * 0.9);
+  const key = `M${f(kx0)} ${f(mid - kh)}H${f(kx1)}Q${f(kx1 - fw * 0.08)} ${f(mid)} ${f(kx1)} ${f(mid + kh)}H${f(kx0)}Q${f(kx0 + fw * 0.08)} ${f(mid)} ${f(kx0)} ${f(mid - kh)}Z`;
+  return part(`<path class="fill" d="${outline}"/><path class="thin" d="${dCav}"/>` + circ(hx, y2, rc, 'thin') + `<path class="ball" d="${key}"/>`
+    + circ(hx, y1, (e.hole / 2) * s, 'ball') + circ(hx, y2, (e.hole / 2) * s, 'ball') + extra
+    + (dims ? hdim(0, fw, -8, `${e.w.toFixed(2)}`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`) : ''), fw, fh, cap);
 }
 function ecDrawing(slug: string, e: Ec) {
   const s = Math.min(16, 180 / (e.w + e.L));
   const fh = e.h * s;
   const L = e.L * s, ribW = e.ribL * s, shellW = L - ribW;
   const ribX = e.blueLeft ? shellW : 0, shellX = e.blueLeft ? 0 : ribW;
-  let side = rect(ribX, 0, ribW, fh);
-  for (let i = 1; i * 1.3 < e.ribL; i++) side += `<path class="thin" d="M${f(ribX + i * 1.3 * s)} 0V${f(fh)}"/>`;
+  // the ribs run over the top and bottom of the rear, round the label panel in the middle
+  const p0 = fh * 0.33, p1 = fh * 0.67;
+  let side = rect(ribX, 0, ribW, fh) + rect(ribX + ribW * 0.12, p0, ribW * 0.76, p1 - p0, 'thin');
+  for (let i = 1; i * 1.3 < e.ribL; i++) side += `<path class="thin" d="M${f(ribX + i * 1.3 * s)} 0V${f(p0)}M${f(ribX + i * 1.3 * s)} ${f(p1)}V${f(fh)}"/>`;
   for (const [a, b] of e.shells) side += rect(shellX, a * s, shellW, (b - a) * s);
   side += hdim(0, L, -8, `${e.L.toFixed(2)} mm`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`);
   const name = slug.toUpperCase();
   return { face: ecFace(e, s), side: part(side, L, fh, 'Side'), note: EC_NOTE(name) };
 }
 
-// Amass contacts (bullets): the length of the contact in Amass's EC plugs, mm, keyed by diameter. Loose bullets differ
-// by maker and no standard exists, so every bullet drawing is approximate; other sizes are 4.2 times the diameter
-const CONTACT: Record<string, { L: number; from: string }> = {
-  '2': { L: 10.6, from: 'EC2' }, '3.5': { L: 12, from: 'EC3' }, '5': { L: 21, from: 'EC5' },
+// Bullet and banana contacts. Amass draws the contacts of its EC plugs on the EC2, EC3 and EC5 sheets (V1.2): the
+// male is a sprung pin (lamellae that bulge out to the nominal diameter, a short round nose, a neck and a wider solder
+// cup), the female a plain socket tube with a collar at its solder cup and a vent hole. Lengths and diameters below are
+// dimensioned there; the lengths along the male (nose, lamellae, neck) are read off the drawings.
+type Male = { L: number; cup: number; nose: number; lam: number; neck: number };
+type Female = { L: number; od: number; collar: number };
+const CONTACT: Record<string, { male: Male; female: Female; from: string }> = {
+  '2': { male: { L: 10.5, cup: 3.2, nose: 0.15, lam: 0.49, neck: 0.03 }, female: { L: 10.6, od: 2.5, collar: 3.2 }, from: 'EC2' },
+  '3.5': { male: { L: 12, cup: 4.8, nose: 0.12, lam: 0.34, neck: 0.25 }, female: { L: 12, od: 4.2, collar: 4.8 }, from: 'EC3' },
+  '5': { male: { L: 22.6, cup: 6.3, nose: 0.08, lam: 0.45, neck: 0.22 }, female: { L: 21, od: 5.7, collar: 6.3 }, from: 'EC5' },
 };
-// a male contact from the side, to scale: the tip (left) with a spring slot, the solder cup at the rear (right)
-function bulletPart(d: number, L: number, banana: boolean) {
-  const s = Math.min(22, 250 / L);
-  const Lp = L * s, D = d * s, r = D / 2, tip = Math.min(r * 0.5, 0.5 * s);
-  let o = `<path class="fill" d="M${f(tip)} 0H${f(Lp)}V${f(D)}H${f(tip)}L0 ${f(D - tip)}V${f(tip)}Z"/>`;
-  const sw = D * (banana ? 0.3 : 0.18);
-  o += rect(0, r - sw / 2, Lp * (banana ? 0.5 : 0.42), sw, 'bg');     // spring slot, open at the tip
-  o += rect(Lp * 0.68, r - D * 0.25, Lp * 0.32, D * 0.5, 'bg');       // solder cup bore, open at the rear
-  o += hdim(0, Lp, -8, `${L.toFixed(1)} mm`) + vdim(-8, 0, D, `⌀${d}`);
-  return { w: Lp, h: D, o };
+// a sprung (lamella) male from the side, nose at the left, d the diameter over the lamellae
+function lamellaMale(p: Pen, d: number, m: Male, H: number) {
+  const c = H / 2, L = m.L, xn = m.nose * L, xl = xn + m.lam * L, xk = xl + m.neck * L, xr = xk + 0.04 * L;
+  const nr = d * 0.37, kr = d * 0.35, n = p.n;
+  // the nose: a short cylinder with a round end
+  let o = `<path class="metal" d="M${n(xn)} ${n(c - nr)}H${n(nr * 0.7)}Q0 ${n(c - nr)} 0 ${n(c)}Q0 ${n(c + nr)} ${n(nr * 0.7)} ${n(c + nr)}H${n(xn)}Z"/>`;
+  // the lamellae: they bulge from the neck radius out to d/2 halfway along (a quadratic's middle is half its control)
+  const bulge = (k: number) => 2 * k * (d / 2) - k * kr;
+  o += `<path class="metal" d="M${n(xn)} ${n(c - kr)}Q${n((xn + xl) / 2)} ${n(c - bulge(1))} ${n(xl)} ${n(c - kr)}V${n(c + kr)}Q${n((xn + xl) / 2)} ${n(c + bulge(1))} ${n(xn)} ${n(c + kr)}Z"/>`;
+  // the slits between the lamellae, seen from the side
+  for (const k of [0.62, 0.22, -0.22, -0.62]) o += p.curve([xn, c - k * kr], [(xn + xl) / 2, c - k * bulge(1)], [xl, c - k * kr]);
+  if (xk > xl) o += p.rect(xl, c - kr, xk - xl, 2 * kr, 'metal');
+  o += p.rect(xk, c - m.cup * 0.47, xr - xk, m.cup * 0.94, 'metal') + p.rect(xr, c - m.cup / 2, L - xr, m.cup, 'metal');
+  // the solder cup's bore, open at the rear
+  o += p.poly([[L - (L - xr) * 0.85, c - d * 0.42], [L, c - d * 0.42]], 'thin dash', false) + p.poly([[L - (L - xr) * 0.85, c + d * 0.42], [L, c + d * 0.42]], 'thin dash', false);
+  return o;
+}
+// a slotted male (a solid pin split by slots from its tip) from the side, tip at the left
+function slottedMale(p: Pen, d: number, L: number, H: number) {
+  const c = H / 2, ch = d * 0.12, cup = d * 1.12, xc = 0.55 * L;
+  let o = p.poly([[ch, c - d / 2], [xc, c - d / 2], [xc, c + d / 2], [ch, c + d / 2], [0, c + d / 2 - ch], [0, c - d / 2 + ch]], 'metal');
+  o += p.rect(0, c - d * 0.06, 0.42 * L, d * 0.12, 'bg') + p.rect(xc, c - d * 0.62, 0.06 * L, d * 1.24, 'metal') + p.rect(xc + 0.06 * L, c - cup / 2, L - xc - 0.06 * L, cup, 'metal');
+  o += p.circ(0.8 * L, c, d * 0.42, 'ball');
+  return o;
+}
+// a female socket from the side: the solder cup with its collar at the left, the vent hole, the mouth at the right
+function female(p: Pen, d: number, fm: Female, H: number) {
+  const c = H / 2, L = fm.L;
+  let o = p.rect(0, c - fm.collar / 2, 0.17 * L, fm.collar, 'metal') + p.rect(0.17 * L, c - fm.od * 0.46, 0.07 * L, fm.od * 0.92, 'metal')
+    + p.rect(0.24 * L, c - fm.collar * 0.47, 0.03 * L, fm.collar * 0.94, 'metal') + p.rect(0.27 * L, c - fm.od / 2, 0.73 * L, fm.od, 'metal');
+  o += p.circ(0.4 * L, c, Math.min(d * 0.3, fm.od * 0.4), 'ball');
+  o += p.poly([[0.55 * L, c - d / 2], [L, c - d / 2]], 'thin dash', false) + p.poly([[0.55 * L, c + d / 2], [L, c + d / 2]], 'thin dash', false);
+  return o;
+}
+// the contact pair, female (mouth right) and male (nose left) facing each other; dims when the sizes are dimensioned
+function contactViews(d: number, kind: 'lamella' | 'slotted', male: Male, fm: Female, dims: boolean): View[] {
+  const H = Math.max(male.cup, fm.collar, d);
+  return [
+    { w: fm.L, h: H, cap: 'Female', dw: dims ? `${fm.L.toFixed(2)} mm` : undefined, draw: (p) => female(p, d, fm, H) },
+    { w: male.L, h: H, cap: `Male ⌀${d}`, dw: dims ? `${male.L.toFixed(2)} mm` : undefined,
+      draw: (p) => (kind === 'lamella' ? lamellaMale(p, d, male, H) : slottedMale(p, d, male.L, H)) },
+  ];
 }
 
 // The AM-1015-M (male T-plug) on Amass's spec sheet: the housing is dimensioned (6.30 lip, 7.60 x 13.30, 19.10 long
@@ -269,12 +317,78 @@ const SERVO: View[][] = (() => {
   ]];
 })();
 
-// housing colours as sold, with the colour of any inlay: XT yellow (the XT90-S with green inlays; the XT150 comes in several colours and is left untinted), EC blue, Deans dark red, JST battery plug red,
-// servo plugs black (drawn grey for contrast), JST-XH natural white (light grey, outlined dark in both themes: the third value)
+// Plugs with no dimensioned drawing in our sources, drawn after the makers' photos at their usual proportions (in
+// mm, approximate, so no dimensions are printed). Each note names the photos.
+// Traxxas: the housing face from the 3070X connector photo, two wide flat terminals in their cavities, the bottom
+// corners bevelled; on iD LiPo packs the balance taps are small contacts in the corners (Traxxas's 3S callout).
+function traxxasFace(p: Pen, balance: boolean) {
+  const W = 19, H = 10.5;
+  let o = p.poly([[0.8, 0], [W - 0.8, 0], [W, 0.8], [W, 7.4], [W - 3.1, H], [3.1, H], [0, 7.4], [0, 0.8]]);
+  for (const x0 of [2.4, 10.2]) {
+    o += p.shape(x0, 2.7, 6.4, 5.4, [2, 2, 2, 2], 'ball') + p.rect(x0 + 0.9, 5.1, 4.6, 0.7, 'metal');
+  }
+  o += p.poly([[5.1, 1.35], [6.1, 1.35]], 'thin', false) + p.poly([[5.6, 0.85], [5.6, 1.85]], 'thin', false) + p.poly([[12.9, 1.35], [13.9, 1.35]], 'thin', false);
+  if (balance) for (const x of [2.6, W - 2.6]) o += p.circ(x, 8.6, 1.3, 'ball') + p.circ(x, 8.6, 0.6, 'metal');
+  return o;
+}
+// Tamiya: the male housing's two round sleeves with the latch arm over them, the female's box with two square cavities
+// and the catch on top; k scales the mini plug
+function tamiyaViews(k: number): View[] {
+  const sl = (p: Pen) => {
+    let o = p.rect(2.7 * k, 0, 7.6 * k, 1.1 * k) + p.shape(0, 1.1 * k, 13 * k, 6.2 * k, [3.1 * k, 3.1 * k, 3.1 * k, 3.1 * k]);
+    o += p.poly([[6.5 * k, 1.1 * k], [6.5 * k, 7.3 * k]], 'thin', false);
+    for (const x of [3.25, 9.75]) o += p.circ(x * k, 4.2 * k, 3.6 * k, 'ball') + p.circ(x * k, 4.2 * k, 1.5 * k, 'metal');
+    return o;
+  };
+  const box = (p: Pen) => {
+    let o = p.rect(5.2 * k, 0, 4.2 * k, 1 * k) + p.shape(0, 1 * k, 14.6 * k, 7.6 * k, [0.5 * k, 0.5 * k, 0.5 * k, 0.5 * k]);
+    for (const x of [1.1, 7.6]) o += p.rect(x * k, 2.1 * k, 5.9 * k, 5.4 * k, 'ball') + p.circ((x + 2.95) * k, 4.8 * k, 1.8 * k, 'metal') + p.circ((x + 2.95) * k, 4.8 * k, 0.9 * k, 'ball');
+    return o;
+  };
+  return [
+    { w: 13 * k, h: 7.3 * k, cap: 'Male housing', draw: sl },
+    { w: 14.6 * k, h: 8.6 * k, cap: 'Female housing', draw: box },
+  ];
+}
+const TAMIYA_NOTE = (what: string) => `no dimensioned drawing of the ${what} is in our sources; drawn after Hobby Details' photo of its Tamiya plug pair (DTP01013): a male housing whose two round sleeves carry the latch arm, a female box with two square cavities and the catch, in natural nylon`;
+const PHOTO: Record<string, { note: string; views: View[] }> = {
+  'traxxas-trx-id': {
+    note: 'no dimensioned drawing is in our sources; drawn after Traxxas\'s photos of the 3070X connectors and its iD LiPo connector callout: two wide flat terminals, and on LiPo packs the balance taps as small contacts in the bevelled corners ("Balance Wire Connection"); NiMH iD packs have none',
+    views: [{ w: 19, h: 10.5, cap: 'Mating face, balance taps in the corners', draw: (p) => traxxasFace(p, true) }],
+  },
+  'traxxas-high-current': {
+    note: 'no photo or drawing of the pre-iD plug is in our sources; drawn as the power contacts of the iD housing (Traxxas\'s 3070X photo), which Traxxas also calls its High-Current Connector, without the iD balance taps',
+    views: [{ w: 19, h: 10.5, cap: 'Mating face', draw: (p) => traxxasFace(p, false) }],
+  },
+  tamiya: { note: TAMIYA_NOTE('Tamiya plug'), views: tamiyaViews(1) },
+  'tamiya-mini': { note: TAMIYA_NOTE('mini Tamiya plug') + '; the mini plug is drawn as the same housings at about two thirds the size', views: tamiyaViews(0.68) },
+  qs8: {
+    note: 'no dimensioned drawing is in our sources; drawn after Gens Ace\'s photos of the QS8-S1 and QS8-S2 halves: a socket block with two 8 mm sockets, the anti-spark one marked red, and a plug half whose two round shrouds are joined by a web with a window',
+    views: [
+      { w: 26, h: 13, cap: 'Socket half', draw: (p) => p.shape(0, 0, 26, 13, [2.4, 2.4, 2.4, 2.4])
+        + [6.5, 19.5].map((x) => p.circ(x, 6.5, 10.2, 'ball') + p.circ(x, 6.5, 8.8, 'metal') + p.circ(x, 6.5, 7.6, 'ball')).join('')
+        + `<circle cx="${p.n(19.5)}" cy="${p.n(6.5)}" r="${p.n(3.3)}" fill="none" stroke="#d42a2a" stroke-width="2"/>` },
+      { w: 23.4, h: 9.8, cap: 'Plug half', draw: (p) => p.rect(4.9, 2.4, 13.6, 5) + p.circ(4.9, 4.9, 9.8) + p.circ(18.5, 4.9, 9.8)
+        + p.rect(10.2, 3.2, 3, 3.4, 'ball') + [4.9, 18.5].map((x) => p.circ(x, 4.9, 8, 'ball') + p.circ(x, 4.9, 6.6, 'metal')).join('') },
+    ],
+  },
+  'jst-rcy': {
+    note: 'no dimensioned drawing is in our sources; drawn after Gens Ace\'s photo of a JST-RCY battery plug: a slim red housing with two square sockets one above the other, about 2.5 mm apart, and a raised rear flange',
+    views: [
+      { w: 3.8, h: 7.4, cap: 'Mating face', draw: (p) => p.shape(0, 0, 3.8, 7.4, [0.3, 0.3, 0.3, 0.3]) + [2.45, 4.95].map((y) => p.rect(1.15, y - 0.75, 1.5, 1.5, 'ball')).join('') },
+      { w: 13, h: 7.4, cap: 'Side', draw: (p) => p.rect(1.6, 0.5, 11.4, 6.9) + p.rect(0, 0, 1.6, 7.4) + p.rect(6.6, 3.4, 1.2, 0.6, 'thin') },
+    ],
+  },
+};
+
+// housing colours as sold, with the colour of any inlay: XT yellow (the XT90-S with green inlays, the XT60H cover grey; the XT150 comes in several colours and is left untinted), EC blue, IC orange, Deans dark
+// red, AS150 red (its other pole black), JST battery plug red, Tamiya natural nylon; black plugs (servo, QS8, Traxxas)
+// are drawn grey for contrast; JST-XH natural white (light grey, outlined dark in both themes: the third value)
 const TINT: Record<string, [string, string?, string?]> = {
   xt30: ['#f2c230'], xt60: ['#f2c230'], xt60h: ['#f2c230'], xt90: ['#f2c230'], xt90s: ['#f2c230', '#5fd47a'],
-  ec2: ['#2f6fd6'], ec3: ['#2f6fd6'], ec5: ['#2f6fd6'], ec8: ['#2f6fd6'],
-  deans: ['#8b1e1e'], 'jst-rcy': ['#d42a2a'], 'servo-jr-futaba': ['#6b6f76'], 'jst-xh': ['#f5f3ee', undefined, '#33312d'],
+  ec2: ['#2f6fd6'], ec3: ['#2f6fd6'], ec5: ['#2f6fd6'], ec8: ['#2f6fd6'], ic3: ['#f47b20'], ic5: ['#f47b20'],
+  deans: ['#8b1e1e'], as150: ['#d42a2a'], 'jst-rcy': ['#d42a2a'], 'servo-jr-futaba': ['#6b6f76'], 'jst-xh': ['#f5f3ee', undefined, '#33312d'],
+  tamiya: ['#ece4cf'], 'tamiya-mini': ['#ece4cf'], qs8: ['#6b6f76'], 'traxxas-trx-id': ['#6b6f76'], 'traxxas-high-current': ['#6b6f76'],
 };
 
 export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
@@ -287,22 +401,31 @@ export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
 
 function draw(spec: Spec): ScrewDrawing | undefined {
   const slug = String(spec.id).split('/').pop() ?? '';
-  const spark = !!spec.anti_spark;
-  const size = slug.replace(/^(ec|ic)/, '');
   const name = String(spec.name ?? slug);
 
   if (slug.startsWith('bullet-') || slug === 'banana-4mm') {
     const d = Number(spec.contact_mm);
     if (!d) return undefined;
-    const banana = slug === 'banana-4mm';
+    if (slug === 'banana-4mm') {
+      // proportions read off Hobby Details' and Power HD's photos of their 4 mm banana plugs: the lamellae run over
+      // about half the length, the solder cup is a little wider than the pin
+      const male: Male = { L: 18.5, cup: 4.6, nose: 0.08, lam: 0.55, neck: 0.04 };
+      return { svg: views(name, contactViews(4, 'lamella', male, { L: 19, od: 4.8, collar: 5.2 }, false)), standard: undefined, approximate: true,
+        note: 'no dimensioned drawing of a 4 mm banana plug is in our sources; drawn after the makers\' photos (Hobby Details DTP02003, Power HD): a pin whose sprung lamellae bulge out to 4 mm, and a plain socket' };
+    }
     const known = CONTACT[String(d)];
-    const L = known ? known.L : 4.2 * d;
-    const b = bulletPart(d, L, banana);
-    const cap = banana ? 'Side, banana tip' : 'Side';
-    const note = known
-      ? `bullet lengths differ by maker and no standard exists; drawn after the ${d} mm contact in Amass's ${known.from} plug (${known.from} spec sheet V1.2)`
-      : `bullet lengths differ by maker and no standard exists; length estimated as 4.2 x the diameter (median of Amass's EC contacts)`;
-    return { svg: svgOf(name, row([part(b.o, b.w, b.h, cap)])), standard: undefined, approximate: true, note };
+    if (known) {
+      return { svg: views(name, contactViews(d, 'lamella', known.male, known.female, true)), standard: undefined, approximate: true,
+        note: `bullet lengths differ by maker and no standard exists; drawn after the ${d} mm contacts in Amass's ${known.from} plug, dimensioned on its ${known.from}-M and ${known.from}-F spec sheets (V1.2): a male with sprung lamellae and a socket` };
+    }
+    // other sizes: 4 mm as Amass's sprung contacts scaled; 6 and 8 mm as the slotted pins sold in those sizes
+    const kind = d >= 6 ? 'slotted' : 'lamella';
+    const L = 4.2 * d;
+    const male: Male = { L, cup: d * 1.3, nose: 0.1, lam: 0.42, neck: 0.18 };
+    return { svg: views(name, contactViews(d, kind, male, { L, od: d + 0.7, collar: d + 1.3 }, false)), standard: undefined, approximate: true,
+      note: kind === 'slotted'
+        ? `bullet lengths differ by maker and no standard exists; drawn after Maclan's photo of its ${d} mm bullets (a pin split by slots, a wider solder cup with a side hole), length about 4.2 x the diameter`
+        : `bullet lengths differ by maker and no standard exists; drawn as Amass's sprung EC contacts scaled to ${d} mm, length about 4.2 x the diameter` };
   }
 
   if (slug === 'jst-xh' || /^jst-xh-\d+$/.test(slug)) {   // the generic plug and the per-cell-count balance plugs
@@ -328,61 +451,27 @@ function draw(spec: Spec): ScrewDrawing | undefined {
     return { svg: svgOf(name, row([e.face, e.side])), standard: undefined, approximate: false, note: e.note };
   }
 
-  // IC3 and IC5 mate with EC3 and EC5: their face is drawn as the EC plug's; EC8 as a larger EC5
+  // IC3 and IC5 mate with EC3 and EC5 for power: their face is drawn as the EC plug's, with the Smart data contact
+  // in the waist beside the sockets, where Spektrum's photos show it; EC8 as a larger EC5
   if (slug === 'ic3' || slug === 'ic5' || slug === 'ec8') {
     const e = EC[slug === 'ic3' ? 'ec3' : 'ec5'];
     const k = slug === 'ec8' ? 1.3 : 1;
     const g = { ...e, w: e.w * k, h: e.h * k, hole: slug === 'ec8' ? 8 : e.hole, pitch: e.pitch * k };
-    const note = slug === 'ec8'
-      ? 'drawn as a larger EC5 (Amass\'s EC5 sheet) with 8 mm contacts; no dimensioned EC8 drawing is in our sources'
-      : `drawn as the ${slug === 'ic3' ? 'EC3' : 'EC5'} it mates with (Amass's spec sheet); no dimensioned ${slug.toUpperCase()} drawing is in our sources`;
-    return { svg: svgOf(name, row([ecFace(g, Math.min(16, 110 / g.h), false)])), standard: undefined, approximate: true, note };
+    const s = Math.min(16, 110 / g.h);
+    if (slug === 'ec8') {
+      return { svg: svgOf(name, row([ecFace(g, s, false)])), standard: undefined, approximate: true,
+        note: 'drawn as a larger EC5 (Amass\'s EC5 sheets) with 8 mm contacts, as Hobby Details\' photo of its EC8 plugs shows it; no dimensioned EC8 drawing is in our sources' };
+    }
+    // the data contact: a small flat blade standing in the waist, seen end on
+    const blade = rect(g.w * s * 0.86, (g.h / 2 - 1.1) * s, 0.5 * s, 2.2 * s, 'metal');
+    const ec = slug === 'ic3' ? 'EC3' : 'EC5';
+    return { svg: svgOf(name, row([ecFace(g, s, false, 'Mating face, data contact at the side', blade)])), standard: undefined, approximate: true,
+      note: `drawn as the ${ec} it mates with for power (Amass's ${ec} sheets), with the Smart data contact beside the sockets as Spektrum's photos of its Smart batteries show it; its size is not dimensioned in our sources. Spektrum: IC3 and IC5 connectors are backwards compatible with EC3 and EC5 connectors` };
   }
 
-  let r: { o: string; bottom: number; extra?: string } | undefined;
-  if (slug === 'qs8') r = qs8();
-  else if (slug === 'tamiya') r = tamiya(116, 62, 14, 26);
-  else if (slug === 'tamiya-mini') r = tamiya(80, 46, 10, 18);
-  else if (slug === 'traxxas-trx-id' || slug === 'traxxas-high-current') r = traxxas();
-  else if (slug === 'jst-rcy') r = jstRcy();
-  if (!r) return undefined;
-  const sparkNote = spark ? label(cx, r.bottom + (r.extra ? 36 : 18), 'anti-spark contact') : '';
-  const bottom = r.bottom + (r.extra ? 36 : 18) + (sparkNote ? 18 : 0);
-  const h = Math.ceil(Math.max(bottom + 8, 110));
-  const svg = `<svg class="screwdrawing" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${h}" width="${W}" height="${h}" role="img" aria-label="${name}"><g class="s">${r.o}${r.extra ?? ''}${sparkNote}</g></svg>`;
-  return { svg, standard: undefined, approximate: true, note: NOT_DIMENSIONED };
-}
+  if (PHOTO[slug]) return { svg: views(name, PHOTO[slug].views), standard: undefined, approximate: true, note: PHOTO[slug].note };
 
-// QS8: a long housing with two 8 mm contacts, the anti-spark one marked by its inner sleeve
-function qs8() {
-  const w = 150, h = 72, x = cx - w / 2, y = top + 4, cy = y + h / 2, r = 22, dx = 38;
-  let o = housing(x, y, w, h, [10, 10, 10, 10]);
-  o += circ(cx - dx, cy, r, 'ball') + circ(cx - dx, cy, r * 0.62, 'solid') + circ(cx + dx, cy, r, 'ball') + circ(cx + dx, cy, r * 0.62, 'solid') + circ(cx + dx, cy, r * 0.3, 'ball');
-  return { o, bottom: y + h };
-}
-
-// Tamiya: a rectangular housing, one round-cornered key (top right), two flat contacts
-function tamiya(w: number, h: number, key: number, blade: number) {
-  const x = cx - w / 2, y = top + 4, bw = 9;
-  let o = `<path class="fill" d="M${f(x)} ${f(y)}H${f(x + w - key)}Q${f(x + w)} ${f(y)} ${f(x + w)} ${f(y + key)}V${f(y + h)}H${f(x)}Z"/>`;
-  o += rect(cx - 0.3 * w - bw / 2, y + h / 2 - blade / 2, bw, blade, 'solid') + rect(cx + 0.3 * w - bw / 2, y + h / 2 - blade / 2, bw, blade, 'solid');
-  return { o, bottom: y + h };
-}
-
-// Traxxas: a rectangular housing with two flat blades and no key
-function traxxas() {
-  const w = 120, h = 66, x = cx - w / 2, y = top + 4;
-  let o = `<rect class="fill" x="${f(x)}" y="${f(y)}" width="${w}" height="${h}" rx="3"/>`;
-  o += rect(cx - 30, y + 16, 9, 34, 'solid') + rect(cx + 21, y + 16, 9, 34, 'solid');
-  return { o, bottom: y + h };
-}
-
-// JST-RCY: a small two-socket housing with a notch on top for its key
-function jstRcy() {
-  const w = 70, h = 40, x = cx - w / 2, y = top + 10, cy = y + h / 2 + 3;
-  const o = `<path class="fill" d="M${f(x)} ${f(y)}H${f(cx - 8)}V${f(y + 6)}H${f(cx + 8)}V${f(y)}H${f(x + w)}V${f(y + h)}H${f(x)}Z"/>`
-    + circ(cx - 14, cy, 5.5, 'ball') + circ(cx + 14, cy, 5.5, 'ball');
-  return { o, bottom: y + h };
+  return undefined;
 }
 
 // JST-XH: the XHP-n housing (the plug on a balance lead) from JST's XH catalogue, in mm. Dimensioned there: the
