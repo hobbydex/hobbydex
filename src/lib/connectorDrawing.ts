@@ -214,8 +214,8 @@ function ecDrawing(slug: string, e: Ec) {
   return { face: ecFace(e, s), side: part(side, L, fh, 'Side'), note: EC_NOTE(name) };
 }
 
-// Amass contacts (bullets): the length from the EC contact drawing, mm, keyed by diameter; other sizes are 4.2 times
-// the diameter (the median of the three Amass contacts), as no dimensioned drawing of them is in our sources
+// Amass contacts (bullets): the length of the contact in Amass's EC plugs, mm, keyed by diameter. Loose bullets differ
+// by maker and no standard exists, so every bullet drawing is approximate; other sizes are 4.2 times the diameter
 const CONTACT: Record<string, { L: number; from: string }> = {
   '2': { L: 10.6, from: 'EC2' }, '3.5': { L: 12, from: 'EC3' }, '5': { L: 21, from: 'EC5' },
 };
@@ -296,9 +296,9 @@ function draw(spec: Spec): ScrewDrawing | undefined {
     const b = bulletPart(d, L, banana);
     const cap = banana ? 'Side, banana tip' : 'Side';
     const note = known
-      ? `diameter and length of the ${d} mm bullet contact that Amass uses in its ${known.from} plug (${known.from} spec sheet V1.2), in mm`
-      : `length estimated as 4.2 x the diameter (median of Amass's contacts); no dimensioned drawing of this size is in our sources`;
-    return { svg: svgOf(name, row([part(b.o, b.w, b.h, cap)])), standard: undefined, approximate: !known, note };
+      ? `bullet lengths differ by maker and no standard exists; drawn after the ${d} mm contact in Amass's ${known.from} plug (${known.from} spec sheet V1.2)`
+      : `bullet lengths differ by maker and no standard exists; length estimated as 4.2 x the diameter (median of Amass's EC contacts)`;
+    return { svg: svgOf(name, row([part(b.o, b.w, b.h, cap)])), standard: undefined, approximate: true, note };
   }
 
   if (slug === 'jst-xh' || /^jst-xh-\d+$/.test(slug)) {   // the generic plug and the per-cell-count balance plugs
