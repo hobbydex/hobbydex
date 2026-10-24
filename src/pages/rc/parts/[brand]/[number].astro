@@ -27,7 +27,7 @@ import HardwareBag from '../../../../components/HardwareBag.astro';
 import PartDimensions from '../../../../components/PartDimensions.astro';
 import { bagItems } from '../../../../lib/hardwareBag';
 import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
-import { fileRows, makerOwnLinks, listedBelow, hostLabel } from '../../../../lib/docFacts';
+import { fileRows, makerOwnLinks, archiveLinks, listedBelow, hostLabel } from '../../../../lib/docFacts';
 import { describe, count } from '../../../../lib/descriptions';
 import { partSpecs } from '../../../../lib/partFacts';
 import { partSpecFacts } from '../../../../lib/specFacts';
@@ -110,6 +110,7 @@ const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
 // the maker's pages for the part's manual, parts list and exploded view, as on a release; its own links (not fan sites)
 const partFiles = fileRows((part.documents ?? []).map((id) => db.doc.get(id)).filter((d) => d !== undefined));
 const partLinks = makerOwnLinks(part.links);
+const partArchive = archiveLinks(part.links);
 // a shop's product page, when the maker has none: its own row, never under Product page
 const dealerLinks = (part.links ?? []).filter((l) => l.kind === 'dealer');
 import SeenNote from '../../../../components/SeenNote.astro';
@@ -141,6 +142,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.depicts && <><dt>Real vehicle</dt><dd><RealVehicle depicts={part.depicts!} /></dd></>}
     {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <> <span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span>{part.sources?.category && <FactSource field="category" url={part.sources.category} />}</dd></>}
+    {partArchive.length > 0 && <><dt>Product page</dt><dd>{partArchive.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">archived page</a></>)} <span class="muted">(no longer online)</span></dd></>}
     {partLinks.length > 0 && <><dt>Product page</dt><dd>{partLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
     {dealerLinks.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerLinks.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{hostLabel(l.url)}</a></>)}</dd></>}
     {partFiles.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
