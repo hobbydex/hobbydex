@@ -121,6 +121,7 @@ ul.cards li.kitcard > a { color: var(--muted); } ul.cards li.kitcard > a:hover {
 p.bycat a { white-space: nowrap; }
 /* spec drawings (lib/screwDrawing.ts, lib/specDrawings.ts, lib/gearing.ts): line art in the text colour */
 figure.drawing { margin: 0.5rem 0 1rem; max-width: 36rem; }
+.specicon { color: var(--muted); margin: 0.5rem 0 1rem; }
 figure.drawing svg { max-width: 100%; height: auto; display: block; }
 .factsrow > figure.drawing { min-width: 0; width: min(100%, 36rem); margin-left: auto; }
 .factsrow > figure.drawing svg { width: 100%; }

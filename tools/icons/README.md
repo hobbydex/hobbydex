@@ -9,4 +9,6 @@ follow the light and dark themes.
   ids). Edit the point lists to change a silhouette.
 - `parts.py` generates the part-category and theme icons (24x24):
   `python3 parts.py parts.svg`.
+- `ballend.py` draws the ball end icons (ball stud, through-hole ball, ball nut)
+  and the rod end around the same ball: `python3 ballend.py ballend.svgpart`.
 - `src/lib/wideIcons.ts` lists the 2:1 icons so `Icon.astro` sizes them.
