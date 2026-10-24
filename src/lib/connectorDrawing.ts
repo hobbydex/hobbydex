@@ -334,7 +334,7 @@ function draw(spec: Spec): ScrewDrawing | undefined {
   else if (slug === 'tamiya-mini') r = tamiya(80, 46, 10, 18);
   else if (slug === 'traxxas-trx-id' || slug === 'traxxas-high-current') r = traxxas();
   else if (slug === 'jst-rcy') r = jstRcy();
-  else if (slug === 'jst-xh') {
+  else if (slug === 'jst-xh' || /^jst-xh-\d+$/.test(slug)) {   // the generic plug and the per-cell-count balance plugs
     const n = Number(spec.pins) > 2 ? Number(spec.pins) : 4;
     r = jstXh(n);
     r.extra = label(cx, r.bottom + 18, Number(spec.pins) > 2 ? `${n} pins` : `${n} pins drawn; the pin count is not in the spec`);
