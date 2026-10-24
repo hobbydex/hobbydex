@@ -15,7 +15,7 @@ import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import { db, key, url, brandName, partLabel, byReleaseDate, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, type Fits, type Spec, yearDoubt } from '../../../../lib/data';
-import { catName } from '../../../../lib/categories';
+import { catName, partIcon } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import DataLink from '../../../../components/DataLink.astro';
@@ -212,7 +212,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
   {bag ? <span class="typeicon bagicon" data-pagefind-ignore><HardwareBag items={bag} seal={part.seal} color={part.color} finish={part.finish} material={part.material} /></span>
     : part.art ? <span class="typeicon"><ReleaseArt id={part.id} category={part.category} color={part.color} art={part.art} size="12rem" class="hero" /></span>
     : drawing ? <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />
-    : part.category && <span class="typeicon" title={catName(part.category)}><Icon name={part.category} size="8rem" /></span>}
+    : part.category && <span class="typeicon" title={catName(part.category)}><Icon name={partIcon(part)!} size="8rem" /></span>}
   </div>
   {part.notes && <p class="muted partnotes">{part.notes}</p>}
   <DoubtNote on={!!dateDoubt(part)} />
