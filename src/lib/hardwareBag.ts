@@ -1,10 +1,11 @@
 // Which specs have a hardware bag drawing (src/assets/hardware/index.json, written by tools/hardware/make_drawings.py),
-// and the bag items a part shows: its `includes` when it lists specs (every one must have a drawing), else its
-// equivalent_to spec (its pack of one spec, from pack_qty). A self-tapping screw shows the spec's "-flat" drawing
+// and the bag items a part shows: its `includes` (a spec row, or a part row drawn as that part's equivalent_to spec),
+// else its equivalent_to spec (its pack of one spec, from pack_qty). When some includes rows have no drawing, the bag
+// draws the others and says how many rows it draws. A self-tapping screw shows the spec's "-flat" drawing
 // (the flat point, as the technical drawing) unless the part says point "cone".
 import index from '../assets/hardware/index.json';
 import approx from '../assets/hardware/approx.json';
-import type { Part } from './data';
+import { db, type Includes, type Part } from './data';
 
 const files = index as Record<string, string>;
 // the drawings' text, bundled at build time
@@ -29,19 +30,41 @@ export function hardwareFile(specId: string | undefined, point?: string): string
   return (point !== 'cone' && files[`${key}-flat`]) || files[key];
 }
 
-export type BagItem = { spec: string; qty: number; point?: string };
+/** One drawing of a bag: qty is the count the data states (undefined when it states none: the caption prints no
+ * count); copies is how many are drawn (qty, else one per includes row). */
+export type BagItem = { spec: string; qty?: number; copies: number; point?: string };
+/** The bag of a part: its items, and how many of its includes rows are drawn out of how many (both 1 for a pack). */
+export type Bag = { items: BagItem[]; drawn: number; total: number };
 
-/** The bag items for a part, or undefined when it has no drawing to show. */
-export function bagItems(part: Part): BagItem[] | undefined {
+/** The spec an includes row is drawn as: its spec, or the first equivalent_to spec of its part that has a drawing. */
+function rowDrawing(row: Includes, point?: string): { spec: string; point?: string } | undefined {
+  if (row.spec) return hardwareFile(row.spec, point) ? { spec: row.spec, point } : undefined;
+  const p = row.part ? db.part.get(row.part) : undefined;
+  const e = p?.equivalent_to?.find((x) => hardwareFile(x.spec, p.point));
+  return e && p ? { spec: e.spec, point: p.point } : undefined;
+}
+
+/** The bag for a part, or undefined when it has no drawing to show. */
+export function bagItems(part: Part): Bag | undefined {
   if (part.includes?.length) {
-    const specs = part.includes.filter((i) => i.spec);
-    if (specs.length === 0 || !specs.every((i) => hardwareFile(i.spec, part.point))) return undefined;
-    const sum = new Map<string, number>();
-    for (const i of specs) sum.set(i.spec!, (sum.get(i.spec!) ?? 0) + (i.qty ?? 1));
-    return [...sum].map(([spec, qty]) => ({ spec, qty, point: part.point }));
+    const rows = part.includes.filter((i) => i.spec || i.part);
+    const drawn = rows.map((i) => ({ row: i, d: rowDrawing(i, part.point) })).filter((r) => r.d);
+    if (drawn.length === 0) return undefined;
+    // one item per drawing; its count is the sum of the rows' counts, or none when a row states none
+    const items = new Map<string, BagItem>();
+    for (const { row, d } of drawn) {
+      const key = hardwareFile(d!.spec, d!.point)!;
+      const prev = items.get(key);
+      const qty = prev ? (prev.qty !== undefined && row.qty !== undefined ? prev.qty + row.qty : undefined) : row.qty;
+      const rowsSoFar = (prev?.copies ?? 0) + (row.qty ?? 1);
+      items.set(key, { spec: d!.spec, point: d!.point, qty, copies: qty ?? rowsSoFar });
+    }
+    return { items: [...items.values()], drawn: drawn.length, total: rows.length };
   }
   const e = (part.equivalent_to ?? []).find((x) => hardwareFile(x.spec, part.point));
-  return e ? [{ spec: e.spec, qty: part.pack_qty ?? 1, point: part.point }] : undefined;
+  if (!e) return undefined;
+  const qty = part.pack_qty ?? 1;
+  return { items: [{ spec: e.spec, qty, copies: qty, point: part.point }], drawn: 1, total: 1 };
 }
 
 // A metal or plastic tone for a bag with no colour: the tone's CSS variables are set on the bag (HardwareBag.astro).
