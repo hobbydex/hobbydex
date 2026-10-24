@@ -5,12 +5,15 @@
 // left-aligned with the bottom-left item, its ticks pointing down. The svg is as wide as its page column, but at most
 // 12 px per mm, so a single small part is not blown up. Lines are currentColor with non-scaling strokes; the silhouette
 // takes the part's colour, else its finish or material tone, else the page background. A rubber seal fills the bearing's shield face.
+// A caption prints the count the data states ("3x8 x 4"), and no count when it states none. A bag that draws only some
+// of a set's rows says so on its first line ("10 of 18 items drawn").
 import { colourShades } from '../lib/colourDot';
 import { db } from '../lib/data';
 import { hardwareFile, hardwareSvg, metalTone, type BagItem } from '../lib/hardwareBag';
 
-interface Props { items: BagItem[]; seal?: string; color?: string; finish?: string; material?: string }
-const { items, seal, color, finish, material } = Astro.props;
+interface Props { items: BagItem[]; drawn?: number; total?: number; seal?: string; color?: string; finish?: string; material?: string }
+const { items, drawn, total, seal, color, finish, material } = Astro.props;
+const partial = drawn !== undefined && total !== undefined && drawn < total ? `${drawn} of ${total} items drawn` : undefined;
 const COLS = 5, CAP = 20, BAR = 10, MARGIN = 0.5, MAX_PX_PER_MM = 12;
 const SEAL_FILL = 'var(--seal-rubber, #8a8f98)'; // a rubber seal (2RS/RS) face; a metal shield keeps the part's fill
 
@@ -45,13 +48,13 @@ const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : tone ? `v
 
 // the groups, largest drawing first; a spec listed twice is one group
 const groups = [...new Map(items.filter((i) => hardwareFile(i.spec, i.point)).map((i) => [hardwareFile(i.spec, i.point)!, i])).values()]
-  .map(({ spec, qty, point }) => {
+  .map(({ spec, qty, copies, point }) => {
     const useSeal = !!seal && (seal === 'rubber' || seal === 'rubber-metal') && spec.startsWith('spec/bearing/');
     const file = hardwareFile(spec, point)!;
     const svg = hardwareSvg(file)!;
     const vb = svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number) as [number, number, number, number];
     return {
-      spec, qty, useSeal, vb,
+      spec, qty, copies, useSeal, vb,
       id: `hb-${file.replace(/\.svg$/, '')}${useSeal ? '-seal' : ''}`,
       pitchX: Number(svg.match(/data-pitch-x="([^"]+)"/)![1]), pitchY: Number(svg.match(/data-pitch-y="([^"]+)"/)![1]),
       sil: svg.match(/<path class="sil" d="([^"]*)"/)![1], seg: svg.match(/<path class="seal" d="([^"]*)"/)?.[1],
@@ -71,10 +74,15 @@ groups.forEach((g) => {
 function layout(FONT: number) {
   const parts: string[] = [];
   let y = 0, width = BAR;
+  if (partial) {
+    parts.push(`<text class="hbpartial" x="0" y="${FONT.toFixed(2)}" font-size="${FONT.toFixed(2)}" font-style="italic" fill="currentColor">${partial}</text>`);
+    y = FONT * 1.8;
+    width = Math.max(width, FONT * 0.55 * partial.length);
+  }
   groups.forEach((g) => {
     const [, , vw, vh] = g.vb;
-    const n = Math.min(g.qty, CAP), more = g.qty - n;
-    parts.push(`<text x="0" y="${(y + FONT).toFixed(2)}" font-size="${FONT.toFixed(2)}" fill="currentColor">${shortName(g.spec)} x ${g.qty}</text>`);
+    const n = Math.min(g.copies, CAP), more = g.copies - n;
+    parts.push(`<text x="0" y="${(y + FONT).toFixed(2)}" font-size="${FONT.toFixed(2)}" fill="currentColor">${shortName(g.spec)}${g.qty !== undefined ? ` x ${g.qty}` : ''}</text>`);
     const top = y + FONT * 1.5;
     let lastX = 0, lastY = top;
     for (let k = 0; k < n; k++) {
@@ -104,7 +112,7 @@ function layout(FONT: number) {
 const first = layout(2.2);
 const FONT = Math.max(2.2, (first.width + 2 * MARGIN) / 28);
 const { parts: body, width, height } = FONT === 2.2 ? first : layout(FONT);
-const label = groups.map((g) => `${g.qty} x ${fullName(g.spec)}`).join(', ');
+const label = (partial ? `${partial}: ` : '') + groups.map((g) => `${g.qty !== undefined ? `${g.qty} x ` : ''}${fullName(g.spec)}`).join(', ');
 const vbox = [-MARGIN, -MARGIN, width + 2 * MARGIN, height + 2 * MARGIN].map((v) => v.toFixed(2)).join(' ');
 const maxWidth = ((width + 2 * MARGIN) * MAX_PX_PER_MM).toFixed(0);
 ---

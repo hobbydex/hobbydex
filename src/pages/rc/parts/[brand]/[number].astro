@@ -92,7 +92,7 @@ const specFact = partSpecFacts(part, (part.equivalent_to ?? []).map((e) => db.sp
 const drawing = partDrawing(part);
 // a screw pin (a pin with a head and a short thread under it) has its own icon; other pins keep the pin icon
 const iconName = part.category === 'pin' && /screw[\s-]*pins?/i.test(part.name) ? 'screw-pin' : part.category;
-// a hardware bag: the part's pack of a pilot spec, or every spec its includes lists (when all of them have a drawing)
+// a hardware bag: the part's pack of a pilot spec, or the specs its includes rows are drawn as (a partial bag says so)
 const bag = bagItems(part);
 const drawStd = drawing?.standard ? db.standardByCode.get(drawing.standard) : undefined;
 // a part of a brand that prints no item numbers has none: the name is its title, there is no number to copy
@@ -211,7 +211,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
     {specFact.facts.length > 0 && <><dt>Spec</dt><dd>{specFact.specs.map((s, i) => <>{i > 0 && ', '}<a href={url.spec(s.id)}>{s.name ?? s.id}</a></>)}</dd><FactRows rows={specFact.facts} /></>}
   </dl>
-  {bag ? <span class="typeicon bagicon" data-pagefind-ignore><HardwareBag items={bag} seal={part.seal} color={part.color} finish={part.finish} material={part.material} /></span>
+  {bag ? <span class="typeicon bagicon" data-pagefind-ignore><HardwareBag items={bag.items} drawn={bag.drawn} total={bag.total} seal={part.seal} color={part.color} finish={part.finish} material={part.material} /></span>
     : part.art ? <span class="typeicon"><ReleaseArt id={part.id} category={part.category} color={part.color} art={part.art} size="12rem" class="hero" /></span>
     : drawing ? <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />
     : part.category && <span class="typeicon" title={catName(part.category)}><Icon name={partIcon(part)!} size="8rem" /></span>}

@@ -50,7 +50,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
     <FactRows rows={threadRows(specFacts(spec))} />
     {spec.standards && <><dt>Standards</dt><dd><Standards codes={spec.standards} /></dd></>}
   </dl>
-  {hardwareFile(spec.id) && <div data-pagefind-ignore><HardwareBag items={[{ spec: spec.id, qty: 1 }]} /></div>}
+  {hardwareFile(spec.id) && <div data-pagefind-ignore><HardwareBag items={[{ spec: spec.id, qty: 1, copies: 1 }]} /></div>}
   {isApproxDrawing(spec.id) && <p class="muted" data-pagefind-ignore>The bag drawing's head proportions are interpolated between the neighbouring sizes of the screw table, not taken from the standard.</p>}
   {!drawing && spec.category === 'ball-end' && <p class="specicon" data-pagefind-ignore><Icon name={partIcon({ category: spec.category, ball_type: String(spec.type) })!} size="8rem" /></p>}
   {drawing && <figure class="drawing" data-pagefind-ignore>
