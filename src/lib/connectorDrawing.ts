@@ -1,7 +1,8 @@
 // Drawings of connector specs, drawn in currentColor like the other spec drawings. Amass's dimensioned drawings give
 // the EC plugs (EC2, EC3, EC5), the XT plugs (XT30, XT60, XT60H, XT90, XT90S, XT150), the AS150, the AM-1015 T-plug
-// (Deans) and the bullet contacts: these are to scale, each view in its own mm coordinates. Other plugs have no
-// dimensioned drawing in our sources: they are drawn at their usual shape and marked not to scale.
+// (Deans) and the bullet contacts, JST's XH catalogue the JST-XH balance plugs: these are to scale, each view in its
+// own mm coordinates. Other plugs have no dimensioned drawing in our sources: they are drawn at their usual shape and
+// marked not to scale.
 import type { Spec } from './data';
 import type { ScrewDrawing } from './screwDrawing';
 
@@ -213,8 +214,8 @@ function ecDrawing(slug: string, e: Ec) {
   return { face: ecFace(e, s), side: part(side, L, fh, 'Side'), note: EC_NOTE(name) };
 }
 
-// Amass contacts (bullets): the length from the EC contact drawing, mm, keyed by diameter; other sizes are 4.2 times
-// the diameter (the median of the three Amass contacts), as no dimensioned drawing of them is in our sources
+// Amass contacts (bullets): the length of the contact in Amass's EC plugs, mm, keyed by diameter. Loose bullets differ
+// by maker and no standard exists, so every bullet drawing is approximate; other sizes are 4.2 times the diameter
 const CONTACT: Record<string, { L: number; from: string }> = {
   '2': { L: 10.6, from: 'EC2' }, '3.5': { L: 12, from: 'EC3' }, '5': { L: 21, from: 'EC5' },
 };
@@ -264,18 +265,19 @@ const SERVO: View[][] = (() => {
   ]];
 })();
 
-// housing colours as sold: XT yellow (the XT90-S with green lines), EC blue, Deans dark red, JST battery plug red, servo plugs black (drawn grey for contrast)
-const TINT: Record<string, [string, string?]> = {
+// housing colours as sold: XT yellow (the XT90-S with green lines), EC blue, Deans dark red, JST battery plug red,
+// servo plugs black (drawn grey for contrast), JST-XH natural white (light grey, outlined dark in both themes: the third value)
+const TINT: Record<string, [string, string?, string?]> = {
   xt30: ['#f2c230'], xt60: ['#f2c230'], xt60h: ['#f2c230'], xt90: ['#f2c230'], xt150: ['#f2c230'], xt90s: ['#f2c230', '#2e9e4a'],
   ec2: ['#2f6fd6'], ec3: ['#2f6fd6'], ec5: ['#2f6fd6'], ec8: ['#2f6fd6'],
-  deans: ['#8b1e1e'], 'jst-rcy': ['#d42a2a'], 'servo-jr-futaba': ['#6b6f76'],
+  deans: ['#8b1e1e'], 'jst-rcy': ['#d42a2a'], 'servo-jr-futaba': ['#6b6f76'], 'jst-xh': ['#e6e3db', undefined, '#33312d'],
 };
 
 export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
   const d = draw(spec);
-  const t = TINT[String(spec.id).split('/').pop() ?? ''];
+  const t = TINT[(String(spec.id).split('/').pop() ?? '').replace(/^jst-xh-\d+$/, 'jst-xh')];
   if (!d || !t) return d;
-  const style = `--plug:${t[0]}` + (t[1] ? `;--plug-line:${t[1]}` : '');
+  const style = `--plug:${t[0]}` + (t[1] ? `;--plug-line:${t[1]}` : '') + (t[2] ? `;--plug-stroke:${t[2]}` : '');
   return { ...d, svg: d.svg.replace('<svg class="screwdrawing"', `<svg class="screwdrawing plug" style="${style}"`) };
 }
 
@@ -294,9 +296,14 @@ function draw(spec: Spec): ScrewDrawing | undefined {
     const b = bulletPart(d, L, banana);
     const cap = banana ? 'Side, banana tip' : 'Side';
     const note = known
-      ? `diameter and length of the ${d} mm bullet contact that Amass uses in its ${known.from} plug (${known.from} spec sheet V1.2), in mm`
-      : `length estimated as 4.2 x the diameter (median of Amass's contacts); no dimensioned drawing of this size is in our sources`;
-    return { svg: svgOf(name, row([part(b.o, b.w, b.h, cap)])), standard: undefined, approximate: !known, note };
+      ? `bullet lengths differ by maker and no standard exists; drawn after the ${d} mm contact in Amass's ${known.from} plug (${known.from} spec sheet V1.2)`
+      : `bullet lengths differ by maker and no standard exists; length estimated as 4.2 x the diameter (median of Amass's EC contacts)`;
+    return { svg: svgOf(name, row([part(b.o, b.w, b.h, cap)])), standard: undefined, approximate: true, note };
+  }
+
+  if (slug === 'jst-xh' || /^jst-xh-\d+$/.test(slug)) {   // the generic plug and the per-cell-count balance plugs
+    const n = Number(spec.pins) >= 2 && Number(spec.pins) <= 16 ? Number(spec.pins) : 0;
+    return { svg: jstXh(name, n || 4, !n), standard: undefined, approximate: false, note: jstXhNote(n || 4, !n) };
   }
 
   if (slug === 'deans') {
@@ -334,11 +341,6 @@ function draw(spec: Spec): ScrewDrawing | undefined {
   else if (slug === 'tamiya-mini') r = tamiya(80, 46, 10, 18);
   else if (slug === 'traxxas-trx-id' || slug === 'traxxas-high-current') r = traxxas();
   else if (slug === 'jst-rcy') r = jstRcy();
-  else if (slug === 'jst-xh') {
-    const n = Number(spec.pins) > 2 ? Number(spec.pins) : 4;
-    r = jstXh(n);
-    r.extra = label(cx, r.bottom + 18, Number(spec.pins) > 2 ? `${n} pins` : `${n} pins drawn; the pin count is not in the spec`);
-  }
   if (!r) return undefined;
   const sparkNote = spark ? label(cx, r.bottom + (r.extra ? 36 : 18), 'anti-spark contact') : '';
   const bottom = r.bottom + (r.extra ? 36 : 18) + (sparkNote ? 18 : 0);
@@ -379,10 +381,63 @@ function jstRcy() {
   return { o, bottom: y + h };
 }
 
-// JST-XH: a row of pins at 2.5 mm pitch (drawn at 16 px); the spec's pin count, else four
-function jstXh(n: number) {
-  const pitch = 16, w = 26 + n * pitch, h = 34, x = cx - w / 2, y = top + 10;
-  let o = housing(x, y, w, h, [0, 0, 0, 0]);
-  for (let i = 0; i < n; i++) o += rect(cx - ((n - 1) * pitch) / 2 + i * pitch - 3.5, y + 9, 7, 16, 'solid');
-  return { o, bottom: y + h };
+// JST-XH: the XHP-n housing (the plug on a balance lead) from JST's XH catalogue, in mm. Dimensioned there: the
+// 2.5 pitch, the width B = 2.5 (n - 1) + 4.8, the 5.7 depth and the 7.5 + 0.25 height. Read off the drawing: the
+// rear flange with its two guide notches, the body, the square contact cavities and the windows under them, the two
+// lock ribs on one long side with their latch ramps (they enter the slots in the header's wall, so the plug only goes
+// in one way round) and the bar that marks circuit 1.
+const XH_PITCH = 2.5, XH_D = 5.7, XH_RIB = 0.85, XH_H = 7.5, XH_STEP = 0.25;
+const xhWidth = (n: number) => (n - 1) * XH_PITCH + 4.8;
+const ink = (p: Pen, x1: number, y1: number, x2: number, y2: number) => p.poly([[x1, y1], [x2, y2]], 'thin ink', false);
+
+// the mating face, as seen looking into the sockets: lock ribs on top, circuit 1 at the right
+function xhFace(p: Pen, n: number) {
+  const B = xhWidth(n), R = XH_RIB, D = XH_D, r = 0.4, n_ = p.n;
+  const ny = R + 2.42, nx = 2.4 + XH_PITCH / 2;   // the notch in the right end, the one in the bottom edge between the last two circuits
+  const flange = `M${n_(r)} ${n_(R)}H${n_(B - r)}Q${n_(B)} ${n_(R)} ${n_(B)} ${n_(R + r)}V${n_(ny - 0.6)}L${n_(B - 0.55)} ${n_(ny)}L${n_(B)} ${n_(ny + 0.6)}`
+    + `V${n_(D - r)}Q${n_(B)} ${n_(D)} ${n_(B - r)} ${n_(D)}H${n_(nx + 0.6)}L${n_(nx)} ${n_(D - 0.65)}L${n_(nx - 0.6)} ${n_(D)}H${n_(r)}Q0 ${n_(D)} 0 ${n_(D - r)}V${n_(R + r)}Q0 ${n_(R)} ${n_(r)} ${n_(R)}Z`;
+  let o = p.rect(1.88, 0, 1.35, R) + p.rect(B - 3.23, 0, 1.35, R) + ink(p, 2.69, 0, 2.69, R) + ink(p, B - 2.69, 0, B - 2.69, R)
+    + `<path class="fill" d="${flange}"/>` + p.shape(0.78, R + 0.07, B - 1.56, 4.03, [0.25, 0.25, 0.25, 0.25], 'thin ink')
+    + ink(p, 0.78, R + 0.27, B - 0.78, R + 0.27) + ink(p, 0.78, R + 2.22, B - 0.78, R + 2.22) + ink(p, 0.78, R + 2.46, B - 0.78, R + 2.46);
+  for (let k = 0; k < n; k++) {
+    const x = B - 2.4 - k * XH_PITCH;
+    o += p.rect(x - 0.585, R + 0.9, 1.17, 1.17, 'ball ink') + p.rect(x - 0.4, R + 1.08, 0.8, 0.8, 'thin ink')
+      + p.poly([[x - 0.5, R + 3.25], [x + 0.5, R + 3.25], [x + 0.675, R + 4.03], [x - 0.675, R + 4.03]], 'ball ink');
+  }
+  return o + p.rect(B - 2.4 - 0.9, R + 4.12, 1.8, 0.14, 'inkfill');
+}
+// the long side with the lock ribs: each a rib from the flange down, its latch ramp standing out at the bottom
+function xhLockSide(p: Pen, n: number) {
+  const B = xhWidth(n), L = XH_H + XH_STEP;
+  const rib: Pt[] = [[2.69, 0], [2.42, 3.43], [1.88, 3.73], [1.88, 4.54], [2.73, 5.92], [3.19, 5.92], [3.19, 0.8]];
+  return p.rect(0.8, 0.8, B - 1.6, L - 0.8) + p.shape(0, 0, B, 0.8, [0, 0, 0.2, 0.2]) + ink(p, 0.8, 7.2, B - 0.8, 7.2) + ink(p, 0.8, 7.47, B - 0.8, 7.47)
+    + p.poly(rib) + p.poly(rib.map(([x, y]): Pt => [B - x, y]));
+}
+// the end: the flange on top, the lock rib (left) with its ramp, the stepped mating end at the bottom
+function xhSide(p: Pen) {
+  return p.shape(0, 0, XH_D, 0.8, [0, 0, 0.2, 0]) + [2.58, 3.19, 3.79].map((x) => ink(p, x, 0, x, 0.8)).join('')
+    + p.rect(0, 0.8, 0.79, 5.1) + [3.38, 3.68, 4.54].map((y) => ink(p, 0, y, 0.79, y)).join('')
+    + p.poly([[0.79, 0.8], [4.9, 0.8], [4.9, 7.75], [3.27, 7.75], [3.0, 7.47], [1.07, 7.47], [0.79, 7.17]]);
+}
+function jstXh(name: string, n: number, guessed: boolean) {
+  const B = xhWidth(n), L = XH_H + XH_STEP;
+  const s = Math.min(16, 220 / (B + XH_D), 150 / L);
+  const p = pen(s);
+  // the pitch between circuits 1 and 2, under the face
+  const x1 = (B - 2.4) * s, x2 = x1 - XH_PITCH * s, y = XH_D * s + 7;
+  const pitch = `<path class="thin" d="M${f(x2)} ${f(y)}H${f(x1)}M${f(x2)} ${f(y - 3)}V${f(y + 3)}M${f(x1)} ${f(y - 3)}V${f(y + 3)}"/>${label((x1 + x2) / 2, y + 13, '2.5')}`;
+  const face = part(xhFace(p, n) + hdim(0, B * s, -8, `${B.toFixed(1)} mm`) + vdim(-8, 0, XH_D * s, '5.7') + pitch, B * s, XH_D * s + 18,
+    guessed ? `Mating face, ${n} pins drawn` : 'Mating face');
+  const front = part(xhLockSide(p, n) + vdim(-8, 0, XH_H * s, '7.5'), B * s, L * s, 'Lock side');
+  const side = part(xhSide(p) + hdim(0, XH_D * s, -8, '5.7'), XH_D * s, L * s, 'Side', 12);
+  const rowsOf = [[face], [front, side]];
+  const within = Math.max(W, ...rowsOf.map((r) => rowWidth(r) + 12));
+  let o = '', h = 0;
+  for (const r of rowsOf.map((r) => row(r, 18, within))) { o += `<g transform="translate(0 ${f(h)})">${r.o}</g>`; h += r.h; }
+  return svgOf(name, { o, w: within, h });
+}
+function jstXhNote(n: number, guessed: boolean) {
+  return `JST's XH connector catalogue (eXH.pdf), housing XHP-${n}: ${xhWidth(n).toFixed(1)} wide (2.5 x ${n - 1} + 4.8), 5.7 deep, 7.5 high plus a 0.25 step, contacts at 2.5 pitch, in mm; `
+    + `the guide notches, cavities and lock ribs are read off the drawing. The two lock ribs on one long side fit the slots in the header's wall, so the plug goes in one way round; the bar marks circuit 1`
+    + (guessed ? `. The pin count is not in this spec: ${n} pins are drawn` : '');
 }
