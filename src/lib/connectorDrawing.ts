@@ -303,19 +303,33 @@ function deansFace(p: Pen) {
   return `M${n(1.55)} 0H${n(6.05)}Q${n(6.95)} 0 ${n(6.95)} ${n(0.9)}V${n(6.57)}L${n(7.6)} ${n(7.3)}V${n(12.4)}Q${n(7.6)} ${n(13.3)} ${n(6.7)} ${n(13.3)}H${n(0.9)}Q0 ${n(13.3)} 0 ${n(12.4)}V${n(7.3)}L${n(0.65)} ${n(6.57)}V${n(0.9)}Q${n(0.65)} 0 ${n(1.55)} 0Z`;
 }
 
-// JR and Futaba servo plugs: three sockets at 2.54 mm pitch in a slim face, JR with its two corners bevelled on one
-// side, Futaba with its key, and the long body from the side. Typical sizes: no dimensioned servo-plug drawing is in
-// our sources.
-const SERVO: View[][] = (() => {
-  const w = 7.6, h = 2.6, L = 14;
-  const holes = (p: Pen, y = 0) => [-1, 0, 1].map((i) => p.rect(w / 2 + i * 2.54 - 0.5, y + h / 2 - 0.5, 1, 1, 'ball')).join('');
-  return [[
-    { w, h, cap: 'JR face', dw: '7.6', dh: '2.6', draw: (p) => p.shape(0, 0, w, h, [[0.7, 0.7], [0.7, 0.7], 0, 0]) + holes(p) },
-    { w, h: h + 0.6, cap: 'Futaba face', draw: (p) => p.rect(w / 2 - 0.8, 0, 1.6, 0.6) + p.rect(0, 0.6, w, h) + holes(p, 0.6) },
-  ], [
-    { w: L + 4, h, cap: 'Side', dh: '2.6', draw: (p) => p.rect(0, 0, L, h) + line(p, 0.6, 0, 0.6, h) + p.rect(L, h / 2 - 0.45, 4, 0.9, 'thin') + hdim(0, Number(p.n(L)), -8, '14 mm') },
-  ]];
-})();
+// The servo plugs. No dimensioned drawing of either is in our sources. Futaba draws its J plug on the S3004 servo
+// sheet (the broad side, contacts showing): that outline is traced here, scaled by the 2.54 mm contact pitch, with
+// the lip on the short side beside the signal contact. The JR plug has no lip and two corners of one long side
+// bevelled (the housings in the photo of Muchmore's JR set, MSC-SPJ); it is drawn at the Futaba plug's size, as both
+// go into the same sockets. The thickness (2.6 mm) is typical, from no source.
+const SERVO_W = 9.14, SERVO_T = 2.6, SERVO_L = 14.57, SERVO_LIP = 0.4;
+const SERVO_WIN: [number, number][] = [[0.53, 2.46], [3.07, 5.05], [5.61, 7.54]];   // contact windows across the width, mm
+// contacts seen in the face, 2.54 mm apart, where the windows are across the width (signal contact on the right)
+const servoFace = (p: Pen) => SERVO_WIN.map(([a, b]) => p.rect((a + b) / 2 - 0.5, SERVO_T / 2 - 0.5, 1, 1, 'ball')).join('');
+// the broad side from above, nose to the left: contact windows and their latches as Futaba draws them
+const servoWindows = (p: Pen) => SERVO_WIN.map(([a, b]) => p.rect(4.76, a, 1.79, b - a, 'ball') + p.rect(6.55, a, 2.27, b - a, 'thin')).join('');
+const SERVO_FUTABA: View[] = [
+  { w: SERVO_W + SERVO_LIP, h: SERVO_T, cap: 'Face', draw: (p) =>
+    p.rect(0, 0, SERVO_W, SERVO_T) + p.rect(SERVO_W, SERVO_T / 2 - 0.6, SERVO_LIP, 1.2) + servoFace(p) },
+  { w: SERVO_L, h: SERVO_W + SERVO_LIP, cap: 'Top', draw: (p) =>
+    p.poly([[0.53, 0], [SERVO_L, 0], [SERVO_L, 9.54], [12.83, 9.54], [12.83, 8.07], [9.22, 8.07], [8.15, 9.14], [1.2, 9.14], [0, 7.49], [0, 0.64]]) + servoWindows(p) },
+];
+const SERVO_JR: View[] = [
+  { w: SERVO_W, h: SERVO_T, cap: 'Face', draw: (p) => p.shape(0, 0, SERVO_W, SERVO_T, [[0.7, 0.7], [0.7, 0.7], 0, 0]) + servoFace(p) },
+  { w: SERVO_L, h: SERVO_W, cap: 'Top', draw: (p) =>
+    p.poly([[0.53, 0], [SERVO_L, 0], [SERVO_L, SERVO_W], [1.2, SERVO_W], [0, 7.49], [0, 0.64]])
+    + line(p, 0.53, 0.7, SERVO_L, 0.7) + line(p, 0.9, SERVO_W - 0.7, SERVO_L, SERVO_W - 0.7) + servoWindows(p) },
+];
+const SERVO: Record<string, { views: View[]; note: string }> = {
+  'servo-futaba': { views: SERVO_FUTABA, note: "Futaba's own drawing on its S3004 servo sheet, traced and scaled by the 2.54 mm contact pitch: the lip on the short side beside the signal contact (right in the face, bottom from the top); the thickness is typical. No dimensioned drawing is in our sources" },
+  'servo-jr': { views: SERVO_JR, note: "the two bevelled corners as on the housings of Muchmore's JR connector set (MSC-SPJ), at the size of the Futaba plug (Futaba's S3004 drawing scaled by the 2.54 mm pitch) without its lip; the thickness is typical. No dimensioned drawing is in our sources" },
+};
 
 // Plugs with no dimensioned drawing in our sources, drawn after the makers' photos at their usual proportions (in
 // mm, approximate, so no dimensions are printed). Each note names the photos.
@@ -387,7 +401,7 @@ const PHOTO: Record<string, { note: string; views: View[] }> = {
 const TINT: Record<string, [string, string?, string?]> = {
   xt30: ['#f2c230'], xt60: ['#f2c230'], xt60h: ['#f2c230'], xt90: ['#f2c230'], xt90s: ['#f2c230', '#5fd47a'],
   ec2: ['#2f6fd6'], ec3: ['#2f6fd6'], ec5: ['#2f6fd6'], ec8: ['#2f6fd6'], ic3: ['#f47b20'], ic5: ['#f47b20'],
-  deans: ['#8b1e1e'], as150: ['#d42a2a'], 'jst-rcy': ['#d42a2a'], 'servo-jr-futaba': ['#6b6f76'], 'jst-xh': ['#f5f3ee', undefined, '#33312d'],
+  deans: ['#8b1e1e'], as150: ['#d42a2a'], 'jst-rcy': ['#d42a2a'], 'servo-jr': ['#6b6f76'], 'servo-futaba': ['#6b6f76'], 'jst-xh': ['#f5f3ee', undefined, '#33312d'],
   tamiya: ['#ece4cf'], 'tamiya-mini': ['#ece4cf'], qs8: ['#6b6f76'], 'traxxas-trx-id': ['#6b6f76'], 'traxxas-high-current': ['#6b6f76'],
 };
 
@@ -442,9 +456,7 @@ function draw(spec: Spec): ScrewDrawing | undefined {
 
   if (XT[slug]) return { svg: views(name, XT[slug].views), standard: undefined, approximate: false, note: XT[slug].note };
 
-  if (slug === 'servo-jr-futaba') {
-    return { svg: views(name, SERVO), standard: undefined, approximate: true, note: 'no dimensioned servo-plug drawing is in our sources; drawn at typical sizes: three contacts 2.54 mm apart, a face about 7.6 x 2.6 mm and a body about 14 mm long' };
-  }
+  if (SERVO[slug]) return { svg: views(name, SERVO[slug].views), standard: undefined, approximate: true, note: SERVO[slug].note };
 
   if (EC[slug]) {
     const e = ecDrawing(slug, EC[slug]);

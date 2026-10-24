@@ -1,7 +1,7 @@
 // Loads the dataset export produced by hobbydex-rc/tools/export.py.
 // The site reads only this JSON (schema_version 0); it never touches TOML.
 import { readFileSync } from 'node:fs';
-import { balanceSpecId, plugSpecId } from './plugs';
+import { balanceSpecId, plugSpecIds } from './plugs';
 
 export type Brand = { id: string; name: string; legal_name?: string; country?: string; website?: string; youtube?: string[]; kind?: string; status: string; launched?: string; launched_source?: string; launched_doubt?: string; ended?: string; ended_source?: string; ended_doubt?: string; item_numbers?: boolean; notes?: string; owner?: string; owner_source?: string; owner_since?: number };
 // A company that owns brands (hobbydex-rc docs/schema.md "company"); brand: the brand that carries its own range, when it has one.
@@ -25,7 +25,9 @@ export type Doc = { id: string; brand?: string; kind: string; title: string; ver
 export type KeyField = { field: string; label: string; from: 'part' | 'spec'; unit?: string; format?: string; compare_only?: boolean };
 export type Standard = { id: string; code: string; title: string; url?: string; replaced_by?: string; notes?: string };
 export type Category = { id: string; name: string; summary?: string; description?: string; spec_type?: string; former_ids?: string[]; key_fields?: KeyField[]; terms?: { term: string; text: string }[] };
-export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[]; companies?: Company[]; makes?: Make[] };
+export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[]; companies?: Company[]; makes?: Make[]; retired?: Retired[] };
+// an id that is gone (hobbydex-rc data/retired.toml); replaced_by: the record that took its place, which its old address redirects to
+export type Retired = { id: string; reason: string; replaced_by?: string };
 
 const path = process.env.HOBBYDEX_DATA ?? 'data/hobbydex-rc.json';
 const raw: Dataset = JSON.parse(readFileSync(path, 'utf8'));
@@ -95,9 +97,7 @@ for (const p of raw.parts) for (const e of p.equivalent_to ?? []) {
 }
 // Leads, adapters and harnesses by each connector spec they list (`connectors`); a part lists a plug once.
 const leadsBySpec = new Map<string, Part[]>();
-for (const p of raw.parts) for (const name of new Set(p.connectors ?? [])) {
-  const id = plugSpecId(name);
-  if (!id) continue;
+for (const p of raw.parts) for (const id of new Set((p.connectors ?? []).flatMap(plugSpecIds))) {
   if (!leadsBySpec.has(id)) leadsBySpec.set(id, []);
   leadsBySpec.get(id)!.push(p);
 }
@@ -106,8 +106,8 @@ for (const p of raw.parts) for (const name of new Set(p.connectors ?? [])) {
 const plugsBySpec = new Map<string, Part[]>();
 const balanceBySpec = new Map<string, Part[]>();
 for (const p of raw.parts) {
-  const id = plugSpecId(p.connector), bid = balanceSpecId(p);
-  if (id) { if (!plugsBySpec.has(id)) plugsBySpec.set(id, []); plugsBySpec.get(id)!.push(p); }
+  const bid = balanceSpecId(p);
+  for (const id of plugSpecIds(p.connector)) { if (!plugsBySpec.has(id)) plugsBySpec.set(id, []); plugsBySpec.get(id)!.push(p); }
   if (bid) { if (!balanceBySpec.has(bid)) balanceBySpec.set(bid, []); balanceBySpec.get(bid)!.push(p); }
 }
 
