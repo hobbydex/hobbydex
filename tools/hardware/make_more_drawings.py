@@ -6,7 +6,7 @@ FreeCAD: hex, nylon-insert and square nuts, rings, pins and e-clips from the spe
 own dimensions; M5 flange nuts from the Fasteners add-on (ISO 4161); spur gears from
 the Gears add-on's involute profile (pygears). Each spec is projected with TechDraw;
 the filled silhouette is traced from the raster of a solid without its bore (dilate,
-flood fill from outside, erode, potrace), so a bore shows the background only in
+flood fill from outside, erode back to the line centre, potrace), so a bore shows the background only in
 the line drawing. Specs that cannot be drawn faithfully are left out, with the reason
 counted. Run from the repo root:
 
@@ -14,10 +14,12 @@ counted. Run from the repo root:
 
 --links is the generated site data (link counts, for the order of the work); it is
 optional. FreeCAD runs through flatpak in up to 8 processes; its work files go to
-~/.cache/hobbydex-hardware-more (the flatpak cannot read /tmp).
+~/.cache/hobbydex-hardware-more, or to
+$HOBBYDEX_HARDWARE_WORK (the flatpak cannot read /tmp).
 """
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -32,7 +34,8 @@ from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "src/assets/hardware"
-WORK = Path.home() / ".cache/hobbydex-hardware-more"
+# HOBBYDEX_HARDWARE_WORK gives a run its own work dir (under the home dir: the flatpak cannot read /tmp)
+WORK = Path(os.environ.get("HOBBYDEX_HARDWARE_WORK") or Path.home() / ".cache/hobbydex-hardware-more")
 SPECS = Path.home() / "workspace/somatik/hobbydex-rc/data/specs"
 MOD = Path.home() / ".var/app/org.freecad.FreeCAD/data/FreeCAD/v1-1/Mod"
 PX = 30                  # raster pixels per mm for the silhouette
@@ -546,7 +549,9 @@ def silhouette(segs, x0, y0, nx, ny):
     ink = np.array(img) < 200
     ink = np.array(Image.fromarray(ink.astype("uint8") * 255).filter(ImageFilter.MaxFilter(5))) > 0
     outside = flood_outside(ink)
-    inside = Image.fromarray(np.where(~outside, 255, 0).astype("uint8")).filter(ImageFilter.MinFilter(3))
+    # the ink reaches 3 px past the line centre (1 px half width, 2 px dilation): erode it all back, so the fill
+    # ends under the outline and no rim of it shows outside the line on either page colour
+    inside = Image.fromarray(np.where(~outside, 255, 0).astype("uint8")).filter(ImageFilter.MinFilter(7))
     return np.array(inside) > 0
 
 
