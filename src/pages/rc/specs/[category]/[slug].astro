@@ -13,9 +13,13 @@ import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
 import DataLink from '../../../../components/DataLink.astro';
 export function getStaticPaths() {
-  return db.specs.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } }));
+  // a retired spec with a successor (a split or merged spec) keeps its address as a redirect to it
+  const moved = (db.retired ?? []).filter((r) => r.id.startsWith('spec/') && r.replaced_by?.startsWith('spec/'))
+    .map((r) => ({ params: { category: key(r.id)[0], slug: key(r.id)[1] }, props: { redirect: url.spec(r.replaced_by!) } }));
+  return [...db.specs.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } })), ...moved];
 }
-const { spec } = Astro.props;
+if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
+const spec = Astro.props.spec!;   // set on every page that is not a redirect
 const linked = db.partsBySpec.get(spec.id) ?? [];
 const uses = linked.flatMap(({ part, link }) => (db.usesByPart.get(part.id) ?? []).map((u) => ({ part, link, ...u })))
   .sort((a, b) => yearOf(a.release) - yearOf(b.release) || a.release.name.localeCompare(b.release.name));
