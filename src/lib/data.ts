@@ -1,7 +1,7 @@
 // Loads the dataset export produced by hobbydex-rc/tools/export.py.
 // The site reads only this JSON (schema_version 0); it never touches TOML.
 import { readFileSync } from 'node:fs';
-import { plugSpecId } from './plugs';
+import { balanceSpecId, plugSpecId } from './plugs';
 
 export type Brand = { id: string; name: string; legal_name?: string; country?: string; website?: string; youtube?: string[]; kind?: string; status: string; launched?: string; launched_source?: string; launched_doubt?: string; ended?: string; ended_source?: string; ended_doubt?: string; item_numbers?: boolean; notes?: string; owner?: string; owner_source?: string; owner_since?: number };
 // A company that owns brands (hobbydex-rc docs/schema.md "company"); brand: the brand that carries its own range, when it has one.
@@ -18,7 +18,7 @@ export type Release = { id: string; sources?: Record<string, string>; depicts?: 
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; releases?: string[]; car?: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };   // releases: the cars of the kit the maker lists the part for; car: a car that is none of them; neither: every release
 export type MountHoles = { thread: string; count?: number; circle_mm: number };   // count left out: the maker gives thread and spacing only
-export type Part = { id: string; wire_awg?: number | number[]; insulation?: 'silicone' | 'pvc' | 'teflon'; strands?: number; shrink_ratio?: number; flat_width_mm?: number; sources?: Record<string, string>; status?: string; depicts?: Depicts; toml_path?: string; gtin?: string; former_ids?: string[]; brand: string; number?: string; numbers?: string[]; name: string; category?: string; art?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; pack_qty_basis?: 'name' | 'page' | 'includes' | 'photo' | 'photos' | 'owner'; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string | string[]; paint_type?: string; thread_type?: string; point?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; released_doubt?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; connectors?: string[]; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; sensored?: boolean; mount_holes?: MountHoles[]; motor_can_mm?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; radio_unit?: 'transmitter' | 'receiver' | 'set' | 'gyro'; torque_kgcm?: number; speed_s?: number; bearings?: number; bearing_kind?: 'ball' | 'bushing'; dead_band_us?: number; frequency_hz?: number | [number, number]; voltage?: number; gear_material?: string; motor?: string; range?: string; displacement_cc?: number; engine_class?: string; stroke_mm?: number; output_hp?: number; output_rpm?: number; rpm_range?: number[]; fuel?: string; motor_type?: 'brushed' | 'brushless' | 'both'; bec_v?: number | number[]; bec_a?: number; waterproof?: boolean; motor_limit_t?: number; motor_limit_kv?: number; nimh_cells?: number[]; programming?: string[]; resistance_mohm?: number };
+export type Part = { id: string; wire_awg?: number | number[]; insulation?: 'silicone' | 'pvc' | 'teflon'; strands?: number; shrink_ratio?: number; flat_width_mm?: number; sources?: Record<string, string>; status?: string; depicts?: Depicts; toml_path?: string; gtin?: string; former_ids?: string[]; brand: string; number?: string; numbers?: string[]; name: string; category?: string; art?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; pack_qty_basis?: 'name' | 'page' | 'includes' | 'photo' | 'photos' | 'owner'; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string | string[]; paint_type?: string; thread_type?: string; point?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; released_doubt?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; balance_connector?: string; connectors?: string[]; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; sensored?: boolean; mount_holes?: MountHoles[]; motor_can_mm?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; radio_unit?: 'transmitter' | 'receiver' | 'set' | 'gyro'; torque_kgcm?: number; speed_s?: number; bearings?: number; bearing_kind?: 'ball' | 'bushing'; dead_band_us?: number; frequency_hz?: number | [number, number]; voltage?: number; gear_material?: string; motor?: string; range?: string; displacement_cc?: number; engine_class?: string; stroke_mm?: number; output_hp?: number; output_rpm?: number; rpm_range?: number[]; fuel?: string; motor_type?: 'brushed' | 'brushless' | 'both'; bec_v?: number | number[]; bec_a?: number; waterproof?: boolean; motor_limit_t?: number; motor_limit_kv?: number; nimh_cells?: number[]; programming?: string[]; resistance_mohm?: number };
 export type Includes = { part?: string; spec?: string; qty?: number; source?: string; notes?: string };
 export type Spec = { id: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
 export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; page?: string; releases?: string[]; kits?: string[]; parts?: string[]; channel?: string; duration_s?: number };
@@ -102,6 +102,15 @@ for (const p of raw.parts) for (const name of new Set(p.connectors ?? [])) {
   leadsBySpec.get(id)!.push(p);
 }
 
+// Parts by the connector spec their `connector` names (batteries, ESCs, servos) and batteries by their balance lead.
+const plugsBySpec = new Map<string, Part[]>();
+const balanceBySpec = new Map<string, Part[]>();
+for (const p of raw.parts) {
+  const id = plugSpecId(p.connector), bid = balanceSpecId(p);
+  if (id) { if (!plugsBySpec.has(id)) plugsBySpec.set(id, []); plugsBySpec.get(id)!.push(p); }
+  if (bid) { if (!balanceBySpec.has(bid)) balanceBySpec.set(bid, []); balanceBySpec.get(bid)!.push(p); }
+}
+
 // Parts sold for a release's kit, split by the cars a per-car set is listed for: `here` fit this release (the fit
 // names it, or names neither releases nor a car and so fits the whole kit), `other` are sets made for other cars
 // of the kit (releases of it, or a car not in the data). Each part once, in the order given.
@@ -168,6 +177,8 @@ export const db = {
   spec: byId(raw.specs ?? []),
   partsBySpec,
   leadsBySpec,
+  plugsBySpec,
+  balanceBySpec,
   brand: byId(raw.brands),
   company: byId(raw.companies ?? []),
   makeByName: new Map((raw.makes ?? []).map((m) => [m.name, m])),

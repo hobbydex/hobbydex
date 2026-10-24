@@ -14,3 +14,10 @@ export function plugSpecId(name: string | undefined): string | undefined {
   const slug = name ? SPEC_SLUG[name.trim()] : undefined;
   return slug ? `spec/connector/${slug}` : undefined;
 }
+
+// The connector spec a battery's balance lead means: JST-XH, with pins = cells + 1 (jst-xh-3 for 2S to jst-xh-9 for 8S).
+export function balanceSpecId(part: { balance_connector?: string; cells?: number }): string | undefined {
+  const n = part.cells;
+  if (part.balance_connector?.trim() !== 'JST-XH' || typeof n !== 'number' || !Number.isInteger(n) || n < 2 || n > 8) return undefined;
+  return `spec/connector/jst-xh-${n + 1}`;
+}
