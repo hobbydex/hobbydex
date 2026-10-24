@@ -294,7 +294,7 @@ function draw(spec: Spec): ScrewDrawing | undefined {
     const b = bulletPart(d, L, banana);
     const cap = banana ? 'Side, banana tip' : 'Side';
     const note = known
-      ? `diameter and length from Amass's ${known.from} spec sheet (V1.2), in mm`
+      ? `diameter and length of the ${d} mm bullet contact that Amass uses in its ${known.from} plug (${known.from} spec sheet V1.2), in mm`
       : `length estimated as 4.2 x the diameter (median of Amass's contacts); no dimensioned drawing of this size is in our sources`;
     return { svg: svgOf(name, row([part(b.o, b.w, b.h, cap)])), standard: undefined, approximate: !known, note };
   }
