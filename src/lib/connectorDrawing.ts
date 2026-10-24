@@ -270,7 +270,7 @@ const SERVO: View[][] = (() => {
 const TINT: Record<string, [string, string?, string?]> = {
   xt30: ['#f2c230'], xt60: ['#f2c230'], xt60h: ['#f2c230'], xt90: ['#f2c230'], xt150: ['#f2c230'], xt90s: ['#f2c230', '#2e9e4a'],
   ec2: ['#2f6fd6'], ec3: ['#2f6fd6'], ec5: ['#2f6fd6'], ec8: ['#2f6fd6'],
-  deans: ['#8b1e1e'], 'jst-rcy': ['#d42a2a'], 'servo-jr-futaba': ['#6b6f76'], 'jst-xh': ['#e6e3db', undefined, '#33312d'],
+  deans: ['#8b1e1e'], 'jst-rcy': ['#d42a2a'], 'servo-jr-futaba': ['#6b6f76'], 'jst-xh': ['#f5f3ee', undefined, '#33312d'],
 };
 
 export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
