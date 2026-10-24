@@ -70,12 +70,12 @@ function pen(s: number) {
 // A drawing of views side by side (or rows of them, one under the other), all at one scale (px per mm) that keeps a
 // row about 220 px wide and the views at most 150 px high. Each view is drawn in mm from its top left; dw and dh are
 // the dimensions printed along its top and left edges.
-type View = { w: number; h: number; cap: string; draw: (p: Pen) => string; dw?: string; dh?: string };
+type View = { w: number; h: number; cap: string; draw: (p: Pen) => string; dw?: string; dh?: string; padR?: number };
 function views(name: string, vs: View[] | View[][], budget = 220) {
   const rows = (Array.isArray(vs[0]) ? vs : [vs]) as View[][];
   const s = Math.min(16, budget / Math.max(...rows.map((r) => r.reduce((a, v) => a + v.w, 0))), 150 / Math.max(...rows.flat().map((v) => v.h)));
   const p = pen(s);
-  const parts = rows.map((r) => r.map((v) => part(v.draw(p) + (v.dw ? hdim(0, v.w * s, -8, v.dw) : '') + (v.dh ? vdim(-8, 0, v.h * s, v.dh) : ''), v.w * s, v.h * s, v.cap, v.dh ? ML : 12)));
+  const parts = rows.map((r) => r.map((v) => part(v.draw(p) + (v.dw ? hdim(0, v.w * s, -8, v.dw) : '') + (v.dh ? vdim(-8, 0, v.h * s, v.dh) : ''), v.w * s + (v.padR ?? 0), v.h * s, v.cap, v.dh ? ML : 12)));
   const within = Math.max(W, ...parts.map((r) => rowWidth(r) + 12));
   let o = '', y = 0;
   for (const r of parts.map((r) => row(r, 18, within))) { o += `<g transform="translate(0 ${f(y)})">${r.o}</g>`; y += r.h; }
@@ -87,6 +87,19 @@ function pin(p: Pen, x: number, y: number, cavity: number, d: number) {
   return p.circ(x, y, cavity, 'ball') + p.circ(x, y, d, 'solid') + p.rect(x - d / 2, y - sw / 2, d, sw, 'bg') + p.rect(x - sw / 2, y - d / 2, sw, d, 'bg');
 }
 const line = (p: Pen, x1: number, y1: number, x2: number, y2: number) => p.poly([[x1, y1], [x2, y2]], 'thin', false);
+// Polarity. A + or - moulded into the housing, drawn in the housing's line colour: d mm across, centred at x, y; boxed
+// when the maker moulds it on a raised square pad (Amass's EC plugs).
+function pole(p: Pen, x: number, y: number, sign: '+' | '-', d: number, boxed = false) {
+  const h = d / 2, n = p.n;
+  const mark = `<path stroke-width="1.2" stroke-linecap="round" d="M${n(x - h)} ${n(y)}H${n(x + h)}${sign === '+' ? `M${n(x)} ${n(y - h)}V${n(y + h)}` : ''}"/>`;
+  return (boxed ? p.rect(x - d * 0.8, y - d * 0.8, d * 1.6, d * 1.6, 'thin') : '') + mark;
+}
+// the poles of a plug's two contacts named beside its mating face: x is the face's right edge, y+ and y- the contacts
+const POLE_PAD = 16;   // px right of a face for these
+function poleLabels(p: Pen, x: number, yPlus: number, yMinus: number) {
+  const k = 1 / Number(p.n(1)), mx = x + 8 * k;   // 8 px out, in mm
+  return `<g opacity="0.7">${pole(p, mx, yPlus, '+', 7 * k)}${pole(p, mx, yMinus, '-', 7 * k)}</g>`;
+}
 
 // the AS150 pole from the side, its housing in class c (the red or the black pole)
 function as150Side(p: Pen, c: string) {
@@ -98,25 +111,27 @@ function as150Side(p: Pen, c: string) {
 // The XT, XT150 and AS150 plugs from the drawings on Amass's product pages: mating face (male) and side, in mm. The
 // outline sizes are dimensioned there; contact positions and the other details are read off the drawing.
 const READ_OFF = 'the contact positions and other details are read off the drawing';
+// Amass's photos of the XT30U and XT60 show a + moulded on the square end by the solder tabs; the bevelled end is not shown
+const PLUS_END = "Amass moulds a + on the square end of the housing by the solder tabs (Amass's photos): the contact at that end is the positive pole, the one at the bevelled end the negative";
 const XT: Record<string, { note: string; views: View[] | View[][] }> = {
   xt30: {
-    note: `the XT30U drawing on Amass's XT30U page: the 5.60 x 10.20 face and 13.70 length are dimensioned, in mm; ${READ_OFF} (contacts 5.0 apart)`,
+    note: `the XT30U drawing on Amass's XT30U page: the 5.60 x 10.20 face and 13.70 length are dimensioned, in mm; ${READ_OFF} (contacts 5.0 apart). ${PLUS_END}`,
     views: [
-      { w: 5.6, h: 10.2, cap: 'Mating face', dw: '5.60', dh: '10.20', draw: (p) =>
+      { w: 5.6, h: 10.2, cap: 'Mating face', dw: '5.60', dh: '10.20', padR: POLE_PAD, draw: (p) =>
         p.shape(0, 0, 5.6, 10.2, [0.6, 0.6, [1.9, 1.55], [1.9, 1.55]]) + p.shape(0.45, 0.45, 4.7, 9.3, [0.3, 0.3, [1.6, 1.3], [1.6, 1.3]], 'thin')
         + p.curve([0.45, 3.9], [1.5, 5.1], [0.45, 6.3]) + p.curve([5.15, 3.9], [4.1, 5.1], [5.15, 6.3])
-        + pin(p, 2.8, 2.6, 3.1, 2) + pin(p, 2.8, 7.6, 3.1, 2) },
+        + pin(p, 2.8, 2.6, 3.1, 2) + pin(p, 2.8, 7.6, 3.1, 2) + poleLabels(p, 5.6, 2.6, 7.6) },
       { w: 13.7, h: 10.2, cap: 'Side', dw: '13.70 mm', draw: (p) =>
         p.rect(0, 0, 7.74, 10.2) + p.rect(7.74, 0, 2.46, 10.2) + p.rect(10.2, 1.38, 0.97, 7.56)
         + p.rect(11.17, 2.52, 2.53, 1.29) + p.rect(11.17, 6.39, 2.53, 1.29) },
     ],
   },
   xt60: {
-    note: `Amass's XT60 drawing: the 8.10 x 16.00 face and 20.50 length are dimensioned, in mm; ${READ_OFF} (contacts 7.2 apart)`,
+    note: `Amass's XT60 drawing: the 8.10 x 16.00 face and 20.50 length are dimensioned, in mm; ${READ_OFF} (contacts 7.2 apart). ${PLUS_END}`,
     views: [
-      { w: 8.1, h: 16, cap: 'Mating face', dw: '8.10', dh: '16.00', draw: (p) =>
+      { w: 8.1, h: 16, cap: 'Mating face', dw: '8.10', dh: '16.00', padR: POLE_PAD, draw: (p) =>
         p.shape(0, 0, 8.1, 16, [[0.6, 0.6], [0.6, 0.6], [2.85, 3.24], [2.85, 3.24]]) + p.shape(0.68, 0.68, 6.74, 14.64, [[0.3, 0.3], [0.3, 0.3], [2.5, 2.85], [2.5, 2.85]], 'thin')
-        + pin(p, 4.05, 4.3, 4.45, 3.5) + pin(p, 4.05, 11.5, 4.45, 3.5) + p.rect(0.92, 6.98, 5.31, 1.84) },
+        + pin(p, 4.05, 4.3, 4.45, 3.5) + pin(p, 4.05, 11.5, 4.45, 3.5) + p.rect(0.92, 6.98, 5.31, 1.84) + poleLabels(p, 8.1, 4.3, 11.5) },
       { w: 20.5, h: 16, cap: 'Side', dw: '20.50 mm', draw: (p) =>
         p.rect(0, 0, 15.93, 16) + line(p, 0, 0.5, 15.93, 0.5) + line(p, 0, 12.83, 15.93, 12.83) + p.rect(9.39, 1.52, 5.55, 10.37, 'thin') + p.rect(11.6, -0.3, 2.2, 0.3)
         + p.poly([[15.93, 2.08], [17.53, 2.08], [17.53, 4.24], [20.5, 4.24], [20.5, 6.53], [15.93, 6.53]])
@@ -124,12 +139,13 @@ const XT: Record<string, { note: string; views: View[] | View[][] }> = {
     ],
   },
   xt60h: {
-    note: `Amass's XT60H drawing: the 9.20 x 16.40 face and 23.90 length are dimensioned, in mm; ${READ_OFF} (contacts 7.2 apart)`,
+    note: `Amass's XT60H drawing: the 9.20 x 16.40 face and 23.90 length are dimensioned, in mm; ${READ_OFF} (contacts 7.2 apart). Amass moulds a + and a - on the rear flange beside the solder cups (Amass's photos): + at the square end, - at the bevelled one`,
     views: [
-      { w: 9.2, h: 16.4, cap: 'Mating face', dw: '9.20', dh: '16.40', draw: (p) =>
+      { w: 9.2, h: 16.4, cap: 'Mating face', dw: '9.20', dh: '16.40', padR: POLE_PAD, draw: (p) =>
         p.shape(0, 0, 9.2, 16.4, [1.75, 1.75, 1.75, 1.75]) + p.shape(0.56, 0.56, 8.08, 15.28, [1.3, 1.3, 1.3, 1.3], 'thin')
         + p.shape(1.08, 1.21, 7.07, 14.15, [[2.27, 2.43], [2.27, 2.43], 0.3, 0.3], 'ball')
-        + pin(p, 4.57, 4.69, 4.54, 3.5) + pin(p, 4.57, 11.89, 4.54, 3.5) + p.rect(2.04, 7.38, 4.89, 1.73) + p.rect(6.93, 7.55, 0.93, 1.04, 'thin') },
+        + pin(p, 4.57, 4.69, 4.54, 3.5) + pin(p, 4.57, 11.89, 4.54, 3.5) + p.rect(2.04, 7.38, 4.89, 1.73) + p.rect(6.93, 7.55, 0.93, 1.04, 'thin')
+        + poleLabels(p, 9.2, 11.89, 4.69) },
       { w: 23.9, h: 16.4, cap: 'Side', dw: '23.90 mm', draw: (p) =>
         p.rect(0, 0.45, 12.21, 15.53) + line(p, 0, 1.04, 8.55, 1.04) + line(p, 0, 13.55, 8.55, 13.55) + p.rect(8.55, 1.74, 3.49, 11.29, 'thin')
         + p.rect(12.21, 0, 1.22, 16.4) + p.poly([[13.43, 0], [16.57, 0], [23.9, 0.69], [23.9, 15.71], [16.57, 16.4], [13.43, 16.4]], 'cover')
@@ -138,12 +154,13 @@ const XT: Record<string, { note: string; views: View[] | View[][] }> = {
     ],
   },
   xt90: {
-    note: `the XT90 drawing on Amass's XT90H page (the plug without its rear cover): the 10.90 x 20.80 face and 25.20 length are dimensioned, in mm; ${READ_OFF} (contacts 10.8 apart)`,
+    note: `the XT90 drawing on Amass's XT90H page (the plug without its rear cover): the 10.90 x 20.80 face and 25.20 length are dimensioned, in mm; ${READ_OFF} (contacts 10.8 apart). Amass moulds a + on the square end of the housing and a - on the bevelled one, by the solder cups (Amass's XT90H photo)`,
     views: [
-      { w: 10.9, h: 20.8, cap: 'Mating face', dw: '10.90', dh: '20.80', draw: (p) =>
+      { w: 10.9, h: 20.8, cap: 'Mating face', dw: '10.90', dh: '20.80', padR: POLE_PAD, draw: (p) =>
         p.shape(0, 0, 10.9, 20.8, [[0.7, 0.7], [0.7, 0.7], [3.6, 3.9], [3.6, 3.9]]) + p.shape(0.6, 0.6, 9.7, 19.6, [[0.4, 0.4], [0.4, 0.4], [3.3, 3.55], [3.3, 3.55]], 'thin')
         + [4.89, 15.69].map((y) => p.circ(5.45, y, 7.1, 'thin') + p.circ(5.45, y, 5.5, 'ball') + p.circ(5.45, y, 3.5, 'thin')).join('')
-        + p.curve([1.92, 8.32], [5.45, 10.4], [8.98, 8.32]) + p.curve([1.92, 12.33], [5.45, 10.25], [8.98, 12.33]) + line(p, 1.92, 8.32, 1.92, 12.33) + line(p, 8.98, 8.32, 8.98, 12.33) },
+        + p.curve([1.92, 8.32], [5.45, 10.4], [8.98, 8.32]) + p.curve([1.92, 12.33], [5.45, 10.25], [8.98, 12.33]) + line(p, 1.92, 8.32, 1.92, 12.33) + line(p, 8.98, 8.32, 8.98, 12.33)
+        + poleLabels(p, 10.9, 4.89, 15.69) },
       { w: 25.2, h: 20.8, cap: 'Side', dw: '25.20 mm', draw: (p) =>
         p.rect(0, 0.61, 11.73, 19.39) + line(p, 0, 1.83, 11.73, 1.83) + line(p, 0, 17.1, 11.73, 17.1)
         + p.rect(11.73, 0, 7.97, 20.8) + line(p, 11.73, 1.15, 19.7, 1.15) + line(p, 11.73, 17.4, 19.7, 17.4) + p.rect(15.2, -0.35, 2.5, 0.35) + p.rect(12.1, 2.48, 0.98, 12.9, 'thin')
@@ -152,14 +169,14 @@ const XT: Record<string, { note: string; views: View[] | View[][] }> = {
     ],
   },
   xt90s: {
-    note: `Amass's XT90S drawing (the XT90S-F, female): the 21.50 x 31.20 front and 9.90 side are dimensioned, in mm, and the other details are read off it. Amass does not draw the mating face: it is approximate, about 19.4 x 8.4 as the front and side give it, with the XT90's 10.8 contact spacing, and its shape follows Amass's photo: both corners at one end bevelled, as on the XT90, the other end square. The anti-spark contact is the socket with the green sleeve in the photo, at the square end on the side of the round badge, the positive (+) pole; the plain socket is the negative (-)`,
+    note: `Amass's XT90S drawing (the XT90S-F, female): the 21.50 x 31.20 front and 9.90 side are dimensioned, in mm, and the other details are read off it. Amass does not draw the mating face: it is approximate, about 19.4 x 8.4 as the front and side give it, with the XT90's 10.8 contact spacing, and its shape follows Amass's photo: both corners at one end bevelled, as on the XT90, the other end square. The anti-spark contact is the socket with the green sleeve in the photo, at the square end on the side of the round badge, the positive (+) pole; the plain socket is the negative (-). Amass moulds a + on that end of the housing and a - on the other, on the wide part behind the mating end (Amass's photo)`,
     views: [
       { w: 10.6, h: 19.43, cap: 'Face, approx.', draw: (p) =>
         p.shape(0, 0, 8.39, 19.43, [0.4, 0.4, [2.7, 2.9], [2.7, 2.9]])
         // the anti-spark socket: the green sleeve between the housing and the contact
         + p.circ(4.2, 4.32, 5.5, 'inlay') + p.circ(4.2, 4.32, 5.5, 'thin') + p.circ(4.2, 4.32, 4.4, 'metal') + p.circ(4.2, 4.32, 3.4, 'ball')
         + p.circ(4.2, 15.12, 5.5, 'ball') + p.circ(4.2, 15.12, 4.4, 'metal') + p.circ(4.2, 15.12, 3.4, 'ball')
-        + label(Number(p.n(9.6)), Number(p.n(4.32)) + 4, '+') + label(Number(p.n(9.6)), Number(p.n(15.12)) + 4, '-') },
+        + poleLabels(p, 8.39, 4.32, 15.12) },
       { w: 21.5, h: 31.2, cap: 'Front', dw: '21.50', dh: '31.20', draw: (p) =>
         p.rect(1.07, 0, 19.43, 13.07) + line(p, 2.17, 0, 2.17, 13.07) + line(p, 17.67, 0, 17.67, 13.07)
         + p.rect(0.28, 13.07, 20.92, 8.13) + p.rect(0.47, 21.2, 20.56, 2.6) + p.poly([[0.67, 23.8], [20.83, 23.8], [19.84, 31.2], [1.66, 31.2]])
@@ -168,9 +185,10 @@ const XT: Record<string, { note: string; views: View[] | View[][] }> = {
         // L of the 5.6 tab and the Amass band across the collar
         + p.circ(5.24, 3.17, 4.9, 'inlay') + p.poly([[3.2, 5.15], [7.3, 5.15], [8.0, 5.95], [2.5, 5.95]], 'inlay')
         + p.poly([[3.5, 7.94], [6.83, 7.94], [6.83, 13.5], [16.15, 13.5], [16.15, 17.26], [3.5, 17.26]], 'inlay') },
-      { w: 9.9, h: 31.2, cap: 'Side', dw: '9.90', draw: (p) =>
+      { w: 9.9, h: 31.2, cap: 'Side, + end', dw: '9.90', draw: (p) =>
         p.rect(0.71, 0, 8.39, 13.07) + line(p, 1.78, 0, 1.78, 13.07) + line(p, 8.12, 0, 8.12, 13.07)
-        + p.rect(0, 13.07, 9.9, 8.13) + p.rect(0.12, 21.2, 9.66, 2.6) + p.poly([[0.2, 23.8], [9.7, 23.8], [8.6, 31.2], [1.3, 31.2]]) + line(p, 4.95, 23.8, 4.95, 31.2) },
+        + p.rect(0, 13.07, 9.9, 8.13) + p.rect(0.12, 21.2, 9.66, 2.6) + p.poly([[0.2, 23.8], [9.7, 23.8], [8.6, 31.2], [1.3, 31.2]]) + line(p, 4.95, 23.8, 4.95, 31.2)
+        + pole(p, 4.95, 17.4, '+', 2.4) },
     ],
   },
   xt150: {
@@ -203,9 +221,10 @@ const EC: Record<string, Ec> = {
   ec3: { w: 8, h: 16.6, hole: 5.2, pitch: 8.4, L: 17.5, ribL: 9.4, blueLeft: true, shells: [[0.7, 7], [9.5, 15.6]], waists: 2 },
   ec5: { w: 9.9, h: 19.6, hole: 7, pitch: 10.1, L: 24, ribL: 8, blueLeft: false, shells: [[0.4, 8], [11.6, 19.2]], waists: 2 },
 };
-const EC_NOTE = (n: string) => `dimensions from Amass's spec sheets for ${n} (${n}-F and ${n}-M, V1.2), in mm; the face is the female's, its square and round ends, waists and key slot read off the drawing`;
-// the EC mating face at s px per mm, the round end at the bottom; dims prints the sizes; extra is drawn on top
-function ecFace(e: Ec, s: number, dims = true, cap = 'Mating face', extra = '') {
+const EC_NOTE = (n: string) => `dimensions from Amass's spec sheets for ${n} (${n}-F and ${n}-M, V1.2), in mm; the face is the female's, its square and round ends, waists and key slot read off the drawing. Amass moulds a + and a - on raised squares on the contact shells, + at the square end and - at the round one`;
+// the EC mating face at s px per mm, the round end at the bottom; dims prints the sizes; extra is drawn on top; poles
+// names the poles beside it (Amass: + at the square end)
+function ecFace(e: Ec, s: number, dims = true, cap = 'Mating face', extra = '', poles = false) {
   const fw = e.w * s, fh = e.h * s, r = 0.6 * s, R = fw / 2, mid = fh / 2, wr = fh * 0.1, wd = fw * 0.11, dy = (e.pitch * s) / 2, hx = fw / 2;
   const left = e.waists === 2 ? `V${f(mid + wr)}Q${f(2 * wd)} ${f(mid)} 0 ${f(mid - wr)}` : '';
   const outline = `M${f(r)} 0H${f(fw - r)}Q${f(fw)} 0 ${f(fw)} ${f(r)}V${f(mid - wr)}Q${f(fw - 2 * wd)} ${f(mid)} ${f(fw)} ${f(mid + wr)}V${f(fh - R)}A${f(R)} ${f(R)} 0 0 1 0 ${f(fh - R)}${left}V${f(r)}Q0 0 ${f(r)} 0Z`;
@@ -217,7 +236,8 @@ function ecFace(e: Ec, s: number, dims = true, cap = 'Mating face', extra = '') 
   const key = `M${f(kx0)} ${f(mid - kh)}H${f(kx1)}Q${f(kx1 - fw * 0.08)} ${f(mid)} ${f(kx1)} ${f(mid + kh)}H${f(kx0)}Q${f(kx0 + fw * 0.08)} ${f(mid)} ${f(kx0)} ${f(mid - kh)}Z`;
   return part(`<path class="fill" d="${outline}"/><path class="thin" d="${dCav}"/>` + circ(hx, y2, rc, 'thin') + `<path class="ball" d="${key}"/>`
     + circ(hx, y1, (e.hole / 2) * s, 'ball') + circ(hx, y2, (e.hole / 2) * s, 'ball') + extra
-    + (dims ? hdim(0, fw, -8, `${e.w.toFixed(2)}`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`) : ''), fw, fh, cap);
+    + (dims ? hdim(0, fw, -8, `${e.w.toFixed(2)}`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`) : '')
+    + (poles ? poleLabels(pen(s), e.w, y1 / s, y2 / s) : ''), fw + (poles ? POLE_PAD : 0), fh, cap);
 }
 function ecDrawing(slug: string, e: Ec) {
   const s = Math.min(16, 180 / (e.w + e.L));
@@ -228,10 +248,14 @@ function ecDrawing(slug: string, e: Ec) {
   const p0 = fh * 0.33, p1 = fh * 0.67;
   let side = rect(ribX, 0, ribW, fh) + rect(ribX + ribW * 0.12, p0, ribW * 0.76, p1 - p0, 'thin');
   for (let i = 1; i * 1.3 < e.ribL; i++) side += `<path class="thin" d="M${f(ribX + i * 1.3 * s)} 0V${f(p0)}M${f(ribX + i * 1.3 * s)} ${f(p1)}V${f(fh)}"/>`;
-  for (const [a, b] of e.shells) side += rect(shellX, a * s, shellW, (b - a) * s);
+  // the shells, each with its pole moulded on a raised square: + on the one at the square end (the top here)
+  const pp = pen(s), d = Math.min(e.L - e.ribL, e.h / 2) * 0.22;
+  e.shells.forEach(([a, b], i) => {
+    side += rect(shellX, a * s, shellW, (b - a) * s) + pole(pp, (shellX + shellW / 2) / s, (a + b) / 2, i === 0 ? '+' : '-', d, true);
+  });
   side += hdim(0, L, -8, `${e.L.toFixed(2)} mm`) + vdim(-8, 0, fh, `${e.h.toFixed(2)}`);
   const name = slug.toUpperCase();
-  return { face: ecFace(e, s), side: part(side, L, fh, 'Side'), note: EC_NOTE(name) };
+  return { face: ecFace(e, s, true, 'Mating face', '', true), side: part(side, L, fh, 'Side'), note: EC_NOTE(name) };
 }
 
 // Bullet and banana contacts. Amass draws the contacts of its EC plugs on the EC2, EC3 and EC5 sheets (V1.2): the
