@@ -12,15 +12,66 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false   # a running deploy always finishes; GitHub keeps only the newest waiting one
-
 jobs:
-  build:
+  # Runs outside every concurrency group, so GitHub never cancels it. A run whose
+  # older sibling is still waiting to build skips; that sibling builds the latest
+  # main and data when it starts, so nothing is lost.
+  gate:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+    steps:
+      - name: Skip when an older run is still waiting to build
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ME: ${{ github.run_id }}
+        run: |
+          # unknown state: build anyway rather than skip the site update
+          ids=""
+          for status in queued in_progress waiting requested pending; do
+            if ! list=$(gh api --paginate "repos/$REPO/actions/workflows/deploy.yml/runs?status=$status&per_page=100" --jq '.workflow_runs[].id'); then
+              echo "::warning::Could not list $status runs; building without the queue check"
+              echo "build=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            ids="$ids $list"
+          done
+          waiting=""
+          for id in $(printf '%s\n' $ids | sort -un); do
+            [ -n "$id" ] && [ "$id" -lt "$ME" ] || continue
+            # the build job is "none" until this run's gate has passed and it has been queued
+            if ! state=$(gh api "repos/$REPO/actions/runs/$id/jobs?per_page=100" --jq '[.jobs[] | select(.name == "build")][0].status // "none"'); then
+              echo "::warning::Could not read run $id; building without the queue check"
+              echo "build=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            case "$state" in
+              queued|waiting|requested|pending|none) waiting="$waiting $id" ;;
+            esac
+          done
+          if [ -n "$waiting" ]; then
+            echo "Older run(s) still waiting to build:$waiting; this run skips"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    # a running build is never cancelled; newer runs skip rather than queue behind a waiting build
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: main
       - name: Check out the RC dataset
         uses: actions/checkout@v7
         with:
