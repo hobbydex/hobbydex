@@ -152,8 +152,14 @@ const XT: Record<string, { note: string; views: View[] | View[][] }> = {
     ],
   },
   xt90s: {
-    note: `Amass's XT90S drawing: the 21.50 x 31.20 front and 9.90 side are dimensioned, in mm, and the other details are read off it; Amass does not draw the XT90S mating face, so it is not shown`,
+    note: `Amass's XT90S drawing (the XT90S-F, female): the 21.50 x 31.20 front and 9.90 side are dimensioned, in mm, and the other details are read off it. Amass does not draw the mating face: it is approximate, about 19.4 x 8.4 as the front and side give it, with the XT90's 10.8 contact spacing, and its shape follows Amass's photo: both corners at one end bevelled, as on the XT90, the other end square. The anti-spark contact is the socket with the green sleeve in the photo, at the square end on the side of the round badge, the positive (+) pole; the plain socket is the negative (-)`,
     views: [
+      { w: 10.6, h: 19.43, cap: 'Face, approx.', draw: (p) =>
+        p.shape(0, 0, 8.39, 19.43, [0.4, 0.4, [2.7, 2.9], [2.7, 2.9]])
+        // the anti-spark socket: the green sleeve between the housing and the contact
+        + p.circ(4.2, 4.32, 5.5, 'inlay') + p.circ(4.2, 4.32, 5.5, 'thin') + p.circ(4.2, 4.32, 4.4, 'metal') + p.circ(4.2, 4.32, 3.4, 'ball')
+        + p.circ(4.2, 15.12, 5.5, 'ball') + p.circ(4.2, 15.12, 4.4, 'metal') + p.circ(4.2, 15.12, 3.4, 'ball')
+        + label(Number(p.n(9.6)), Number(p.n(4.32)) + 4, '+') + label(Number(p.n(9.6)), Number(p.n(15.12)) + 4, '-') },
       { w: 21.5, h: 31.2, cap: 'Front', dw: '21.50', dh: '31.20', draw: (p) =>
         p.rect(1.07, 0, 19.43, 13.07) + line(p, 2.17, 0, 2.17, 13.07) + line(p, 17.67, 0, 17.67, 13.07)
         + p.rect(0.28, 13.07, 20.92, 8.13) + p.rect(0.47, 21.2, 20.56, 2.6) + p.poly([[0.67, 23.8], [20.83, 23.8], [19.84, 31.2], [1.66, 31.2]])
