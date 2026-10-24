@@ -7,7 +7,8 @@ export type Brand = { id: string; name: string; legal_name?: string; country?: s
 // A company that owns brands (hobbydex-rc docs/schema.md "company"); brand: the brand that carries its own range, when it has one.
 export type Make = { id: string; name: string; country: string; notes: string; toml_path?: string };   // a real vehicle make (data/makes); name as the make spells itself
 export type Company = { id: string; name: string; legal_name?: string; country?: string; website?: string; status?: string; brand?: string; parent?: string; notes?: string };
-export type Link = { site: string; url: string; kind?: 'fan-site' | 'press' | 'dealer' };   // dealer: a shop's product page, never the maker's
+// dealer: a shop's product page, never the maker's; archive: a Wayback capture of a maker page that is gone; gone: the day the page answered 404 (hidden)
+export type Link = { site: string; url: string; kind?: 'fan-site' | 'press' | 'dealer' | 'maker' | 'archive'; gone?: string };
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
 export type Kit = { id: string; sources?: Record<string, string>; placeholder?: boolean; toml_path?: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; art?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[]; supersedes?: string; links?: Link[] };
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };

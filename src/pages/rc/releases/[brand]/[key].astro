@@ -25,7 +25,7 @@ import { driveLabel } from '../../../../lib/drive';
 import { bearingList } from '../../../../lib/bearingList';
 import { colourSiblings, colourName } from '../../../../lib/colourSiblings';
 import { gearing } from '../../../../lib/gearing';
-import { fileRows, pageLabel, hostLabel, makerOwnLinks } from '../../../../lib/docFacts';
+import { fileRows, pageLabel, hostLabel, makerOwnLinks, archiveLinks } from '../../../../lib/docFacts';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.releases.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], key: key(f)[1] }, props: { redirect: url.release(x.id) } })));
@@ -60,6 +60,7 @@ const ownLinks = makerOwnLinks(release.links);
 const productPages = docs.filter((d) => d.kind === 'product_page' && webLink(d)).map((d) => ({ site: pageLabel(webLink(d)!), url: webLink(d)! }))
   .sort((a, b) => Number(b.site === 'English') - Number(a.site === 'English'));
 const makerLinks = ownLinks.length > 0 ? ownLinks : productPages;
+const releaseArchive = makerLinks.length > 0 ? [] : archiveLinks(release.links);
 // a shop's product page, when the maker has none: its own row, never under Product page
 const dealerLinks = (release.links ?? []).filter((l) => l.kind === 'dealer');
 const mainDocs = docs.filter((d) => d.kind !== 'setup_sheet');
@@ -137,6 +138,7 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
+    {releaseArchive.length > 0 && <><dt>Product page</dt><dd>{releaseArchive.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">archived page</a></>)} <span class="muted">(no longer online)</span></dd></>}
     {makerLinks.length > 0 && <><dt>Product page</dt><dd>{makerLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : hostLabel(l.url)}</a></>)}</dd></>}
     {dealerLinks.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerLinks.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{hostLabel(l.url)}</a></>)}</dd></>}
     {files.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : hostLabel(d.page!)}</a></>)}</dd></>)}

@@ -17,8 +17,10 @@ export const pageLabel = (u: string) => {
   return hostLabel(u);
 };
 
-// the maker's own links of a record: not a fan site, not a dealer
-export const makerOwnLinks = (links: Link[] | undefined) => (links ?? []).filter((l) => l.kind !== 'fan-site' && l.kind !== 'dealer');
+// the maker's own links of a record: not a fan site, a dealer or an archive capture, and not a page marked gone (hidden)
+export const makerOwnLinks = (links: Link[] | undefined) => (links ?? []).filter((l) => l.kind !== 'fan-site' && l.kind !== 'dealer' && l.kind !== 'archive' && !l.gone);
+// a Wayback capture of the maker's page, shown only when the record has no live maker link
+export const archiveLinks = (links: Link[] | undefined) => makerOwnLinks(links).length > 0 ? [] : (links ?? []).filter((l) => l.kind === 'archive');
 
 // the documents the facts rows already show (a file kind with a maker page); the rest are listed under Sources
 export const listedBelow = (docs: Doc[]) => docs.filter((d) => !(FILE_KINDS[d.kind] && d.page));
