@@ -10,6 +10,10 @@ import { db } from './data';
 // labels from the category definitions in the data, with the built-in list as fallback
 for (const c of db.categories) categoryLabel[c.id.split('/')[1]] = c.name;
 export const catName = (c?: string) => (c ? categoryLabel[c] ?? c : '');
+// The icon that stands in for a part's picture: its category icon, or for a ball with a bore (no threaded shank)
+// the through-hole ball or the ball nut; threaded studs and set-screw balls keep the ball stud.
+export const partIcon = (p: { category?: string; ball_type?: string }) =>
+  p.category === 'ball-end' && (p.ball_type === 'through-hole' || p.ball_type === 'nut') ? `ball-end-${p.ball_type}` : p.category;
 
 // The groups of the categories overview page (/rc/categories/), in page order; a category in no group is listed under Other.
 export const categoryGroups: [string, string[]][] = [
