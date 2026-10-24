@@ -29,6 +29,9 @@ const sameSize = spec.category !== 'servo' ? [] : db.specs.filter((o) => o.categ
 const plugs = [...new Set(linked.map(({ part }) => part.connector).filter((c): c is string => !!c))].sort();
 // a connector spec: the leads and adapters that list this plug among theirs (the plug parts are `linked`)
 const leads = spec.category === 'connector' ? db.leadsBySpec.get(spec.id) ?? [] : [];
+// a connector spec: the batteries whose balance lead is this JST-XH size, and the parts whose main plug (`connector`) is it
+const balanced = spec.category === 'connector' ? db.balanceBySpec.get(spec.id) ?? [] : [];
+const plugged = spec.category === 'connector' ? db.plugsBySpec.get(spec.id) ?? [] : [];
 const specCan = spec.category === 'motor' ? canDiameter(spec as { diameter_mm?: number; can?: unknown }) : undefined;
 const specSinks = specCan ? (heatsinksByCan.get(specCan) ?? []) : [];
 import SeenNote from '../../../../components/SeenNote.astro';
@@ -55,10 +58,22 @@ import SeenNote from '../../../../components/SeenNote.astro';
   <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>
   {spec.category === 'battery' && plugs.length > 1 && <p data-pagefind-ignore><label>Plug <select id="plugfilter"><option value="">any (plugs can be changed)</option>{plugs.map((c) => <option value={c}>{c}</option>)}</select></label></p>}
   {linked.length === 0 ? <p class="muted">None linked yet.</p> :
-  <div class="tablescroll"><table class={spec.category === 'servo' ? 'stacked' : undefined}>
+  <div class="tablescroll"><table class="stacked">
     <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Material</th>{spec.category === 'bearing' && <th>Seal</th>}{spec.category === 'pinion' && <th class="num">Bore mm</th>}{spec.category === 'battery' && <><th class="num">C</th><th>Case</th><th>Size mm</th><th class="num">g</th><th>Plug</th></>}<th>Match</th></tr>
-    {linked.map(({ part, link }) => <tr data-plug={part.connector ?? ''}><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td class="num" data-label="Pack">{part.pack_qty ?? ''}</td><td data-label="Material">{part.material ?? ''}</td>{spec.category === 'bearing' && <td>{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num">{part.bore_mm ?? ''}</td>}{spec.category === 'battery' && <><td class="num">{part.c_rating ?? ''}</td><td>{part.case ?? ''}</td><td>{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num">{part.weight_g ?? ''}</td><td>{part.connector ?? ''}</td></>}<td data-label="Match">{link.match}</td></tr>)}
+    {linked.map(({ part, link }) => <tr data-plug={part.connector ?? ''}><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td class="num" data-label="Pack">{part.pack_qty ?? ''}</td><td data-label="Material">{part.material ?? ''}</td>{spec.category === 'bearing' && <td data-label="Seal">{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num" data-label="Bore mm">{part.bore_mm ?? ''}</td>}{spec.category === 'battery' && <><td class="num" data-label="C">{part.c_rating ?? ''}</td><td data-label="Case">{part.case ?? ''}</td><td data-label="Size mm">{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num" data-label="g">{part.weight_g ?? ''}</td><td data-label="Plug">{part.connector ?? ''}</td></>}<td data-label="Match">{link.match}</td></tr>)}
   </table></div>}
+  {balanced.length > 0 && <>
+    <h2 id="balance-packs">Batteries with this balance plug <span class="muted">({balanced.length})</span></h2>
+    <div class="tablescroll"><table class="stacked">
+      <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Cells</th><th>Main plug</th></tr>
+      {balanced.map((part) => <tr><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td class="num" data-label="Cells">{part.cells ?? ''}</td><td data-label="Main plug">{part.connector ?? ''}</td></tr>)}
+    </table></div></>}
+  {plugged.length > 0 && <>
+    <h2 id="plugged">Parts with this plug <span class="muted">({plugged.length})</span></h2>
+    <div class="tablescroll"><table class="stacked">
+      <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th>Category</th><th class="num">Cells</th></tr>
+      {plugged.map((part) => <tr><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td data-label="Category">{part.category ?? ''}</td><td class="num" data-label="Cells">{part.cells ?? ''}</td></tr>)}
+    </table></div></>}
   {leads.length > 0 && <>
     <h2 id="leads">Leads and adapters with this plug <span class="muted">({leads.length})</span></h2>
     <div class="tablescroll"><table class="stacked">
