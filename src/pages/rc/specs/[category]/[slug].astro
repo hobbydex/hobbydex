@@ -65,8 +65,8 @@ import SeenNote from '../../../../components/SeenNote.astro';
   {balanced.length > 0 && <>
     <h2 id="balance-packs">Batteries with this balance plug <span class="muted">({balanced.length})</span></h2>
     <div class="tablescroll"><table class="stacked">
-      <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Cells</th><th>Main plug</th></tr>
-      {balanced.map((part) => <tr><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td class="num" data-label="Cells">{part.cells ?? ''}</td><td data-label="Main plug">{part.connector ?? ''}</td></tr>)}
+      <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Cells</th><th>Balance plug</th><th>Main plug</th></tr>
+      {balanced.map((part) => <tr><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td class="num" data-label="Cells">{part.cells ?? ''}</td><td data-label="Balance plug">{part.balance_connector ?? ''}{part.balance_connector_basis === 'convention' && <><br /><span class="muted">usual for LiPo packs; not stated by the maker</span></>}</td><td data-label="Main plug">{part.connector ?? ''}</td></tr>)}
     </table></div></>}
   {plugged.length > 0 && <>
     <h2 id="plugged">Parts with this plug <span class="muted">({plugged.length})</span></h2>
