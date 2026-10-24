@@ -134,6 +134,8 @@ figure.drawing figcaption { font-size: 0.8rem; }
 .screwdrawing .fill { fill: currentColor; fill-opacity: 0.12; }
 .screwdrawing.plug .fill { fill: var(--plug); fill-opacity: 1; }
 .screwdrawing .metal { fill: #c9a54a; }
+.screwdrawing .blk { fill: #33363b; }
+.screwdrawing .cover { fill: #8a8f96; }
 .screwdrawing.plug .fill, .screwdrawing.plug .ink { stroke: var(--plug-stroke, currentColor); }
 .screwdrawing .inkfill { fill: var(--plug-stroke, currentColor); stroke: none; }
 .screwdrawing.plug .inlay { fill: var(--plug-inlay); stroke: none; }
