@@ -5,10 +5,10 @@ The geometry comes from the spec TOML files (hobbydex-rc/data/specs), built in
 FreeCAD: hex, nylon-insert and square nuts, rings, pins and e-clips from the spec's
 own dimensions; M5 flange nuts from the Fasteners add-on (ISO 4161); spur gears from
 the Gears add-on's involute profile (pygears). Each spec is projected with TechDraw;
-the filled silhouette is traced from the raster of a solid without its bore (dilate,
-flood fill from outside, erode back to the line centre, potrace), so a bore shows the background only in
-the line drawing. Specs that cannot be drawn faithfully are left out, with the reason
-counted. Run from the repo root:
+the filled silhouette is the solid's own triangles, projected the same way, rasterised
+and traced with potrace: every face the eye sees is filled, and a hole is left open
+just where the line of sight passes through the solid. Specs that cannot be drawn
+faithfully are left out, with the reason counted. Run from the repo root:
 
     python3 tools/hardware/make_more_drawings.py [--specs DIR] [--links hobbydex-rc.json]
 
@@ -25,7 +25,7 @@ import subprocess
 import sys
 import time
 import tomllib
-from collections import Counter, deque
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -38,7 +38,9 @@ OUT = ROOT / "src/assets/hardware"
 WORK = Path(os.environ.get("HOBBYDEX_HARDWARE_WORK") or Path.home() / ".cache/hobbydex-hardware-more")
 SPECS = Path.home() / "workspace/somatik/hobbydex-rc/data/specs"
 MOD = Path.home() / ".var/app/org.freecad.FreeCAD/data/FreeCAD/v1-1/Mod"
-PX = 30                  # raster pixels per mm for the silhouette
+PX = 30                  # raster pixels per mm for the nesting pitch
+TRACE_PX = 60            # raster pixels per mm for the traced silhouette: its steps stay under the half line width
+MESH_MM = 0.01           # tessellation deflection for the silhouette: under one traced raster pixel
 PAD = 0.3                # mm around the drawing in the viewBox
 PROCS = 8                # FreeCAD processes at most
 CAMERA = (1, -1, 1)      # one true isometric camera for every drawing; world Z is turned to point up
@@ -244,50 +246,22 @@ def poly_face(pts, t, z0=0):
     p.append(p[0])
     return Part.Face(Part.makePolygon(p)).extrude(V(0, 0, t))
 
-def face_loops(faces):
-    loops = []
-    for f in faces:
-        outer = f.OuterWire
-        for w in f.Wires:
-            if not w.isSame(outer):
-                loops.append([(p.x, p.y, p.z) for p in w.discretize(Number=160)])
-    return loops
-
-def holes_of(shape):
-    """The inner loops of the flat top and bottom faces: the through-holes, as 3D points."""
-    planar = [f for f in shape.Faces if isinstance(f.Surface, Part.Plane) and abs(f.BoundBox.ZMax - f.BoundBox.ZMin) < 1e-6]
-    if not planar:
-        return {"top": [], "bottom": []}
-    zmax = max(f.BoundBox.ZMax for f in planar); zmin = min(f.BoundBox.ZMin for f in planar)
-    top, bottom = [], []
-    for f in planar:
-        n = V(f.Surface.Axis)
-        if f.Orientation == "Reversed":
-            n = n * -1
-        if n.z > 0.99 and abs(f.BoundBox.ZMax - zmax) < 1e-6:
-            top.append(f)
-        if n.z < -0.99 and abs(f.BoundBox.ZMin - zmin) < 1e-6:
-            bottom.append(f)
-    return {"top": face_loops(top), "bottom": face_loops(bottom)}
-
-def build(job, filled):
+def build(job):
     op = job["op"]
     if op == "hex":
-        return hex_body(job["af"], job["h"], 0 if filled else job["bore"])
+        return hex_body(job["af"], job["h"], job["bore"])
     if op == "nylon":
-        return nylon_body(job["af"], job["h"], 0 if filled else job["bore"])
+        return nylon_body(job["af"], job["h"], job["bore"])
     if op == "square":
-        return square_body(job["af"], job["h"], 0 if filled else job["bore"])
+        return square_body(job["af"], job["h"], job["bore"])
     if op == "washer":
         ring = Part.makeCylinder(job["outer"] / 2, job["t"])
-        return ring if filled else ring.cut(Part.makeCylinder(job["bore"] / 2, job["t"] + 2, V(0, 0, -1)))
+        return ring.cut(Part.makeCylinder(job["bore"] / 2, job["t"] + 2, V(0, 0, -1)))
     if op == "pin":
         r, c, L = job["d"] / 2, job["c"], job["L"]
         return rev([(0, 0), (r - c, 0), (r, c), (r, L - c), (r - c, L), (0, L)])
     if op == "gear":
         g = poly_face(job["pts"], job["t"])
-        if filled:
-            return g
         if job["bore"] > 0:
             return g.cut(Part.makeCylinder(job["bore"] / 2, job["t"] + 2, V(0, 0, -1)))
         if job["hub"] > 0:
@@ -307,11 +281,7 @@ def build(job, filled):
         FastenersCmd.FSScrewObject(obj, "ISO4161", None)
         obj.Diameter = job["size"]
         doc.recompute()
-        shape = obj.Shape
-        if filled:
-            bb = shape.BoundBox   # the bore, only as long as the nut
-            shape = shape.fuse(Part.makeCylinder(job["bore"] / 2, bb.ZLength + 2, V(0, 0, bb.ZMin - 1)))
-        return shape
+        return obj.Shape
     raise ValueError("unknown op " + op)
 
 for job in json.loads(open(JOBS_JSON).read()):
@@ -320,13 +290,13 @@ for job in json.loads(open(JOBS_JSON).read()):
         view = V(*job["view"])
         for i, e in enumerate([V(10, 0, 0), V(0, 10, 0), V(0, 0, 10)]):
             open(job["axes"][i], "w").write(TechDraw.projectToSVG(Part.makeLine(V(0, 0, 0), e), view, ""))
-        for filled, out in ((False, job["lines"]), (True, job["fill"])):
-            shape = build(job, filled)
-            if shape.isNull() or not shape.isValid() or not shape.Edges:
-                raise ValueError("empty shape")
-            open(out, "w").write(TechDraw.projectToSVG(shape, view, ""))
-            if not filled:
-                json.dump(holes_of(shape), open(job["holes"], "w"))
+        shape = build(job)
+        if shape.isNull() or not shape.isValid() or not shape.Edges:
+            raise ValueError("empty shape")
+        open(job["lines"], "w").write(TechDraw.projectToSVG(shape, view, ""))
+        # the solid's triangles, for the silhouette
+        pts, tris = shape.tessellate(job["mesh_mm"])
+        json.dump({"pts": [[p.x, p.y, p.z] for p in pts], "tris": [list(t) for t in tris]}, open(job["mesh"], "w"))
         print("OK", job["slug"])
     except Exception as err:
         print("FAILED", job["slug"], err)
@@ -528,33 +498,6 @@ def body_d(segs):
     return " ".join(parts)
 
 
-def flood_outside(ink):
-    h, w = ink.shape
-    out = np.zeros_like(ink, dtype=bool)
-    q = deque([(0, 0)]); out[0, 0] = True
-    while q:
-        y, x = q.popleft()
-        for yy, xx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
-            if 0 <= yy < h and 0 <= xx < w and not out[yy, xx] and not ink[yy, xx]:
-                out[yy, xx] = True; q.append((yy, xx))
-    return out
-
-
-def silhouette(segs, x0, y0, nx, ny):
-    """Filled outline of the drawing on an nx x ny raster whose origin is (x0, y0) mm."""
-    img = Image.new("L", (nx, ny), 255)
-    draw = ImageDraw.Draw(img)
-    for line in sample_segments(segs):
-        draw.line([((x - x0) * PX, (y - y0) * PX) for x, y in line], fill=0, width=3)
-    ink = np.array(img) < 200
-    ink = np.array(Image.fromarray(ink.astype("uint8") * 255).filter(ImageFilter.MaxFilter(5))) > 0
-    outside = flood_outside(ink)
-    # the ink reaches 3 px past the line centre (1 px half width, 2 px dilation): erode it all back, so the fill
-    # ends under the outline and no rim of it shows outside the line on either page colour
-    inside = Image.fromarray(np.where(~outside, 255, 0).astype("uint8")).filter(ImageFilter.MinFilter(7))
-    return np.array(inside) > 0
-
-
 def axis_frame(axes):
     """A 3D -> 2D map from the projected unit axes (each a line of length 10 from the origin)."""
     ends = [[seg[1][0] for seg in segs] for segs in axes]
@@ -571,20 +514,18 @@ def axis_frame(axes):
     return frame
 
 
-def hole_mask(holes, frame, x0, y0, nx, ny):
-    """Where a through-hole is see-through: inside the projected top loop and the projected
-    bottom loop of the same hole at once (a ray through the hole crosses both)."""
-    def poly(loop):
-        img = Image.new("1", (nx, ny), 0)
-        ImageDraw.Draw(img).polygon([((frame(*q)[0] - x0) * PX, (frame(*q)[1] - y0) * PX) for q in loop], fill=1)
-        return np.array(img).astype(bool)
-    out = np.zeros((ny, nx), dtype=bool)
-    for top, bottom in zip(holes["top"], holes["bottom"]):
-        out |= poly(top) & poly(bottom)
-    return out
+def mesh_mask(mesh, frame, x0, y0, nx, ny, px=PX):
+    """The silhouette of the solid: its triangles, projected and filled. A through-hole stays open
+    exactly where no triangle covers it, that is where a ray passes through the solid."""
+    img = Image.new("L", (nx, ny), 0)
+    draw = ImageDraw.Draw(img)
+    p2 = [((x - x0) * px, (y - y0) * px) for x, y in (frame(*q) for q in mesh["pts"])]
+    for a, b, c in mesh["tris"]:
+        draw.polygon([p2[a], p2[b], p2[c]], fill=255)
+    return np.array(img) > 0
 
 
-def trace(mask, x0, y0, name):
+def trace(mask, x0, y0, name, px=PX):
     """potrace of the mask, back to mm: the outline as one path."""
     pbm = WORK / f"{name}-sil.pbm"; svg = WORK / f"{name}-sil.svg"
     Image.fromarray(np.where(mask, 0, 255).astype("uint8")).convert("1", dither=Image.Dither.NONE).save(pbm)
@@ -593,7 +534,7 @@ def trace(mask, x0, y0, name):
     d = re.search(r'\sd="([^"]*)"', text).group(1)
     t = re.search(r'transform="([^"]*)"', text)
     m = transform_matrix(t.group(1) if t else "")
-    return [(c, [(x / PX + x0, y / PX + y0) for x, y in apply(m, p)]) for c, p in path_segments(d)]
+    return [(c, [(x / px + x0, y / px + y0) for x, y in apply(m, p)]) for c, p in path_segments(d)]
 
 
 def nesting(mask):
@@ -659,14 +600,14 @@ def main(argv):
             continue
         slug = slug_of(s["id"])
         job.update({"slug": slug, "kind": kind, "id": s["id"], "view": CAMERA,
-                    "lines": str(WORK / f"{slug}.lines.svgfrag"), "fill": str(WORK / f"{slug}.fill.svgfrag"),
-                    "holes": str(WORK / f"{slug}.holes.json"),
+                    "lines": str(WORK / f"{slug}.lines.svgfrag"), "mesh": str(WORK / f"{slug}.mesh.json"),
+                    "mesh_mm": MESH_MM,
                     "axes": [str(WORK / f"{slug}.axis{i}.svgfrag") for i in range(3)]})
         jobs.append(job)
     jobs.sort(key=lambda j: (-links[j["id"]], j["slug"]))
     print("planned", len(jobs), "of", sum(kinds_count.values()))
 
-    for f in WORK.glob("*.svgfrag"):
+    for f in [*WORK.glob("*.svgfrag"), *WORK.glob("*.mesh.json")]:
         f.unlink()
     failed = run_freecad(jobs)
     print("freecad done", round(time.time() - t0, 1), "s, failed", len(failed), failed[:10])
@@ -675,7 +616,7 @@ def main(argv):
     index, drawn_kind = {}, Counter()
     for job in jobs:
         slug = job["slug"]
-        if slug in failed or not Path(job["fill"]).exists():
+        if slug in failed or not Path(job["mesh"]).exists():
             skipped[f"{job['kind']}: FreeCAD could not build it"] += 1
             continue
         # the page: scale to y-down mm, then turn so that world Z points up
@@ -686,17 +627,16 @@ def main(argv):
         page = f"rotate({turn:.9f}) scale(1, -1)"
         line_segs = read_fragment(Path(job["lines"]).read_text(), page)
         lines = sample_segments(line_segs)
-        fill = read_fragment(Path(job["fill"]).read_text(), page)
-        fill_lines = sample_segments(fill)
-        xs = [x for l in lines + fill_lines for x, _ in l]
-        ys = [y for l in lines + fill_lines for _, y in l]
+        frame = axis_frame([read_fragment(Path(a).read_text(), page) for a in job["axes"]])
+        mesh = json.loads(Path(job["mesh"]).read_text())
+        mesh_pts = [frame(*q) for q in mesh["pts"]]
+        xs = [x for l in lines for x, _ in l] + [x for x, _ in mesh_pts]
+        ys = [y for l in lines for _, y in l] + [y for _, y in mesh_pts]
         x0, y0 = min(xs) - 1, min(ys) - 1
         nx, ny = math.ceil((max(xs) + 1 - x0) * PX), math.ceil((max(ys) + 1 - y0) * PX)
-        mask = silhouette(fill, x0, y0, nx, ny)
-        axes = [read_fragment(Path(a).read_text(), page) for a in job["axes"]]
-        holes = json.loads(Path(job["holes"]).read_text())
-        mask = mask & ~hole_mask(holes, axis_frame(axes), x0, y0, nx, ny)
-        sil = trace(mask, x0, y0, slug)
+        mask = mesh_mask(mesh, frame, x0, y0, nx, ny)
+        k = TRACE_PX / PX
+        sil = trace(mesh_mask(mesh, frame, x0, y0, round(nx * k), round(ny * k), TRACE_PX), x0, y0, slug, TRACE_PX)
         sil_pts = [pt for _, pts in sil for pt in pts]
         bx0 = min(min(xs), min(x for x, _ in sil_pts)); bx1 = max(max(xs), max(x for x, _ in sil_pts))
         by0 = min(min(ys), min(y for _, y in sil_pts)); by1 = max(max(ys), max(y for _, y in sil_pts))
