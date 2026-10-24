@@ -92,7 +92,7 @@ function pin(p: Pen, x: number, y: number, cavity: number, d: number) {
   const sw = d * 0.14;
   return p.circ(x, y, cavity, 'ball') + p.circ(x, y, d, 'solid') + p.rect(x - d / 2, y - sw / 2, d, sw, 'bg') + p.rect(x - sw / 2, y - d / 2, sw, d, 'bg');
 }
-const line = (p: Pen, x1: number, y1: number, x2: number, y2: number) => p.poly([[x1, y1], [x2, y2]], 'thin ln', false);
+const line = (p: Pen, x1: number, y1: number, x2: number, y2: number) => p.poly([[x1, y1], [x2, y2]], 'thin', false);
 
 // The XT, XT150 and AS150 plugs from the drawings on Amass's product pages: mating face (male) and side, in mm. The
 // outline sizes are dimensioned there; contact positions and the other details are read off the drawing.
@@ -156,14 +156,18 @@ const XT: Record<string, { note: string; views: View[] }> = {
       { w: 21.5, h: 31.2, cap: 'Front', dw: '21.50', dh: '31.20', draw: (p) =>
         p.rect(1.07, 0, 19.43, 13.07) + line(p, 2.17, 0, 2.17, 13.07) + line(p, 17.67, 0, 17.67, 13.07)
         + p.rect(0.28, 13.07, 20.92, 8.13) + p.rect(0.47, 21.2, 20.56, 2.6) + p.poly([[0.67, 23.8], [20.83, 23.8], [19.84, 31.2], [1.66, 31.2]])
-        + line(p, 4.7, 21.2, 4.7, 31.2) + line(p, 15.4, 21.2, 15.4, 31.2) },
+        + line(p, 4.7, 21.2, 4.7, 31.2) + line(p, 15.4, 21.2, 15.4, 31.2)
+        // the green inlays on this face, as in Amass's photo and drawing: the round badge by the mating end and the
+        // L of the 5.6 tab and the Amass band across the collar
+        + p.circ(5.24, 3.17, 4.9, 'inlay') + p.poly([[3.2, 5.15], [7.3, 5.15], [8.0, 5.95], [2.5, 5.95]], 'inlay')
+        + p.poly([[3.5, 7.94], [6.83, 7.94], [6.83, 13.5], [16.15, 13.5], [16.15, 17.26], [3.5, 17.26]], 'inlay') },
       { w: 9.9, h: 31.2, cap: 'Side', dw: '9.90', draw: (p) =>
         p.rect(0.71, 0, 8.39, 13.07) + line(p, 1.78, 0, 1.78, 13.07) + line(p, 8.12, 0, 8.12, 13.07)
         + p.rect(0, 13.07, 9.9, 8.13) + p.rect(0.12, 21.2, 9.66, 2.6) + p.poly([[0.2, 23.8], [9.7, 23.8], [8.6, 31.2], [1.3, 31.2]]) + line(p, 4.95, 23.8, 4.95, 31.2) },
     ],
   },
   xt150: {
-    note: `Amass's XT150 drawing (male): the 10.00 x 11.00 face and 30.20 length are dimensioned, in mm; ${READ_OFF}; one pole of the pair`,
+    note: `Amass's XT150 drawing (male): the 10.00 x 11.00 face and 30.20 length are dimensioned, in mm; ${READ_OFF}; one housing holds one pole, two make the pair, and Amass makes the housing in red, black and blue, so it is drawn without a colour`,
     views: [
       { w: 10, h: 11, cap: 'Mating face', dw: '10.00', dh: '11.00', draw: (p) =>
         p.shape(0, 0, 10, 10.13, [2, 2, 2, 2]) + p.poly([[4.06, 10.13], [5.8, 10.13], [6.34, 11], [3.55, 11]]) + p.shape(0.45, 0.45, 9.1, 9.23, [1.6, 1.6, 1.6, 1.6], 'thin')
@@ -265,10 +269,10 @@ const SERVO: View[][] = (() => {
   ]];
 })();
 
-// housing colours as sold: XT yellow (the XT90-S with green lines), EC blue, Deans dark red, JST battery plug red,
+// housing colours as sold, with the colour of any inlay: XT yellow (the XT90-S with green inlays; the XT150 comes in several colours and is left untinted), EC blue, Deans dark red, JST battery plug red,
 // servo plugs black (drawn grey for contrast), JST-XH natural white (light grey, outlined dark in both themes: the third value)
 const TINT: Record<string, [string, string?, string?]> = {
-  xt30: ['#f2c230'], xt60: ['#f2c230'], xt60h: ['#f2c230'], xt90: ['#f2c230'], xt150: ['#f2c230'], xt90s: ['#f2c230', '#2e9e4a'],
+  xt30: ['#f2c230'], xt60: ['#f2c230'], xt60h: ['#f2c230'], xt90: ['#f2c230'], xt90s: ['#f2c230', '#5fd47a'],
   ec2: ['#2f6fd6'], ec3: ['#2f6fd6'], ec5: ['#2f6fd6'], ec8: ['#2f6fd6'],
   deans: ['#8b1e1e'], 'jst-rcy': ['#d42a2a'], 'servo-jr-futaba': ['#6b6f76'], 'jst-xh': ['#e6e3db', undefined, '#33312d'],
 };
@@ -277,7 +281,7 @@ export function connectorDrawing(spec: Spec): ScrewDrawing | undefined {
   const d = draw(spec);
   const t = TINT[(String(spec.id).split('/').pop() ?? '').replace(/^jst-xh-\d+$/, 'jst-xh')];
   if (!d || !t) return d;
-  const style = `--plug:${t[0]}` + (t[1] ? `;--plug-line:${t[1]}` : '') + (t[2] ? `;--plug-stroke:${t[2]}` : '');
+  const style = `--plug:${t[0]}` + (t[1] ? `;--plug-inlay:${t[1]}` : '') + (t[2] ? `;--plug-stroke:${t[2]}` : '');
   return { ...d, svg: d.svg.replace('<svg class="screwdrawing"', `<svg class="screwdrawing plug" style="${style}"`) };
 }
 
