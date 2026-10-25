@@ -157,11 +157,10 @@ svg.paintchip { vertical-align: middle; margin-right: 0.5rem; }
 .factsrow { display: flex; align-items: flex-start; gap: 0.5rem 2rem; flex-wrap: wrap; }
 .factsrow .typeicon { color: var(--muted); margin-left: auto; }
 .factsrow > dl.facts { flex: 1 1 20rem; min-width: 0; }
-/* the column beside the facts (part and spec pages): the hardware bag or art, then the dimension drawing; below the
-   facts on a phone */
+/* the column beside the facts (part and spec pages): the hardware bag, art or type icon; below the facts on a phone.
+   The dimension drawing sits full width under the facts row. */
 .factsside { flex: 0 1 26rem; min-width: 0; margin-left: auto; display: flex; flex-direction: column; }
 .factsside > .typeicon { align-self: flex-end; max-width: 100%; }
-.factsside > figure.drawing { margin: 0 0 1rem; }
 .factsside .hardwarebag { margin-top: 0; }
 .partnotes { max-width: 46rem; font-size: 0.9rem; }
 @media (max-width: 40rem) { .factsside { flex: 1 1 100%; margin-left: 0; } }
