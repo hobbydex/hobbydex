@@ -172,10 +172,10 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
 
   <h2>Latest releases</h2>
   <table>
-    <tr><th class="num">Released</th><th>Release</th><th>Status</th></tr>
+    <tr><th class="num">Released</th><th>Release</th></tr>
     {latest.map((r) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
       <td><span class="muted" title={kitTypeOne[cat ?? 'car']}>{r.art ? <ReleaseArt id={r.id} category={cat} art={r.art} size="1em" /> : <Icon name={kitTypeIcon(cat)} label={kitTypeOne[cat ?? 'car'] ?? cat} size="1em" />}</span> <a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a><Discontinued item={r} />
-        {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td><td class="muted">{r.status}</td></tr>; })}
+        {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td></tr>; })}
   </table>
   <p><a href="/rc/releases/">Show more</a> <span class="muted">· every release, newest first</span></p>
   <DoubtNote on={latest.some((r) => !!dateDoubt(r))} />
