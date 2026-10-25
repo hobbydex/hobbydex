@@ -291,3 +291,16 @@ body { overflow-x: clip; }
 /* the page type above the title: a platform (a chassis and its releases) or a release (one box) */
 .pagetype { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .pagenote { margin: 0 0 0.75rem; }
+
+/* the colour switch: a swatch per version of a range of one part in several colours (ColourSwitch.astro) */
+.colourswitch { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.75rem; margin: 0.5rem 0 0.75rem; }
+.colourswitch ul { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; margin: 0; padding: 0; }
+.colourswitch a.swatch { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 50%;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent); text-decoration: none; }
+.colourswitch a.swatch.nodot { width: auto; min-width: 2rem; height: 1.6rem; padding: 0 0.5rem; border-radius: 1rem; font-size: 0.85em; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
+.colourswitch a.swatch[aria-current="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
+.colourswitch a.swatch:hover { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--muted); }
+.colourswitch a.swatch:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+/* a part's default icon in its one colour: a thin outline (muted, or the text colour for a dark fill) keeps it readable */
+.typeicon.tinted .icon { color: var(--tint); filter: drop-shadow(1px 0 0 var(--muted)) drop-shadow(-1px 0 0 var(--muted)) drop-shadow(0 1px 0 var(--muted)) drop-shadow(0 -1px 0 var(--muted)); }
+.typeicon.tinted[data-dark] .icon { filter: drop-shadow(1px 0 0 var(--fg)) drop-shadow(-1px 0 0 var(--fg)) drop-shadow(0 1px 0 var(--fg)) drop-shadow(0 -1px 0 var(--fg)); }
