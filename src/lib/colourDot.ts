@@ -87,3 +87,16 @@ export function colourDot(color: string | undefined): string {
   const label = color!.replace(/"/g, '');
   return `<span class="cdot" role="img" aria-label="${label}" title="${label}" style="${style}"></span>`;
 }
+
+/** The fill for a part's default icon in its one colour, and whether its outline is the text colour (a dark
+ *  fill, which would vanish on a dark page) or a muted line (every other fill). Undefined for an unknown
+ *  colour and for two or three colours side by side, which stay untinted. */
+export function iconTint(color: string | undefined): { fill: string; dark: boolean } | undefined {
+  const shades = colourShades(color);
+  if (!shades || shades.length !== 1) return undefined;
+  const s = shades[0];
+  if (s.see) return { fill: 'rgba(150,150,160,0.6)', dark: false };
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(s.c.slice(i, i + 2), 16) / 255);
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;   // linear enough for the outline choice
+  return { fill: s.c, dark: lum < 0.15 };
+}
