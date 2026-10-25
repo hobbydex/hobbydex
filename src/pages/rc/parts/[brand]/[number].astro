@@ -20,7 +20,9 @@ import Icon from '../../../../components/Icon.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import { paintSwatch, paintChip } from '../../../../lib/paintSwatch';
-import { colourDot } from '../../../../lib/colourDot';
+import { colourDot, iconTint } from '../../../../lib/colourDot';
+import { colourSwitchItems } from '../../../../lib/colourSwitch';
+import ColourSwitch from '../../../../components/ColourSwitch.astro';
 import { gauges, gaugeLink, INSULATION, mmText, shrinksTo } from '../../../../lib/wire';
 import { partDrawing } from '../../../../lib/specDrawings';
 import HardwareBag from '../../../../components/HardwareBag.astro';
@@ -77,6 +79,10 @@ const similar = part.category === 'servo' ? similarServos(part.id) : [];
 const rating = (o: typeof part) => o.turns ?? (o.kv ? -o.kv : 0);
 const range = part.range ? (db.partsByRange.get(part.range) ?? []).filter((o) => o.id !== part.id).sort((a, b) => rating(b) - rating(a)) : [];
 const swatch = paintSwatch(part, 'large');
+// a range of one part in several colours: the switch above the facts replaces the list of other colours
+const onColours = range.length > 0 && !!part.range?.endsWith('-colours');
+// the default icon takes the part's one colour (paints have their own swatch)
+const tint = part.category !== 'paint' ? iconTint(part.color) : undefined;
 // a nitro or gas engine: class, displacement, bore x stroke, fuel
 const engine = part.category === 'engine-fuel' ? [part.engine_class && `${part.engine_class} class`, part.displacement_cc && `${part.displacement_cc} cc`,
   part.bore_mm && part.stroke_mm ? `bore x stroke ${part.bore_mm} x ${part.stroke_mm} mm` : part.bore_mm && `bore ${part.bore_mm} mm`, part.fuel].filter(Boolean).join(', ') : '';
@@ -133,6 +139,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
 <Base title={numName} description={metaDescription} kind="part" sub={brand?.name} words={indexWords} filters={indexFilters} icon={iconName}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
   <h1><span>{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</span><Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
+  {onColours && <ColourSwitch items={colourSwitchItems(part, range)} />}
   {part.sources?.name && <p><FactSource field="name" url={part.sources.name} dot={false} /></p>}
   {(part as { name_source?: string }).name_source === 'ocr' && <p class="muted ocrname" data-pagefind-ignore>This name was read by OCR from a scanned manual and is not checked yet; it may contain reading errors.</p>}
   <WebSearch query={`"${part.number ?? part.name}" ${brand?.name ?? ''}`.trim()} copy={part.number} links={part.links} />
@@ -215,7 +222,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
       {bag ? <div class="bagicon" data-pagefind-ignore><HardwareBag items={bag.items} drawn={bag.drawn} total={bag.total} seal={part.seal} color={part.color} finish={part.finish} material={part.material} /></div>
         : <span class="typeicon"><ReleaseArt id={part.id} category={part.category} color={part.color} art={part.art} size="12rem" class="hero" /></span>}
     </div>
-    : !drawing && part.category && <span class="typeicon" title={catName(part.category)}><Icon name={partIcon(part)!} size="8rem" /></span>}
+    : !drawing && part.category && <span class={tint ? 'typeicon tinted' : 'typeicon'} title={catName(part.category)} style={tint ? `--tint:${tint.fill}` : undefined} data-dark={tint?.dark ? '' : undefined}><Icon name={partIcon(part)!} size="8rem" /></span>}
   </div>
   {drawing && <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />}
   {part.notes && <p class="muted partnotes">{part.notes}</p>}
@@ -266,7 +273,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
         <td class="num">{o.number && (o.id === part.id ? <strong>{o.number}</strong> : <a href={url.part(o.id)}>{o.number}</a>)}</td><td>{o.number || o.id === part.id ? o.name : <a href={url.part(o.id)}>{o.name}</a>}<Discontinued item={o} /></td>
         <td>{[o.rate, o.rate_n_mm && `${o.rate_n_mm} N/mm`, o.rate_lb_in && `${o.rate_lb_in} lb/in`].filter(Boolean).join(', ')}</td><td class="num">{o.wire_mm ?? ''}</td><td class="num">{o.free_length_mm ?? ''}</td></tr>)}
     </table></>}
-  {range.length > 0 && !part.range?.endsWith('-springs') && <><h2>{part.range?.endsWith('-colours') ? 'Other colours' : <>Other versions <span class="muted">· same range</span></>}</h2>
+  {range.length > 0 && !part.range?.endsWith('-springs') && !onColours && <><h2>Other versions <span class="muted">· same range</span></h2>
     <ul>{range.map((o) => <li>{o.category !== 'paint' && <Fragment set:html={colourDot(o.color)} />}<a href={url.part(o.id)}>{partLabel(o)}</a> {o.number && o.name}<Discontinued item={o} /><span class="muted">{o.turns && ` · ${o.turns}T`}{o.kv && ` · ${o.kv} kV`}</span></li>)}</ul></>}
   {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
     <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {partLabel(o)}</a> {shortName(o)}<Discontinued item={o} /><span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
