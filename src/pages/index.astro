@@ -32,7 +32,7 @@ const brands = top(byBrand, 12);
 const newest = new Map<string, (typeof db.releases)[number]>();
 for (const r of db.releases) if (r.status !== 'discontinued') {
   const cur = newest.get(r.kit);
-  if (r.year && (!cur || dateKey(r) > dateKey(cur))) newest.set(r.kit, r);
+  if (dateKey(r) && (!cur || dateKey(r) > dateKey(cur))) newest.set(r.kit, r);
 }
 const latest = [...newest.values()].sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || (a.status === 'announced' ? -1 : 1)).slice(0, 10);
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
