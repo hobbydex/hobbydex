@@ -27,7 +27,7 @@ const uses = linked.flatMap(({ part, link }) => (db.usesByPart.get(part.id) ?? [
   .sort((a, b) => yearOf(a.release) - yearOf(b.release) || a.release.name.localeCompare(b.release.name));
 const title = spec.name ?? key(spec.id)[1];
 const drawing = specDrawing(spec);
-const hasSide = !!(hardwareFile(spec.id) || drawing || spec.category === 'ball-end');
+const hasSide = !!(hardwareFile(spec.id) || spec.category === 'ball-end');
 const drawStd = drawing?.standard ? db.standardByCode.get(drawing.standard) : undefined;
 // servos: every servo of the same size class, whatever its spline, closest case first
 const sameSize = spec.category !== 'servo' ? [] : db.specs.filter((o) => o.category === 'servo' && o.size_class === spec.size_class)
@@ -56,15 +56,15 @@ import SeenNote from '../../../../components/SeenNote.astro';
       {hardwareFile(spec.id) && <div><HardwareBag items={[{ spec: spec.id, qty: 1, copies: 1 }]} /></div>}
       {isApproxDrawing(spec.id) && <p class="muted">The bag drawing's head proportions are interpolated between the neighbouring sizes of the screw table, not taken from the standard.</p>}
       {!drawing && spec.category === 'ball-end' && <p class="specicon"><Icon name={partIcon({ category: spec.category, ball_type: String(spec.type) })!} size="8rem" /></p>}
-      {drawing && <figure class="drawing">
+    </div>}
+  </div>
+  {drawing && <figure class="drawing" data-pagefind-ignore>
         <Fragment set:html={drawing.svg} />
         {spec.category === 'screw' ? <figcaption class="muted">To scale. {drawStd ? <>Head and socket sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : drawing.standard ? <>Head and socket sizes from {drawing.standard}</> : <>Head proportions as usual for this type</>}{drawing.approximate && drawing.standard && '; this size is outside the standard\'s table, so the head is drawn with the usual proportions'}{spec.thread_type === 'self-tapping' && '; the point is drawn flat (ISO 7049-F style) and the thread per ISO 1478'}.</figcaption>
           : spec.category === 'nut' ? <figcaption class="muted">{drawing.approximate ? 'Drawn to the sizes the spec gives' : 'To scale'}{drawStd ? <>; sizes from <a href={url.standard(drawStd.id)}>{drawStd.code}</a></> : ''}.{drawing.note && ` ${drawing.note}.`}{String(spec.type).endsWith('nylon-lock') ? ' The nylon ring is shaded.' : ''}</figcaption>
           : spec.category === 'connector' ? <figcaption class="muted">{drawing.approximate ? 'Not to scale' : 'To scale'}{drawing.note && `: ${drawing.note}`}.</figcaption>
           : <figcaption class="muted">{drawing.approximate ? 'Drawn to the usual sizes' : 'To scale'}.{drawing.note && ` ${drawing.note}.`}</figcaption>}
-      </figure>}
-    </div>}
-  </div>
+  </figure>}
   {specSinks.length > 0 && <><h2>Heat sinks and fan mounts for a {specCan} mm can <span class="muted">({specSinks.length}, any brand)</span></h2>
     <ul>{specSinks.map((h) => <li><a href={url.part(h.id)}>{brandName(h.brand)} {partLabel(h)}</a>{h.number && <span class="muted"> {h.name}</span>}</li>)}</ul></>}
   <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>

@@ -211,13 +211,13 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
     {specFact.facts.length > 0 && <><dt>Spec</dt><dd>{specFact.specs.map((s, i) => <>{i > 0 && ', '}<a href={url.spec(s.id)}>{s.name ?? s.id}</a></>)}</dd><FactRows rows={specFact.facts} /></>}
   </dl>
-  {bag || part.art || drawing ? <div class="factsside">
+  {bag || part.art ? <div class="factsside">
       {bag ? <div class="bagicon" data-pagefind-ignore><HardwareBag items={bag.items} drawn={bag.drawn} total={bag.total} seal={part.seal} color={part.color} finish={part.finish} material={part.material} /></div>
-        : part.art && <span class="typeicon"><ReleaseArt id={part.id} category={part.category} color={part.color} art={part.art} size="12rem" class="hero" /></span>}
-      {drawing && <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />}
+        : <span class="typeicon"><ReleaseArt id={part.id} category={part.category} color={part.color} art={part.art} size="12rem" class="hero" /></span>}
     </div>
-    : part.category && <span class="typeicon" title={catName(part.category)}><Icon name={partIcon(part)!} size="8rem" /></span>}
+    : !drawing && part.category && <span class="typeicon" title={catName(part.category)}><Icon name={partIcon(part)!} size="8rem" /></span>}
   </div>
+  {drawing && <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />}
   {part.notes && <p class="muted partnotes">{part.notes}</p>}
   <DoubtNote on={!!dateDoubt(part)} />
   <FanLinks links={part.links} />
