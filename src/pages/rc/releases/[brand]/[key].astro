@@ -24,7 +24,7 @@ import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 import { driveLabel } from '../../../../lib/drive';
 import { bearingList } from '../../../../lib/bearingList';
 import { colourSiblings } from '../../../../lib/colourSiblings';
-import { colourwayOf, colourLabels } from '../../../../lib/colourways';
+import { colourwayOf, colourLabels, releaseColour } from '../../../../lib/colourways';
 import ColourSwitch from '../../../../components/ColourSwitch.astro';
 import { gearing } from '../../../../lib/gearing';
 import { fileRows, pageLabel, hostLabel, makerOwnLinks, archiveLinks } from '../../../../lib/docFacts';
@@ -129,7 +129,7 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a>{brandGone(release.brand) && <span class="muted"> (brand defunct)</span>} / {kit.placeholder ? <span>Chassis not yet known</span> : <a href={url.platform(kit.id)}>{kit.name}</a>} / {release.name}</div>
   <p class="pagetype">{release.kind === 'kit' ? 'Kit release' : 'Release'}</p>
   <h1><span>{brandName(release.brand)} {release.name}</span><Discontinued item={release} />{release.color && <Fragment set:html={' ' + colourDot(release.color)} />}</h1>
-  {colourItems.length > 0 && <ColourSwitch label="Colours of this release" lead="Also available in" items={colourItems} />}
+  {colourItems.length > 0 && <ColourSwitch label="Colours of this release" lead="Also available in" size="small" items={colourItems} />}
   {release.sources?.name && <p><FactSource field="name" url={release.sources.name} dot={false} /></p>}
   <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
   <div class="factsrow">
@@ -156,7 +156,7 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     {original && <><dt>Re-release of</dt><dd><a href={url.release(original.id)}>{original.name}</a>{original.year ? ` (${original.year})` : ''}</dd></>}
     {reReleases.length > 0 && <><dt>Re-released as</dt><dd>{reReleases.map((r, i) => <>{i > 0 && <br />}<a href={url.release(r.id)}>{r.name}</a>{r.year ? ` (${r.year})` : ''}</>)}</dd></>}
   </dl>
-    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} size="12rem" class="hero" /></span>
+    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={releaseColour(release)} art={release.art} size="12rem" class="hero" /></span>
   </div>
   <Videos videos={videos} />
   <FanLinks links={release.links} />

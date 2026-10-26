@@ -17,7 +17,7 @@ import DoubtNote from '../../../../components/DoubtNote.astro';
 import Icon from '../../../../components/Icon.astro';
 import DataLink from '../../../../components/DataLink.astro';
 import ColourSwitch from '../../../../components/ColourSwitch.astro';
-import { colourwayGroups, colourLabels, groupName } from '../../../../lib/colourways';
+import { colourwayGroups, colourLabels, groupName, releaseColour } from '../../../../lib/colourways';
 import WebSearch from '../../../../components/WebSearch.astro';
 import Videos from '../../../../components/Videos.astro';
 import FanLinks from '../../../../components/FanLinks.astro';
@@ -198,7 +198,7 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
         {once.map((g) => { const head = rows.find((x) => g.includes(x))!; const multi = g.length > 1; const labels = colourLabels(g);
           const earliest = [...g].sort(byReleaseDate)[0];
           return <tr data-discontinued={head.status === 'discontinued' && current.length > 0 ? '' : undefined}>
-          <td class="num" data-label="Year"><DateText r={earliest} year /><DateDoubt reason={yearDoubt(earliest)} /></td><td class="name"><ReleaseArt id={head.id} category={head.category ?? kit.category} color={labels[g.indexOf(head)]} art={head.art} size="1.3em" class="inrow" /> <a href={url.release(head.id)}>{multi ? groupName(g) : head.name}</a><Discontinued item={head} />{multi && <ColourSwitch label="Colours of this release" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], current: false, href: url.release(x.id) }))} />}</td>{show.number && <td class="num" data-label="Item no.">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td>}{show.edition && <td data-label="Edition">{head.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(head.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{head.status === 'discontinued' ? '' : head.status}</td>}
+          <td class="num" data-label="Year"><DateText r={earliest} year /><DateDoubt reason={yearDoubt(earliest)} /></td><td class="name"><ReleaseArt id={head.id} category={head.category ?? kit.category} color={labels[g.indexOf(head)] ?? releaseColour(head)} art={head.art} size="1.3em" class="inrow" /> <a href={url.release(head.id)}>{multi ? groupName(g) : head.name}</a><Discontinued item={head} />{multi && <ColourSwitch label="Colours of this release" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], current: false, href: url.release(x.id) }))} />}</td>{show.number && <td class="num" data-label="Item no.">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td>}{show.edition && <td data-label="Edition">{head.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(head.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{head.status === 'discontinued' ? '' : head.status}</td>}
         </tr>; })}
       </table>}
   <SeenNote rows={releases} />

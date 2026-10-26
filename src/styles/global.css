@@ -302,6 +302,11 @@ body { overflow-x: clip; }
 .colourswitch a.swatch[aria-current="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
 .colourswitch a.swatch:hover { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--muted); }
 .colourswitch a.swatch:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+/* small swatches: a dot about body text high; the padding keeps the tap target near 27 px (ColourSwitch size="small") */
+.colourswitch.small { margin: 0.3rem 0 0.1rem; gap: 0.3rem 0.5rem; }
+.colourswitch.small ul { gap: 0.1rem; }
+.colourswitch.small a.swatch { width: 1.2em; height: 1.2em; padding: 0.25em; box-sizing: content-box; background-clip: content-box; }
+.colourswitch.small a.swatch.nodot { width: auto; height: auto; min-width: 0; padding: 0.1em 0.4em; font-size: 0.8em; }
 /* a part's default icon in its one colour: a thin outline (muted, or the text colour for a dark fill) keeps it readable */
 .typeicon.tinted .icon { color: var(--tint); filter: drop-shadow(1px 0 0 var(--muted)) drop-shadow(-1px 0 0 var(--muted)) drop-shadow(0 1px 0 var(--muted)) drop-shadow(0 -1px 0 var(--muted)); }
 .typeicon.tinted[data-dark] .icon { filter: drop-shadow(1px 0 0 var(--fg)) drop-shadow(-1px 0 0 var(--fg)) drop-shadow(0 1px 0 var(--fg)) drop-shadow(0 -1px 0 var(--fg)); }

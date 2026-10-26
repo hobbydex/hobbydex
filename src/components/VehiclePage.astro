@@ -9,6 +9,7 @@ import Discontinued from './Discontinued.astro';
 import HideDiscontinued from './HideDiscontinued.astro';
 import Icon from './Icon.astro';
 import ReleaseArt from './ReleaseArt.astro';
+import { releaseColour } from '../lib/colourways';
 import SeenNote from './SeenNote.astro';
 import { db, url, brandName, byReleaseDate, partLabel, yearDoubt, hasDate, type Vehicle, type Part } from '../lib/data';
 interface Props { vehicle: Vehicle }
@@ -33,7 +34,7 @@ const brands = new Set(releases.map((r) => r.brand)).size;
       <table class="releases">
       <tr><th>Release</th><th>Brand</th><th>Platform</th><th class="num">Released</th></tr>
       {g.rs.map((r) => { const k = db.kit.get(r.kit); return <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
-        <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={r.color} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} />{r.number && <span class="muted"> {r.number}</span>}</td>
+        <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={releaseColour(r)} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} />{r.number && <span class="muted"> {r.number}</span>}</td>
         <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
         <td data-label="Platform">{k && !k.placeholder ? <a href={url.platform(k.id)}>{k.name}</a> : ''}</td>
         <td class="num" data-label="Released">{hasDate(r) || r.model_year ? <DateText r={r} year /> : ''}<DateDoubt reason={yearDoubt(r)} /></td>
