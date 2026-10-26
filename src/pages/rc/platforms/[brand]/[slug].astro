@@ -9,7 +9,7 @@ import { paintChip } from '../../../../lib/paintSwatch';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import HideDiscontinued from '../../../../components/HideDiscontinued.astro';
-import { db, key, url, brandName, byPartNo, partNo, yearOf, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt, seriesMates, docPage, type Doc, type Part, type Release } from '../../../../lib/data';
+import { db, key, url, retiredMoves, brandName, byPartNo, partNo, yearOf, byReleaseDate, conversionsForKit, dateKey as dateKeyOf , yearDoubt, seriesMates, docPage, type Doc, type Part, type Release } from '../../../../lib/data';
 import { FILE_KINDS, fileRows, hostLabel, pageLabel, makerOwnLinks } from '../../../../lib/docFacts';
 import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
@@ -29,7 +29,9 @@ import { describe, count } from '../../../../lib/descriptions';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.kits.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], slug: key(f)[1] }, props: { redirect: url.platform(x.id) } })));
-  return [...db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } })), ...moved];
+  const taken = new Set([...db.kits.map((k) => k.id), ...db.kits.flatMap((x) => x.former_ids ?? [])]);
+  const gone = retiredMoves('kit', taken).map((m) => ({ params: { brand: key(m.id)[0], slug: key(m.id)[1] }, props: { redirect: m.to } }));
+  return [...db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } })), ...moved, ...gone];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const kit = Astro.props.kit!;   // set on every page that is not a redirect
