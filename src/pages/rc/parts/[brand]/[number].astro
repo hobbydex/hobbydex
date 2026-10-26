@@ -175,7 +175,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.volume_ml && <><dt>Volume</dt><dd>{part.pack_qty && part.pack_qty > 1 ? `${part.pack_qty} x ${part.volume_ml} ml` : `${part.volume_ml} ml`}</dd></>}
     {isWheel && wheelFacts.length > 0 && <><dt>{part.category === 'tire' ? 'Tire' : 'Wheel'}</dt><dd>{wheelFacts.map((f, i) => <>{i > 0 && ', '}{typeof f === 'string' ? f : <><Fragment set:html={f.dot} />{f.text}</>}</>)}</dd></>}
     {!isWheel && part.category !== 'paint' && part.color && <><dt>Colour</dt><dd><Fragment set:html={colourDot(part.color)} />{part.color}</dd></>}
-    {part.teeth && part.category === 'spur-gear' && <><dt>Gear</dt><dd>{part.teeth}T{part.pitch_dp ? `, ${part.pitch_dp} pitch` : part.module ? `, module ${part.module}` : ''}</dd></>}
+    {part.teeth && <><dt>Gear</dt><dd>{part.teeth}T{part.pitch_dp ? `, ${part.pitch_dp} pitch` : part.module ? `, module ${part.module}` : ''}</dd></>}
     {part.bore_mm && !engine && <><dt>Bore</dt><dd>{part.bore_mm} mm</dd></>}
     {engine && <><dt>Engine</dt><dd>{engine}</dd></>}
     {part.output_hp && <><dt>Output</dt><dd>{part.output_hp} hp{part.output_rpm && ` at ${part.output_rpm.toLocaleString('en')} rpm`}</dd></>}
