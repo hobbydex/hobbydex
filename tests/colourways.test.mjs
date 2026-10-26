@@ -62,3 +62,43 @@ test('a release without an item number stays alone', () => {
   const b = rel('b', 'X1T1', 'Thing', { color: 'blue' });
   assert.deepEqual(groups([a, b]), [[undefined], ['X1T1']]);
 });
+
+test('same name in colours, item numbers differing in digits: a group (1RC sprint car, Amewi crawler, Absima buggy)', () => {
+  const sprint = (n, c) => rel(`s${n}`, `1RC${n}`, `1/18 Sprint Car 4.0, ${c}, RTR`, { brand: 'brand/1rc-racing', kit: 'kit/1rc-racing/1-18-sprint-car', color: c.toLowerCase() });
+  assert.deepEqual(groups([sprint(1095, 'Red'), sprint(1096, 'Black'), sprint(1097, 'Clear')]), [['1RC1095', '1RC1096', '1RC1097']]);
+  const crawler = (n, c) => rel(`a${n}`, `${n}`, `AMXRock RCX10B Scale Crawler Pick-up 1/10 RTR ${c}`, { brand: 'brand/amewi', kit: 'kit/amewi/amxrock-rcx10b', color: c });
+  assert.deepEqual(groups([crawler(22432, 'white'), crawler(22433, 'gray')]), [['22432', '22433']]);
+  const buggy = (n, c) => rel(`p${n}`, `${n}`, `1:24 4WD Buggy PULSE RTR - ${c}`, { brand: 'brand/absima', kit: 'kit/absima/pulse', color: c });
+  assert.deepEqual(groups([buggy(10015, 'yellow'), buggy(10016, 'red')]), [['10015', '10016']]);
+});
+
+test('the name colour word stands in when a release has no colour field', () => {
+  const white = rel('w', '22432', 'AMXRock RCX10B Scale Crawler Pick-up 1/10 RTR white', { brand: 'brand/amewi', kit: 'kit/amewi/amxrock-rcx10b' });
+  const grey = rel('g', '22433', 'AMXRock RCX10B Scale Crawler Pick-up 1/10 RTR grey', { brand: 'brand/amewi', kit: 'kit/amewi/amxrock-rcx10b' });
+  assert.deepEqual(groups([white, grey]), [['22432', '22433']]);
+  assert.deepEqual(colourLabels(colourwayGroups([white, grey])[0]), ['white', 'grey']);
+});
+
+test('near misses that are not colourways stay apart: RTR vs kit, 3S vs 6S, editions and versions, discontinued vs current', () => {
+  const kit = rel('k', '1RC1095', 'Sprint Car 4.0, Red', { kind: 'kit', color: 'red', brand: 'brand/1rc-racing' });
+  const rtr = rel('r', '1RC1096', 'Sprint Car 4.0, Black', { kind: 'rtr', color: 'black', brand: 'brand/1rc-racing' });
+  assert.deepEqual(groups([kit, rtr]), [['1RC1095'], ['1RC1096']]);
+  const s3 = rel('a', '22001', 'Granite 3S RTR, green', { color: 'green' });
+  const s6 = rel('b', '22002', 'Granite 6S RTR, blue', { color: 'blue' });
+  assert.deepEqual(groups([s3, s6]), [['22001'], ['22002']]);
+  const e1 = rel('c', '23001', 'Granite Mega RTR, red', { color: 'red', edition: 'Mega' });
+  const e2 = rel('d', '23002', 'Granite Mega RTR, blue', { color: 'blue', edition: 'Heritage' });
+  assert.deepEqual(groups([e1, e2]), [['23001'], ['23002']]);
+  const v3 = rel('e', 'ARA4302V3T1', 'Granite RTR, green', { color: 'green' });
+  const v4 = rel('f', 'ARA4302V4T2', 'Granite RTR, blue', { color: 'blue' });
+  assert.deepEqual(groups([v3, v4]), [['ARA4302V3T1'], ['ARA4302V4T2']]);
+  const old = rel('g', '24001', 'Foo RTR, red', { color: 'red', status: 'discontinued' });
+  const now = rel('h', '24002', 'Foo RTR, blue', { color: 'blue' });
+  assert.deepEqual(groups([old, now]), [['24001'], ['24002']]);
+});
+
+test('identical names with no colour on either side do not group (the same car twice)', () => {
+  const a = rel('a', '33001', 'Thing RTR');
+  const b = rel('b', '33002', 'Thing RTR');
+  assert.deepEqual(groups([a, b]), [['33001'], ['33002']]);
+});

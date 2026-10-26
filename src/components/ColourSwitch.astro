@@ -6,12 +6,13 @@
 import { url } from '../lib/data';
 import type { SwitchItem } from '../lib/colourSwitch';
 import { colourDotStyle } from '../lib/colourDot';
-interface Props { items: SwitchItem[]; label?: string }
-const { items, label: navLabel = 'Colours of this part' } = Astro.props;
+interface Props { items: SwitchItem[]; label?: string; lead?: string }
+const { items, label: navLabel = 'Colours of this part', lead } = Astro.props;
 const style = (i: SwitchItem) => colourDotStyle(i.colour);
 const label = (i: SwitchItem) => [i.colour, i.number].filter(Boolean).join(', ') || 'this part';
 ---
 <nav class="colourswitch" aria-label={navLabel}>
+  {lead && <span class="colourswitch-lead">{lead}</span>}
   <ul>
     {items.map((i) => <li><a href={i.href ?? url.part(i.id)} class={style(i) ? 'swatch' : 'swatch nodot'} style={style(i)} aria-label={label(i)} title={label(i)} aria-current={i.current ? 'true' : undefined}>{!style(i) && (i.number ?? '?')}</a></li>)}
   </ul>
