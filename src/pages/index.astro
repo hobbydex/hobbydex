@@ -176,7 +176,7 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
     <tr><th class="num">Released</th><th>Release</th></tr>
     {latest.map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; const labels = colourLabels(g); return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
       <td><span class="muted" title={kitTypeOne[cat ?? 'car']}><ReleaseArt id={r.id} category={cat} art={r.art} color={g.length > 1 ? undefined : releaseColour(r)} size="1em" /></span> <a href={url.release(r.id)}>{brandName(r.brand)} {groupName(g)}</a><Discontinued item={r} />
-        {g.length > 1 && <ColourSwitch label="Colours of this release" size="small" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], current: false, href: url.release(x.id) }))} />}
+        {g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], current: false, href: url.release(x.id) }))} />}
         {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td></tr>; })}
   </table>
   <p><a href="/rc/releases/">Show more</a> <span class="muted">· every release, newest first</span></p>
