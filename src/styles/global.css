@@ -308,9 +308,10 @@ body { overflow-x: clip; }
 .colourswitch.small a.swatch { width: 1em; height: 1em; padding: 0.2em; box-sizing: content-box; background-clip: content-box; }
 .colourswitch.small a.swatch.nodot { width: auto; height: auto; min-width: 0; padding: 0.1em 0.4em; font-size: 0.8em; }
 /* inline swatches: dots on the line of a row's name, about the size of the colour dot after a release title */
-.colourswitch.inline { display: inline-flex; margin: 0 0 0 0.35em; vertical-align: middle; }
-.colourswitch.inline ul { gap: 0.15em; }
-.colourswitch.inline a.swatch { width: 0.75em; height: 0.75em; padding: 0.2em; box-sizing: content-box; background-clip: content-box; }
+/* no block padding and a negative block margin: the tap padding and the ring stay within the row's line height */
+.colourswitch.inline { display: inline-flex; margin: 0 0 0 0.35em; vertical-align: middle; line-height: 1; }
+.colourswitch.inline ul { gap: 0.15em; padding: 0 2px; }
+.colourswitch.inline a.swatch { width: 0.75em; height: 0.75em; padding: 0.2em; margin: -0.2em 0; box-sizing: content-box; background-clip: content-box; }
 .colourswitch.inline a.swatch.nodot { width: auto; height: auto; min-width: 0; padding: 0 0.3em; font-size: 0.75em; }
 /* a part's default icon in its one colour: a thin outline (muted, or the text colour for a dark fill) keeps it readable */
 .typeicon.tinted .icon { color: var(--tint); filter: drop-shadow(1px 0 0 var(--muted)) drop-shadow(-1px 0 0 var(--muted)) drop-shadow(0 1px 0 var(--muted)) drop-shadow(0 -1px 0 var(--muted)); }
