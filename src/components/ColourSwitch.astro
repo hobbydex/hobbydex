@@ -2,16 +2,17 @@
 // The colour switch of a part whose range is one part in several colours: a swatch per version, each a link to
 // that version's page; the page's own part is marked with aria-current. A version without a palette colour shows
 // its number. The colour name is the swatch's accessible name and tooltip (the Colour fact names it on the page).
+// A version's link is its part page, or its href when given (a release's colourway).
 import { url } from '../lib/data';
 import type { SwitchItem } from '../lib/colourSwitch';
 import { colourDotStyle } from '../lib/colourDot';
-interface Props { items: SwitchItem[] }
-const { items } = Astro.props;
+interface Props { items: SwitchItem[]; label?: string }
+const { items, label: navLabel = 'Colours of this part' } = Astro.props;
 const style = (i: SwitchItem) => colourDotStyle(i.colour);
 const label = (i: SwitchItem) => [i.colour, i.number].filter(Boolean).join(', ') || 'this part';
 ---
-<nav class="colourswitch" aria-label="Colours of this part">
+<nav class="colourswitch" aria-label={navLabel}>
   <ul>
-    {items.map((i) => <li><a href={url.part(i.id)} class={style(i) ? 'swatch' : 'swatch nodot'} style={style(i)} aria-label={label(i)} title={label(i)} aria-current={i.current ? 'true' : undefined}>{!style(i) && (i.number ?? '?')}</a></li>)}
+    {items.map((i) => <li><a href={i.href ?? url.part(i.id)} class={style(i) ? 'swatch' : 'swatch nodot'} style={style(i)} aria-label={label(i)} title={label(i)} aria-current={i.current ? 'true' : undefined}>{!style(i) && (i.number ?? '?')}</a></li>)}
   </ul>
 </nav>
