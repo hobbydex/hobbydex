@@ -3,11 +3,12 @@
 // that version's page; the page's own part is marked with aria-current. A version without a palette colour shows
 // its number. The colour name is the swatch's accessible name and tooltip (the Colour fact names it on the page).
 // A version's link is its part page, or its href when given (a release's colourway). size="small" draws the swatches
-// about the size of body text (a release's colourway under a row or a heading), each with padding for a tap target.
+// about the size of body text (a release's colourway under a heading), each with padding for a tap target;
+// size="inline" draws small dots on the line of a table row's name, like the colour dot after a release title.
 import { url } from '../lib/data';
 import type { SwitchItem } from '../lib/colourSwitch';
 import { colourDotStyle } from '../lib/colourDot';
-interface Props { items: SwitchItem[]; label?: string; lead?: string; size?: 'small' }
+interface Props { items: SwitchItem[]; label?: string; lead?: string; size?: 'small' | 'inline' }
 const { items, label: navLabel = 'Colours of this part', lead, size } = Astro.props;
 const style = (i: SwitchItem) => colourDotStyle(i.colour);
 const label = (i: SwitchItem) => [i.colour, i.number].filter(Boolean).join(', ') || 'this part';

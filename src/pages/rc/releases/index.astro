@@ -58,7 +58,7 @@ import SeenNote from '../../../components/SeenNote.astro';
   <table class="releases" id="release-newest">
     <tr><th class="num">Released</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr>
     {newest.map(({ group: g, head: r }) => { const labels = colourLabels(g); return <tr>
-      <td class="num" data-label="Released"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td class="name" data-label="Release"><a href={url.release(r.id)}>{g.length > 1 ? groupName(g) : r.name}</a><Discontinued item={r} />{g.length > 1 && <ColourSwitch label="Colours of this release" size="small" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], current: false, href: url.release(x.id) }))} />}</td>
+      <td class="num" data-label="Released"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td class="name" data-label="Release"><a href={url.release(r.id)}>{g.length > 1 ? groupName(g) : r.name}</a><Discontinued item={r} />{g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], current: false, href: url.release(x.id) }))} />}</td>
       <td class="num" data-label="Item no.">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td><td data-label="Build">{buildLabel(r.kind)}</td><td class="num" data-label="Parts">{r.contains?.length ?? 0}</td>
     </tr>; })}
   </table>
