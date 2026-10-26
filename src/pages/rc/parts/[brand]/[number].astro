@@ -193,7 +193,9 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.category === 'wire' && part.shrink_ratio && <><dt>Shrink ratio</dt><dd>{part.shrink_ratio}:1</dd></>}
     {part.category === 'wire' && shrinksTo(part) && <><dt>Shrinks to</dt><dd>{shrinksTo(part)!.join(', ')} mm</dd></>}
     {part.category === 'wire' && part.flat_width_mm && <><dt>Flat width</dt><dd>{part.flat_width_mm} mm</dd></>}
-    {part.connector && <><dt>{part.category === 'battery' ? 'Main plug' : 'Plug'}</dt><dd>{plugLinks(part.connector).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>)}</dd></>}
+    {part.connector && <><dt>{part.category === 'battery' ? 'Main plug' : part.category === 'esc' ? 'Battery plug' : 'Plug'}</dt><dd>{plugLinks(part.connector).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>)}</dd></>}
+    {part.motor_connector && <><dt>Motor plug</dt><dd>{plugLinks(part.motor_connector).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>)}</dd></>}
+    {part.receiver_connector && <><dt>Receiver plug</dt><dd>{plugLinks(part.receiver_connector).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>)}</dd></>}
     {balanceSpecId(part) && <><dt>Balance plug</dt><dd><a href={url.spec(balanceSpecId(part)!)}>{part.balance_connector} {part.cells! + 1}-pin</a>{part.balance_connector_basis === 'convention' && <> <span class="muted">usual for LiPo packs; not stated by the maker</span></>}</dd></>}
     {part.connectors && <><dt>Plugs</dt><dd>{part.connectors.map((c, i) => <>{i > 0 && ', '}{plugLinks(c).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>)}</>)}</dd></>}
     {(part.kv || part.turns) && <><dt>Motor</dt><dd title="kV: rpm per volt without load. T: turns of wire per pole, fewer is faster.">{[part.kv && `${part.kv} kV`, part.turns && `${part.turns}T`, part.diameter_mm && part.length_mm && `${part.diameter_mm} x ${part.length_mm} mm`, part.shaft_mm && `${part.shaft_mm} mm shaft`].filter(Boolean).join(', ')}</dd></>}
@@ -206,6 +208,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.motor_type && <><dt>Motor type</dt><dd>{part.motor_type === 'both' ? 'brushed and brushless' : part.motor_type}</dd></>}
     {(part.bec_v !== undefined || part.bec_a !== undefined) && <><dt>BEC</dt><dd>{[part.bec_v !== undefined && `${Array.isArray(part.bec_v) ? part.bec_v.join('/') : part.bec_v} V`, part.bec_a !== undefined && `${part.bec_a} A`].filter(Boolean).join(' at ')}</dd></>}
     {part.waterproof !== undefined && <><dt>Waterproof</dt><dd>{part.waterproof ? 'yes' : 'no'}</dd></>}
+    {!!part.scales?.length && <><dt>Scales</dt><dd>{part.scales.join(', ')}</dd></>}
     {(part.motor_limit_t || part.motor_limit_kv) && <><dt>Motor limit</dt><dd>{[part.motor_limit_t && `${part.motor_limit_t}T`, part.motor_limit_kv && `${part.motor_limit_kv} kV`].filter(Boolean).join(', ')}</dd></>}
     {part.nimh_cells && <><dt>NiMH</dt><dd>{part.nimh_cells[0] === part.nimh_cells[1] ? `${part.nimh_cells[0]} cells` : `${part.nimh_cells[0]}-${part.nimh_cells[1]} cells`}</dd></>}
     {part.programming && <><dt>Programming</dt><dd>{part.programming.map((p) => PROGRAMMING[p] ?? p).join(', ')}</dd></>}

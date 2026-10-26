@@ -8,7 +8,7 @@ const SPEC_SLUG: Record<string, string> = {
   JR: 'servo-jr', Futaba: 'servo-futaba', 'JR/Futaba': 'servo-jr servo-futaba',
   'Traxxas iD': 'traxxas-trx-id', 'Traxxas high-current': 'traxxas-high-current',
   '2mm bullet': 'bullet-2mm', '3.5mm bullet': 'bullet-3.5mm', '4mm bullet': 'bullet-4mm', '5mm bullet': 'bullet-5mm',
-  '6mm bullet': 'bullet-6mm', '8mm bullet': 'bullet-8mm', '4mm banana': 'banana-4mm',
+  '6mm bullet': 'bullet-6mm', '6.5mm bullet': 'bullet-6.5mm', '8mm bullet': 'bullet-8mm', '4mm banana': 'banana-4mm',
 };
 
 /** Every connector spec a plug name means: one, or two for "JR/Futaba"; empty when it has none. */
