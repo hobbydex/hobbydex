@@ -227,6 +227,18 @@ export const url = {
   standard: (id: string) => `/rc/standards/${key(id)[0]}/`,
   make: (make: string) => `/rc/makes/${makeSlug(make)}/`,
 };
+// The page address of any record id ("part/x/1", "release/x/k", "kit/x/k", "spec/a/b", "brand/x").
+export const urlOf = (id: string) => {
+  const t = id.split('/')[0];
+  return t === 'part' ? url.part(id) : t === 'release' ? url.release(id) : t === 'kit' ? url.platform(id)
+    : t === 'spec' ? url.spec(id) : t === 'brand' ? url.brand(id) : undefined;
+};
+// Retired ids of one type that name a successor: each keeps its address as a redirect to the successor's page,
+// whatever the successor's type (a Corally base release now points at its platform). Ids still live are left out.
+export const retiredMoves = (type: string, live: Set<string>) => (db.retired ?? [])
+  .filter((r) => r.id.startsWith(type + '/') && r.replaced_by && !live.has(r.id))
+  .map((r) => ({ id: r.id, to: urlOf(r.replaced_by!) }))
+  .filter((m): m is { id: string; to: string } => !!m.to);
 // Real vehicle makes (release and body shell `depicts`): "Mercedes-Benz" -> "mercedes-benz", "Land Rover" -> "land-rover"
 export const makeSlug = (make: string) => make.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 // ISO 3166 alpha-2 code -> English country name ("DE" -> "Germany"); the code itself when the runtime has no name for it

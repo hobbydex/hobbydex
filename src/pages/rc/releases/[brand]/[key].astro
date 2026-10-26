@@ -14,7 +14,7 @@ import Discontinued from '../../../../components/Discontinued.astro';
 import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
-import { SEEN_NOTE, db, key, url, brandName, announcedSourceLabel, byPartNo, partLabel, partRest, partNo, yearOf, isoText, dateDoubt, brandGone, docPage, dateSource, requiredName, conversionsForRelease, fitsForRelease, seriesMates, type Part } from '../../../../lib/data';
+import { SEEN_NOTE, db, key, url, retiredMoves, brandName, announcedSourceLabel, byPartNo, partLabel, partRest, partNo, yearOf, isoText, dateDoubt, brandGone, docPage, dateSource, requiredName, conversionsForRelease, fitsForRelease, seriesMates, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import FactSource from '../../../../components/FactSource.astro';
@@ -31,7 +31,9 @@ import { fileRows, pageLabel, hostLabel, makerOwnLinks, archiveLinks } from '../
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.releases.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], key: key(f)[1] }, props: { redirect: url.release(x.id) } })));
-  return [...db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } })), ...moved];
+  const taken = new Set([...db.releases.map((r) => r.id), ...db.releases.flatMap((x) => x.former_ids ?? [])]);
+  const gone = retiredMoves('release', taken).map((m) => ({ params: { brand: key(m.id)[0], key: key(m.id)[1] }, props: { redirect: m.to } }));
+  return [...db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } })), ...moved, ...gone];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const release = Astro.props.release!;   // set on every page that is not a redirect

@@ -14,7 +14,7 @@ import CopyButton from '../../../../components/CopyButton.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
-import { db, key, url, brandName, partLabel, byReleaseDate, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, type Fits, type Spec, yearDoubt } from '../../../../lib/data';
+import { db, key, url, retiredMoves, brandName, partLabel, byReleaseDate, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, type Fits, type Spec, yearDoubt } from '../../../../lib/data';
 import { catName, partIcon } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
@@ -42,7 +42,8 @@ export function getStaticPaths() {
   const moved = db.parts.flatMap((x) => [...(x.former_ids ?? []), ...(x.numbers ?? []).map((n) => `part/${key(x.brand)[0]}/${n}`)]
     .map((f) => ({ f, to: x.id }))).filter(({ f }) => !taken.has(f) && taken.add(f))
     .map(({ f, to }) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(to) } }));
-  return [...db.parts.map((p) => ({ params: { brand: key(p.id)[0], number: key(p.id)[1] }, props: { part: p } })), ...moved];
+  const gone = retiredMoves('part', taken).map((m) => ({ params: { brand: key(m.id)[0], number: key(m.id)[1] }, props: { redirect: m.to } }));
+  return [...db.parts.map((p) => ({ params: { brand: key(p.id)[0], number: key(p.id)[1] }, props: { part: p } })), ...moved, ...gone];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const part = Astro.props.part!;   // set on every page that is not a redirect
