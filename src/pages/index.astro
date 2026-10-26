@@ -2,7 +2,7 @@
 import Icon from '../components/Icon.astro';
 import ReleaseArt from '../components/ReleaseArt.astro';
 import Discontinued from '../components/Discontinued.astro';
-import { kitTypeIcon, kitTypeOne } from '../lib/kitTypes';
+import { kitTypeOne } from '../lib/kitTypes';
 import { releasesByType } from '../lib/releaseTypes';
 import Base from '../layouts/Base.astro';
 import { readFileSync } from 'node:fs';
@@ -10,6 +10,8 @@ import { db, url, brandName, dateKey, dateDoubt, releasesByMake, bodiesByMake } 
 import DateText from '../components/DateText.astro';
 import DateDoubt from '../components/DateDoubt.astro';
 import DoubtNote from '../components/DoubtNote.astro';
+import ColourSwitch from '../components/ColourSwitch.astro';
+import { dateRows, colourLabels, groupName, releaseColour } from '../lib/colourways';
 
 const top = <T,>(m: Map<T, number>, n: number) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
 const byCat = new Map<string, number>();
@@ -28,13 +30,12 @@ const upgraded = top(upgrades, 12);
 const byBrand = new Map<string, number>();
 for (const r of db.releases) byBrand.set(r.brand, (byBrand.get(r.brand) ?? 0) + 1);
 const brands = top(byBrand, 12);
-// the newest release of each kit that is not discontinued (one row per kit, so one platform cannot fill the list)
-const newest = new Map<string, (typeof db.releases)[number]>();
-for (const r of db.releases) if (r.status !== 'discontinued') {
-  const cur = newest.get(r.kit);
-  if (dateKey(r) && (!cur || dateKey(r) > dateKey(cur))) newest.set(r.kit, r);
-}
-const latest = [...newest.values()].sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || (a.status === 'announced' ? -1 : 1)).slice(0, 10);
+// the newest rows: one per colourway group (the same car in several colours is one row, lib/colourways.ts), of the
+// releases that are not discontinued; one row per kit, so one platform cannot fill the list
+const byNewest = (a: (typeof db.releases)[number], b: (typeof db.releases)[number]) => (a.status === 'announced' ? -1 : b.status === 'announced' ? 1 : 0);
+const seenKit = new Set<string>();
+const latest = dateRows(db.releases.filter((r) => r.status !== 'discontinued'), dateKey, byNewest)
+  .filter((x) => !seenKit.has(x.head.kit) && seenKit.add(x.head.kit)).slice(0, 10);
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 // the hero's car: the site's own buggy icon (public/icons.svg#buggy, 48x24, front to the left, wheels on
 // y=23.2), split into body and wing (its first two subpaths) and the two wheels, so the suspension can work
@@ -173,12 +174,13 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
   <h2>Latest releases</h2>
   <table>
     <tr><th class="num">Released</th><th>Release</th></tr>
-    {latest.map((r) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
-      <td><span class="muted" title={kitTypeOne[cat ?? 'car']}>{r.art ? <ReleaseArt id={r.id} category={cat} art={r.art} size="1em" /> : <Icon name={kitTypeIcon(cat)} label={kitTypeOne[cat ?? 'car'] ?? cat} size="1em" />}</span> <a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a><Discontinued item={r} />
+    {latest.map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; const labels = colourLabels(g); return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
+      <td><span class="muted" title={kitTypeOne[cat ?? 'car']}><ReleaseArt id={r.id} category={cat} art={r.art} color={g.length > 1 ? undefined : releaseColour(r)} size="1em" /></span> <a href={url.release(r.id)}>{brandName(r.brand)} {groupName(g)}</a><Discontinued item={r} />
+        {g.length > 1 && <ColourSwitch label="Colours of this release" size="small" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], current: false, href: url.release(x.id) }))} />}
         {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td></tr>; })}
   </table>
   <p><a href="/rc/releases/">Show more</a> <span class="muted">· every release, newest first</span></p>
-  <DoubtNote on={latest.some((r) => !!dateDoubt(r))} />
+  <DoubtNote on={latest.some((x) => x.group.some((r) => !!dateDoubt(r)))} />
 
   <div class="home-grid">
     <section>

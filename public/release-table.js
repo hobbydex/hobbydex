@@ -247,7 +247,15 @@ if (root) {
     const u = document.createElementNS(NS, 'use');
     u.setAttribute('href', `/icons.svg#${r.icon}`);
     svg.append(u);
-    return svg;
+    if (!r.colour) return svg;
+    // the type icon in the release's colour (as a default part icon is): a dark or white colour gets the thin outline
+    const edge = r.colour.startsWith('!');
+    svg.style.color = edge ? r.colour.slice(1) : r.colour;
+    if (!edge) return svg;
+    const wrap = document.createElement('span');
+    wrap.className = 'relart-edge';
+    wrap.append(svg);
+    return wrap;
   };
 
   let rows = [], list = null, state = null, shown = PAGE, sorted = [];

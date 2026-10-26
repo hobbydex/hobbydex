@@ -5,6 +5,7 @@ import { kitTypeLabel, kitTypeIcon, kitTypeOrder } from './kitTypes';
 import { wideIcons } from './wideIcons';
 import { buildLabel } from './build';
 import { colourShades } from './colourDot';
+import { releaseColour } from './colourways';
 
 // The release list for the filterable table on /rc/releases/ (list.json). Each row is an array:
 // [id tail, name, brand, type, scale, build, status, date, flags, art, colour, doubt], trailing nulls left out.
@@ -28,7 +29,8 @@ export function releaseList() {
     if (brand !== key(r.brand)[0]) throw new Error(`release ${r.id} is not under brand ${r.brand}`);
     const type = releaseType(r);
     const flags = (seenOnly(r) ? 1 : 0) | (!releasedOf(r) && r.announced ? 2 : 0);
-    const main = r.art ? colourShades(r.color)?.[0] : undefined;
+    // the main colour of the row's icon: its outline, or its type icon (a default icon takes the colour too)
+    const main = colourShades(releaseColour(r))?.[0];
     const colour = main ? index(colours, tableColour(main)) : null;
     const doubt = dateDoubt(r) ? index(doubts, dateDoubt(r)!) : null;
     const row = [tail.join('/'), r.name, bi.get(r.brand), ti.get(type), si.get(releaseScale(r)), ui.get(r.kind ?? ''), sti.get(r.status), dateKey(r), flags,

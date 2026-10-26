@@ -93,3 +93,20 @@ export function groupName(group: Release[]): string {
   return s.replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').replace(/(\s*[-,/]){2,}\s*/g, ' - ')
     .replace(/[\s,;:/-]+$/, '').replace(/\s+,/g, ',').trim();
 }
+
+/** The colour a release's icon and swatch show: its colour field, else the colour word its name carries. */
+export const releaseColour = (r: Release) => r.color ?? colourName(r);
+
+/** The rows of a dated list (home's latest releases, the releases page's newest): one per colourway group, keyed by
+ * the newest date of its members, so a group of colours is one row. Groups without a dated member are left out;
+ * the rest sort by date, newest first, then by `tie`. `head` is the group's newest member. */
+export function dateRows(pool: Release[], dateOf: (r: Release) => string, tie: (a: Release, b: Release) => number): { group: Release[]; head: Release; key: string }[] {
+  const rows: { group: Release[]; head: Release; key: string }[] = [];
+  for (const group of colourwayGroups(pool)) {
+    const dated = group.filter((r) => dateOf(r));
+    if (dated.length === 0) continue;
+    const head = dated.reduce((a, b) => (dateOf(b).localeCompare(dateOf(a)) > 0 ? b : a));
+    rows.push({ group, head, key: dateOf(head) });
+  }
+  return rows.sort((a, b) => b.key.localeCompare(a.key) || tie(a.head, b.head));
+}

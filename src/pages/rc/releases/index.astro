@@ -6,11 +6,15 @@ import { db, url, key, brandName, dateKey, dateDoubt, SEEN_NOTE } from '../../..
 import DateText from '../../../components/DateText.astro';
 import DateDoubt from '../../../components/DateDoubt.astro';
 import DoubtNote from '../../../components/DoubtNote.astro';
+import ColourSwitch from '../../../components/ColourSwitch.astro';
+import { dateRows, colourLabels, groupName } from '../../../lib/colourways';
 // The newest releases with a known date, the filterable table over every release (list.json, loaded by the
 // release table script), and every brand's full release list on its own page (/rc/releases/<brand>/): one table
 // of all 5,500 releases was 1.3 MB. The newest table stays in the HTML for readers without script and for search engines.
 const NEWEST = 100;
-const dated = db.releases.filter((r) => dateKey(r)).sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name)).slice(0, NEWEST);
+// the newest rows: one per colourway group (the same car in several colours is one row, lib/colourways.ts)
+const newest = dateRows(db.releases, dateKey, (a, b) => brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name)).slice(0, NEWEST);
+const dated = newest.flatMap((x) => x.group);
 const byBrand = [...db.releases.reduce((m, r) => m.set(r.brand, (m.get(r.brand) ?? 0) + 1), new Map<string, number>())]
   .sort((a, b) => b[1] - a[1] || brandName(a[0]).localeCompare(brandName(b[0])));
 import SeenNote from '../../../components/SeenNote.astro';
@@ -53,10 +57,10 @@ import SeenNote from '../../../components/SeenNote.astro';
   </div>
   <table class="releases" id="release-newest">
     <tr><th class="num">Released</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr>
-    {dated.map((r) => <tr>
-      <td class="num" data-label="Released"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td class="name" data-label="Release"><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>
-      <td class="num" data-label="Item no.">{r.number ?? ''}</td><td data-label="Build">{buildLabel(r.kind)}</td><td class="num" data-label="Parts">{r.contains?.length ?? 0}</td>
-    </tr>)}
+    {newest.map(({ group: g, head: r }) => { const labels = colourLabels(g); return <tr>
+      <td class="num" data-label="Released"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td class="name" data-label="Release"><a href={url.release(r.id)}>{g.length > 1 ? groupName(g) : r.name}</a><Discontinued item={r} />{g.length > 1 && <ColourSwitch label="Colours of this release" size="small" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], current: false, href: url.release(x.id) }))} />}</td>
+      <td class="num" data-label="Item no.">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td><td data-label="Build">{buildLabel(r.kind)}</td><td class="num" data-label="Parts">{r.contains?.length ?? 0}</td>
+    </tr>; })}
   </table>
   <DoubtNote on={dated.some((r) => !!dateDoubt(r))} />
   <SeenNote rows={dated} />
