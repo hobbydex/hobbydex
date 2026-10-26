@@ -20,7 +20,7 @@ function colourRe(color?: string): string {
 
 // the release name with the colour words, "color type N", set words and colour-only brackets removed; "" when
 // nothing is left to compare
-function nameKey(r: Release): string {
+export function nameKey(r: Release): string {
   const src = colourRe(r.color);
   const has = new RegExp(src, 'i');
   const p = numberParts(r.number);
