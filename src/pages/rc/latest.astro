@@ -19,7 +19,7 @@ const { rows, counts } = latestRows(100, 150);
   <h1>Latest</h1>
   <p class="muted">Everything with a known date, newest first: cars, bodies, electronics, batteries and other parts. Items no source dates are left out. A date with an asterisk is not a release date: it is the day the maker's page or shop listing was first seen.</p>
   <div class="search-filters latest-tabs" role="group" aria-label="Show" data-pagefind-ignore>
-    {TABS.map((t, i) => <button data-tab={t.id} aria-pressed={String(i === 0)} title={'hint' in t ? t.hint : undefined}>{t.label} <span class="muted">{counts[t.id].toLocaleString('en')}</span></button>)}
+    {TABS.map((t, i) => <button data-tab={t.id} aria-pressed={i === 0 ? "true" : "false"} title={'hint' in t ? t.hint : undefined}>{t.label} <span class="muted">{counts[t.id].toLocaleString('en')}</span></button>)}
   </div>
   <table class="releases" id="latest">
     <thead><tr><th class="num">Date</th><th>Brand</th><th>Item</th><th>Kind</th></tr></thead>
