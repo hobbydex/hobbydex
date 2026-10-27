@@ -63,7 +63,7 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
   </dl>
   <DoubtNote on={dateDoubtful} />
   {brand.notes && <p class="muted">{brand.notes}</p>}
-  {kits.length > MANY && <><h2>Platforms <span class="muted">({kits.length})</span></h2>
+  {kits.length > MANY && <><h2 id="platforms">Platforms <span class="muted">({kits.length})</span></h2>
   <div class="kitfilter" data-pagefind-ignore>
     <div class="sfield"><Icon name="search" /><input type="search" class="search-box" placeholder={`Filter ${brand.name} platforms by name, scale or drive`} aria-label="Filter platforms" autocomplete="off" /></div>
     <p class="muted">By type: {kitGroups.map(([t, rs], i) => <>{i > 0 && ' · '}<a href={`#type-${t}`}><Icon name={kitTypeIcon(t)} /> {kitTypeLabel[t] ?? t}</a> <span class="muted">{rs.length}</span></>)}</p>
@@ -89,9 +89,9 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
       });
     }
   </script></>}
-  {kits.length > 0 && kits.length <= MANY && <><h2>Platforms</h2>
+  {kits.length > 0 && kits.length <= MANY && <><h2 id="platforms">Platforms</h2>
   <ul class="cards">{kits.map((k) => <li class="kitcard"><a href={`/rc/platforms/types/${k.category || 'car'}/`} title={kitTypeOne[k.category ?? 'car'] ?? k.category}>{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="2rem" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="2rem" />}</a><span><a href={url.platform(k.id)}><b>{k.name}</b></a><br /><span class="muted">{[k.scale, kitTypeOne[k.category ?? 'car'] ?? k.category, driveLabel(k.drive), k.power].filter(Boolean).join(' · ')}</span></span></li>)}</ul></>}
-  <h2>Parts <span class="muted">({parts.length})</span></h2>
+  <h2 id="parts">Parts <span class="muted">({parts.length})</span></h2>
   {cats.length > 0 && <CategoryBoxes label={`${brand.name} parts by category`} items={cats.map(([c, n]) => ({ category: c, n, href: `/rc/categories/${c}/${key(brand.id)[0]}/`, title: `${n} ${brand.name} ${catName(c).toLowerCase()} part${n > 1 ? 's' : ''}` }))} />}
   {parts.length > 0 && <div class="brandsearch" data-pagefind-ignore data-src={`/rc/brands/${key(brand.id)[0]}/parts.json`} data-base={`/rc/parts/${key(brand.id)[0]}/`} data-cats={JSON.stringify(Object.fromEntries(cats.map(([c]) => [c, catName(c)])))}>
     <div class="sfield"><Icon name="search" /><input type="search" class="search-box" placeholder={`Find a ${brand.name} part by number or name`} aria-label="Find a part" autocomplete="off" /></div>
