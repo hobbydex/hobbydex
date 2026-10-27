@@ -25,7 +25,7 @@ export type Spec = { id: string; category: string; name?: string; standards?: st
 export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; page?: string; releases?: string[]; kits?: string[]; parts?: string[]; channel?: string; duration_s?: number };
 export type KeyField = { field: string; label: string; from: 'part' | 'spec'; unit?: string; format?: string; compare_only?: boolean };
 export type Standard = { id: string; code: string; title: string; url?: string; replaced_by?: string; notes?: string };
-export type Category = { id: string; name: string; summary?: string; description?: string; spec_type?: string; former_ids?: string[]; key_fields?: KeyField[]; terms?: { term: string; text: string }[] };
+export type Category = { id: string; name: string; any_car?: boolean; summary?: string; description?: string; spec_type?: string; former_ids?: string[]; key_fields?: KeyField[]; terms?: { term: string; text: string }[] };
 export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[]; companies?: Company[]; makes?: Make[]; retired?: Retired[] };
 // an id that is gone (hobbydex-rc data/retired.toml); replaced_by: the record that took its place, which its old address redirects to
 export type Retired = { id: string; reason: string; replaced_by?: string };

@@ -12,10 +12,14 @@ const uncategorised = parts.filter((p) => !p.category);
 const empty = db.releases.filter((r) => !(r.contains ?? []).length);
 const noYear = db.releases.filter((r) => !r.year);
 const lonelyKits = db.kits.filter((k) => !(db.releasesByKit.get(k.id) ?? []).length);
+const anyCar = new Set(db.categories.filter((c) => c.any_car).map((c) => c.id.split('/')[1]));
+const inBox = new Set(db.releases.flatMap((r) => (r.contains ?? []).map((c) => c.part)));
+const noCar = parts.filter((p) => p.category && (!anyCar.has(p.category) || p.applies_to) && !inBox.has(p.id) && !(p.fits ?? []).length);
 const overall = [
   ['Parts named only by their number', unnamed.length, parts.length],
   ['Part names read by OCR (may contain errors)', ocr.length, parts.length],
   ['Parts without a category', uncategorised.length, parts.length],
+  ['Car-specific parts with no car link', noCar.length, parts.length],
   ['Releases without contents', empty.length, db.releases.length],
   ['Releases with an unknown year', noYear.length, db.releases.length],
   ['Platforms without a release', lonelyKits.length, db.kits.length],
