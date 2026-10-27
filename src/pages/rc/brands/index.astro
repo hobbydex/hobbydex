@@ -4,8 +4,6 @@ import HideDiscontinued from '../../../components/HideDiscontinued.astro';
 import { db, url, countryName } from '../../../lib/data';
 const brands = [...db.brands].sort((a, b) => a.name.localeCompare(b.name));
 const releaseCount = (id: string) => db.releases.filter((r) => r.brand === id).length;   // placeholder kits hold releases too
-// a count links to its section of the brand page; none when zero
-const count = (n: number | undefined, href: string) => (n ? <a href={href}>{n}</a> : '');
 ---
 <Base title="Brands" description="Every brand in Hobbydex with its platforms, releases and parts.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Brands</div>
@@ -15,7 +13,8 @@ const count = (n: number | undefined, href: string) => (n ? <a href={href}>{n}</
     <thead><tr><th aria-sort="ascending">Brand</th><th>Country</th><th>Owned by</th><th class="num">Platforms</th><th class="num">Releases</th><th class="num">Parts</th></tr></thead>
     <tbody>{brands.map((b) => <tr data-discontinued={b.status === 'gone' ? '' : undefined}>
       <td><a href={url.brand(b.id)}>{b.name}</a></td><td>{b.country ? countryName(b.country) : ''}</td><td>{(b.owner && db.company.get(b.owner)?.name) ?? ''}</td>
-      <td class="num">{count(db.kitsByBrand.get(b.id)?.length, `${url.brand(b.id)}#platforms`)}</td><td class="num">{count(releaseCount(b.id), `${url.brand(b.id)}#platforms`)}</td><td class="num">{count(db.partsByBrand.get(b.id)?.length, `${url.brand(b.id)}#parts`)}</td>
+      {[[db.kitsByBrand.get(b.id)?.length, 'platforms'], [releaseCount(b.id), 'platforms'], [db.partsByBrand.get(b.id)?.length, 'parts']].map(([n, at]) =>
+        <td class="num">{n ? <a href={`${url.brand(b.id)}#${at}`}>{n}</a> : ''}</td>)}
     </tr>)}</tbody>
   </table>
   <script src="/sort-table.js" defer></script>
