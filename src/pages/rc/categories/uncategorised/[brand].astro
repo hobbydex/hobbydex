@@ -1,0 +1,24 @@
+---
+import { colourDot } from '../../../../lib/colourDot';
+import Base from '../../../../layouts/Base.astro';
+import Discontinued from '../../../../components/Discontinued.astro';
+import { db, brandName, byPartNo, key, url } from '../../../../lib/data';
+import { uncategorised } from '../../../../lib/categoryIndex';
+import { describe, count } from '../../../../lib/descriptions';
+// a brand's parts that have no category yet (a bare number, no name the rules can sort by)
+export function getStaticPaths() {
+  return [...uncategorised.keys()].map((b) => ({ params: { brand: key(b)[0] }, props: { brandId: b } }));
+}
+const { brandId } = Astro.props;
+const parts = [...uncategorised.get(brandId)!].sort(byPartNo);
+const metaDescription = describe(`${brandName(brandId)} parts not yet categorised`, [count(parts.length, 'part')]);
+---
+<Base title={`${brandName(brandId)} not yet categorised`} description={metaDescription} kind="category" words={`${brandName(brandId)} uncategorised parts`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/categories/">Categories</a> / <a href={`/rc/brands/${key(brandId)[0]}/`}>{brandName(brandId)}</a> / Not yet categorised</div>
+  <h1>{brandName(brandId)} <span class="muted">·</span> Not yet categorised</h1>
+  <p class="muted">{count(parts.length, 'part')} from {brandName(brandId)} with no category yet. <a href={`/rc/brands/${key(brandId)[0]}/#parts`}>Back to {brandName(brandId)} parts</a>.</p>
+  <table>
+    <tr><th>Part</th><th>Name</th><th class="num">Releases</th></tr>
+    {parts.map((p) => <tr><td>{p.number && <a href={url.part(p.id)}>{p.number}</a>}</td><td><Fragment set:html={colourDot(p.color)} />{p.number ? p.name : <a href={url.part(p.id)}>{p.name}</a>}<Discontinued item={p} /></td><td class="num">{new Set((db.usesByPart.get(p.id) ?? []).map((u) => u.release.id)).size || ''}</td></tr>)}
+  </table>
+</Base>

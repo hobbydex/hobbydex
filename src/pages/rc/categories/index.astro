@@ -3,7 +3,7 @@ import Base from '../../../layouts/Base.astro';
 import { db } from '../../../lib/data';
 import { catName, categoryGroups } from '../../../lib/categories';
 import Icon from '../../../components/Icon.astro';
-import { categories, countOf } from '../../../lib/categoryIndex';
+import { categories, countOf, uncategorisedCount } from '../../../lib/categoryIndex';
 import { columns } from '../../../lib/categoryColumns';
 const desc = new Map(db.categories.map((c) => [c.id.split('/')[1], c.summary ?? c.description ?? '']));
 const total = categories.reduce((n, c) => n + countOf(c), 0);
@@ -14,7 +14,7 @@ const groups = categoryGroups.map(([name, cs]) => [name, [...cs.filter((c) => ca
 <Base title="Part categories" description="Every RC part category in Hobbydex: what it holds and how many parts it has.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Categories</div>
   <h1>Part categories</h1>
-  <p class="muted">{total} parts in {categories.length} categories. Categories are assigned from part names; parts that fit no rule are left out.</p>
+  <p class="muted">{total} parts in {categories.length} categories{uncategorisedCount > 0 && <>, and {uncategorisedCount} not yet categorised</>}. Categories are assigned from part names; parts that fit no rule are not yet categorised, and each brand page lists its own.</p>
   {groups.map(([name, cs]) => <><h2>{name}</h2>
   <ul class="cards">
     {cs.map((c) => <li class="kitcard"><a href={`/rc/categories/${c}/`} aria-hidden="true" tabindex="-1"><Icon name={c} size="2.2rem" /></a><span><a href={`/rc/categories/${c}/`}><b>{catName(c)}</b></a> <span class="muted">· {countOf(c)} parts{columns[c] && ' · with specs'}</span><br />

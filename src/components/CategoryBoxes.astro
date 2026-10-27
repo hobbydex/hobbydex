@@ -3,12 +3,13 @@
 // the brand page for its parts by category.
 import Icon from './Icon.astro';
 import { catName } from '../lib/categories';
-interface Props { label: string; items: { category: string; n: number; href: string; title?: string }[] }
+// an item with no category (a bare box) takes its own icon and name
+interface Props { label: string; items: { category: string; n: number; href: string; title?: string; icon?: string; name?: string }[] }
 const { label, items } = Astro.props;
 ---
 <nav class="boxgrid" aria-label={label} data-pagefind-ignore>
   <slot />
-  <ul>{items.map(({ category: g, n, href, title }) => <li><a href={href} title={title}>{g ? <Icon name={g} size="1.6rem" /> : <span class="noicon" />}<b>{n}</b><span>{g ? catName(g) : 'Other'}</span></a></li>)}</ul>
+  <ul>{items.map(({ category: g, n, href, title, icon, name }) => <li><a href={href} title={title}>{icon || g ? <Icon name={icon ?? g} size="1.6rem" /> : <span class="noicon" />}<b>{n}</b><span>{name ?? (g ? catName(g) : 'Other')}</span></a></li>)}</ul>
 </nav>
 <style>
   .boxgrid ul { list-style: none; padding: 0; margin: 0.75rem 0 1rem; display: grid; gap: 0.4rem; grid-template-columns: repeat(auto-fill, minmax(6.75rem, 1fr)); }
