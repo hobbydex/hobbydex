@@ -3,12 +3,13 @@
 import { db, type Part, type Spec, type KeyField } from './data';
 import { radioUnitLabel } from './radio';
 
-export type Column = { label: string; num?: boolean; field: KeyField; get: (p: Part, s?: Spec) => string | number | undefined };
+// pick: a filter dropdown for the column (undefined: one when it has 2 to 60 values); multi: a cell holds a list joined by ', ' (scales); plug: a connector name, linked to its spec
+export type Column = { label: string; num?: boolean; pick?: boolean; multi?: boolean; plug?: boolean; field: KeyField; get: (p: Part, s?: Spec) => string | number | undefined };
 const cat = new Map(db.categories.map((c) => [c.id.split('/')[1], c]));
 
 const POSITION: Record<string, string> = { 'front-rear': 'front and rear', 'front-2wd': 'front (2WD)', 'front-4wd': 'front (4WD)' };
 
-function format(v: unknown, f: KeyField): string | number | undefined {
+export function format(v: unknown, f: KeyField): string | number | undefined {
   if (v === undefined || v === null || v === '') return undefined;
   if (f.format === 'yesno' && typeof v === 'boolean') return v ? 'yes' : 'no';
   if (f.format === 'cells' && Array.isArray(v)) return v[0] === v[1] ? `${v[0]}S` : `${v[0]}-${v[1]}S`;

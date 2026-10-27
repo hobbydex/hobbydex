@@ -33,7 +33,8 @@ const info = db.categories.find((c) => c.id === `category/${category}`);
   {info?.terms && <details class="muted"><summary>Terms explained</summary><dl class="terms">{info.terms.map((t) => <><dt>{t.term}</dt><dd>{t.text}</dd></>)}</dl></details>}
   <p class="muted">{countOf(category)} parts from {brands.length} brands.
     {specFor[category] && <> Brand-independent sizes: <a href={`/rc/specs/${specFor[category]}/`}>generic specs</a>.</>}
-    {' '}<a href={`/search/?category=${encodeURIComponent(catName(category))}`}>Search in this category</a></p>
+    {' '}<a href={`/search/?category=${encodeURIComponent(catName(category))}`}>Search in this category</a>
+    {category === 'esc' && <> · <a href="/rc/escs/">Compare ESCs</a></>}{category === 'motor' && <> · <a href="/rc/motors/">Compare motors</a></>}</p>
   {parts.length <= BIG
     ? <p class="muted">By brand: {brands.map(([b, ps], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${category}/${key(b)[0]}/`}>{brandName(b)}</a> {ps.length}</>)}</p>
     : <>

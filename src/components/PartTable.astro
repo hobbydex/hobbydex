@@ -5,12 +5,14 @@ import { db, url, brandName, byPartNo, partLabel, partRest, type Part } from '..
 import Discontinued from './Discontinued.astro';
 import HideDiscontinued from './HideDiscontinued.astro';
 import Icon from './Icon.astro';
-import { columns, specOf } from '../lib/categoryColumns';
+import { columns, specOf, type Column } from '../lib/categoryColumns';
+import { plugLinks } from '../lib/plugs';
 import { paintChip } from '../lib/paintSwatch';
 import { colourDot } from '../lib/colourDot';
-interface Props { category: string; parts: Part[]; showBrand?: boolean }
-const { category, parts, showBrand = true } = Astro.props;
-const all = columns[category] ?? [];
+// fields: the columns to show, when the page picks its own (the ESC and motor compare pages); else the category's key fields
+interface Props { category: string; parts: Part[]; showBrand?: boolean; fields?: Column[] }
+const { category, parts, showBrand = true, fields } = Astro.props;
+const all = fields ?? columns[category] ?? [];
 const isDisc = (p: Part) => p.status === 'discontinued';
 const raw = parts.map((p) => { const s = specOf(p); return { p, vals: all.map((c) => c.get(p, s)) }; });
 // a column none of these parts has a value for is left out (the Radio column on an ESC maker's page)
@@ -22,14 +24,15 @@ const rows = raw.map(({ p, vals }) => ({ p, vals: vals.filter((_, i) => keep[i])
 const hasDisc = parts.some(isDisc);
 const brands = [...new Set(parts.map((p) => p.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));
 // a dropdown for each text column with a short list of values (mounting, rim size, vehicle, ...)
-const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only ? [] : [...new Set(rows.map((r) => r.vals[i]).filter((v) => v !== undefined))].sort() as string[] }))
+const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dropdown; a multi column (a list in one cell, scales) offers each item
+  choices: c.num || c.field.compare_only || c.pick === false ? [] : [...new Set(rows.flatMap((r) => { const v = r.vals[i]; return v === undefined ? [] : c.multi ? String(v).split(', ') : [String(v)]; }))].sort() as string[] }))
   .filter((x) => x.choices.length > 1 && x.choices.length <= 60);
 ---
 <div class="parttable" data-pagefind-ignore>
   <p class="websearch">
     <span class="sfield"><Icon name="search" /><input type="search" class="q search-box" placeholder="Filter by number or name" aria-label="Filter" /></span>
     {showBrand && brands.length > 1 && <select class="brand" aria-label="Brand"><option value="">every brand</option>{brands.map((b) => <option value={b}>{brandName(b)}</option>)}</select>}
-    {picks.map(({ c, i, choices }) => <select class="pick" data-col={i} data-key={c.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} aria-label={c.label}><option value="">any {c.label.toLowerCase()}</option>{choices.map((v) => <option>{v}</option>)}</select>)}
+    {picks.map(({ c, i, choices }) => <select class="pick" data-col={i} data-multi={c.multi ? '' : undefined} data-key={c.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} aria-label={c.label}><option value="">any {c.label.toLowerCase()}</option>{choices.map((v) => <option>{v}</option>)}</select>)}
     {cols.length > 0 && <label><input type="checkbox" class="known" /> only with specs</label>}
     {hasDisc && <HideDiscontinued />}
     <button type="button" class="btn cmp" disabled>Compare ticked</button>
@@ -47,7 +50,7 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
           const sw = f === 'color' && paint ? paintChip(p, 22, 'circle') : undefined;
           // a named colour (not a paint): a dot from the fixed palette
           const dot = (f === 'color' || f === 'wheel_color') && !paint ? colourDot((p as unknown as Record<string, string | undefined>)[f]) : '';
-          return <td class={`${cols[i].num ? 'num' : ''}${cols[i].field.compare_only ? ' conly' : ''}`}>{sw && <span class="swatch" title="approximate colour" set:html={sw} />}{dot && <Fragment set:html={dot} />}{v ?? ''}</td>; })}
+          return <td class={`${cols[i].num ? 'num' : ''}${cols[i].field.compare_only ? ' conly' : ''}`}>{sw && <span class="swatch" title="approximate colour" set:html={sw} />}{dot && <Fragment set:html={dot} />}{cols[i].plug && v ? plugLinks(String(v)).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>) : (v ?? '')}</td>; })}
       </tr>)}
     </tbody>
   </table>
@@ -58,12 +61,12 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
     const q = box.querySelector<HTMLInputElement>('.q')!, brand = box.querySelector<HTMLSelectElement>('.brand');
     const picks = [...box.querySelectorAll<HTMLSelectElement>('.pick')], known = box.querySelector<HTMLInputElement>('.known');
     const cmp = box.querySelector<HTMLButtonElement>('.cmp')!, clear = box.querySelector<HTMLButtonElement>('.clear')!, side = box.querySelector<HTMLElement>('.side')!, count = box.querySelector<HTMLElement>('.count')!;
-    const valueOf = (tr: HTMLTableRowElement, s: HTMLSelectElement) => s === brand ? tr.dataset.brand : tr.cells[Number(s.dataset.col) + 2].textContent;
+    const valueOf = (tr: HTMLTableRowElement, s: HTMLSelectElement): string[] => s === brand ? [tr.dataset.brand!] : s.dataset.multi !== undefined ? tr.cells[Number(s.dataset.col) + 2].textContent!.split(', ') : [tr.cells[Number(s.dataset.col) + 2].textContent!];
     // a row passes every filter but `skip`: the choices of one select are the values left by the other filters
     const passes = (tr: HTMLTableRowElement, skip: HTMLSelectElement | null) => {
       const text = q.value.trim().toLowerCase();
       return (!text || tr.cells[1].textContent!.toLowerCase().includes(text)) && (!known?.checked || !!tr.dataset.known)
-        && [brand, ...picks].every((s) => !s || s === skip || !s.value || valueOf(tr, s) === s.value);
+        && [brand, ...picks].every((s) => !s || s === skip || !s.value || valueOf(tr, s).includes(s.value));
     };
     // the filters live in the URL (?q=...&brand=...&<spec>=...&specs=1), so a filtered view can be shared and survives a reload
     const keyOf = (s: HTMLSelectElement) => s === brand ? 'brand' : s.dataset.key!;
@@ -89,7 +92,7 @@ const picks = cols.map((c, i) => ({ c, i, choices: c.num || c.field.compare_only
       // cascade: a brushed motor's size filter offers brushed sizes only (the chosen value always stays)
       for (const s of [brand, ...picks]) {
         if (!s) continue;
-        const left = new Set([...body.rows].filter((tr) => passes(tr, s)).map((tr) => valueOf(tr, s)));
+        const left = new Set([...body.rows].filter((tr) => passes(tr, s)).flatMap((tr) => valueOf(tr, s)));
         for (const o of s.options) { const off = !!o.value && o.value !== s.value && !left.has(o.value); o.hidden = off; o.disabled = off; }
       }
     };
