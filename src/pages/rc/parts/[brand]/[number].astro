@@ -252,6 +252,14 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
         <td data-label="Spec">{sp ? <a href={url.spec(sp.id)}>{sp.name}</a> : ''}</td><td class="muted" data-label="Notes">{i.part ? (i.notes ?? '') : ''}</td><td class="muted" data-label="Source">{d?.title ?? i.source ?? ''}</td>
       </tr>; })}
     </table></div></>}
+  {part.equivalent_to && part.equivalent_to.length > 0 && <>
+    <h2>Equivalent to</h2>
+    <div class="tablescroll"><table>
+      <tr><th>Generic spec</th><th>Match</th><th>Standards</th><th>Source</th></tr>
+      {part.equivalent_to.map((e) => { const sp = db.spec.get(e.spec); const d = e.source ? db.doc.get(e.source) : undefined; return <tr>
+        <td><a href={url.spec(e.spec)}>{sp?.name ?? e.spec}</a></td><td>{e.match}</td><td><Standards codes={sp?.standards} /></td><td class="muted">{d?.title ?? e.source ?? ''}{e.notes && <><br />{e.notes}</>}</td>
+      </tr>; })}
+    </table></div></>}
   {(kitsOf.length > 1 || (part.fits?.length ?? 0) > 0) && <>
     <h2>Fits these platforms <span class="muted">({kitsOf.length})</span></h2>
     <table>
@@ -263,14 +271,6 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
   {sinks.length > 0 && <><h2>Heat sinks and fan mounts for a {motorCan} mm can <span class="muted">({sinks.length}, any brand)</span></h2>
     <p class="muted">Clamp-on heat sinks and motor fan mounts whose maker states this can diameter; check the length and the fan size on the part's page.</p>
     <ul>{sinks.map((h) => <li><a href={url.part(h.id)}>{brandName(h.brand)} {partLabel(h)}</a>{h.number && <span class="muted"> {h.name}</span>}<Discontinued item={h} /></li>)}</ul></>}
-  {part.equivalent_to && part.equivalent_to.length > 0 && <>
-    <h2>Equivalent to</h2>
-    <div class="tablescroll"><table>
-      <tr><th>Generic spec</th><th>Match</th><th>Standards</th><th>Source</th></tr>
-      {part.equivalent_to.map((e) => { const sp = db.spec.get(e.spec); const d = e.source ? db.doc.get(e.source) : undefined; return <tr>
-        <td><a href={url.spec(e.spec)}>{sp?.name ?? e.spec}</a></td><td>{e.match}</td><td><Standards codes={sp?.standards} /></td><td class="muted">{d?.title ?? e.source ?? ''}{e.notes && <><br />{e.notes}</>}</td>
-      </tr>; })}
-    </table></div></>}
   {range.length > 0 && part.range?.endsWith('-springs') && <><h2>Other springs in this series <span class="muted">({range.length})</span></h2>
     <table>
       <tr><th class="num">Number</th><th>Name</th><th>Rate</th><th class="num">Wire mm</th><th class="num">Length mm</th></tr>
