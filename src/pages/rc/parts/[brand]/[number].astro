@@ -3,6 +3,7 @@ import Standards from '../../../../components/Standards.astro';
 import { shownNote, isSourceNote } from '../../../../lib/notes';
 import SourceNote from '../../../../components/SourceNote.astro';
 import FactSource from '../../../../components/FactSource.astro';
+import SourceDoc from '../../../../components/SourceDoc.astro';
 import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
@@ -30,7 +31,7 @@ import HardwareBag from '../../../../components/HardwareBag.astro';
 import PartDimensions from '../../../../components/PartDimensions.astro';
 import { bagItems } from '../../../../lib/hardwareBag';
 import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
-import { fileRows, makerOwnLinks, archiveLinks, listedBelow, hostLabel } from '../../../../lib/docFacts';
+import { makerOwnLinks, archiveLinks, hostLabel } from '../../../../lib/docFacts';
 import { describe, count } from '../../../../lib/descriptions';
 import { partSpecs } from '../../../../lib/partFacts';
 import { partSpecFacts } from '../../../../lib/specFacts';
@@ -115,9 +116,11 @@ const noLoad = (kv: number, cells?: number[]) => {
 // a motor: the clamp-on heat sinks and fan mounts for its can, any brand; a heat sink: the can it takes
 const motorCan = part.category === 'motor' ? canDiameter(part) : undefined;
 const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
-// the maker's pages for the part's manual, parts list and exploded view, as on a release; its own links (not fan sites)
-const partFiles = fileRows((part.documents ?? []).map((id) => db.doc.get(id)).filter((d) => d !== undefined));
+// the maker's own links (not fan sites)
 const partLinks = makerOwnLinks(part.links);
+// where the record comes from: its own source document and documents (a parts list, a manual, a store listing)
+const sourceIds = [...new Set([part.source, ...(part.documents ?? [])].filter((x): x is string => !!x))];
+const SOURCE_SHOWN = 4;
 const partArchive = archiveLinks(part.links);
 // a shop's product page, when the maker has none: its own row, never under Product page
 const dealerLinks = (part.links ?? []).filter((l) => l.kind === 'dealer');
@@ -150,11 +153,11 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
     {part.depicts && <><dt>Real vehicle</dt><dd><RealVehicle depicts={part.depicts!} /></dd></>}
     {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <> <span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}</dd></>}
+    {sourceIds.length > 0 && <><dt>Source</dt><dd>{sourceIds.slice(0, SOURCE_SHOWN).map((id, i) => <>{i > 0 && ' · '}<SourceDoc id={id} released={part.released} /></>)}{sourceIds.length > SOURCE_SHOWN && <details><summary class="muted">{sourceIds.length - SOURCE_SHOWN} more</summary><ul>{sourceIds.slice(SOURCE_SHOWN).map((id) => <li><SourceDoc id={id} released={part.released} /></li>)}</ul></details>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span>{part.sources?.category && <FactSource field="category" url={part.sources.category} />}</dd></>}
     {partArchive.length > 0 && <><dt>Product page</dt><dd>{partArchive.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">archived page</a></>)} <span class="muted">(no longer online)</span></dd></>}
     {partLinks.length > 0 && <><dt>Product page</dt><dd>{partLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
     {dealerLinks.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerLinks.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{hostLabel(l.url)}</a></>)}</dd></>}
-    {partFiles.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : 'manufacturer website'}</a></>)}</dd></>)}
     {part.released && <><dt>Released</dt><dd><DateText r={part} /><DateDoubt reason={dateDoubt(part)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{partLabel(replaces)}</a> {replaces.number && replaces.name}<Discontinued item={replaces} /></dd></>}
     {rebrandOf.length > 0 && <><dt>Rebrand of</dt><dd>{rebrandOf.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
@@ -239,9 +242,6 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
       <tr><th class="num">Number</th><th>Name</th><th>Material</th></tr>
       {upgrades.map((u) => <tr><td class="num">{u.number && <a href={url.part(u.id)}>{u.number}</a>}</td><td>{u.category && <a class="caticon" href={`/rc/categories/${u.category}/`} title={catName(u.category)}><Icon name={u.category} /></a>} {u.number ? u.name : <a href={url.part(u.id)}>{u.name}</a>}<Discontinued item={u} /></td><td>{u.material === 'carbon' ? 'carbon fibre' : (u.material ?? '')}{u.material_grade && ` ${u.material_grade}`}</td></tr>)}
     </table></>}
-  {(() => { const below = (part.documents ?? []).filter((id) => { const d = db.doc.get(id); return !d || listedBelow([d]).length > 0; }); return below.length > 0 && <>
-    <h2>Documents</h2>
-    <ul>{below.map((id) => { const d = db.doc.get(id); const w = d && docPage(d, part.released); return <li>{w ? <a href={w} rel="nofollow">{d!.title}</a> : (d?.title ?? id)}{d && !w && d.url && <span class="muted"> · {new URL(d.url).hostname}</span>}{d?.date && <span class="muted"> · {d.date}</span>}</li>; })}</ul></>; })()}
   {part.includes && part.includes.length > 0 && <>
     <h2>Includes <span class="muted">({part.includes.reduce((n, i) => n + (i.qty ?? 1), 0)} pcs)</span></h2>
     <div class="tablescroll"><table class="stacked">

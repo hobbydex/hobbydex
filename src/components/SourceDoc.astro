@@ -1,0 +1,8 @@
+---
+// one source document of a record: its title linked to the maker's page (never the file), else the title and its host
+import { db, docPage } from '../lib/data';
+const { id, released } = Astro.props as { id: string; released?: string };
+const d = db.doc.get(id);
+const page = d ? docPage(d, released) : undefined;
+---
+{page ? <a href={page} rel="nofollow">{d!.title}</a> : (d?.title ?? id)}{d && !page && d.url && <span class="muted"> ({new URL(d.url).hostname})</span>}
