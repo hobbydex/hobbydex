@@ -10,11 +10,15 @@ const partsByBrand = count(db.parts, (p) => p.brand), relByBrand = count(db.rele
 const topParts = top(partsByBrand, 20), topRel = top(relByBrand, 20);
 const max = (xs: [string, number][]) => Math.max(1, ...xs.map(([, n]) => n));
 const inBox = new Set(db.releases.flatMap((r) => (r.contains ?? []).map((c) => c.part)));
+// Categories flagged any_car in the data (tools, radios, motors, generic hardware...) fit no car in particular:
+// such a part with no link is left out of the Linked share, instead of counting as a gap.
+const anyCar = new Set(db.categories.filter((c) => c.any_car).map((c) => c.id.split('/')[1]));
+const isLinked = (p: (typeof db.parts)[number]) => inBox.has(p.id) || (p.fits ?? []).length > 0;
 const rows = db.brands.map((b) => {
   const ps = db.partsByBrand.get(b.id) ?? [], rs = db.releases.filter((r) => r.brand === b.id);
   return { b: b.id, kits: kitsByBrand.get(b.id) ?? 0, rel: rs.length, parts: ps.length,
     contents: pct(rs.filter((r) => (r.contains ?? []).length).length, rs.length), dated: pct(rs.filter((r) => listYear(r)).length, rs.length),
-    linked: pct(ps.filter((p) => inBox.has(p.id) || (p.fits ?? []).length).length, ps.length), gtin: pct(ps.filter((p) => p.gtin).length, ps.length) };
+    linked: pct(ps.filter(isLinked).length, ps.filter((p) => isLinked(p) || p.applies_to || !anyCar.has(p.category ?? '')).length), gtin: pct(ps.filter((p) => p.gtin).length, ps.length) };
 }).filter((r) => r.parts || r.rel || r.kits).sort((a, b) => b.rel - a.rel || b.parts - a.parts);
 // the same year as the by-year pages: its own, else its announcement or seen_by bound
 const years = [...count(db.releases.filter((r) => listYear(r)), (r) => String(listYear(r))).entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
@@ -35,7 +39,7 @@ const maxYear = Math.max(1, ...years.map(([, n]) => n));
     </section>
   </div>
   <h2>Per brand <span class="muted">· most releases first</span></h2>
-  <p class="muted">Contents: releases whose parts list is in the data. Dated: releases with a year, an announcement or a first sighting. Linked: parts in a release's contents or linked to the platforms they fit. Barcode: parts with a UPC/EAN.</p>
+  <p class="muted">Contents: releases whose parts list is in the data. Dated: releases with a year, an announcement or a first sighting. Linked: parts in a release's contents or linked to the platforms they fit, out of the parts that belong to a car (tools, radios, motors, generic hardware and the like are left out until they are linked). Barcode: parts with a UPC/EAN.</p>
   <div class="tablescroll"><table>
     <tr><th>Brand</th><th class="num">Platforms</th><th class="num">Releases</th><th class="num">Parts</th><th class="num">Contents</th><th class="num">Dated</th><th class="num">Linked</th><th class="num">Barcode</th></tr>
     {rows.map((r) => <tr><td><a href={url.brand(r.b)}>{brandName(r.b)}</a></td><td class="num">{r.kits}</td><td class="num">{r.rel}</td><td class="num">{r.parts}</td>
