@@ -102,3 +102,12 @@ test('identical names with no colour on either side do not group (the same car t
   const b = rel('b', '33002', 'Thing RTR');
   assert.deepEqual(groups([a, b]), [['33001'], ['33002']]);
 });
+
+test('releases sharing a range group whatever their names and numbers say; the group name is what the names share', () => {
+  const a = rel('a', '161300', 'VectR4 - Ford Escort RS Cosworth Rally Sanremo', { range: 'hpi/vectr4-ford-escort-rs-cosworth-colours', livery: 'Rally Sanremo' });
+  const b = rel('b', '161301', 'VectR4 - Ford Escort RS Cosworth Imperial Blue', { range: 'hpi/vectr4-ford-escort-rs-cosworth-colours', color: 'blue' });
+  const c = rel('c', '161302', 'VectR4 - Ford Escort RS Cosworth Imperial Blue');
+  assert.deepEqual(groups([a, b, c]).filter((g) => g.length > 1), [['161300', '161301']]);
+  assert.equal(groupName([a, b]), 'VectR4 - Ford Escort RS Cosworth');
+  assert.deepEqual(colourLabels([a, b]), [undefined, 'blue']);
+});
