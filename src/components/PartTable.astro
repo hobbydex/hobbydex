@@ -40,7 +40,7 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
     <span class="muted count"></span>
   </p>
   <div class="side"></div>
-  <table>
+  <div class="tablescroll"><table>
     <thead><tr><th></th><th data-k="text">Part</th>{cols.map((c) => <th data-k={c.num ? 'num' : 'text'} class={`${c.num ? 'num' : ''}${c.field.compare_only ? ' conly' : ''}`}>{c.label}</th>)}</tr></thead>
     <tbody>
       {rows.map(({ p, vals }) => <tr data-brand={p.brand} data-known={vals.some((v) => v !== undefined) ? '1' : ''} data-discontinued={isDisc(p) ? '' : undefined}>
@@ -53,7 +53,7 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
           return <td class={`${cols[i].num ? 'num' : ''}${cols[i].field.compare_only ? ' conly' : ''}`}>{sw && <span class="swatch" title="approximate colour" set:html={sw} />}{dot && <Fragment set:html={dot} />}{cols[i].plug && v ? plugLinks(String(v)).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>) : (v ?? '')}</td>; })}
       </tr>)}
     </tbody>
-  </table>
+  </table></div>
 </div>
 <script>
   for (const box of document.querySelectorAll<HTMLElement>('.parttable')) {
@@ -126,7 +126,8 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
         const r = tb.insertRow(); const th = document.createElement('th'); th.textContent = h; r.appendChild(th);
         for (const tr of trs) { const td = r.insertCell(); td.innerHTML = tr.cells[i + 1].innerHTML; }
       });
-      side.replaceChildren(Object.assign(document.createElement('h2'), { textContent: 'Side by side' }), tb);
+      const scroll = document.createElement('div'); scroll.className = 'tablescroll'; scroll.appendChild(tb);
+      side.replaceChildren(Object.assign(document.createElement('h2'), { textContent: 'Side by side' }), scroll);
       side.scrollIntoView({ behavior: 'smooth' });
     });
   }
