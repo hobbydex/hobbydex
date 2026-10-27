@@ -4,7 +4,7 @@ import { db, key, url, countryName, dateText, sourceHref, yearDoubt } from '../.
 import DateDoubt from '../../../components/DateDoubt.astro';
 import Discontinued from '../../../components/Discontinued.astro';
 import DoubtNote from '../../../components/DoubtNote.astro';
-import { catName } from '../../../lib/categories';
+import { catName, categoryIcon } from '../../../lib/categories';
 import Icon from '../../../components/Icon.astro';
 import CategoryBoxes from '../../../components/CategoryBoxes.astro';
 import ReleaseArt from '../../../components/ReleaseArt.astro';
@@ -120,7 +120,7 @@ const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length 
         for (const [n, name, cat, disc] of hits.slice(0, MAX)) {
           const tr = document.createElement('tr');
           tr.innerHTML = `<td class="num"><a href="${esc(href(n))}">${esc(n)}</a></td><td>${esc(name)}${disc ? DISC : ''}</td><td class="muted">`
-            + (cat ? `<svg class="icon" aria-hidden="true"><use href="/icons.svg#${esc(cat)}"/></svg> ${esc(cats[cat] ?? cat)}` : '') + '</td>';
+            + (cat ? `<svg class="icon" aria-hidden="true"><use href="/icons.svg#${esc(categoryIcon(cat))}"/></svg> ${esc(cats[cat] ?? cat)}` : '') + '</td>';
           list.appendChild(tr);
         }
         table.hidden = hits.length === 0;
