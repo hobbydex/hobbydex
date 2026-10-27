@@ -1,13 +1,13 @@
 // Kit types (the kit `category`): labels, page order and their icon in /icons.svg.
 export const kitTypeLabel: Record<string, string> = {
   buggy: 'Buggies', truggy: 'Truggies', 'stadium-truck': 'Stadium trucks', 'short-course': 'Short course', monster: 'Monster trucks',
-  'desert-truck': 'Desert trucks', truck: 'Trucks', 'race-truck': 'Race trucks', trailer: 'Trailers', crawler: 'Crawlers', touring: 'Touring cars', gt: 'GT', 'on-road': 'On-road', formula: 'Formula',
+  'desert-truck': 'Desert trucks', truck: 'Trucks', 'tractor-truck': 'Tractor trucks', 'race-truck': 'Race trucks', trailer: 'Trailers', crawler: 'Crawlers', touring: 'Touring cars', gt: 'GT', 'on-road': 'On-road', formula: 'Formula',
   'pan-car': 'Pan cars', rally: 'Rally', 'street-basher': 'Street bashers', drift: 'Drift cars', drag: 'Drag cars', lowrider: 'Lowriders', oval: 'Oval cars',
   'speed-run': 'Speed run', kart: 'Karts', motorcycle: 'Motorcycles', tank: 'Tanks', construction: 'Construction', car: 'Other cars', boat: 'Boats',
 };
 export const kitTypeOne: Record<string, string> = {
   buggy: 'buggy', truggy: 'truggy', 'stadium-truck': 'stadium truck', 'short-course': 'short course truck', monster: 'monster truck',
-  'desert-truck': 'desert truck', truck: 'truck', 'race-truck': 'race truck', trailer: 'trailer', crawler: 'crawler', touring: 'touring car', gt: 'GT car', 'on-road': 'on-road car', formula: 'formula car',
+  'desert-truck': 'desert truck', truck: 'truck', 'tractor-truck': 'tractor truck', 'race-truck': 'race truck', trailer: 'trailer', crawler: 'crawler', touring: 'touring car', gt: 'GT car', 'on-road': 'on-road car', formula: 'formula car',
   'pan-car': 'pan car', rally: 'rally car', 'street-basher': 'street basher', drift: 'drift car', drag: 'drag car', lowrider: 'lowrider', oval: 'oval car',
   'speed-run': 'speed run car', kart: 'kart', motorcycle: 'motorcycle', tank: 'tank', construction: 'construction machine', car: 'car', boat: 'boat',
 };
@@ -19,7 +19,8 @@ export const kitTypeAbout: Record<string, string> = {
   'short-course': "Modelled on full-size short course race trucks: a truck body with wide fenders over long-travel suspension, and bumpers front and rear so trucks can lean on each other in a race. 2WD or 4WD.",
   monster: "Big wheels, high ground clearance and long suspension travel, made for jumping and bashing rather than racing.",
   'desert-truck': "Modelled on desert racers and trophy trucks: a wide stance and very long suspension travel under a body over a tube frame.",
-  truck: "Scale road trucks and tractor units, often with trailers, lights and sound.",
+  truck: "Scale rigid road trucks: tippers, dump trucks, hook lifts, cranes, military trucks and 4x4 pickups, often with lights and sound.",
+  'tractor-truck': "Scale semi tractor units (Sattelzugmaschinen): a cab and chassis with a fifth wheel and no fixed body, often with a trailer, lights and sound. Some carry a loader crane or a tipper semi-trailer.",
   'race-truck': "Modelled on the cab-over semi trucks of truck racing: a tractor unit without a trailer, on an on-road car chassis.",
   trailer: "A trailer or dolly sold on its own, towed by a tractor truck, a machine or a crawler: semi-trailers, low loaders, tippers and timber dollies. Nothing drives its wheels; some have working hydraulics, lights or landing legs.",
   crawler: "Built for slow, technical off-road driving: climbing rocks, trails and steep or rough terrain. Solid axles on links, lots of suspension articulation, low gearing, and usually a scale body.",
@@ -42,6 +43,6 @@ export const kitTypeAbout: Record<string, string> = {
   car: "Cars that fit none of the other types.",
   boat: "Radio controlled boats.",
 };
-const ICON: Record<string, string> = { 'street-basher': 'car', 'speed-run': 'pan-car', gt: 'touring', 'on-road': 'touring' };
+const ICON: Record<string, string> = { 'street-basher': 'car', 'speed-run': 'pan-car', gt: 'touring', 'on-road': 'touring', 'tractor-truck': 'truck' };
 export const kitTypeIcon = (c?: string) => ICON[c ?? 'car'] ?? c ?? 'car';
 export const kitTypeOrder = Object.keys(kitTypeLabel);
