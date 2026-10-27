@@ -43,7 +43,7 @@ export function colourwayGroups(pool: Release[]): Release[][] {
     if (!r.number) continue;
     const name = nameKey(r);
     if (!name) continue;
-    const k = `${r.brand}|${r.kit}|${r.kind}|${name}|${r.status === 'discontinued'}`;
+    const k = `${r.brand}|${r.kit}|${r.kind ?? ''}|${name}|${r.status === 'discontinued'}`;
     buckets.set(k, [...(buckets.get(k) ?? []), r]);
   }
   // releases sharing a range (data/releases `range`: versions of one car that differ in colour or livery, set by the
