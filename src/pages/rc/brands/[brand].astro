@@ -95,7 +95,7 @@ const uncat = uncategorised.get(brand.id) ?? [];
   <h2 id="parts">Parts <span class="muted">({parts.length})</span></h2>
   {(cats.length > 0 || uncat.length > 0) && <CategoryBoxes label={`${brand.name} parts by category`} items={[
     ...cats.map(([c, n]) => ({ category: c, n, href: `/rc/categories/${c}/${key(brand.id)[0]}/`, title: `${n} ${brand.name} ${catName(c).toLowerCase()} part${n > 1 ? 's' : ''}` })),
-    ...(uncat.length > 0 ? [{ category: '', n: uncat.length, icon: 'parts-tree', name: 'Not yet categorised', href: `/rc/categories/${uncatSlug}/${key(brand.id)[0]}/`, title: `${uncat.length} ${brand.name} part${uncat.length > 1 ? 's' : ''} not yet categorised` }] : []),
+    ...(uncat.length > 0 ? [{ category: '', n: uncat.length, icon: 'parts-tree', name: 'No category yet', href: `/rc/categories/${uncatSlug}/${key(brand.id)[0]}/`, title: `${uncat.length} ${brand.name} part${uncat.length > 1 ? 's' : ''} not yet categorised` }] : []),
   ]} />}
   {parts.length > 0 && <div class="brandsearch" data-pagefind-ignore data-src={`/rc/brands/${key(brand.id)[0]}/parts.json`} data-base={`/rc/parts/${key(brand.id)[0]}/`} data-cats={JSON.stringify(Object.fromEntries(cats.map(([c]) => [c, catName(c)])))}>
     <div class="sfield"><Icon name="search" /><input type="search" class="search-box" placeholder={`Find a ${brand.name} part by number or name`} aria-label="Find a part" autocomplete="off" /></div>
