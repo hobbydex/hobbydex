@@ -9,6 +9,7 @@ import CopyButton from '../../../../components/CopyButton.astro';
 import OtherCarSets from '../../../../components/OtherCarSets.astro';
 import Videos from '../../../../components/Videos.astro';
 import { gtinLabel } from '../../../../lib/gtin';
+import { gtin13 } from '../../../../lib/gtinCode';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import DateText from '../../../../components/DateText.astro';
@@ -121,7 +122,7 @@ const videos = [...new Set([...(db.videosByRelease.get(release.id) ?? []), ...(d
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
 // the search index (Base's hidden block): brand, name, item number, platform, type, scale, year, depicted make and model, series
-const indexWords = [brandName(release.brand), release.number, release.name, kit.placeholder ? '' : kit.name, shownCat && (kitTypeOne[shownCat] ?? shownCat),
+const indexWords = [brandName(release.brand), release.number, release.gtin, release.gtin && gtin13(release.gtin), release.name, kit.placeholder ? '' : kit.name, shownCat && (kitTypeOne[shownCat] ?? shownCat),
   release.scale ?? kit.scale, yearOf(release) || '', release.depicts?.make, release.depicts?.model, release.series].filter(Boolean).join(' ');
 const indexFilters = [release.status === 'discontinued' && 'status:discontinued', release.depicts?.make && `make:${release.depicts.make}`].filter((x): x is string => !!x);
 ---

@@ -1,0 +1,284 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+<Base title="Scan a barcode" description="Find a part or release by its barcode or its printed part number, with a scanner or your phone camera, and see which cars it fits. The code is looked up in your browser; nothing you scan is sent to a server.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Scan</div>
+  <h1>Scan a barcode</h1>
+  <p data-pagefind-ignore>A bag with no car name? Scan its barcode, or type the part number printed on it. Hobbydex shows the parts with that code or number, which cars they fit and which releases contain them.</p>
+
+  <p class="scan-main" data-pagefind-ignore><button type="button" id="camera-btn" class="primary">Scan with camera</button></p>
+  <div id="camera" class="scan-camera" hidden data-pagefind-ignore>
+    <video id="video" playsinline muted></video>
+    <p class="muted">Hold the barcode or the part number inside the picture. It is read as soon as it is in focus.</p>
+    <button type="button" id="camera-stop">Stop camera</button>
+  </div>
+
+  <form class="scan-form" id="scan-form" role="search" data-pagefind-ignore>
+    <label for="code">Or type or scan a barcode or part number</label>
+    <div class="scan-row">
+      <input class="search-box" id="code" name="code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. 8044, 51531, 4250650912253" />
+      <button type="submit">Look up</button>
+    </div>
+  </form>
+
+  <p class="scan-status" id="status" role="status" aria-live="polite" data-pagefind-ignore></p>
+  <div id="results" data-pagefind-ignore></div>
+
+  <h2>How it works</h2>
+  <ul data-pagefind-ignore>
+    <li>A handheld scanner types the code and then Enter, like a keyboard. On a computer the box has the focus, ready for it.</li>
+    <li>The camera reads EAN-13 (JAN too), UPC-A, EAN-8, UPC-E, Code 128, Code 39 and QR codes. Chrome on Android and desktop use the browser's own reader; elsewhere, Safari on iPhone included, the button loads a small reader from jsdelivr.net the first time it is pressed.</li>
+    <li>A typed or scanned number is looked up as a barcode first, then as a printed part number, across all brands.</li>
+    <li>The lookup loads small index files from hobbydex.com. Their names carry some digits of the code, or a hash of the number, never the whole code, and no photo or typed text is sent.</li>
+  </ul>
+  <p data-pagefind-ignore>A code or number that is not in Hobbydex yet is shown as typed, so a missing record can be <a href="https://github.com/hobbydex/hobbydex-rc/issues/new">reported</a>.</p>
+
+  <script>
+    import { gtin13, gtinPath, partNoKey, bucketOf, PARTNO_BUCKETS, FIT_BUCKETS } from '../../lib/gtinCode';
+
+    type Hit = [string, string, 'part' | 'release'];
+    type Fit = { p: [string, string][]; pn: number; r: [string, string, string][]; rn: number };
+
+    const $ = (id: string) => document.getElementById(id) as HTMLElement;
+    const form = $('scan-form') as HTMLFormElement, input = $('code') as HTMLInputElement;
+    const status = $('status'), results = $('results'), cameraBtn = $('camera-btn') as HTMLButtonElement;
+    const camera = $('camera'), video = $('video') as HTMLVideoElement;
+    const KIND = { part: 'part', release: 'release' } as const;
+
+    // a phone keeps the keyboard down until a field is tapped; the camera is its main action
+    if (!matchMedia('(pointer: coarse)').matches) input.focus();
+
+    // each index file is fetched once; a missing file is an empty index, a failed download is retried later
+    const files = new Map<string, Promise<any>>();
+    function file(dir: string, name: string): Promise<any> {
+      const path = `/${dir}/${name}.json`;
+      if (!files.has(path)) {
+        const p = fetch(path).then((r) => (r.ok ? r.json() : {}));
+        p.catch(() => files.delete(path));
+        files.set(path, p);
+      }
+      return files.get(path)!;
+    }
+    const fitOf = async (u: string): Promise<Fit | undefined> => (await file('fit', String(bucketOf(u, FIT_BUCKETS))))[u];
+
+    const el = (tag: string, text?: string, cls?: string) => {
+      const e = document.createElement(tag);
+      if (text !== undefined) e.textContent = text;
+      if (cls) e.className = cls;
+      return e;
+    };
+    const link = (href: string, text: string) => { const a = document.createElement('a'); a.href = href; a.textContent = text; return a; };
+
+    // a list of platforms or releases, with the count of those not shown
+    function fitList(title: string, items: [string, string, string?][], total: number) {
+      const wrap = el('div', undefined, 'scan-fit');
+      wrap.append(el('h3', `${title} (${total})`));
+      if (!total) { wrap.append(el('p', 'None listed yet.', 'muted')); return wrap; }
+      const ul = el('ul');
+      for (const [name, href, role] of items) {
+        const li = el('li');
+        li.append(link(href, name));
+        if (role) li.append(el('span', ` ${role}`, 'muted'));
+        ul.append(li);
+      }
+      wrap.append(ul);
+      if (total > items.length) wrap.append(el('p', `and ${total - items.length} more: see the part page`, 'muted'));
+      return wrap;
+    }
+
+    async function card(hit: Hit, open: boolean) {
+      const [href, title, kind] = hit;
+      const d = document.createElement('details');
+      d.open = open;
+      const s = el('summary');
+      s.append(el('span', title), el('span', ` ${KIND[kind]}`, 'muted'));
+      d.append(s);
+      if (kind === 'part') {
+        const f = await fitOf(href);
+        if (f) {
+          d.append(fitList('Fits these platforms', f.p, f.pn), fitList('In these releases', f.r, f.rn));
+        } else {
+          d.append(el('p', 'No platform or release lists this part yet.', 'muted'));
+        }
+      }
+      d.append(el('p', '', 'scan-open'));
+      d.lastElementChild!.append(link(href, kind === 'part' ? 'Open the part page' : 'Open the release page'));
+      return d;
+    }
+
+    function show(text: string) {
+      status.textContent = text;
+      results.replaceChildren();
+    }
+
+    let last = { key: '', at: 0 };
+    async function lookup(raw: string) {
+      const text = raw.trim();
+      if (!text) return;
+      const code = gtin13(text);
+      const key = partNoKey(text);
+      // a scanner's Enter can follow the automatic lookup of the same input: one lookup is enough
+      const stamp = (code ?? '') + '|' + key;
+      if (stamp === last.key && Date.now() - last.at < 1500) return;
+      last = { key: stamp, at: Date.now() };
+      show(`Looking up ${text}...`);
+      let hits: Hit[] = [];
+      try {
+        if (code) {
+          // a big prefix is split in threes of digits, down to small files (see src/pages/gtin/[...shard].json.ts)
+          let depth = 3, idx = await file('gtin', gtinPath(code.slice(0, depth)));
+          while (idx.split) { depth = idx.split; idx = await file('gtin', gtinPath(code.slice(0, depth))); }
+          hits = idx[code] ?? [];
+        }
+        if (!hits.length && key.length >= 2) hits = (await file('partno', String(bucketOf(key, PARTNO_BUCKETS))))[key] ?? [];
+      } catch {
+        show('The index did not load. Check the connection and try again.');
+        return;
+      }
+      if (!hits.length) { show(`Not in Hobbydex yet: ${text}`); return; }
+      const many = hits.length > 1;
+      show(many ? `${hits.length} records match ${text}. Pick one to see its fit.` : `Found: ${text}`);
+      // up to ten records open with their fit; a longer list is only the names
+      const cards = await Promise.all(hits.slice(0, 10).map((h) => card(h, !many)));
+      results.replaceChildren(...cards);
+      if (hits.length > 10) results.append(el('p', `${hits.length - 10} more records: refine the number.`, 'muted'));
+    }
+
+    form.addEventListener('submit', (e) => { e.preventDefault(); lookup(input.value); });
+
+    // A keyboard-wedge scanner types a code in a few milliseconds per digit; a person needs 100 ms or more. A code
+    // typed that fast is looked up as it arrives, so it shows even when the scanner sends no Enter.
+    let burst = 0;
+    input.addEventListener('input', () => {
+      const v = input.value.replace(/\s+/g, '');
+      const now = performance.now();
+      if (v.length === 1) burst = now;
+      if (/^\d+$/.test(v) && [8, 12, 13].includes(v.length) && now - burst < 50 * (v.length - 1)) lookup(v);
+    });
+
+    // ---- camera ----
+    let stream: MediaStream | null = null, timer = 0;
+    let read: ((v: HTMLVideoElement) => Promise<string | null>) | null = null;
+
+    function loadZXing(): Promise<any> {
+      const z = (window as any).ZXing;
+      if (z) return Promise.resolve(z);
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+        s.onload = () => resolve((window as any).ZXing);
+        s.onerror = () => reject(new Error('the reader did not load'));
+        document.head.append(s);
+      });
+    }
+
+    // the browser's detector where it reads these formats; otherwise ZXing, loaded only now
+    async function reader(): Promise<(v: HTMLVideoElement) => Promise<string | null>> {
+      const BD = (window as any).BarcodeDetector;
+      if (BD) {
+        const have: string[] = await BD.getSupportedFormats().catch(() => []);
+        const formats = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'].filter((f) => have.includes(f));
+        if (formats.length && formats.some((f) => f.startsWith('ean') || f.startsWith('upc'))) {
+          const detector = new BD({ formats });
+          return async (v) => ((await detector.detect(v)) as { rawValue: string }[])[0]?.rawValue ?? null;
+        }
+      }
+      const Z = await loadZXing();
+      const hints = new Map();
+      hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E,
+        Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.CODE_39, Z.BarcodeFormat.QR_CODE]);
+      hints.set(Z.DecodeHintType.TRY_HARDER, true);
+      const zx = new Z.MultiFormatReader();
+      zx.setHints(hints);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+      return async (v) => {
+        if (!v.videoWidth) return null;
+        canvas.width = 640;
+        canvas.height = Math.round((640 * v.videoHeight) / v.videoWidth);
+        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        try {
+          return zx.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(canvas)))).getText();
+        } catch {
+          return null;   // no code in this frame
+        }
+      };
+    }
+
+    function stopCamera() {
+      clearTimeout(timer);
+      stream?.getTracks().forEach((t) => t.stop());
+      stream = null;
+      video.srcObject = null;
+      camera.hidden = true;
+    }
+
+    async function startCamera() {
+      if (stream) return;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        show('This browser cannot use the camera here. Camera access needs the https address of the site.');
+        return;
+      }
+      show('Starting the camera...');
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      } catch (e) {
+        show(`The camera is not available: ${(e as Error).name}. Type the code or the part number instead.`);
+        return;
+      }
+      camera.hidden = false;
+      video.srcObject = stream;
+      try {
+        await video.play();
+        read ??= await reader();
+      } catch (e) {
+        stopCamera();
+        show(`The camera reader did not start: ${(e as Error).message}. Type the code instead.`);
+        return;
+      }
+      show('Point the camera at the barcode or the part number.');
+      const frame = async () => {
+        if (!stream) return;
+        const text = await read!(video);
+        if (!stream) return;   // stopped while the frame was read
+        if (text) {
+          stopCamera();
+          input.value = text;
+          lookup(text);
+        } else {
+          timer = window.setTimeout(frame, 120);
+        }
+      };
+      frame();
+    }
+
+    cameraBtn.addEventListener('click', () => startCamera());
+    $('camera-stop').addEventListener('click', () => { stopCamera(); show(''); });
+    // the camera light goes off when the page is left or hidden
+    window.addEventListener('pagehide', stopCamera);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopCamera(); });
+
+    // ?code=... (a link from elsewhere, or a search for a barcode or number) looks it up at once
+    const q = new URLSearchParams(location.search).get('code');
+    if (q) { input.value = q; lookup(q); }
+  </script>
+
+  <style>
+    .scan-main { margin: 1rem 0; }
+    #camera-btn.primary { font-size: 1.15rem; font-weight: 600; width: 100%; padding: 0.9rem 1rem; }
+    @media (min-width: 600px) { #camera-btn.primary { width: auto; } }
+    .scan-camera { margin: 0.75rem 0; }
+    .scan-camera video { width: 100%; max-width: 480px; max-height: 60vh; background: #000; border-radius: 6px; display: block; }
+    .scan-form { margin-top: 1.5rem; }
+    .scan-form label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
+    .scan-row { display: flex; gap: 0.5rem; align-items: center; margin: 0.5rem 0; }
+    .scan-row input { flex: 1; min-width: 0; font-size: 1.15rem; font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
+    .scan-row button, #camera-stop { padding: 0.5rem 0.9rem; }
+    .scan-status { min-height: 1.5em; font-weight: 600; }
+    #results details { border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.75rem; margin: 0.5rem 0; }
+    #results summary { cursor: pointer; font-weight: 600; }
+    .scan-fit h3 { font-size: 0.95rem; margin: 0.75rem 0 0.25rem; }
+    .scan-fit ul { margin: 0; padding-left: 1.2rem; }
+    .scan-open { margin: 0.75rem 0 0; }
+  </style>
+</Base>
