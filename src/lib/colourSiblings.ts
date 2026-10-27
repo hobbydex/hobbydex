@@ -76,7 +76,7 @@ function indexOf(pool: Release[]): Map<string, Entry[]> {
     const p = numberParts(r.number);
     const name = nameKey(r);
     if (!p || !name) continue;
-    const k = `${r.brand}|${r.kit}|${r.kind}|${p.pattern}|${p.stem}|${name}`;
+    const k = `${r.brand}|${r.kit}|${r.kind ?? ''}|${p.pattern}|${p.stem}|${name}`;
     idx.set(k, [...(idx.get(k) ?? []), { r, p, name, key: colourKey(r, p) }]);
   }
   indexes.set(pool, idx);
@@ -99,7 +99,7 @@ function siblingsByNumber(release: Release, pool: Release[]): Release[] {
   if (!p || !name) return [];
   const key = colourKey(release, p);
   if (!key) return [];
-  const candidates = indexOf(pool).get(`${release.brand}|${release.kit}|${release.kind}|${p.pattern}|${p.stem}|${name}`) ?? [];
+  const candidates = indexOf(pool).get(`${release.brand}|${release.kit}|${release.kind ?? ''}|${p.pattern}|${p.stem}|${name}`) ?? [];
   return candidates
     .filter(({ r, key: k }) => r.id !== release.id && r.number !== release.number && !!k && k !== key
       && (release.year === undefined || r.year === undefined || Math.abs(release.year - r.year) <= 1))

@@ -111,3 +111,10 @@ test('releases sharing a range group whatever their names and numbers say; the g
   assert.equal(groupName([a, b]), 'VectR4 - Ford Escort RS Cosworth');
   assert.deepEqual(colourLabels([a, b]), [undefined, 'blue']);
 });
+
+test('releases with no kind (not stated by any source) group with each other like any kind', () => {
+  const a = rel('a', 'X-1-R', 'Test Truck, Red', { kind: undefined, color: 'red' });
+  const b = rel('b', 'X-1-B', 'Test Truck, Blue', { kind: undefined, color: 'blue' });
+  const c = rel('c', 'X-1-K', 'Test Truck, Kit', { kind: 'kit', color: 'green' });
+  assert.deepEqual(groups([a, b, c]), [['X-1-B', 'X-1-R'], ['X-1-K']]);
+});
