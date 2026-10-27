@@ -46,6 +46,14 @@ export function colourwayGroups(pool: Release[]): Release[][] {
     const k = `${r.brand}|${r.kit}|${r.kind}|${name}|${r.status === 'discontinued'}`;
     buckets.set(k, [...(buckets.get(k) ?? []), r]);
   }
+  // releases sharing a range (data/releases `range`: versions of one car that differ in colour or livery, set by the
+  // data's linker) are one group whatever their names and item numbers say
+  const byRange = new Map<string, Release>();
+  for (const r of pool) {
+    if (!r.range) continue;
+    const first = byRange.get(r.range);
+    if (first) parent.set(find(r.id), find(first.id)); else byRange.set(r.range, r);
+  }
   for (const members of buckets.values()) {
     for (let i = 0; i < members.length; i++) for (let j = i + 1; j < members.length; j++) {
       const a = members[i], b = members[j];
@@ -83,6 +91,13 @@ const esc = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * taken out ("FURAGO XD, Blue" -> "FURAGO XD"). A single release keeps its own name. */
 export function groupName(group: Release[]): string {
   if (group.length === 1) return group[0].name;
+  // versions in one range differ in a trailing colour or livery clause: the name is what they share
+  if (group[0].range && group.every((r) => r.range === group[0].range)) {
+    const ws = group.map((r) => [...r.name.matchAll(/\S+/g)]);
+    let n = 0;
+    while (ws.every((w) => w[n] && w[n][0].toLowerCase() === ws[0][n][0].toLowerCase())) n++;
+    if (n > 0) return group[0].name.slice(0, ws[0][n - 1].index! + ws[0][n - 1][0].length).replace(/[\s,;:/-]+$/, '').trim();
+  }
   const labels = colourLabels(group);
   const i = labels.findIndex((l) => l === undefined);
   const k = i >= 0 ? i : 0;

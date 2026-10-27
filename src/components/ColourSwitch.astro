@@ -1,7 +1,7 @@
 ---
 // The colour switch of a part whose range is one part in several colours: a swatch per version, each a link to
 // that version's page; the page's own part is marked with aria-current. A version without a palette colour shows
-// its number. The colour name is the swatch's accessible name and tooltip (the Colour fact names it on the page).
+// its livery name (a release's `livery`, "Rally Sanremo") or else its number; with both, the swatch's name has both. The colour name is the swatch's accessible name and tooltip (the Colour fact names it on the page).
 // A version's link is its part page, or its href when given (a release's colourway). size="small" draws the swatches
 // about the size of body text (a release's colourway under a heading), each with padding for a tap target;
 // size="inline" draws small dots on the line of a table row's name, like the colour dot after a release title.
@@ -11,11 +11,11 @@ import { colourDotStyle } from '../lib/colourDot';
 interface Props { items: SwitchItem[]; label?: string; lead?: string; size?: 'small' | 'inline' }
 const { items, label: navLabel = 'Colours of this part', lead, size } = Astro.props;
 const style = (i: SwitchItem) => colourDotStyle(i.colour);
-const label = (i: SwitchItem) => [i.colour, i.number].filter(Boolean).join(', ') || 'this part';
+const label = (i: SwitchItem) => [i.text, i.colour, i.number].filter(Boolean).join(', ') || 'this part';
 ---
 <nav class={size ? `colourswitch ${size}` : 'colourswitch'} aria-label={navLabel}>
   {lead && <span class="colourswitch-lead">{lead}</span>}
   <ul>
-    {items.map((i) => <li><a href={i.href ?? url.part(i.id)} class={style(i) ? 'swatch' : 'swatch nodot'} style={style(i)} aria-label={label(i)} title={label(i)} aria-current={i.current ? 'true' : undefined}>{!style(i) && (i.number ?? '?')}</a></li>)}
+    {items.map((i) => <li><a href={i.href ?? url.part(i.id)} class={style(i) ? 'swatch' : 'swatch nodot'} style={style(i)} aria-label={label(i)} title={label(i)} aria-current={i.current ? 'true' : undefined}>{!style(i) && (i.text ?? i.number ?? '?')}</a></li>)}
   </ul>
 </nav>

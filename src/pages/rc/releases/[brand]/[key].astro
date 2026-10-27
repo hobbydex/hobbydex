@@ -77,7 +77,7 @@ const needs = (release.needs ?? []).map((n) => ({ ...n, p: n.part ? db.part.get(
 const siblings = colourSiblings(release, db.releases);
 // the colourway (lib/colourways.ts): the same release in each colour of the kit, the switch under the heading
 const colourway = colourwayOf(release, db.releasesByKit.get(release.kit) ?? [release]);
-const colourItems = colourway.length > 1 ? colourLabels(colourway).map((colour, i) => ({ id: colourway[i].id, number: colourway[i].number, colour, current: colourway[i].id === release.id, href: url.release(colourway[i].id) })) : [];
+const colourItems = colourway.length > 1 ? colourLabels(colourway).map((colour, i) => ({ id: colourway[i].id, number: colourway[i].number, colour, text: colourway[i].livery, current: colourway[i].id === release.id, href: url.release(colourway[i].id) })) : [];
 const listedFrom = (release.contains ?? []).length === 0 ? siblings.filter((s) => (s.contains ?? []).length > 0).sort((a, b) => b.contains!.length - a.contains!.length)[0] : undefined;
 const rows = ((listedFrom ?? release).contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
 // current parts before discontinued ones, each group in part-number order

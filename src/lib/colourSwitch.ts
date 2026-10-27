@@ -4,7 +4,7 @@
 import type { Part } from './data';
 import { colourDotStyle } from './colourDot.ts';
 
-export type SwitchItem = { id: string; number?: string; colour?: string; current: boolean; href?: string };
+export type SwitchItem = { id: string; number?: string; colour?: string; text?: string; current: boolean; href?: string };
 
 // the palette colour words (one or two words) in a name, longer phrases first: "light blue" keeps "blue" out
 function nameColourWords(name: string): string[] {

@@ -2,7 +2,8 @@
 // and LOS-1056T2, Arrma ARA4302V3T1 and ARA4302V3T2, or the letter-coded 30615C. Two releases pair when they share
 // the brand, kit and kind, their item numbers share a stem and differ only in the colour code, their names are
 // equal once colour words and set words (readyset, a trailing "w/ ..." clause) are removed, their colours differ,
-// and their years (when both known) are at most a year apart. Strict on purpose: no pairing without an item number,
+// and their years (when both known) are at most a year apart. Releases that share a `range` (the data's explicit
+// group of colour and livery versions) pair as well, whatever their numbers and names. Strict on purpose: no pairing without an item number,
 // a colour on both sides, or a name that is the same.
 import type { Release } from './data';
 
@@ -84,6 +85,15 @@ function indexOf(pool: Release[]): Map<string, Entry[]> {
 
 /** The colour siblings of a release among the pool, by item number. Empty when none pair with it. */
 export function colourSiblings(release: Release, pool: Release[] = []): Release[] {
+  const byNumber = siblingsByNumber(release, pool);
+  if (!release.range) return byNumber;
+  // releases sharing the release's `range` (data: versions of one car that differ in colour or livery) pair too
+  const seen = new Set(byNumber.map((r) => r.id));
+  return [...byNumber, ...pool.filter((r) => r.range === release.range && r.id !== release.id && !seen.has(r.id))]
+    .sort((a, b) => (a.number ?? '').localeCompare(b.number ?? '', undefined, { numeric: true }));
+}
+
+function siblingsByNumber(release: Release, pool: Release[]): Release[] {
   const p = numberParts(release.number);
   const name = nameKey(release);
   if (!p || !name) return [];
