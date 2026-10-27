@@ -2,12 +2,15 @@
 import Base from '../../../layouts/Base.astro';
 import PartTable from '../../../components/PartTable.astro';
 import { db } from '../../../lib/data';
-import { escFields } from '../../../lib/compareColumns';
-const parts = db.parts.filter((p) => p.category === 'esc');
+import { escFields, isEscAccessory } from '../../../lib/compareColumns';
+// cases, covers, fans and heatsinks in the esc category are not ESCs: see isEscAccessory
+const escs = db.parts.filter((p) => p.category === 'esc');
+const parts = escs.filter((p) => !isEscAccessory(p));
+const accessories = escs.length - parts.length;
 ---
 <Base title="Compare ESCs" description="Speed controllers side by side: brushed or brushless, current, BEC, LiPo cells, plugs, waterproofing and scales, from the makers' specifications.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / ESCs</div>
   <h1>Compare ESCs</h1>
-  <p class="muted">Figures are the maker's. Click a heading to sort, tick two or more to see them side by side. The plug columns link to their connector specs: check the battery and motor plugs before buying. <a href="/rc/categories/esc/">ESC category</a> · <a href="/rc/motors/">Compare motors</a></p>
+  <p class="muted">Figures are the maker's. Click a heading to sort, tick two or more to see them side by side. The plug columns link to their connector specs: check the battery and motor plugs before buying. {accessories} ESC accessories (cases, covers, fans, heatsinks) are left out. <a href="/rc/categories/esc/">ESC category</a> · <a href="/rc/motors/">Compare motors</a></p>
   <PartTable category="esc" parts={parts} fields={escFields} />
 </Base>

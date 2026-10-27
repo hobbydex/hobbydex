@@ -53,3 +53,10 @@ export const motorFields: Column[] = [
 // left out when its name says it is a spare. A name with no spare word and no figure stays in.
 const SPARE = /\b(rotors?|armature|commutator|brushes|brush|end ?bells?|end ?plates?|endplatte|end ?caps?|rebuild|(rebuild|replacement|conversion|spare|upgrade|motor) kits?|conversions?|board|pcb|sensor units?|sensor pcb|solder|tabs?|covers?|seat|brackets?|shims?|adapter|adaptor|heat ?sinks?|cooler|fans?|fixing|mou?nting|balancer|cleaning|spray|adjust\w*|positioning|accessor\w*|spare|dust|gasket|screws?|bearings?|wires?|cables?|magnets?|springs?|caps?)\b/i;
 export const isMotorSpare = (p: Part) => p.kv === undefined && p.turns === undefined && SPARE.test(p.name);
+
+// ESC accessories in the esc category: cases, covers, dust covers, heatsinks, fans, programming boxes. A part with a
+// current or cell figure is an ESC; one without either is left out when its name says it is an accessory, unless
+// the name also says it is a controller, combo, system or board (a "Sensored ESC ... with FAN" stays in).
+const ESC_ACC = /\b(case|cases|covers?|heat ?sinks?|fans?|capacitors?|caps?|housing|geh\w+use|box|wire|pcb|programm\w*)\b/i;
+const ESC_KEEP = /\b(sensored|brushless|brushed|waterproof|speed|controllers?|regler|combo|system|power|motor|receiver|reciever|rx|unit|speedo|board|module)\b|\+/i;
+export const isEscAccessory = (p: Part) => p.current_a === undefined && p.lipo_cells === undefined && ESC_ACC.test(p.name) && !ESC_KEEP.test(p.name);
