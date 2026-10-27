@@ -105,7 +105,7 @@ const iconName = part.category === 'pin' && /screw[\s-]*pins?/i.test(part.name) 
 const bag = bagItems(part);
 const drawStd = drawing?.standard ? db.standardByCode.get(drawing.standard) : undefined;
 // a part of a brand that prints no item numbers has none: the name is its title, there is no number to copy
-const numName = part.number ? `${part.number} ${part.name}` : part.name;
+const numName = part.number && part.name !== part.number ? `${part.number} ${part.name}` : part.name;
 // unloaded speed of a brushless motor: kV x nominal LiPo voltage, for the cells the maker states (else 2S and 3S)
 const noLoad = (kv: number, cells?: number[]) => {
   const [lo, hi] = cells?.length === 2 ? cells : [2, 3];
@@ -143,7 +143,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
 ---
 <Base title={numName} description={metaDescription} kind="part" sub={brand?.name} words={indexWords} filters={indexFilters} icon={iconName}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
-  <h1><span>{part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</span><Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
+  <h1><span>{part.number && part.name !== part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</span><Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
   {onColours && <ColourSwitch items={colourSwitchItems(part, range)} />}
   {part.sources?.name && <p><FactSource field="name" url={part.sources.name} dot={false} /></p>}
   {(part as { name_source?: string }).name_source === 'ocr' && <p class="muted ocrname" data-pagefind-ignore>This name was read by OCR from a scanned manual and is not checked yet; it may contain reading errors.</p>}
