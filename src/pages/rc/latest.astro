@@ -1,0 +1,61 @@
+---
+import Base from '../../layouts/Base.astro';
+import Discontinued from '../../components/Discontinued.astro';
+import ReleaseArt from '../../components/ReleaseArt.astro';
+import DateText from '../../components/DateText.astro';
+import DateDoubt from '../../components/DateDoubt.astro';
+import DoubtNote from '../../components/DoubtNote.astro';
+import SeenNote from '../../components/SeenNote.astro';
+import { db, url, brandName, dateDoubt } from '../../lib/data';
+import { groupName, releaseColour } from '../../lib/colourways';
+import { kitTypeOne } from '../../lib/kitTypes';
+import { TABS, latestRows } from '../../lib/latest';
+// Everything with a date, newest first: the newest 100 of every tab, and of Everything the newest 150. Items with no
+// date at all never show; a date that is only a seen_by bound carries the asterisk of the releases list.
+const { rows, counts } = latestRows(100, 150);
+---
+<Base title="Latest" description="The newest cars, bodies, electronics, batteries and other parts in Hobbydex, newest first. Only items with a known date are listed.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Latest</div>
+  <h1>Latest</h1>
+  <p class="muted">Everything with a known date, newest first: cars, bodies, electronics, batteries and other parts. Items no source dates are left out. A date with an asterisk is not a release date: it is the day the maker's page or shop listing was first seen.</p>
+  <div class="search-filters latest-tabs" role="group" aria-label="Show" data-pagefind-ignore>
+    {TABS.map((t, i) => <button data-tab={t.id} aria-pressed={i === 0 ? "true" : "false"} title={'hint' in t ? t.hint : undefined}>{t.label} <span class="muted">{counts[t.id].toLocaleString('en')}</span></button>)}
+  </div>
+  <table class="releases" id="latest">
+    <thead><tr><th class="num">Date</th><th>Brand</th><th>Item</th><th>Kind</th></tr></thead>
+    <tbody>
+    {rows.map(({ r, group: g, tab, what, inAll }) => <tr data-tab={tab} data-all={inAll ? '1' : '0'}>
+      <td class="num" data-label="Date"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
+      <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
+      <td class="name" data-label="Item">{g
+        ? <><span class="muted" title={kitTypeOne[(r as any).category ?? db.kit.get((r as any).kit)?.category ?? 'car']}><ReleaseArt id={r.id} category={(r as any).category ?? db.kit.get((r as any).kit)?.category} art={(r as any).art} color={g.length > 1 ? undefined : releaseColour(g[0])} size="1em" /></span> <a href={url.release(r.id)}>{groupName(g)}</a></>
+        : <><a href={url.part(r.id)}>{r.name}</a>{(r as any).number && <span class="muted"> {(r as any).number}</span>}</>}<Discontinued item={r} /></td>
+      <td data-label="Kind">{what}</td>
+    </tr>)}
+    </tbody>
+  </table>
+  <p class="muted" id="latest-empty" hidden>Nothing dated here yet.</p>
+  <DoubtNote on={rows.some((x) => !!dateDoubt(x.r))} />
+  <SeenNote rows={rows.map((x) => x.r)} />
+  <script>
+    const box = document.querySelector<HTMLElement>('.latest-tabs')!;
+    const pick = (tab: string) => {
+      for (const b of box.querySelectorAll<HTMLElement>('button')) b.setAttribute('aria-pressed', String(b.dataset.tab === tab));
+      let shown = 0;
+      for (const tr of document.querySelectorAll<HTMLElement>('#latest tbody tr')) {
+        const ok = tab === 'all' ? tr.dataset.all === '1' : tr.dataset.tab === tab;
+        tr.hidden = !ok; if (ok) shown++;
+      }
+      document.getElementById('latest-empty')!.hidden = shown > 0;
+      const u = new URL(location.href);
+      if (tab === 'all') u.searchParams.delete('tab'); else u.searchParams.set('tab', tab);
+      history.replaceState(null, '', u);
+    };
+    box.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('button'); if (b) pick(b.dataset.tab!); });
+    const want = new URLSearchParams(location.search).get('tab');
+    pick(want && box.querySelector(`button[data-tab="${CSS.escape(want)}"]`) ? want : 'all');
+  </script>
+  <style is:global>
+  @media (max-width: 600px) { table.releases td[data-label]:not(:empty) { display: inline-block; white-space: normal; } }
+  </style>
+</Base>
