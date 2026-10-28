@@ -35,6 +35,11 @@ export const escFields: Column[] = [
   col('weight_g', { label: 'Weight', unit: 'g', num: true }),
 ];
 
+// Mounting holes as the maker states them: "2 x M3 @ 25 mm", several patterns joined with " + ".
+const holes = (p: Part) => p.mount_holes?.length
+  ? p.mount_holes.map((h) => `${h.count ? `${h.count} x ` : ''}${h.thread} @ ${h.circle_mm} mm`).join(' + ') : undefined;
+const mountHoles: Column = { label: 'Mount holes', num: false, pick: true, field: { field: 'mount_holes', label: 'Mount holes', from: 'part' } as KeyField, get: holes };
+
 export const motorFields: Column[] = [
   col('motor_type', { label: 'Type', pick: true }),
   col('sensored', { label: 'Sensored', fmt: 'yesno' }),
@@ -42,6 +47,7 @@ export const motorFields: Column[] = [
   col('turns', { label: 'Turns', num: true }),
   col('can', { label: 'Can' }),
   col('shaft_mm', { label: 'Shaft', unit: 'mm', num: true }),
+  mountHoles,
   col('motor_connector', { label: 'Leads', plug: true, pick: true }),
   col('waterproof', { label: 'Waterproof', fmt: 'yesno', pick: true }),
   col('scales', { label: 'Scales', multi: true, pick: true }),
