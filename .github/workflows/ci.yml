@@ -13,11 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the sitemap's lastmod of static pages is their source file's last commit
       - name: Check out the RC dataset
         uses: actions/checkout@v7
         with:
           repository: hobbydex/hobbydex-rc
           path: data-repo
+          fetch-depth: 0   # export.py dates every record by its last commit
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
