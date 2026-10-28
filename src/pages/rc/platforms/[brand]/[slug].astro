@@ -1,5 +1,6 @@
 ---
 import { colourDot } from '../../../../lib/colourDot';
+import { buildLabel } from '../../../../lib/build';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
 import { shownNote, isSourceNote } from '../../../../lib/notes';
 import SourceNote from '../../../../components/SourceNote.astro';
@@ -49,7 +50,8 @@ const newestFirst = (a: (typeof releases)[number], b: (typeof releases)[number])
 const current = releases.filter((r) => r.status !== 'discontinued').sort(newestFirst);
 const discontinued = releases.filter((r) => r.status === 'discontinued').sort(newestFirst);
 const show = { number: releases.some((r) => r.number), edition: releases.some((r) => r.edition), surface: releases.some((r) => r.surface),
-  status: new Set(current.map((r) => r.status)).size > 1 };   // the column only when the current releases differ in status
+  status: new Set(current.map((r) => r.status)).size > 1,
+  build: releases.some((r) => buildLabel(r.kind, r.power)) };   // the column only when the current releases differ in status
 // the compare link takes the two newest dated releases (undated ones sort last)
 const dated = releases.filter((r) => r.released || yearOf(r));
 const pair = (dated.length >= 2 ? dated : releases).slice(-2);
@@ -194,11 +196,11 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
       {rows.length === 0 && <p class="muted">No releases of this platform in our data yet.</p>}
       {rows.length > 0 && current.length === 0 && <p class="muted">Every release is discontinued.</p>}
       {rows.length > 0 && <table class="releases">
-        <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
+        <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.build && <th>Build</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
         {once.map((g) => { const head = rows.find((x) => g.includes(x))!; const multi = g.length > 1; const labels = colourLabels(g);
           const earliest = [...g].sort(byReleaseDate)[0];
           return <tr data-discontinued={head.status === 'discontinued' && current.length > 0 ? '' : undefined}>
-          <td class="num" data-label="Year"><DateText r={earliest} year /><DateDoubt reason={yearDoubt(earliest)} /></td><td class="name"><ReleaseArt id={head.id} category={head.category ?? kit.category} color={multi ? undefined : releaseColour(head)} art={head.art} size="1.3em" class="inrow" /> <a href={url.release(head.id)}>{multi ? groupName(g) : head.name}</a><Discontinued item={head} />{multi && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}</td>{show.number && <td class="num" data-label="Item no.">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td>}{show.edition && <td data-label="Edition">{head.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(head.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{head.status === 'discontinued' ? '' : head.status}</td>}
+          <td class="num" data-label="Year"><DateText r={earliest} year /><DateDoubt reason={yearDoubt(earliest)} /></td><td class="name"><ReleaseArt id={head.id} category={head.category ?? kit.category} color={multi ? undefined : releaseColour(head)} art={head.art} size="1.3em" class="inrow" /> <a href={url.release(head.id)}>{multi ? groupName(g) : head.name}</a><Discontinued item={head} />{multi && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}</td>{show.number && <td class="num" data-label="Item no.">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td>}{show.build && <td data-label="Build">{buildLabel(head.kind, head.power)}</td>}{show.edition && <td data-label="Edition">{head.edition ?? ''}</td>}{show.surface && <td data-label="Surface">{(head.surface ?? []).join(', ')}</td>}{show.status && <td data-label="Status" class="muted">{head.status === 'discontinued' ? '' : head.status}</td>}
         </tr>; })}
       </table>}
   <SeenNote rows={releases} />

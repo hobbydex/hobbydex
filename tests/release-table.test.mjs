@@ -1,7 +1,7 @@
 // Release table logic (public/release-table.js): the URL state, filters, facet counts and sort, on a small list.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decode, collapse, presentValues, parseSearch, toSearch, filterRows, facets, options, sortRows, listRows, stepYear, isoText, dateLabel, NONE } from '../public/release-table.js';
+import { decode, collapse, valueOf, presentValues, parseSearch, toSearch, filterRows, facets, options, sortRows, listRows, stepYear, isoText, dateLabel, NONE } from '../public/release-table.js';
 
 const list = {
   brands: [['traxxas', 'Traxxas'], ['arrma', 'Arrma']],
@@ -108,4 +108,24 @@ test('collapse: a colourway group is one row at its first release', () => {
   assert.equal(out[1].name, 'Kit One');
   assert.equal(out[1].members.length, 2);
   assert.equal(out[0].members, undefined);
+});
+
+test('the power system: label next to the build, filter values, "not stated" for the rest', () => {
+  const plist = { ...list, builds: [['rtr', 'RTR'], ['kit', 'Kit'], ['roller', 'Roller (rolling chassis)']], powers: [['brushless', 'brushless'], ['nitro', 'nitro'], ['unpowered', 'No motor or engine']],
+    rows: [
+      ['flux', 'Flux RTR', 0, 0, 0, 0, 0, '2026-08', 0, null, null, null, null, 0],
+      ['plain', 'Plain RTR', 0, 0, 0, 0, 0, '2026-08'],
+      ['roll', 'Roller', 0, 0, 0, 2, 0, '2026-08', 0, null, null, null, null, 2],
+    ] };
+  const prows = decode(plist);
+  assert.deepEqual(prows.map((r) => r.power), ['brushless', '', 'unpowered']);
+  assert.deepEqual(prows.map((r) => r.buildLabel), ['RTR · brushless', 'RTR', 'Roller (rolling chassis)']);
+  assert.deepEqual(prows.map((r) => valueOf(r, 'power')), ['brushless', NONE, 'unpowered']);
+  assert.deepEqual(filterRows(prows, { power: 'brushless' }).map((r) => r.name), ['Flux RTR']);
+  const present = presentValues(prows);
+  assert.deepEqual(parseSearch('?power=brushless', present).filters, { power: 'brushless' });
+  assert.deepEqual(parseSearch('?power=nitro', present).filters, {});
+  assert.equal(toSearch({ filters: { build: 'rtr', power: 'brushless' }, sort: 'date', dir: 'desc' }), '?build=rtr&power=brushless');
+  const opts = options(plist, prows, {}, facets(prows, {}));
+  assert.deepEqual(opts.power.map((o) => [o.label, o.count]), [['brushless', 1], ['No motor or engine', 1], ['Not stated', 1]]);
 });

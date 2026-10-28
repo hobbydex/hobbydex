@@ -1,5 +1,6 @@
 import { db, dateKey, hasDate, brandName, type Part, type Release } from './data';
 import { dateRows } from './colourways';
+import { buildLabel } from './build';
 
 // The "Latest" view (/rc/latest/): everything with a date, newest first, in tabs. Undated items never appear; a
 // part or release dated only by seen_by shows as such (DateText's asterisk), not as a release date.
@@ -28,7 +29,7 @@ export function latestRows(perTab = 100, allCount = 150) {
   const cmp = (a: { key: string; r: { name: string; brand: string } }, b: typeof a) =>
     b.key.localeCompare(a.key) || brandName(a.r.brand).localeCompare(brandName(b.r.brand)) || a.r.name.localeCompare(b.r.name);
   const cars = dateRows(db.releases.filter((r) => r.status !== 'discontinued'), dateKey, () => 0)
-    .map((x) => ({ key: x.key, tab: 'cars' as const, what: 'Car', r: x.head as Release | Part, group: x.group }));
+    .map((x) => ({ key: x.key, tab: 'cars' as const, what: x.head.kind ? `Car · ${buildLabel(x.head.kind, x.head.power)}` : 'Car', r: x.head as Release | Part, group: x.group }));
   const parts = db.parts.filter((p) => hasDate(p) && p.status !== 'discontinued')
     .map((p) => ({ key: dateKey(p), tab: partTab(p), what: p.category === 'body' ? 'Body' : categoryName(p.category), r: p as Release | Part, group: undefined as Release[] | undefined }));
   const all = [...cars, ...parts].sort(cmp);
