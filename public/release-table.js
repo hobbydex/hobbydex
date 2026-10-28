@@ -18,21 +18,23 @@ export function isoText(iso) {
 // The date column's words (data.ts dateTextPlain): an announced date says so, an undated release says unknown.
 export function dateLabel(date, flags) {
   if (!date) return 'unknown';
-  return flags & 2 ? `announced ${isoText(date)}` : isoText(date);
+  if (flags & 2) return `announced ${isoText(date)}`;
+  return flags & 1 ? `by ${isoText(date)}` : isoText(date);
 }
 
 // The rows as objects. The list's index columns are resolved here; the year is a number and its decade a value.
 // A row's trailing empty columns are left out of the list, so art, colour and doubt may be missing.
 export function decode(list) {
-  return list.rows.map(([tail, name, bi, ti, si, bu, st, date, flags, art, colour, doubt]) => {
+  return list.rows.map(([tail, name, bi, ti, si, bu, st, date, flags, art, colour, doubt, group]) => {
     const [brand, brandName] = list.brands[bi];
     const [type, typeLabel, icon, wide] = list.types[ti];
     const build = list.builds[bu];
     return {
       url: `/rc/releases/${brand}/${tail}/`, name, brand, brandName, type, typeLabel, icon, wide: !!wide,
       scale: list.scales[si], build: build[0], buildLabel: build[1], status: list.statuses[st],
-      date, dateText: dateLabel(date, flags), year: date ? date.slice(0, 4) : NONE, seen: (flags & 1) > 0,
+      date, dateText: dateLabel(date, flags), year: date ? date.slice(0, 4) : NONE, seen: (flags & 1) > 0, seenKind: flags & 4 ? 'archive' : flags & 8 ? 'video' : 'page',
       doubt: doubt == null ? '' : list.doubts[doubt], art: art || '', colour: colour == null ? '' : list.colours[colour],
+      group: group == null ? -1 : group,
     };
   });
 }
@@ -168,6 +170,22 @@ export function listRows(rows, filters, sort, dir) {
   return sorted.filter((r) => r.year === y);
 }
 
+// The list as table rows: a colourway group (the same car in several colours) is one row, at the place of its first
+// release in the list's order, with all its colours; every other release is its own row. A group's `row` keeps the
+// first release, `members` the group's [id tail, swatch style, swatch name, livery flag] entries, `name` the group's name.
+export function collapse(rows, groups) {
+  const seen = new Set();
+  const out = [];
+  for (const r of rows) {
+    if (r.group < 0) { out.push({ row: r }); continue; }
+    if (seen.has(r.group)) continue;
+    seen.add(r.group);
+    const [name, members] = groups[r.group];
+    out.push({ row: r, name, members });
+  }
+  return out;
+}
+
 // ---- the page (only where the results table is) ----
 
 const root = typeof document !== 'undefined' ? document.getElementById('release-results') : null;
@@ -179,7 +197,7 @@ if (root) {
   const more = document.getElementById('release-more');
   const newest = document.getElementById('release-newest');
   const sortSelect = document.getElementById('f-sort');
-  const SEEN_NOTE = root.dataset.seenNote;
+  const SEEN_NOTES = JSON.parse(root.dataset.seenNotes);
   const NS = 'http://www.w3.org/2000/svg';
 
   const cell = (tr, label, cls) => {
@@ -199,22 +217,42 @@ if (root) {
     tr.append(th);
     return tr;
   };
-  const rowEl = (r) => {
+  // the colour switch of a group, as ColourSwitch.astro draws it inline: a dot per colour, each linking its release
+  const swatches = (members, brand) => {
+    const nav = document.createElement('nav');
+    nav.className = 'colourswitch inline';
+    nav.setAttribute('aria-label', 'Colours of this release');
+    const ul = document.createElement('ul');
+    for (const [tail, style, label, livery] of members) {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = `/rc/releases/${brand}/${tail}/`;
+      a.className = style ? 'swatch' : livery ? 'swatch livery' : 'swatch nodot';
+      if (style) a.setAttribute('style', style);
+      a.setAttribute('aria-label', label); a.title = label;
+      if (!style && !livery) a.textContent = label.split(', ').pop();
+      li.append(a); ul.append(li);
+    }
+    nav.append(ul);
+    return nav;
+  };
+  const rowEl = ({ row: r, name: groupName, members }) => {
     const tr = document.createElement('tr');
     const date = cell(tr, 'Released', 'num');
     date.textContent = r.dateText;
-    if (r.seen) { const a = document.createElement('abbr'); a.className = 'doubt seen'; a.tabIndex = 0; a.dataset.tip = SEEN_NOTE; a.setAttribute('aria-label', SEEN_NOTE); a.textContent = '*'; date.append(a); }
+    if (r.seen) { const a = document.createElement('abbr'); a.className = 'doubt seen'; a.tabIndex = 0; a.dataset.tip = SEEN_NOTES[r.seenKind]; a.setAttribute('aria-label', SEEN_NOTES[r.seenKind]); a.textContent = '*'; date.append(a); }
     if (r.doubt) { const a = document.createElement('abbr'); a.className = 'doubt'; a.tabIndex = 0; a.dataset.tip = r.doubt; a.setAttribute('aria-label', r.doubt); a.textContent = '?'; date.append(a); }
     const brand = cell(tr, 'Brand');
     const b = document.createElement('a'); b.href = `/rc/brands/${r.brand}/`; b.textContent = r.brandName; brand.append(b);
     const name = cell(tr, 'Release', 'name');
-    name.append(outline(r));
-    const a = document.createElement('a'); a.href = r.url; a.textContent = r.name; name.append(' ', a);
+    name.append(outline(members ? { ...r, colour: '' } : r));
+    const a = document.createElement('a'); a.href = r.url; a.textContent = members ? groupName : r.name; name.append(' ', a);
     if (r.status === 'discontinued') {
       const d = document.createElement('span'); d.className = 'disc'; d.title = 'Discontinued';
       d.innerHTML = '<svg class="icon" style="width:1em;height:1em" aria-hidden="true"><use href="/icons.svg#discontinued"></use></svg><span class="sr-only"> discontinued</span>';
       name.append(d);
     }
+    if (members) name.append(' ', swatches(members, r.brand));
     cell(tr, 'Type').textContent = r.typeLabel;
     cell(tr, 'Scale').textContent = r.scale;
     cell(tr, 'Build').textContent = r.buildLabel;
@@ -282,16 +320,18 @@ if (root) {
     sorted = listRows(rows, state.filters, state.sort, state.dir);
     // the stepper shows the year at the top of the list
     if (state.filters.year && sorted.length && /^\d{4}$/.test(sorted[0].year)) state.filters.year = sorted[0].year;
+    const entries = collapse(sorted, list.groups);
     count.textContent = `${sorted.length} release${sorted.length === 1 ? '' : 's'}`;
     const nodes = [];
     let prev = null;
-    for (const r of sorted.slice(0, shown)) {
+    for (const e of entries.slice(0, shown)) {
+      const r = e.row;
       if (state.sort === 'date' && (!prev || r.year !== prev.year)) nodes.push(dividerEl(r.year));
-      nodes.push(rowEl(r));
+      nodes.push(rowEl(e));
       prev = r;
     }
     body.replaceChildren(...nodes);
-    const left = sorted.length - shown;
+    const left = entries.length - shown;
     more.hidden = left <= 0;
     more.textContent = `Show ${Math.min(PAGE, left)} more`;
     for (const th of root.querySelectorAll('th[data-sort]')) {

@@ -3,7 +3,8 @@ import { buildLabel } from '../../../../lib/build';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
-import { releaseColour } from '../../../../lib/colourways';
+import { releaseColour, groupRows, colourLabels, groupName } from '../../../../lib/colourways';
+import ColourSwitch from '../../../../components/ColourSwitch.astro';
 import { db, url, brandName, dateKey, dateDoubt, listYear } from '../../../../lib/data';
 import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
@@ -15,6 +16,8 @@ const { year } = Astro.props;
 // newest first: by the day or month where a source gives it (seen_by bounds among them), releases dated only by the year last
 const rs = db.releases.filter((r) => listYear(r) === year)
   .sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || (a.status === 'discontinued' ? 1 : 0) - (b.status === 'discontinued' ? 1 : 0) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name));
+// a colourway group is one row (lib/colourways.ts)
+const rows = groupRows(rs, db.releases);
 const years = [...new Set(db.releases.flatMap((r) => listYear(r) ?? []))].sort((a, b) => b - a);
 const i = years.indexOf(year), newer = years[i - 1], older = years[i + 1];
 import SeenNote from '../../../../components/SeenNote.astro';
@@ -25,11 +28,11 @@ import SeenNote from '../../../../components/SeenNote.astro';
   <p class="muted" data-pagefind-ignore>{newer && <a href={`/rc/releases/by-year/${newer}/`}>{newer}</a>}{newer && older && ' · '}{older && <a href={`/rc/releases/by-year/${older}/`}>{older}</a>}</p>
   <table class="releases">
     <tr><th class="num">Released</th><th>Release</th><th>Brand</th><th class="num">Item no.</th><th>Build</th></tr>
-    {rs.map((r) => { const k = db.kit.get(r.kit); return <tr>
+    {rows.map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const labels = colourLabels(g); return <tr>
       <td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
-      <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={releaseColour(r)} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>
+      <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={g.length > 1 ? undefined : releaseColour(r)} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{g.length > 1 ? groupName(g) : r.name}</a><Discontinued item={r} />{g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}</td>
       <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
-      <td class="num" data-label="Item no.">{r.number ?? ''}</td><td data-label="Build">{buildLabel(r.kind)}</td>
+      <td class="num" data-label="Item no.">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td><td data-label="Build">{buildLabel(r.kind)}</td>
     </tr>; })}
   </table>
   <DoubtNote on={rs.some((r) => !!dateDoubt(r))} />

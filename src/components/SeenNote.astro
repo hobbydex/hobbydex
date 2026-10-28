@@ -1,9 +1,10 @@
 ---
-// The footnote for a seen_by date (the first archived capture of the maker's page): shown once under a
+// The footnote for a seen_by date (the first archived capture, or the first sighting, of a maker or shop page; worded by seen_by_source): shown once under a
 // table or facts list when one of its rows carries only that bound. The asterisk in the date column
 // points here; the release page links the capture itself.
-import { SEEN_NOTE, seenOnly } from '../lib/data';
-interface Props { rows: { year?: number; released?: string; announced?: string; seen_by?: string }[] }
+import { seenKind, SEEN_NOTES, seenOnly } from '../lib/data';
+interface Props { rows: { year?: number; released?: string; announced?: string; seen_by?: string; seen_by_source?: string }[] }
 const { rows } = Astro.props;
+const kinds = [...new Set(rows.filter(seenOnly).map(seenKind))];
 ---
-{rows.some(seenOnly) && <p class="muted seen-note">{SEEN_NOTE}</p>}
+{kinds.map((k) => <p class="muted seen-note">{SEEN_NOTES[k]}</p>)}

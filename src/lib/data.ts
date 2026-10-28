@@ -296,18 +296,28 @@ export const listYear = (r: { year?: number; released?: string; announced?: stri
   const k = dateKey(r);
   return k ? Number(k.slice(0, 4)) : undefined;
 };
-/** The date column: "2012", "2012 May", "2012 May 1"; "announced 2012 May"; "2012 May" for seen_by alone. */
+/** The date column: "2012", "2012 May", "2012 May 1"; "announced 2012 May"; "by 2012 May" for seen_by alone. */
 export const dateTextPlain = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => {
   const real = releasedOf(r);
   if (real) return isoText(real);
   if (r.announced) return `announced ${isoText(r.announced)}`;
-  if (r.seen_by) return isoText(r.seen_by);
+  if (r.seen_by) return `by ${isoText(r.seen_by)}`;
   return 'unknown';
 };
 /** dateTextPlain with the "*" for seen_by alone (see SEEN_NOTE), for a plain-text context. */
 export const dateText = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) =>
   dateTextPlain(r) + (seenOnly(r) ? '*' : '');
-export const SEEN_NOTE = "* not the release date: the first time the maker's page or shop listing for it was seen, so it was on sale by then.";
+// The footnote of a seen_by date, worded by where the bound comes from (seen_by_source): an archive capture, the
+// upload of a maker video, or a page we saw ourselves (the maker's, or a dealer's).
+export type SeenKind = 'archive' | 'video' | 'page';
+export const seenKind = (r: { seen_by_source?: string }): SeenKind =>
+  /^https?:\/\/web\.archive\.org\//.test(r.seen_by_source ?? '') ? 'archive' : /youtube\.com|youtu\.be/.test(r.seen_by_source ?? '') ? 'video' : 'page';
+export const SEEN_NOTES: Record<SeenKind, string> = {
+  archive: '* not the release date: the first time a maker or shop page for it was archived, so it was on sale by then.',
+  video: "* not the release date: the day the maker's video for it was uploaded, so it was on sale by then.",
+  page: '* not the release date: the first time we saw a maker or shop page for it, so it was on sale by then.',
+};
+export const seenNote = (r: { seen_by_source?: string }) => SEEN_NOTES[seenKind(r)];
 // The reason the date dateText shows is doubtful (released_doubt, or year_doubt when only the year is shown); undefined when it is sure.
 export const dateDoubt = (r: { year?: number; released?: string; year_doubt?: string; released_doubt?: string }) =>
   r.released ? r.released_doubt : r.year ? r.year_doubt : undefined;

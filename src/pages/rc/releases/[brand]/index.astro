@@ -7,6 +7,8 @@ import { db, url, key, brandName, yearOf, yearDoubt } from '../../../../lib/data
 import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
+import ColourSwitch from '../../../../components/ColourSwitch.astro';
+import { groupRows, colourLabels, groupName } from '../../../../lib/colourways';
 // one brand's releases, newest first (unknown years last), sortable by any column
 export function getStaticPaths() {
   return [...new Set(db.releases.map((r) => r.brand))].map((b) => ({ params: { brand: key(b)[0] }, props: { brand: b } }));
@@ -14,6 +16,8 @@ export function getStaticPaths() {
 const { brand } = Astro.props as { brand: string };
 const releases = db.releases.filter((r) => r.brand === brand)
   .sort((a, b) => (yearOf(b) || -1) - (yearOf(a) || -1) || (a.status === 'discontinued' ? 1 : 0) - (b.status === 'discontinued' ? 1 : 0) || a.name.localeCompare(b.name));
+// a colourway group (the same car in several colours) is one row (lib/colourways.ts)
+const rows = groupRows(releases, db.releases);
 const hasDisc = releases.some((r) => r.status === 'discontinued');
 const kitName = (id: string) => (db.kit.get(id)?.placeholder ? 'Chassis not yet known' : db.kit.get(id)?.name ?? '');
 import SeenNote from '../../../../components/SeenNote.astro';
@@ -25,10 +29,10 @@ import SeenNote from '../../../../components/SeenNote.astro';
   {hasDisc && <HideDiscontinued />}
   <table class="sortable">
     <thead><tr><th class="num">Year</th><th>Release</th><th>Platform</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr></thead>
-    <tbody>{releases.map((r) => <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
-      <td class="num"><DateText r={r} year /><DateDoubt reason={yearDoubt(r)} /></td><td><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td><td>{db.kit.get(r.kit)?.placeholder ? kitName(r.kit) : <a href={url.platform(r.kit)}>{kitName(r.kit)}</a>}</td>
-      <td class="num">{r.number ?? ''}</td><td>{buildLabel(r.kind)}</td><td class="num">{r.contains?.length ?? 0}</td>
-    </tr>)}</tbody>
+    <tbody>{rows.map(({ group: g, head: r }) => { const labels = colourLabels(g); return <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
+      <td class="num"><DateText r={r} year /><DateDoubt reason={yearDoubt(r)} /></td><td><a href={url.release(r.id)}>{g.length > 1 ? groupName(g) : r.name}</a><Discontinued item={r} />{g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}</td><td>{db.kit.get(r.kit)?.placeholder ? kitName(r.kit) : <a href={url.platform(r.kit)}>{kitName(r.kit)}</a>}</td>
+      <td class="num">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td><td>{buildLabel(r.kind)}</td><td class="num">{r.contains?.length ?? 0}</td>
+    </tr>; })}</tbody>
   </table>
   <DoubtNote on={releases.some((r) => !!yearDoubt(r))} />
   <SeenNote rows={releases} />
