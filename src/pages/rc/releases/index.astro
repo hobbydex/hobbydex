@@ -2,7 +2,7 @@
 import { buildLabel } from '../../../lib/build';
 import Base from '../../../layouts/Base.astro';
 import Discontinued from '../../../components/Discontinued.astro';
-import { db, url, key, brandName, dateKey, dateDoubt, SEEN_NOTE } from '../../../lib/data';
+import { db, url, key, brandName, dateKey, dateDoubt, SEEN_NOTES } from '../../../lib/data';
 import DateText from '../../../components/DateText.astro';
 import DateDoubt from '../../../components/DateDoubt.astro';
 import DoubtNote from '../../../components/DoubtNote.astro';
@@ -47,7 +47,7 @@ import SeenNote from '../../../components/SeenNote.astro';
     </select></label>
     <button type="button" id="release-clear">Clear filters</button>
   </form>
-  <div id="release-results" hidden data-src="/rc/releases/list.json" data-seen-note={SEEN_NOTE}>
+  <div id="release-results" hidden data-src="/rc/releases/list.json" data-seen-notes={JSON.stringify(SEEN_NOTES)}>
     <p class="muted" id="release-count" aria-live="polite"></p>
     <table class="releases">
       <thead><tr><th data-sort="date"><button type="button" class="sortbtn">Released</button></th><th data-sort="brand"><button type="button" class="sortbtn">Brand</button></th><th data-sort="name"><button type="button" class="sortbtn">Release</button></th><th>Type</th><th>Scale</th><th>Build</th></tr></thead>

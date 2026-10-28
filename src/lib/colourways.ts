@@ -125,3 +125,17 @@ export function dateRows(pool: Release[], dateOf: (r: Release) => string, tie: (
   }
   return rows.sort((a, b) => b.key.localeCompare(a.key) || tie(a.head, b.head));
 }
+
+/** A list of releases in its own order as rows: a colourway group is one row at the place of its first release in
+ * the list (`head`, with the whole group), every other release a row of its own. */
+export function groupRows(list: Release[], pool: Release[]): { group: Release[]; head: Release }[] {
+  const seen = new Set<string>();
+  const rows: { group: Release[]; head: Release }[] = [];
+  for (const r of list) {
+    if (seen.has(r.id)) continue;
+    const group = colourwayOf(r, pool);
+    for (const g of group) seen.add(g.id);
+    rows.push({ group, head: r });
+  }
+  return rows;
+}

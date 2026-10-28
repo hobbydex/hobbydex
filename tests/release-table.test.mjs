@@ -1,7 +1,7 @@
 // Release table logic (public/release-table.js): the URL state, filters, facet counts and sort, on a small list.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decode, presentValues, parseSearch, toSearch, filterRows, facets, options, sortRows, listRows, stepYear, isoText, dateLabel, NONE } from '../public/release-table.js';
+import { decode, collapse, presentValues, parseSearch, toSearch, filterRows, facets, options, sortRows, listRows, stepYear, isoText, dateLabel, NONE } from '../public/release-table.js';
 
 const list = {
   brands: [['traxxas', 'Traxxas'], ['arrma', 'Arrma']],
@@ -40,7 +40,9 @@ test('dates read as the static table words them', () => {
   assert.equal(isoText('2025'), '2025');
   assert.equal(dateLabel('2025-10', 2), 'announced 2025 Oct');
   assert.equal(dateLabel('', 0), 'unknown');
-  assert.deepEqual(rows.map((r) => r.dateText), ['2020 Mar', '1998', 'unknown', '2024 May 1']);
+  assert.equal(dateLabel('2026-10', 1), 'by 2026 Oct');
+  assert.equal(dateLabel('2026-10', 5), 'by 2026 Oct');
+  assert.deepEqual(rows.map((r) => r.dateText), ['2020 Mar', 'by 1998', 'unknown', '2024 May 1']);
 });
 
 test('the URL restores filters and drops unknown values', () => {
@@ -96,4 +98,14 @@ test('a year starts the newest-first list there and runs on into older years', (
   assert.deepEqual(listRows(rows, { year: '2020' }, 'date', 'desc').map((r) => r.name), ['E-Revo', 'Old Car', 'Plain']);
   assert.deepEqual(listRows(rows, { year: '2020', brand: 'arrma' }, 'date', 'desc').map((r) => r.name), ['Old Car', 'Plain']);
   assert.deepEqual(listRows(rows, { year: '1998' }, 'name', 'asc').map((r) => r.name), ['Old Car']);
+});
+
+test('collapse: a colourway group is one row at its first release', () => {
+  const l = { ...list, groups: [['Kit One', [['kit-1', '', 'a', 0], ['old', '', 'b', 0]]]] };
+  const rs = decode({ ...l, rows: [l.rows[0], [...l.rows[3].slice(0, 11), null, 0], [...l.rows[1].slice(0, 9), null, null, null, 0], l.rows[2]] });
+  const out = collapse(rs, l.groups);
+  assert.deepEqual(out.map((e) => e.row.url.split('/')[4]), ['4-tec', 'kit-1', 'no-date']);
+  assert.equal(out[1].name, 'Kit One');
+  assert.equal(out[1].members.length, 2);
+  assert.equal(out[0].members, undefined);
 });
