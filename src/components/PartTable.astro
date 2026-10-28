@@ -135,4 +135,6 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
 <style>
   /* compare_only fields: kept in the DOM for the side by side view */
   .parttable table .conly { display: none; }
+  /* a long option (mount holes) must not push the filter row past a phone's width */
+  .parttable .websearch select { max-width: 100%; }
 </style>
