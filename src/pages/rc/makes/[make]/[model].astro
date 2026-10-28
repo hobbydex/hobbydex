@@ -1,9 +1,17 @@
 ---
 import VehiclePage from '../../../../components/VehiclePage.astro';
-import { vehicles, makeSlug } from '../../../../lib/data';
+import { vehicles, makeSlug, type Vehicle } from '../../../../lib/data';
+import { vehicleMoves } from '../../../../lib/vehicle-moves';
 export function getStaticPaths() {
-  return vehicles.filter((v) => v.make).map((v) => ({ params: { make: makeSlug(v.make!), model: v.slug }, props: { vehicle: v } }));
+  const current = vehicles.filter((v) => v.make).map((v) => ({ params: { make: makeSlug(v.make!), model: v.slug }, props: { vehicle: v } }));
+  const live = new Set(current.map((p) => `${p.params.make}/${p.params.model}`));
+  // a folded model's old page keeps working: its slug redirects to the vehicle that now carries its releases
+  const moved = Object.entries(vehicleMoves).flatMap(([make, slugs]) => Object.entries(slugs)
+    .filter(([from]) => !live.has(`${make}/${from}`))
+    .map(([from, to]) => ({ params: { make, model: from }, props: { redirect: `/rc/makes/${make}/${to}/` } })));
+  return [...current, ...moved];
 }
-const { vehicle } = Astro.props;
+const { vehicle, redirect } = Astro.props as { vehicle?: Vehicle; redirect?: string };
+if (redirect) return Astro.redirect(redirect, 301);
 ---
-<VehiclePage vehicle={vehicle} />
+<VehiclePage vehicle={vehicle!} />
