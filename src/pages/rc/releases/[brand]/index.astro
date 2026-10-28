@@ -31,7 +31,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
     <thead><tr><th class="num">Year</th><th>Release</th><th>Platform</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr></thead>
     <tbody>{rows.map(({ group: g, head: r }) => { const labels = colourLabels(g); return <tr data-discontinued={r.status === 'discontinued' ? '' : undefined}>
       <td class="num"><DateText r={r} year /><DateDoubt reason={yearDoubt(r)} /></td><td><a href={url.release(r.id)}>{g.length > 1 ? groupName(g) : r.name}</a><Discontinued item={r} />{g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}</td><td>{db.kit.get(r.kit)?.placeholder ? kitName(r.kit) : <a href={url.platform(r.kit)}>{kitName(r.kit)}</a>}</td>
-      <td class="num">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td><td>{buildLabel(r.kind)}</td><td class="num">{r.contains?.length ?? 0}</td>
+      <td class="num">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td><td>{buildLabel(r.kind, r.power)}</td><td class="num">{r.contains?.length ?? 0}</td>
     </tr>; })}</tbody>
   </table>
   <DoubtNote on={releases.some((r) => !!yearDoubt(r))} />

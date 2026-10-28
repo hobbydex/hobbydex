@@ -32,7 +32,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
       <td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
       <td class="name"><ReleaseArt id={r.id} category={r.category ?? k?.category} color={g.length > 1 ? undefined : releaseColour(r)} art={r.art} size="1.3em" class="inrow" /> <a href={url.release(r.id)}>{g.length > 1 ? groupName(g) : r.name}</a><Discontinued item={r} />{g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}</td>
       <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
-      <td class="num" data-label="Item no.">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td><td data-label="Build">{buildLabel(r.kind)}</td>
+      <td class="num" data-label="Item no.">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td><td data-label="Build">{buildLabel(r.kind, r.power)}</td>
     </tr>; })}
   </table>
   <DoubtNote on={rs.some((r) => !!dateDoubt(r))} />

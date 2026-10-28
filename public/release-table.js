@@ -3,7 +3,7 @@
 // the URL state, the facet counts and the sort. The DOM part runs only where #release-results is on the page.
 
 export const PAGE = 20;
-export const DIMS = ['brand', 'type', 'scale', 'build', 'year'];
+export const DIMS = ['brand', 'type', 'scale', 'build', 'power', 'year'];
 export const SORTS = ['date', 'name', 'brand'];
 export const NONE = 'none';
 const DEFAULT_DIR = { date: 'desc', name: 'asc', brand: 'asc' };
@@ -25,13 +25,13 @@ export function dateLabel(date, flags) {
 // The rows as objects. The list's index columns are resolved here; the year is a number and its decade a value.
 // A row's trailing empty columns are left out of the list, so art, colour and doubt may be missing.
 export function decode(list) {
-  return list.rows.map(([tail, name, bi, ti, si, bu, st, date, flags, art, colour, doubt, group]) => {
+  return list.rows.map(([tail, name, bi, ti, si, bu, st, date, flags, art, colour, doubt, group, power]) => {
     const [brand, brandName] = list.brands[bi];
     const [type, typeLabel, icon, wide] = list.types[ti];
     const build = list.builds[bu];
     return {
       url: `/rc/releases/${brand}/${tail}/`, name, brand, brandName, type, typeLabel, icon, wide: !!wide,
-      scale: list.scales[si], build: build[0], buildLabel: build[1], status: list.statuses[st],
+      scale: list.scales[si], build: build[0], power: power == null ? '' : list.powers[power][0], buildLabel: power == null || list.powers[power][0] === 'unpowered' ? build[1] : `${build[1]} \u00b7 ${list.powers[power][1]}`.replace(/^ \u00b7 /, ''), status: list.statuses[st],
       date, dateText: dateLabel(date, flags), year: date ? date.slice(0, 4) : NONE, seen: (flags & 1) > 0, seenKind: flags & 4 ? 'archive' : flags & 8 ? 'video' : 'page',
       doubt: doubt == null ? '' : list.doubts[doubt], art: art || '', colour: colour == null ? '' : list.colours[colour],
       group: group == null ? -1 : group,
@@ -47,6 +47,7 @@ export function valueOf(row, dim) {
     case 'type': return row.type;
     case 'scale': return row.scale || NONE;
     case 'build': return row.build || NONE;
+    case 'power': return row.power || NONE;
     case 'year': return row.year;
   }
 }
@@ -66,7 +67,7 @@ export function stepYear(current, delta, [min, max]) {
   return String(Math.min(max, Math.max(min, Number(current) + delta)));
 }
 
-// The filters and sort in the URL: ?brand=traxxas&type=monster&scale=1-10&build=rtr&year=2020s&sort=name&dir=asc.
+// The filters and sort in the URL: ?brand=traxxas&type=monster&scale=1-10&build=rtr&power=brushless&year=2020s&sort=name&dir=asc.
 // Values that occur in no row are dropped; the sort and direction appear only when they are not the default.
 export function parseSearch(search, present) {
   const p = new URLSearchParams(search);
@@ -124,6 +125,7 @@ export function options(list, rows, filters, counts) {
     type: list.types.map((t) => t[0]),
     scale: list.scales.map((s) => s || NONE),
     build: list.builds.map((b) => b[0] || NONE),
+    power: [...(list.powers ?? []).map((x) => x[0]), NONE],
     year: [...years, NONE],
   };
   const labelOf = {
@@ -131,6 +133,7 @@ export function options(list, rows, filters, counts) {
     type: (v) => list.types.find((t) => t[0] === v)?.[1] ?? v,
     scale: (v) => (v === NONE ? 'No scale' : v),
     build: (v) => (v === NONE ? 'No build kind' : list.builds.find((b) => (b[0] || NONE) === v)?.[1] ?? v),
+    power: (v) => (v === NONE ? 'Not stated' : (list.powers ?? []).find((x) => x[0] === v)?.[1] ?? v),
     year: (v) => (v === NONE ? 'No date' : v),
   };
   const out = {};
