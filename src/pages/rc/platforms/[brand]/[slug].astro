@@ -144,7 +144,7 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
   <p class="pagetype">Platform</p>
   <h1>{brandName(kit.brand)} {kit.name}</h1>
   {releases.length > 0 && (only ? <p class="muted pagenote">What's in the box: <a href={`${url.release(only.id)}#kit`}>{only.name} ({boxCount(only)} parts)</a> →</p>
-    : <p class="muted pagenote">A platform groups the releases built on one chassis. What's in the box is on each release page: {[...current, ...discontinued].slice(0, 4).map((r, i) => <>{i > 0 && ' · '}<a href={url.release(r.id)}>{r.name}</a></>)}{releases.length > 4 && <> · <a href="#releases">all {releases.length}</a></>}.</p>)}
+    : <p class="muted pagenote">A platform groups the releases built on one chassis. What's in the box is on each release page, listed below.</p>)}
   {kit.sources?.name && <p><FactSource field="name" url={kit.sources.name} dot={false} /></p>}
   <WebSearch query={`${brandName(kit.brand)} ${kit.name}`} links={kit.links} />
   <div class="factsrow">
