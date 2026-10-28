@@ -45,3 +45,15 @@ test('faq: the last commit of its source file', { skip: !built || !existsSync('.
   if (execFileSync('git', ['rev-parse', '--is-shallow-repository'], { encoding: 'utf8' }).trim() !== 'false') return;
   assert.equal(lastmod.get('/faq/'), utcDay(gitDate('.', 'src/pages/faq.astro')));
 });
+
+test('the footer says the same date as the sitemap', { skip: !built }, () => {
+  let checked = 0;
+  for (const [loc, got] of lastmod) {
+    if (!got || checked >= 30 || (checked + loc.length) % 5) continue;
+    const file = `dist${loc}index.html`;
+    if (!existsSync(file)) continue;
+    assert.ok(readFileSync(file, 'utf8').includes(`Last updated on ${got}.`), `${loc}: footer differs from lastmod ${got}`);
+    checked++;
+  }
+  assert.ok(checked >= 10);
+});

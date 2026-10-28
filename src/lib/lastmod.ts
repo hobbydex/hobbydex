@@ -75,14 +75,19 @@ for (const set of [db.brands, db.kits, db.releases, db.parts, db.specs, db.docum
 const releaseLists = newest(maxOf(db.releases), maxOf(db.kits));
 
 /** The source file's last commit date in this repo, or undefined (no git, shallow clone, file never committed). */
+const sourceDates = new Map<string, string | undefined>();
 const sourceDate = (file: string) => {
+  if (!sourceDates.has(file)) sourceDates.set(file, sourceDateOf(file));
+  return sourceDates.get(file);
+};
+const sourceDateOf = (file: string) => {
   try {
     if (execFileSync('git', ['rev-parse', '--is-shallow-repository'], { encoding: 'utf8' }).trim() !== 'false') return undefined;
     const out = execFileSync('git', ['log', '-1', '--format=%cI', '--', file], { encoding: 'utf8' }).trim();
     return out ? new Date(out).toISOString().slice(0, 10) : undefined;
   } catch { return undefined; }
 };
-const staticSources: Record<string, string> = { '/faq/': 'src/pages/faq.astro' };
+const staticSources: Record<string, string> = { '/faq/': 'src/pages/faq.astro', '/rc/compare/': 'src/pages/rc/compare.astro', '/rc/scan/': 'src/pages/rc/scan.astro', '/search/': 'src/pages/search.astro' };
 
 /** lastmod (YYYY-MM-DD) of the page at `pathname` ("/rc/parts/xray/303122/"), or undefined when it has no data-backed date. */
 export function lastmodFor(pathname: string): string | undefined {
@@ -135,3 +140,7 @@ export function lastmodFor(pathname: string): string | undefined {
     default: return undefined;
   }
 }
+
+/** The date shown in the footer ("Last updated on"): the page's lastmod, so footer and sitemap agree; the export's date
+ *  only where no page date is known (a 404, a build without git history). */
+export const pageUpdated = (pathname: string) => lastmodFor(pathname) ?? db.generated;
