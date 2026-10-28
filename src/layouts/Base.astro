@@ -1,5 +1,5 @@
 ---
-import { db } from '../lib/data';
+import { pageUpdated } from '../lib/lastmod';
 import '../styles/global.css';
 interface Props { title: string; description?: string; jsonld?: unknown; kind?: string; sub?: string; words?: string; filters?: string[]; icon?: string }
 const { title, description, jsonld, kind, sub, words, filters, icon } = Astro.props;
@@ -56,7 +56,7 @@ const { title, description, jsonld, kind, sub, words, filters, icon } = Astro.pr
     <footer class="site" data-pagefind-ignore>
       Open parts database.
       Tell us about an error, a missing brand or a better source by <a href="https://github.com/hobbydex/hobbydex-rc/issues/new">opening an issue</a>.
-      The data is public on <a href="https://github.com/hobbydex/hobbydex-rc">GitHub</a> and as one file: <a href="/data/rc.json">rc.json</a>. <a href="/faq/">FAQ</a> · <a href="/stats/">Statistics</a> · <a href="/audit/">Data audit</a>. Last updated on {db.generated}.
+      The data is public on <a href="https://github.com/hobbydex/hobbydex-rc">GitHub</a> and as one file: <a href="/data/rc.json">rc.json</a>. <a href="/faq/">FAQ</a> · <a href="/stats/">Statistics</a> · <a href="/audit/">Data audit</a>. Last updated on {pageUpdated(Astro.url.pathname)}.
     </footer>
   </body>
 </html>
