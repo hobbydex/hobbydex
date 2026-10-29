@@ -2,7 +2,7 @@
 import { colourDot } from '../../../../lib/colourDot';
 import { buildLabel } from '../../../../lib/build';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
-import { shownNote, isSourceNote } from '../../../../lib/notes';
+import { shownNote, isSourceNote, withoutKnownFromParts } from '../../../../lib/notes';
 import SourceNote from '../../../../components/SourceNote.astro';
 import FactSource from '../../../../components/FactSource.astro';
 import KitSets from '../../../../components/KitSets.astro';
@@ -143,11 +143,15 @@ const metaDescription = describe(`${brandName(kit.brand)} ${kit.name}`,
     releases.length > 0 && (years.length ? `${count(releases.length, 'release')} from ${Math.min(...years)} to ${Math.max(...years)}` : count(releases.length, 'release')),
     partCount > 0 && `${count(partCount, 'part')}`].filter((x): x is string => !!x));
 const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
+// a platform with no release, named only by parts that fit it: the label gives the count of those parts (the parts list below)
+const knownFromParts = releases.length === 0 ? partCount : 0;
+const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.notes;
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name} ${kitTypeOne[kit.category ?? 'car'] ?? kit.category} platform`} description={metaDescription} kind="platform" sub={brandName(kit.brand)} words={indexWords} filters={indexFilters}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
   <p class="pagetype">Platform</p>
   <h1>{brandName(kit.brand)} {kit.name}</h1>
+  {knownFromParts > 0 && <p class="pagenote"><span class="badge">Known from parts only</span> <span class="muted">named by {knownFromParts} <a href="#option-parts">{knownFromParts === 1 ? 'part' : 'parts'}</a>; no release of it in our data yet</span></p>}
   {releases.length > 0 && (only ? <p class="muted pagenote">What's in the box: <a href={`${url.release(only.id)}#kit`}>{only.name} ({boxCount(only)} parts)</a> →</p>
     : <p class="muted pagenote">A platform groups the releases built on one chassis. What's in the box is on each release page, listed below.</p>)}
   {kit.sources?.name && <p><FactSource field="name" url={kit.sources.name} dot={false} /></p>}
@@ -171,7 +175,7 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
   </div>
   <Videos videos={videos} />
   <FanLinks links={kit.links} />
-  {kit.notes && !isSourceNote(kit.notes) && <p class="muted">{kit.notes}</p>}
+  {notesText && !isSourceNote(notesText) && <p class="muted">{notesText}</p>}
   {seriesOn.map((x) => <p>Also in the {x.series} series on: {x.others.map(([id, name], i) => <>{i > 0 && ' · '}<a href={url.platform(id)}>{name}</a></>)}</p>)}
   {relations.length > 0 && <>
     <h2>Same car or platform</h2>

@@ -12,3 +12,13 @@ export function shownNote(note?: string): string | undefined {
 // the site shows them as a small source note (SourceNote.astro) instead of in the running text.
 const SOURCE = /store lists it for|part number prefix|named in .*product name|^Listed for the |^Listed on |column in .*list|shop's category|^Chassis named in |as the reseller|not stated by the reseller|set by hand|^(Category|Type)\b[^;]* from |^From [a-z0-9-]+\.[a-z.]+:/i;
 export const isSourceNote = (note?: string) => !!note && SOURCE.test(note);
+
+// The line tools/link_kit_sources.py writes on a platform with no release: the platform page shows it as a label
+// with the count of parts instead, so the line (the part ids and their source) is left out of the running text.
+const KNOWN_FROM_PARTS = 'Known from spare parts only';
+export function withoutKnownFromParts(note?: string): string | undefined {
+  if (!note) return note;
+  const at = note.indexOf(KNOWN_FROM_PARTS);
+  if (at < 0) return note;
+  return note.slice(0, at).replace(/[\s;]+$/, '') || undefined;
+}
