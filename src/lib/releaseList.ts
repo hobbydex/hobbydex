@@ -24,7 +24,7 @@ export function releaseList() {
   const brandIds = [...new Set(db.releases.map((r) => r.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b)));
   const types = [...new Set(db.releases.map(releaseType))].sort((a, b) => (kitTypeOrder.indexOf(a) + 1 || 99) - (kitTypeOrder.indexOf(b) + 1 || 99));
   const scales = [...new Set(db.releases.map(releaseScale))].sort((a, b) => (a ? Number(a.split('/')[1]) : 999) - (b ? Number(b.split('/')[1]) : 999));
-  const builds = ['kit', 'rtr', 'arr', 'roller', ''].filter((b) => db.releases.some((r) => (r.kind ?? '') === b));
+  const builds = ['kit', 'rtr', 'arr', 'roller', 'print', ''].filter((b) => db.releases.some((r) => (r.kind ?? '') === b));
   // the power filter: the systems that occur, then "unpowered" (a release sold without motor or engine); a release that states none has no index
   const powers = ['brushless', 'brushed', 'nitro', 'gas', 'none'].filter((x) => db.releases.some((r) => r.power === x));
   const powerValue = (x: string) => (x === 'none' ? 'unpowered' : x);
