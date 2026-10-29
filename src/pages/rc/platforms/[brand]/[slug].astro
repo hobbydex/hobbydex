@@ -27,6 +27,7 @@ import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 import { driveLabel } from '../../../../lib/drive';
 import { gearing, type Gearing } from '../../../../lib/gearing';
 import { describe, count } from '../../../../lib/descriptions';
+import { newestDatedParts, realPartDate } from '../../../../lib/latestParts';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.kits.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], slug: key(f)[1] }, props: { redirect: url.platform(x.id) } })));
@@ -63,6 +64,8 @@ const bearingSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.c
   && ((p.includes ?? []).some((i) => i.spec?.startsWith('spec/bearing/')) || /\b(kit|set)\b|bearings\b/i.test(p.name)));
 const screwSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.category === 'screw' && /\b(screw|hardware|fastener|bolt)s?\s+(kit|set)\b/i.test(p.name));
 const fits = allFits.filter((x) => !bearingSets.includes(x) && !screwSets.includes(x));
+// the newest option parts with a real date (latestParts.ts), current ones only, one per part
+const newestParts = newestDatedParts([...new Map(fits.map((x) => [x.part.id, x.part])).values()].filter((p) => p.status !== 'discontinued'), 15);
 const relations = db.kitRelations.get(kit.id) ?? [];
 // successor links (supersedes): the newer platforms that replace this one, and the older one this one replaces
 const replacedByKits = db.kitReplacedBy.get(kit.id) ?? [];
@@ -228,9 +231,18 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
         {rows.map(({ rel, p }) => <tr data-discontinued={p.status === 'discontinued' ? '' : undefined}><td class="num">{p.number && <a href={url.part(p.id)}>{p.number}</a>}</td><td><Fragment set:html={p.category === 'paint' ? (paintChip(p, 14, 'circle') ?? '') : colourDot(p.color)} />{p.number ? p.name : <a href={url.part(p.id)}>{p.name}</a>}<Discontinued item={p} /></td><td>{brandName(p.brand)}</td><td><a href={url.release(rel.id)}>{rel.name}</a><Discontinued item={rel} /></td></tr>)}
       </table></div>)}
   </section>}
-  {(fits.length > 0 || bearingSets.length > 0 || screwSets.length > 0) && <section data-pagefind-ignore>
+  {newestParts.length > 0 && <section class="newest-parts" data-pagefind-ignore>
+    <h2>Newest parts for this platform</h2>
+    <table>
+      <tr><th class="num">Date</th><th class="w-brand">Brand</th><th>Item</th></tr>
+      {newestParts.map((p) => <tr><td class="num" data-label="Date"><DateText r={p} /></td><td data-label="Brand">{brandName(p.brand)}</td><td data-label="Item"><a href={url.part(p.id)}>{p.name}</a></td></tr>)}
+    </table>
+    <p class="muted"><a href="#option-parts" data-sort-date>Show all option parts, newest first</a></p>
+  </section>}
+  {(fits.length > 0 || bearingSets.length > 0 || screwSets.length > 0) && <section id="option-parts" data-pagefind-ignore>
     <h2>Option parts listed as fitting <span class="muted">({new Set(fits.map((x) => x.part.id)).size})</span></h2>
     {fits.some((x) => x.part.status === 'discontinued') && <HideDiscontinued />}
+    {fits.length > 1 && <label class="sortparts">Sort <select data-part-sort><option value="number">By part number</option><option value="date">Newest first</option></select></label>}
     <KitSets rows={bearingSets} kind="bearing kit" kitName={kit.name} />
     <KitSets rows={screwSets} kind="screw kit" kitName={kit.name} />
     {(() => { const groups = byCat(fits, (x) => x.part.category); return <>
@@ -239,7 +251,7 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
         <table>
           <tr><th class="num numcol" style={`--numn:${Math.max(5, ...fits.map((x) => partNo(x.part).length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
-          {rows.map(({ part, fit }) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
+          {rows.map(({ part, fit }, i) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined} data-date={realPartDate(part) ?? ''} data-order={i}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
         </table></div>)}</>; })()}
   </section>}
   {relatedFits.map(({ o, link, rows }) => <details class="kitsets relatedfits" data-pagefind-ignore>
@@ -254,6 +266,23 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
   </details>)}
   {sources.length > 0 && <><h2 id="sources">Sources</h2>
     <ul>{sources.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></>}
+  <script>
+    // the option parts list: by part number (as built), or newest first within each category; the newest block's
+    // "Show all" link switches to newest first
+    const section = document.getElementById('option-parts');
+    const sel = section?.querySelector<HTMLSelectElement>('select[data-part-sort]');
+    const sortBy = (mode: string) => {
+      for (const table of section?.querySelectorAll<HTMLTableElement>('.catgroup table') ?? []) {
+        const rows = [...table.querySelectorAll<HTMLTableRowElement>('tr[data-order]')];
+        rows.sort((a, b) => (mode === 'date' ? (b.dataset.date ?? '').localeCompare(a.dataset.date ?? '') : 0)
+          || Number(a.dataset.order) - Number(b.dataset.order));
+        for (const r of rows) table.append(r);
+      }
+      if (sel) sel.value = mode;
+    };
+    sel?.addEventListener('change', () => sortBy(sel.value));
+    document.querySelector<HTMLAnchorElement>('a[data-sort-date]')?.addEventListener('click', () => sortBy('date'));
+  </script>
   <style>
     .catgroup table { table-layout: fixed; width: 100%; }
     .catgroup td.num { white-space: normal; overflow-wrap: anywhere; }

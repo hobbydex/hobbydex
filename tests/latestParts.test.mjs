@@ -50,3 +50,43 @@ test('other categories are never listed', () => {
     assert.equal(showPartInLatest({ category, ...dated, fits: [] }, brandOf), false, String(category));
   }
 });
+
+import { realPartDate, newestDatedParts } from '../src/lib/latestParts.ts';
+
+const pool = [
+  { name: 'Old', released: '2019-01-05' },
+  { name: 'Newest', announced: '2026-09-01' },
+  { name: 'Undated', fits: [] },
+  { name: 'Shop', seen_by: '2026-10-23', seen_by_source: 'https://shop.example/products/x' },
+  { name: 'News', seen_by: '2026-06-02', seen_by_source: 'https://maker.example/news/y' },
+  { name: 'Mid', released: '2024' },
+  { name: 'Tie B', released: '2025-02-02' },
+  { name: 'Tie A', released: '2025-02-02' },
+];
+
+test('a part dates by its release, then its announcement, then a news bound', () => {
+  assert.equal(realPartDate({ released: '2020', announced: '2021' }), '2020');
+  assert.equal(realPartDate({ announced: '2021-03' }), '2021-03');
+  assert.equal(realPartDate({ seen_by: '2026-10-23', seen_by_source: 'https://shop.example/x' }), undefined);
+  assert.equal(realPartDate({ seen_by: '2026-06-02', seen_by_source: 'https://maker.example/news/y' }), '2026-06-02');
+  assert.equal(realPartDate({ fits: [] }), undefined);
+});
+
+test('the newest n dated parts, newest first, never an undated one', () => {
+  const out = newestDatedParts(pool, 100).map((p) => p.name);
+  assert.deepEqual(out, ['Newest', 'News', 'Tie A', 'Tie B', 'Mid', 'Old']);
+  for (const n of [0, 1, 3]) {
+    assert.deepEqual(newestDatedParts(pool, n).map((p) => p.name), out.slice(0, n));
+  }
+});
+
+test('an empty or undated pool gives no parts, so the block is hidden', () => {
+  assert.deepEqual(newestDatedParts([], 15), []);
+  assert.deepEqual(newestDatedParts([{ name: 'x', fits: [] }, { name: 'y', seen_by: '2026-10-23', seen_by_source: 'https://shop.example/x' }], 15), []);
+});
+
+test('the list is sorted non-increasing by date for any input order', () => {
+  const shuffled = [...pool].reverse();
+  const out = newestDatedParts(shuffled, 100);
+  for (let i = 1; i < out.length; i++) assert.ok((realPartDate(out[i - 1]) ?? '') >= (realPartDate(out[i]) ?? ''));
+});

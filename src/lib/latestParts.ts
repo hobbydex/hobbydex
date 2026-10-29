@@ -42,3 +42,15 @@ export const showPartInLatest = (p: LatestPart, brandOf: (kit: string) => string
   if (p.category === 'body') return true;
   return GENERIC_CATEGORIES.has(p.category ?? '') && isGenericPart(p, brandOf);
 };
+
+/** The date a part is listed by: its release date, else its announcement, else its maker-news bound. Undefined when it
+ * has no real date (see hasRealPartDate). */
+export const realPartDate = (p: LatestPart) => p.released || p.announced || (isNewsSeen(p) ? p.seen_by : undefined);
+
+/** The newest `n` parts with a real date, newest first; parts with the same date by name. Undated parts are never in
+ * the list. */
+export const newestDatedParts = <T extends LatestPart & { name: string }>(parts: T[], n: number): T[] =>
+  parts
+    .filter(hasRealPartDate)
+    .sort((a, b) => (realPartDate(b) ?? '').localeCompare(realPartDate(a) ?? '') || a.name.localeCompare(b.name))
+    .slice(0, Math.max(0, n));
