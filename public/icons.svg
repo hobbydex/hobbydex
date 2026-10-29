@@ -88,4 +88,5 @@
 <symbol id="announced" viewBox="0 0 24 24"><path d="M2.50 9.20H7L17.20 4V20L7 14.80H2.50Z"/><path d="M7.60 15.60H10L11.60 20.50H9.20Z"/><path d="M19 10.80H22.50V13.20H19ZM18.70 7.60L21.70 5.80L22.50 7.20L19.50 9ZM18.70 16.40L19.50 15L22.50 16.80L21.70 18.20Z"/></symbol>
 <symbol id="material" viewBox="0 0 24 24"><path d="M2 7L12 3L22 7L12 11Z"/><path d="M2 8.6L12 12.6V16.2L2 12.2Z"/><path d="M22 8.6L12 12.6V16.2L22 12.2Z"/></symbol>
 <symbol id="misc" viewBox="0 0 24 24"><path d="M2.80 10.20H7.20V13.80H2.80ZM9.90 10.20H14.10V13.80H9.90ZM16.80 10.20H21.20V13.80H16.80Z"/></symbol>
+<symbol id="snowmobile" viewBox="0 0 24 24"><path d="M3 16.80L5.20 14.20H13.80L16.20 11.20H19.80V13.80H21.20V16.80H5.20V19.20H3Z"/><path d="M2 19.80H7.40V21.40H2Z"/></symbol>
 </svg>
