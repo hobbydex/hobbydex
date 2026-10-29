@@ -37,6 +37,7 @@ import { partSpecs } from '../../../../lib/partFacts';
 import { partSpecFacts } from '../../../../lib/specFacts';
 import FactRows from '../../../../components/FactRows.astro';
 import { plugLinks, balanceSpecId } from '../../../../lib/plugs';
+import { protocolSpecs } from '../../../../lib/protocols';
 export function getStaticPaths() {
   // a former id (renamed or corrected) or another number the part is sold under (numbers) keeps working:
   // its page redirects to the current one; a number listed twice is one route
@@ -225,7 +226,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.dead_band_us && <><dt>Dead band</dt><dd>{part.dead_band_us} µs</dd></>}
     {part.frequency_hz && <><dt>PWM frequency</dt><dd>{Array.isArray(part.frequency_hz) ? `${part.frequency_hz[0]} to ${part.frequency_hz[1]} Hz` : `${part.frequency_hz} Hz`}</dd></>}
     {part.channels && <><dt>Channels</dt><dd>{part.channels}</dd></>}
-    {part.protocol && <><dt>Protocol</dt><dd>{part.protocol}</dd></>}
+    {(part.protocol || protocolSpecs(part).length > 0) && <><dt>Protocol</dt><dd>{protocolSpecs(part).length > 0 ? protocolSpecs(part).map((s, i) => <>{i > 0 && ', '}<a href={url.spec(s.id)}>{s.name}</a></>) : part.protocol}{protocolSpecs(part).length > 1 && <span class="muted"> (modes it lists)</span>}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
     {specFact.facts.length > 0 && <><dt>Spec</dt><dd>{specFact.specs.map((s, i) => <>{i > 0 && ', '}<a href={url.spec(s.id)}>{s.name ?? s.id}</a></>)}</dd><FactRows rows={specFact.facts} /></>}
   </dl>

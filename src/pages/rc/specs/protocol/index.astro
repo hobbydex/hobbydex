@@ -1,0 +1,18 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import { db, url, brandName } from '../../../../lib/data';
+import { protocolTitle } from '../../../../lib/protocols';
+const specs = db.specs.filter((s) => s.category === 'protocol')
+  .sort((a, b) => protocolTitle(a).localeCompare(protocolTitle(b)));
+const count = (id: string) => (db.protocolParts.get(id) ?? []);
+---
+<Base title="Radio protocols" description="Every radio protocol in Hobbydex (Sanwa FH5, Futaba T-FHSS, FlySky AFHDS 3, Spektrum DSMR, Traxxas TQi and more) and the transmitters and receivers that use it.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">Specs</a> / Radio protocols</div>
+  <h1>Radio protocols</h1>
+  <p>A transmitter and a receiver talk to each other only when they speak the same protocol, and makers reuse names: Futaba, Radiolink, Carson, KO Propo and Absima each have their own "FHSS". Each protocol here is the maker's own, with the transmitters, receivers and sets that state it. A transmitter that lists several modes (Sanwa M17: FH5, FH4, FH3) is on the page of each.</p>
+  <p class="muted">{specs.length} protocols.</p>
+  <div class="tablescroll"><table>
+    <thead><tr><th>Protocol</th><th>Maker</th><th class="num">Parts</th></tr></thead>
+    <tbody>{specs.map((s) => <tr><td><a href={url.spec(s.id)}>{protocolTitle(s)}</a></td><td>{typeof s.brand === 'string' ? brandName(s.brand) : ''}</td><td class="num">{count(s.id).length}</td></tr>)}</tbody>
+  </table></div>
+</Base>
