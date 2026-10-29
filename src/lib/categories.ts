@@ -2,7 +2,7 @@ export const categoryLabel: Record<string, string> = {
   'ball-end': 'Ball ends', battery: 'Batteries', bearing: 'Bearings and bushings', body: 'Body and covers', 'body-accessory': 'Body accessories', 'bumper-guard': 'Bumpers and guards',
   chassis: 'Chassis and mounts', cooling: 'Cooling', decal: 'Decals', differential: 'Differential', drivetrain: 'Drivetrain', electronics: 'Electronics',
   'engine-fuel': 'Engine and fuel', gear: 'Gears and transmission', light: 'Lights', motor: 'Motors', nut: 'Nuts', 'o-ring-seal': 'O-rings and seals',
-  'oil-grease': 'Oils and greases', material: 'Material', pin: 'Pins', clip: 'Clips', pinion: 'Pinions', radio: 'Radios', 'scale-accessory': 'Scale accessories', screw: 'Screws', servo: 'Servos', charger: 'Chargers', shock: 'Shocks',
+  'oil-grease': 'Oils and greases', material: 'Material', misc: 'Miscellaneous', pin: 'Pins', clip: 'Clips', pinion: 'Pinions', radio: 'Radios', 'scale-accessory': 'Scale accessories', screw: 'Screws', servo: 'Servos', charger: 'Chargers', shock: 'Shocks',
   'shock-spring': 'Shock springs', 'spur-gear': 'Spur gears', steering: 'Steering', suspension: 'Suspension', tire: 'Tires',
   tool: 'Tools', 'parts-tree': 'Parts trees', manual: 'Manuals', merchandise: 'Merchandise', 'hardware-set': 'Hardware sets and bags', 'rod-end': 'Rod ends and ball cups', turnbuckle: 'Turnbuckles', 'washer-shim': 'Washers, shims and spacers', wheel: 'Wheels', wing: 'Wings', wire: 'Wires and connectors',
 };
@@ -28,5 +28,5 @@ export const categoryGroups: [string, string[]][] = [
   ['Hardware', ['screw', 'nut', 'washer-shim', 'pin', 'clip', 'o-ring-seal', 'hardware-set']],
   ['Engine', ['engine-fuel']],
   ['Workshop', ['tool', 'material', 'glue', 'oil-grease', 'paint', 'hydraulic']],
-  ['Other', ['manual', 'parts-tree', 'merchandise']],
+  ['Other', ['manual', 'parts-tree', 'merchandise', 'misc']],
 ];
