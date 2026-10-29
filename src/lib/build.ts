@@ -1,5 +1,7 @@
-// A release's `kind` as shown on the site, under the label "Build": kit (built by the buyer), RTR, ARR, roller (a built chassis without electronics).
-const LABELS: Record<string, string> = { kit: 'Kit', rtr: 'RTR', arr: 'ARR', roller: 'Roller (rolling chassis)' };
+// A release's `kind` as shown on the site, under the label "Build": kit (built by the buyer), RTR, ARR, roller (a built chassis without electronics),
+// 3D print (the maker sells files the buyer prints).
+export const BUILD_LABELS: Record<string, string> = { kit: 'Kit', rtr: 'RTR', arr: 'ARR', roller: 'Roller (rolling chassis)', print: '3D print' };
+const LABELS = BUILD_LABELS;
 // A release's `power` (the power system in the box) in the words of the lists and filters; "none" (a roller) has no word.
 export const POWER_LABELS: Record<string, string> = { brushed: 'brushed', brushless: 'brushless', nitro: 'nitro', gas: 'gas' };
 export function powerLabel(power?: string): string {
