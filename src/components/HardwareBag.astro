@@ -28,6 +28,8 @@ const shortName = (id: string) => {
     case 'nut': return `${num(s.thread)} ${num(s.type)}`;
     case 'washer': return `${num(s.bore_mm)}x${num(s.outer_mm)}x${num(s.thickness_mm)}`;
     case 'eclip': return `${num(s.shaft_mm)} mm e-clip`;
+    case 'circlip': return `${num(s.shaft_mm)} mm circlip`;
+    case 'o-ring': return `${num(s.inner_mm)}x${num(s.cross_mm)} O-ring`;
     case 'pinion': return s.pitch_dp ? `${num(s.teeth)}T ${num(s.pitch_dp)}dp` : `${num(s.teeth)}T mod ${num(s.module)}`;
     default: return `${num(s.thread ?? s.diameter_mm)}x${num(s.length_mm)}`;
   }
@@ -45,8 +47,10 @@ const sealed = (seal === 'rubber' || seal === 'rubber-metal') && items.length > 
 const sealShade = sealed ? colourShades(color)?.[0]?.c : undefined;
 const shade = sealed ? undefined : colourShades(color)?.[0]?.c;
 // metal hardware (screws, nuts, washers, pins, e-clips, bearings, pinions) is steel unless the part says otherwise: silver rather than the page background
-const steelByDefault = items.length > 0 && items.every((i) => /^spec\/(eclip|bearing|screw|nut|washer|pin|pinion)\//.test(i.spec));
-const tone = shade ? undefined : metalTone(finish, material) ?? (steelByDefault ? 'steel' : undefined);
+const steelByDefault = items.length > 0 && items.every((i) => /^spec\/(eclip|circlip|bearing|screw|nut|washer|pin|pinion)\//.test(i.spec));
+// an O-ring is black rubber unless the part says otherwise
+const rubberByDefault = items.length > 0 && items.every((i) => i.spec.startsWith('spec/o-ring/'));
+const tone = shade ? undefined : metalTone(finish, material) ?? (steelByDefault ? 'steel' : rubberByDefault ? 'black' : undefined);
 const fill = shade ?? (tone ? `var(--hb-${tone})` : 'var(--bg, #fff)');
 const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : tone ? `var(--hb-${tone}-ink)` : 'currentColor';
 

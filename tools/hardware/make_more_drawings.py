@@ -17,6 +17,7 @@ optional. FreeCAD runs through flatpak in up to 8 processes; its work files go t
 ~/.cache/hobbydex-hardware-more, or to
 $HOBBYDEX_HARDWARE_WORK (the flatpak cannot read /tmp).
 """
+import inspect
 import json
 import math
 import os
@@ -183,10 +184,41 @@ def plan(kind, s):
         return plan_eclip(s)
     if kind == "pin":
         return plan_pin(s)
+    if kind == "o-ring":
+        return plan_oring(s)
+    if kind == "circlip":
+        return plan_circlip(s)
     return plan_pinion(s)
 
 
-KINDS = ("nut", "washer", "eclip", "pin", "pinion")
+def plan_oring(s):
+    d, c = s["inner_mm"], s["cross_mm"]
+    if not (d > 0 and c > 0):
+        return None, "o-ring: inner diameter or cross-section not usable"
+    return {"op": "oring", "inner": d, "cross": c}, None
+
+
+# DIN 471 external retaining rings: shaft -> (thickness s, free inner diameter d3, lug reach a, back width b, hole d5),
+# the table the Fasteners add-on carries (FsData/din471def.csv); the add-on's own solid is not used (see circlip_profile)
+DIN471 = {3: (0.4, 2.7, 2, 0.8, 1), 4: (0.4, 3.7, 2.2, 0.9, 1), 5: (0.6, 4.7, 2.5, 1.1, 1), 6: (0.7, 5.6, 2.7, 1.3, 1.2),
+          7: (0.8, 6.5, 3.1, 1.4, 1.2), 8: (0.8, 7.4, 3.2, 1.5, 1.2), 9: (1, 8.4, 3.3, 1.7, 1.2), 10: (1, 9.3, 3.3, 1.8, 1.5),
+          11: (1, 10.2, 3.3, 1.8, 1.5), 12: (1, 11, 3.3, 1.8, 1.7), 13: (1, 11.9, 3.4, 2, 1.7), 14: (1, 12.9, 3.5, 2.1, 1.7),
+          15: (1, 13.8, 3.6, 2.2, 1.7), 16: (1, 14.7, 3.7, 2.2, 1.7)}
+
+
+def plan_circlip(s):
+    shaft = s["shaft_mm"]
+    if shaft == int(shaft) and int(shaft) in DIN471:
+        t, d3, a, b, d5 = DIN471[int(shaft)]
+        return {"op": "circlip", "t": t, "d3": d3, "a": a, "b": b, "d5": d5}, None
+    if shaft < 3:
+        # below DIN 471: the 3 mm ring scaled to the shaft
+        t, d3, a, b, d5 = (v * shaft / 3 for v in DIN471[3])
+        return {"op": "circlip", "t": t, "d3": d3, "a": a, "b": b, "d5": d5}, None
+    return None, "circlip: shaft size not in the DIN 471 table"
+
+
+KINDS = ("nut", "washer", "eclip", "pin", "pinion", "o-ring", "circlip")
 
 
 def load_specs(root):
@@ -200,6 +232,27 @@ def load_specs(root):
 
 def slug_of(spec_id):
     return spec_id.removeprefix("spec/").replace("/", "-")
+
+
+def circlip_profile(d3, a, b, d5):
+    """DIN 471 outline (mm), gap towards -y: inner circle d3, ring width b at the back narrowing to the lugs, lugs a below
+    the inner circle with holes d5. The add-on's DIN 471 solid cuts the lug holes in half for the small sizes, so the
+    outline is built here from the same table values. Returns the pieces of the half x >= 0 as drawing commands."""
+    ri = d3 / 2
+    s = 0.3 * b                      # the outer circle sits s above the ring centre: thick at the back, thin at the lugs
+    Ro = ri + b - s
+    hg = 0.75 * d5                   # half the gap between the lugs
+    rt = 0.85 * d5                   # lug tip radius: the hole has d5 / 2
+    y0 = -math.sqrt(ri * ri - hg * hg)
+    c2 = (hg + rt, y0 - a + rt)      # lug tip centre; the lug ends a below the inner circle
+    dx, dy = c2[0], c2[1] - s
+    L = math.hypot(dx, dy)
+    beta = math.acos((Ro - rt) / L)
+    ang = math.atan2(dy, dx) + beta  # outward normal of the common tangent of the outer circle and the tip circle
+    n = (math.cos(ang), math.sin(ang))
+    P1 = (Ro * n[0], s + Ro * n[1])
+    P2 = (c2[0] + rt * n[0], c2[1] + rt * n[1])
+    return {"ri": ri, "s": s, "Ro": Ro, "hg": hg, "rt": rt, "y0": y0, "c2": c2, "P1": P1, "P2": P2, "n": n}
 
 
 # the FreeCAD side: one projection per job, as TechDraw SVG fragments
@@ -246,6 +299,24 @@ def poly_face(pts, t, z0=0):
     p.append(p[0])
     return Part.Face(Part.makePolygon(p)).extrude(V(0, 0, t))
 
+
+def circlip_body(job):
+    g = circlip_profile(job["d3"], job["a"], job["b"], job["d5"])
+    ri, s, Ro, hg, rt, y0, c2, P1, P2 = (g[k] for k in ("ri", "s", "Ro", "hg", "rt", "y0", "c2", "P1", "P2"))
+    mid_o = (Ro * math.cos(math.radians(45)), s + Ro * math.sin(math.radians(45)))
+    edges = [
+        Part.Arc(V(0, ri + job["b"], 0), V(mid_o[0], mid_o[1], 0), V(P1[0], P1[1], 0)).toShape(),
+        Part.makeLine(V(P1[0], P1[1], 0), V(P2[0], P2[1], 0)),
+        Part.Arc(V(P2[0], P2[1], 0), V(c2[0] + rt * math.cos(math.radians(-90)), c2[1] + rt * math.sin(math.radians(-90)), 0), V(hg, c2[1], 0)).toShape(),
+        Part.makeLine(V(hg, c2[1], 0), V(hg, y0, 0)),
+        Part.Arc(V(hg, y0, 0), V(ri * math.cos(math.radians(-25)), ri * math.sin(math.radians(-25)), 0), V(ri, 0, 0)).toShape(),
+        Part.Arc(V(ri, 0, 0), V(ri * math.cos(math.radians(45)), ri * math.sin(math.radians(45)), 0), V(0, ri, 0)).toShape(),
+        Part.makeLine(V(0, ri, 0), V(0, ri + job["b"], 0)),
+    ]
+    half = Part.Face(Part.Wire(Part.__sortEdges__(edges))).extrude(V(0, 0, job["t"]))
+    half = half.cut(Part.makeCylinder(job["d5"] / 2, job["t"] + 2, V(c2[0], c2[1], -1)))
+    return half.fuse(half.mirror(V(0, 0, 0), V(1, 0, 0))).removeSplitter()
+
 def build(job):
     op = job["op"]
     if op == "hex":
@@ -275,6 +346,10 @@ def build(job):
         obj.Diameter = job["size"]
         doc.recompute()
         return obj.Shape
+    if op == "oring":
+        return Part.makeTorus((job["inner"] + job["cross"]) / 2, job["cross"] / 2)
+    if op == "circlip":
+        return circlip_body(job)
     if op == "flange":
         doc = FreeCAD.ActiveDocument
         obj = doc.addObject("Part::FeaturePython", "Flange")
@@ -560,7 +635,7 @@ def run_freecad(jobs):
     def one(n, chunk):
         jobs_path = WORK / f"jobs-{n}.json"; script = WORK / f"freecad_more_{n}.py"
         jobs_path.write_text(json.dumps(chunk))
-        script.write_text(f"JOBS_JSON = {str(jobs_path)!r}\n" + FREECAD)
+        script.write_text(f"import math\nJOBS_JSON = {str(jobs_path)!r}\n" + inspect.getsource(circlip_profile) + FREECAD)
         r = subprocess.run(["flatpak", "run", "--filesystem=home", "--command=FreeCADCmd",
                             "org.freecad.FreeCAD", str(script)], capture_output=True, text=True)
         return r.stdout + r.stderr
@@ -576,11 +651,13 @@ def main(argv):
     sys.path.insert(0, str(MOD / "gears"))   # pygears, the Gears add-on's numpy core
     specs_dir = SPECS
     links_path = None
+    only = set(KINDS)         # --only o-ring,circlip draws just those kinds and leaves the other files alone
     args = list(argv)
     while args:
         a = args.pop(0)
         if a == "--specs": specs_dir = Path(args.pop(0))
         elif a == "--links": links_path = Path(args.pop(0))
+        elif a == "--only": only = set(args.pop(0).split(","))
         else: raise SystemExit(f"unknown argument {a}")
     t0 = time.time()
     links = Counter()
@@ -593,6 +670,8 @@ def main(argv):
     kinds_count = Counter()
     jobs = []
     for kind, s in load_specs(specs_dir):
+        if kind not in only:
+            continue
         kinds_count[kind] += 1
         job, why = plan(kind, s)
         if job is None:
@@ -654,14 +733,14 @@ def main(argv):
         (OUT / name).write_text(svg)
         index[job["id"].removeprefix("spec/")] = name
         drawn_kind[job["kind"]] += 1
-    for kind in KINDS:
+    for kind in only:
         for old in OUT.glob(f"{kind}-*.svg"):
             if old.name not in index.values():
                 old.unlink()
     # one index for the bags: keep the entries of the other drawings, replace this generator's kinds
     index_path = OUT / "index.json"
     merged = json.loads(index_path.read_text()) if index_path.exists() else {}
-    merged = {k: v for k, v in merged.items() if k.split("/", 1)[0] not in KINDS}
+    merged = {k: v for k, v in merged.items() if k.split("/", 1)[0] not in only}
     merged.update(index)
     index_path.write_text(json.dumps(dict(sorted(merged.items())), indent=2) + "\n")
     total = sum((OUT / n).stat().st_size for n in index.values())
