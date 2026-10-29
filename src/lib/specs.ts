@@ -1,8 +1,8 @@
 import { db, type Spec } from './data';
 
 // the line icon of each spec category (public/icons.svg)
-export const specIcon: Record<string, string> = { 'ball-end': 'ball-end', screw: 'screw', nut: 'nut', washer: 'washer-shim', bearing: 'bearing', pin: 'pin', eclip: 'eclip', pinion: 'pinion', oil: 'oil-grease', battery: 'battery', servo: 'servo', motor: 'motor', engine: 'engine-fuel', 'wheel-hex': 'wheel', connector: 'wire', wire: 'wire', protocol: 'radio' };
-export const specLabel: Record<string, string> = { 'ball-end': 'Ball ends', screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims', eclip: 'E-clips', connector: 'Connectors', wire: 'Wire gauges', protocol: 'Radio protocols' };
+export const specIcon: Record<string, string> = { 'ball-end': 'ball-end', screw: 'screw', nut: 'nut', washer: 'washer-shim', bearing: 'bearing', pin: 'pin', eclip: 'eclip', pinion: 'pinion', oil: 'oil-grease', battery: 'battery', servo: 'servo', motor: 'motor', engine: 'engine-fuel', 'wheel-hex': 'wheel', connector: 'wire', wire: 'wire', protocol: 'radio', circlip: 'clip', 'o-ring': 'o-ring-seal' };
+export const specLabel: Record<string, string> = { 'ball-end': 'Ball ends', screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims', eclip: 'E-clips', connector: 'Connectors', wire: 'Wire gauges', protocol: 'Radio protocols', circlip: 'Circlips', 'o-ring': 'O-rings' };
 
 /** Per spec category, the spec's own fields as table columns: [field, header, value shown when the field is unset]. */
 export const specColumns: Record<string, [string, string, string?][]> = {
