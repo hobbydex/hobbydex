@@ -43,9 +43,10 @@ const kit = db.kit.get(release.kit)!;
 const powerSource = (() => {
   const s = release.power_source;
   if (!release.power || release.power === 'none' || !s) return null;
-  if (s.startsWith('part/')) { const p = db.part.get(s); return p ? { text: p.name, href: url.part(p.id) } : null; }
-  if (s.startsWith('doc/')) { const d = db.doc.get(s); return d ? { text: d.title, href: d.page ?? d.url } : null; }
-  return s === 'name' ? { text: "the maker's name for it" } : s === 'kit' ? { text: "the platform's power type" } : null;
+  // a short label; the full source name is the link's title
+  if (s.startsWith('part/')) { const p = db.part.get(s); return p ? { text: 'motor', title: p.name, href: url.part(p.id) } : null; }
+  if (s.startsWith('doc/')) { const d = db.doc.get(s); return d ? { text: d.kind === 'manual' ? 'manual' : 'document', title: d.title, href: d.page ?? d.url } : null; }
+  return s === 'name' ? { text: 'name' } : s === 'kit' ? { text: 'platform' } : null;
 })();
 const shownCat = release.category ?? kit.category;   // the release's own category overrides its kit's
 const catSrc = release.category ? release.sources?.category : kit.sources?.category;
@@ -158,7 +159,7 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     {makerLinks.length > 0 && <><dt>Product page</dt><dd>{makerLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : hostLabel(l.url)}</a></>)}</dd></>}
     {dealerLinks.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerLinks.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{hostLabel(l.url)}</a></>)}</dd></>}
     {files.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : hostLabel(d.page!)}</a></>)}</dd></>)}
-    <dt>Build</dt><dd>{buildLabel(release.kind, release.power)}{release.sources?.kind && <FactSource field="kind" url={release.sources.kind} />}{powerSource && <span class="muted"> · power system stated by {powerSource.href ? <a href={powerSource.href}>{powerSource.text}</a> : powerSource.text}</span>}</dd>
+    <dt>Build</dt><dd>{buildLabel(release.kind, release.power)}{release.sources?.kind && <FactSource field="kind" url={release.sources.kind} />}{powerSource && <span class="muted"> · power from {powerSource.href ? <a href={powerSource.href} title={powerSource.title}>{powerSource.text}</a> : powerSource.text}</span>}</dd>
     <dt>Status</dt><dd>{release.status}</dd>
     {replacedByReleases.length > 0 && <><dt>Replaced by</dt><dd>{replacedByReleases.map((r, i) => <>{i > 0 && <br />}<a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a></>)}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.release(replaces.id)}>{brandName(replaces.brand)} {replaces.name}</a></dd></>}
