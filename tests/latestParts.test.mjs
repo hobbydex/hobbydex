@@ -1,7 +1,7 @@
 // The Latest view's part rule (lib/latestParts.ts): which parts are listed, and which dates count for a part.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { showPartInLatest, hasRealPartDate, isGenericPart, GENERIC_CATEGORIES } from '../src/lib/latestParts.ts';
+import { showPartInLatest, hasRealPartDate, hasRealReleaseDate, isGenericPart, GENERIC_CATEGORIES } from '../src/lib/latestParts.ts';
 
 const brands = { 'kit/a/x': 'brand/a', 'kit/a/y': 'brand/a', 'kit/b/z': 'brand/b', 'kit/c/w': 'brand/c' };
 const brandOf = (kit) => brands[kit];
@@ -89,4 +89,17 @@ test('the list is sorted non-increasing by date for any input order', () => {
   const shuffled = [...pool].reverse();
   const out = newestDatedParts(shuffled, 100);
   for (let i = 1; i < out.length; i++) assert.ok((realPartDate(out[i - 1]) ?? '') >= (realPartDate(out[i]) ?? ''));
+});
+
+test('a release seen only on a live shop page is not dated; archive, video, document, sitemap and news bounds are', () => {
+  assert.equal(hasRealReleaseDate({ seen_by: '2026-10', seen_by_source: 'https://abchobby.com/JP/page/rc/gene/gene_24200.html' }), false);
+  assert.equal(hasRealReleaseDate({ seen_by: '2026-10' }), false);
+  assert.equal(hasRealReleaseDate({ seen_by: '2015-08', seen_by_source: 'https://web.archive.org/web/20150808005930/http://abchobby.com/JP/page/rc/gene/gene_24200.html' }), true);
+  assert.equal(hasRealReleaseDate({ seen_by: '2026-05', seen_by_source: 'https://www.youtube.com/watch?v=abc' }), true);
+  assert.equal(hasRealReleaseDate({ seen_by: '2026-05', seen_by_source: 'doc/atomic-rc/mfx-kit-manual' }), true);
+  assert.equal(hasRealReleaseDate({ seen_by: '2026-10', seen_by_source: 'https://3dsets.com/product-sitemap.xml' }), true);
+  assert.equal(hasRealReleaseDate({ seen_by: '2026-04-02', seen_by_source: 'https://maker.example/news/new-car' }), true);
+  assert.equal(hasRealReleaseDate({ year: 2019 }), true);
+  assert.equal(hasRealReleaseDate({ released: '2026-03' }), true);
+  assert.equal(hasRealReleaseDate({ announced: '2026-02' }), true);
 });

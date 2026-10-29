@@ -43,6 +43,13 @@ export const showPartInLatest = (p: LatestPart, brandOf: (kit: string) => string
   return GENERIC_CATEGORIES.has(p.category ?? '') && isGenericPart(p, brandOf);
 };
 
+/** A release dated only by seen_by is listed when the bound is evidence on its own: an archive capture, a video, a
+ * document, a sitemap's lastmod or a maker news page. A bound from a live shop or product page is the day our import
+ * first saw the page, not news, so such a release stays off the Latest view until a better date is found. */
+const EVIDENCE_SEEN = [/^https?:\/\/web\.archive\.org\//, /youtube\.com|youtu\.be/, /^doc\//, /sitemap[^/]*\.xml/i, NEWS_PAGE];
+export const hasRealReleaseDate = (r: { year?: number; released?: string; announced?: string; seen_by?: string; seen_by_source?: string }) =>
+  !!(r.released || r.year || r.announced || (r.seen_by && EVIDENCE_SEEN.some((re) => re.test(r.seen_by_source ?? ''))));
+
 /** The date a part is listed by: its release date, else its announcement, else its maker-news bound. Undefined when it
  * has no real date (see hasRealPartDate). */
 export const realPartDate = (p: LatestPart) => p.released || p.announced || (isNewsSeen(p) ? p.seen_by : undefined);

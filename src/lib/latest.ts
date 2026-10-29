@@ -1,11 +1,11 @@
 import { db, dateKey, brandName, type Part, type Release } from './data';
 import { dateRows } from './colourways';
 import { buildLabel } from './build';
-import { showPartInLatest } from './latestParts';
+import { showPartInLatest, hasRealReleaseDate } from './latestParts';
 
 // The "Latest" view (/rc/latest/): releases, bodies and generic electronics and power parts with a date, newest first,
 // in tabs (which parts count: lib/latestParts.ts). Undated items never appear; a release dated only by seen_by shows as
-// such (DateText's asterisk), not as a release date.
+// such (DateText's asterisk), and only when that bound is evidence of its own (hasRealReleaseDate).
 export const TABS = [
   { id: 'all', label: 'Everything' },
   { id: 'cars', label: 'Cars' },
@@ -28,7 +28,7 @@ const categoryName = (id?: string) => db.categories.find((c) => c.id === 'catego
 export function latestRows(perTab = 100, allCount = 150) {
   const cmp = (a: { key: string; r: { name: string; brand: string } }, b: typeof a) =>
     b.key.localeCompare(a.key) || brandName(a.r.brand).localeCompare(brandName(b.r.brand)) || a.r.name.localeCompare(b.r.name);
-  const cars = dateRows(db.releases.filter((r) => r.status !== 'discontinued'), dateKey, () => 0)
+  const cars = dateRows(db.releases.filter((r) => r.status !== 'discontinued' && hasRealReleaseDate(r)), dateKey, () => 0)
     .map((x) => ({ key: x.key, tab: 'cars' as const, what: x.head.kind ? `Car · ${buildLabel(x.head.kind, x.head.power)}` : 'Car', r: x.head as Release | Part, group: x.group }));
   const brandOf = (kit: string) => db.kit.get(kit)?.brand;
   const parts = db.parts.filter((p) => showPartInLatest(p, brandOf) && p.status !== 'discontinued')
