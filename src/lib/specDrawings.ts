@@ -4,6 +4,7 @@ import { db, type Part, type Spec, type MountHoles } from './data';
 import { screwDrawing, type ScrewDrawing } from './screwDrawing';
 import { nutDrawing } from './nutDrawing';
 import { eclipDrawing } from './eclipDrawing';
+import { circlipDrawing, oringDrawing } from './ringDrawings';
 import { connectorDrawing } from './connectorDrawing';
 
 const f = (v: number) => String(Math.round(v * 100) / 100);
@@ -322,6 +323,8 @@ export function specDrawing(spec: Spec): (ScrewDrawing & { note?: string }) | un
   if (spec.category === 'nut') return nutDrawing(spec);
   if (spec.category === 'washer') return washerDrawing(spec);
   if (spec.category === 'eclip') return eclipDrawing(spec);
+  if (spec.category === 'circlip') return circlipDrawing(spec);
+  if (spec.category === 'o-ring') return oringDrawing(spec);
   if (spec.category === 'motor') return motorDrawing(spec);
   if (spec.category === 'connector') return connectorDrawing(spec);
   return undefined;
