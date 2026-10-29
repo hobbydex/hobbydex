@@ -4,7 +4,7 @@ import { url } from '../../../../lib/data';
 import { specLabel, specIntro, specGuide, specColumns, specsByCategory, linkedCount, MOTOR_SPEED_NOTE, BATTERY_NOTE } from '../../../../lib/specs';
 import SpecFilter from '../../../../components/SpecFilter.astro';
 export function getStaticPaths() {
-  return [...specsByCategory.keys()].map((category) => ({ params: { category } }));
+  return [...specsByCategory.keys()].filter((c) => c !== 'protocol').map((category) => ({ params: { category } }));
 }
 const { category } = Astro.params;
 const specs = specsByCategory.get(category!)!;
