@@ -1,8 +1,8 @@
 import { db, type Spec } from './data';
 
 // the line icon of each spec category (public/icons.svg)
-export const specIcon: Record<string, string> = { 'ball-end': 'ball-end', screw: 'screw', nut: 'nut', washer: 'washer-shim', bearing: 'bearing', pin: 'pin', eclip: 'eclip', pinion: 'pinion', oil: 'oil-grease', battery: 'battery', servo: 'servo', motor: 'motor', engine: 'engine-fuel', 'wheel-hex': 'wheel', connector: 'wire', wire: 'wire', protocol: 'radio', circlip: 'circlip', 'o-ring': 'o-ring-seal' };
-export const specLabel: Record<string, string> = { 'ball-end': 'Ball ends', screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims', eclip: 'E-clips', connector: 'Connectors', wire: 'Wire gauges', protocol: 'Radio protocols', circlip: 'Circlips', 'o-ring': 'O-rings' };
+export const specIcon: Record<string, string> = { 'ball-end': 'ball-end', screw: 'screw', nut: 'nut', washer: 'washer-shim', tube: 'washer-shim', bearing: 'bearing', pin: 'pin', eclip: 'eclip', pinion: 'pinion', oil: 'oil-grease', battery: 'battery', servo: 'servo', motor: 'motor', engine: 'engine-fuel', 'wheel-hex': 'wheel', connector: 'wire', wire: 'wire', protocol: 'radio', circlip: 'circlip', 'o-ring': 'o-ring-seal' };
+export const specLabel: Record<string, string> = { 'ball-end': 'Ball ends', screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims', tube: 'Tubes and pipes', eclip: 'E-clips', connector: 'Connectors', wire: 'Wire gauges', protocol: 'Radio protocols', circlip: 'Circlips', 'o-ring': 'O-rings' };
 
 /** Per spec category, the spec's own fields as table columns: [field, header, value shown when the field is unset]. */
 export const specColumns: Record<string, [string, string, string?][]> = {
@@ -15,6 +15,7 @@ export const specColumns: Record<string, [string, string, string?][]> = {
   pin: [['diameter_mm', 'Diameter mm'], ['length_mm', 'Length mm']],
   eclip: [['shaft_mm', 'Shaft mm'], ['thickness_mm', 'Thickness mm'], ['outer_mm', 'Outer mm'], ['variant', 'Variant']],
   washer: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['thickness_mm', 'Thickness mm'], ['shape', 'Shape']],
+  tube: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['length_mm', 'Length mm'], ['shape', 'Shape']],
   connector: [['family', 'Family'], ['pins', 'Pins'], ['contact_mm', 'Contact mm'], ['current_a', 'A'], ['anti_spark', 'Anti-spark']],
   wire: [['awg', 'Gauge (AWG)'], ['conductor_mm', 'Diameter mm'], ['conductor_in', 'Diameter in'], ['cross_section_mm2', 'Cross-section mm2']],
   nut: [['thread', 'Thread'], ['type', 'Type'], ['profile', 'Profile'], ['across_flats_mm', 'Across flats mm'], ['height_mm', 'Height mm']],
@@ -45,6 +46,7 @@ export const specIntro: Record<string, string> = {
   pin: 'Parallel pins by diameter and length in mm: the plain steel pins that lock drive-shaft cups, wheel hexes and gears to their shafts. A grooved pin or a pin with an E-clip is a different part.',
   nut: 'Nuts by thread and type. Hex, nylon-insert lock and flanged nuts share a thread; the type decides whether they hold under vibration and how much room they need. Wheel nuts list the hex size a wrench takes.',
   washer: 'Washers, shims and spacers share one spec: bore, outer diameter and thickness in mm. The generic name follows the thickness, whatever the maker calls its own part; countersunk and conical ones carry a prefix.',
+  tube: 'Tubes, pipes and flanged collars by bore and outer diameter in mm, with the length where the maker states one. A flanged or crush tube is listed apart from a plain tube of the same size. The bore must clear the screw or shaft it runs on; the length decides how much it spaces.',
   eclip: 'E-clips (E-rings, DIN 6799 type) by the shaft they fit, in mm: a 3 mm E-clip goes on a 3 mm shaft, as the RC makers name them. Clips that state a thickness, and bowed (wave) E-rings, are listed apart from the plain clip of the same shaft.',
   connector: 'Power and signal connectors by family and size: the XT, EC and Deans plugs of the electric cars, Tamiya and JST balance and servo plugs, and the bullet and banana plugs of chargers and motors. A spec is one family and size; the pins, contact diameter and anti-spark design belong to the family, and a current is listed only where the maker states it, with its wire.',
   wire: 'Bare solid round copper conductors by AWG gauge, from 8 to 30. The smaller the number, the thicker the wire: a 12 AWG conductor is 0.0808 in (2.05 mm) across and 3.31 mm² in section. AWG is an inch system: ASTM B258 defines the diameters in inches, so the mm values are conversions. Insulation, strands and length are the branded part\'s own, and a wire part links to the gauge it names.',
@@ -64,6 +66,7 @@ export function specSort(a: Spec, b: Spec) {
   if (a.category === 'motor') return String(a.motor_type).localeCompare(String(b.motor_type)) || num(a.shaft_mm) - num(b.shaft_mm) || num(a.diameter_mm) - num(b.diameter_mm) || num(a.length_mm) - num(b.length_mm);
   if (a.category === 'nut') return num(String(a.thread).split('x')[0]) - num(String(b.thread).split('x')[0]) || String(a.thread).localeCompare(String(b.thread)) || String(a.type).localeCompare(String(b.type)) || String(a.profile ?? '').localeCompare(String(b.profile ?? ''));
   if (a.category === 'washer') return num(a.bore_mm) - num(b.bore_mm) || num(a.outer_mm) - num(b.outer_mm) || num(a.thickness_mm) - num(b.thickness_mm) || String(a.shape ?? '').localeCompare(String(b.shape ?? ''));
+  if (a.category === 'tube') return num(a.bore_mm) - num(b.bore_mm) || num(a.outer_mm) - num(b.outer_mm) || num(a.length_mm) - num(b.length_mm) || String(a.shape ?? '').localeCompare(String(b.shape ?? ''));
   if (a.category === 'eclip') return num(a.shaft_mm) - num(b.shaft_mm) || String(a.variant ?? '').localeCompare(String(b.variant ?? '')) || num(a.thickness_mm) - num(b.thickness_mm);
   if (a.category === 'connector') return String(a.family).localeCompare(String(b.family)) || num(a.contact_mm) - num(b.contact_mm) || num(a.current_a) - num(b.current_a) || a.id.localeCompare(b.id);
   if (a.category === 'wire') return num(a.awg) - num(b.awg);
