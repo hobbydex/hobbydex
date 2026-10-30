@@ -94,10 +94,10 @@ import SeenNote from '../../../../components/SeenNote.astro';
     </table></div></>}
   {(db.setsBySpec.get(spec.id) ?? []).length > 0 && <>
     <h2>In sets</h2>
-    <table>
+    <div class="tablescroll"><table class="stacked">
       <tr><th>Brand</th><th class="num">Number</th><th>Set</th><th class="num">Qty</th><th>Notes</th></tr>
-      {db.setsBySpec.get(spec.id)!.map((x) => <tr><td>{brandName(x.part.brand)}</td><td class="num">{x.part.number && <a href={url.part(x.part.id)}>{x.part.number}</a>}</td><td>{x.part.number ? x.part.name : <a href={url.part(x.part.id)}>{x.part.name}</a>}</td><td class="num">{x.qty ?? ''}</td><td class="muted">{x.notes ?? ''}</td></tr>)}
-    </table></>}
+      {db.setsBySpec.get(spec.id)!.map((x) => <tr><td data-label="Brand">{brandName(x.part.brand)}</td><td class="num" data-label="Number">{x.part.number && <a href={url.part(x.part.id)}>{x.part.number}</a>}</td><td class="name">{x.part.number ? x.part.name : <a href={url.part(x.part.id)}>{x.part.name}</a>}</td><td class="num" data-label="Qty">{x.qty ?? ''}</td><td class="muted" data-label="Notes">{x.notes ?? ''}</td></tr>)}
+    </table></div></>}
   {sameSize.length > 0 && <>
     <h2>All {String(spec.size_class).replace('-', ' ')} servos <span class="muted">({sameSize.length}, by case length then height)</span></h2>
     <p class="muted">Check the case size and the mounting holes before swapping: two servos of one size class do not always fit the same mount.</p>

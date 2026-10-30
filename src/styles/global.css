@@ -203,6 +203,7 @@ a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
   table:is(.releases, .stacked) td:empty { display: none; }
   table:is(.releases, .stacked) td[data-label] { margin-right: 0.9rem; font-size: 0.8rem; white-space: nowrap; }
   table.stacked td[data-label]:not(:empty) { display: inline-block; }   /* boxes, not inline runs, so a row of labelled values can wrap between them */
+  table.stacked td[data-label="Notes"]:not(:empty) { display: none; }   /* a long note would run off the phone screen; the set page has it */
   table:is(.releases, .stacked) td[data-label]::before { content: attr(data-label) " "; color: var(--muted); }
   table.releases tr[hidden] { display: none; }   /* rows a filter hides stay hidden as blocks */
   table.releases thead { display: none; }   /* a table with a thead (the brand page): its first body row is a row, not the header */
