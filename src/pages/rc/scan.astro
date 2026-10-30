@@ -34,9 +34,9 @@ import Base from '../../layouts/Base.astro';
   <p data-pagefind-ignore>A code or number that is not in Hobbydex yet is shown as typed, so a missing record can be <a href="https://github.com/hobbydex/hobbydex-rc/issues/new">reported</a>.</p>
 
   <script>
-    import { gtin13, gtinPath, partNoKey, bucketOf, PARTNO_BUCKETS, FIT_BUCKETS } from '../../lib/gtinCode';
+    import { gtin13, partNoKey, bucketOf, FIT_BUCKETS } from '../../lib/gtinCode';
+    import { file, lookupGtin, lookupPartNo, missingWords, missingLinks, type Hit } from '../../lib/gtinLookup';
 
-    type Hit = [string, string, 'part' | 'release'];
     type Fit = { p: [string, string][]; pn: number; r: [string, string, string][]; rn: number };
 
     const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -48,17 +48,6 @@ import Base from '../../layouts/Base.astro';
     // a phone keeps the keyboard down until a field is tapped; the camera is its main action
     if (!matchMedia('(pointer: coarse)').matches) input.focus();
 
-    // each index file is fetched once; a missing file is an empty index, a failed download is retried later
-    const files = new Map<string, Promise<any>>();
-    function file(dir: string, name: string): Promise<any> {
-      const path = `/${dir}/${name}.json`;
-      if (!files.has(path)) {
-        const p = fetch(path).then((r) => (r.ok ? r.json() : {}));
-        p.catch(() => files.delete(path));
-        files.set(path, p);
-      }
-      return files.get(path)!;
-    }
     const fitOf = async (u: string): Promise<Fit | undefined> => (await file('fit', String(bucketOf(u, FIT_BUCKETS))))[u];
 
     const el = (tag: string, text?: string, cls?: string) => {
@@ -124,18 +113,18 @@ import Base from '../../layouts/Base.astro';
       show(`Looking up ${text}...`);
       let hits: Hit[] = [];
       try {
-        if (code) {
-          // a big prefix is split in threes of digits, down to small files (see src/pages/gtin/[...shard].json.ts)
-          let depth = 3, idx = await file('gtin', gtinPath(code.slice(0, depth)));
-          while (idx.split) { depth = idx.split; idx = await file('gtin', gtinPath(code.slice(0, depth))); }
-          hits = idx[code] ?? [];
-        }
-        if (!hits.length && key.length >= 2) hits = (await file('partno', String(bucketOf(key, PARTNO_BUCKETS))))[key] ?? [];
+        if (code) hits = await lookupGtin(code);
+        if (!hits.length) hits = await lookupPartNo(text);
       } catch {
         show('The index did not load. Check the connection and try again.');
         return;
       }
-      if (!hits.length) { show(`Not in Hobbydex yet: ${text}`); return; }
+      if (!hits.length) {
+        // no dead end: say so, offer the normal site search for the raw code and a prefilled report
+        show(missingWords(text, !!code));
+        results.replaceChildren(missingLinks(text));
+        return;
+      }
       const many = hits.length > 1;
       show(many ? `${hits.length} records match ${text}. Pick one to see its fit.` : `Found: ${text}`);
       // up to ten records open with their fit; a longer list is only the names
@@ -253,6 +242,8 @@ import Base from '../../layouts/Base.astro';
     }
 
     cameraBtn.addEventListener('click', () => startCamera());
+    // the camera icon on the search page opens this page with the camera running
+    if (new URLSearchParams(location.search).has('camera')) startCamera();
     $('camera-stop').addEventListener('click', () => { stopCamera(); show(''); });
     // the camera light goes off when the page is left or hidden
     window.addEventListener('pagehide', stopCamera);
