@@ -17,6 +17,11 @@ test('UPC-E is expanded to UPC-A before the lookup', () => {
   assert.equal(gtin13('04252614'), '0042100005264');
 });
 
+test('EAN-8 (Tamiya Germany 45032776) is kept with five leading zeros; a wrong check digit is not a barcode', () => {
+  assert.equal(gtin13('45032776'), '0000045032776');
+  assert.equal(gtin13('45032777'), null);
+});
+
 test('a wrong check digit, a wrong length or letters are not a barcode', () => {
   assert.equal(gtin13('036000291453'), null);
   assert.equal(gtin13('0425261'), null);
