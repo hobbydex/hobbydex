@@ -10,6 +10,7 @@ import { db, url, brandName, dateKey, dateDoubt, isComing, releasedOf, releasesB
 import DateText from '../components/DateText.astro';
 import DateDoubt from '../components/DateDoubt.astro';
 import DoubtNote from '../components/DoubtNote.astro';
+import ScanButton from '../components/ScanButton.astro';
 import ColourSwitch from '../components/ColourSwitch.astro';
 import { dateRows, colourLabels, groupName, releaseColour } from '../lib/colourways';
 
@@ -36,10 +37,13 @@ const seenKit = new Set<string>();
 const out = db.releases.filter((r) => r.status !== 'discontinued' && !isComing(r));
 const latest = dateRows(out, dateKey, () => 0)
   .filter((x) => !seenKit.has(x.head.kit) && seenKit.add(x.head.kit)).slice(0, 10);
-// announced and not out yet, soonest first: their own group above the latest releases, never labelled Released;
-// all of them, so a later date is never pushed off the list by newer announcements
-const coming = dateRows(db.releases.filter(isComing), (r) => { const d = releasedOf(r)!; return d.length === 4 ? d + '-13' : d; }, () => 0)
-  .sort((a, b) => a.key.localeCompare(b.key));
+// announced and not out yet, never labelled Released; all of them, so a later date is never pushed off the list by
+// newer announcements; a release known only by its year is left out (it has no place in a dated list)
+const coming = dateRows(db.releases.filter((r) => isComing(r) && (releasedOf(r) ?? '').length >= 7), (r) => releasedOf(r)!, () => 0);
+// one table, newest date first: upcoming releases above the latest ones, in date order throughout
+// a month without a day sorts at the end of its month
+const sortKey = (k: string) => (k.length === 7 ? k + '-32' : k);
+const newest = [...coming, ...latest].sort((a, b) => sortKey(b.key).localeCompare(sortKey(a.key)));
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 // the hero's car: the site's own buggy icon (public/icons.svg#buggy, 48x24, front to the left, wheels on
 // y=23.2), split into body and wing (its first two subpaths) and the two wheels, so the suspension can work
@@ -66,6 +70,7 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
   <section class="home-hero">
     <p class="tagline">The open RC database: what's new, what's inside, what fits.</p>
     <form class="home-search" action="/search/" method="get" role="search">
+      <ScanButton />
       <div class="ac">
         <input type="search" name="q" id="home-q" placeholder="Part number, part name, platform or brand" aria-label="Search"
           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="home-ac" autocomplete="off" />
@@ -178,14 +183,14 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
   <h2>New and upcoming</h2>
   <table class="home-new">
     <tr><th class="num">Date</th><th>Release</th></tr>
-    {[...coming, ...latest].map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; const labels = colourLabels(g); return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
+    {newest.map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; const labels = colourLabels(g); return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
       <td><span class="muted" title={kitTypeOne[cat ?? 'car']}><ReleaseArt id={r.id} category={cat} art={r.art} color={g.length > 1 ? undefined : releaseColour(r)} size="1em" /></span> <a href={url.release(r.id)}>{brandName(r.brand)} {groupName(g)}</a><Discontinued item={r} />
         {g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}
         {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td></tr>; })}
   </table>
   <p><a href="/rc/releases/">Show more</a> <span class="muted">· every release, newest first</span></p>
   <p><a href="/rc/latest/">Latest of everything</a> <span class="muted">· new cars, bodies, servos, radios, ESCs, motors, batteries and other parts</span></p>
-  <DoubtNote on={[...coming, ...latest].some((x) => x.group.some((r) => !!dateDoubt(r)))} />
+  <DoubtNote on={newest.some((x) => x.group.some((r) => !!dateDoubt(r)))} />
 
   <div class="home-grid">
     <section>

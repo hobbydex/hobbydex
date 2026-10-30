@@ -1,10 +1,14 @@
 ---
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
+import ScanButton from '../components/ScanButton.astro';
 ---
 <Base title="Search" description="Search Hobbydex by part number, part name, kit, release or brand, and filter by part category, drive or real vehicle make.">
   <h1>Search</h1>
-  <div class="sfield"><Icon name="search" /><input class="search-box" id="q" type="search" placeholder="Part number, part name, platform or brand" autocomplete="off" autofocus /></div>
+  <div class="sfield-row">
+    <ScanButton />
+    <div class="sfield"><Icon name="search" /><input class="search-box" id="q" type="search" placeholder="Part number, part name, platform or brand" autocomplete="off" autofocus /></div>
+  </div>
   <div class="search-filters" id="filters" role="group" aria-label="Result type">
     <button data-type="" aria-pressed="true">All</button>
     <button data-type="part" aria-pressed="false">Parts</button>
@@ -20,6 +24,13 @@ import Icon from '../components/Icon.astro';
   <div class="search-status" id="status"></div>
   <ul class="search-results" id="results"></ul>
   <div class="search-more" id="more" hidden><button id="more-btn">Show more</button></div>
+  <script>
+    // the barcode lookup shared with the scan page (src/lib/gtinLookup.ts), handed to the search script below
+    import { gtin13 } from '../lib/gtinCode';
+    import { lookupGtin, missingWords, missingLinks } from '../lib/gtinLookup';
+    (window as any).hdGtin = { gtin13, lookupGtin, missingWords, missingLinks };
+    window.dispatchEvent(new Event('hdgtin'));
+  </script>
   <script is:inline>
     (async () => {
       const q = document.getElementById('q'), results = document.getElementById('results'), status = document.getElementById('status');
@@ -70,6 +81,8 @@ import Icon from '../components/Icon.astro';
         for (const t of terms) if (t.length > 1) out = out.replace(new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>');
         return out;
       };
+      // the barcode tools come from the bundled script above, which may still be loading
+      const gtinTools = () => window.hdGtin ? Promise.resolve(window.hdGtin) : new Promise((r) => addEventListener('hdgtin', () => r(window.hdGtin), { once: true }));
       async function render() {
         const terms = q.value.trim().split(/\s+/).filter(Boolean);
         const batch = hits.slice(shown, shown + PAGE);
@@ -105,6 +118,23 @@ import Icon from '../components/Icon.astro';
         if (!text && !type && !cat && !drive && !make) { clear(); status.textContent = ''; return; }
         if (!text && !make && browseAll(type, cat)) { clear(); status.textContent = 'Type a part number or name to search the parts, or pick a category.'; q.focus(); return; }
         status.textContent = 'Searching...';
+        // a valid barcode is looked up in the barcode index (pagefind does not hold it) and listed first
+        const top = [];
+        let barcode = '';
+        const g = text ? await gtinTools() : null;
+        const code = g && g.gtin13(text);
+        if (code) {
+          let recs = [];
+          try { recs = await g.lookupGtin(code); } catch (e) { status.textContent = 'The barcode index did not load.'; }
+          if (stale()) return;
+          for (const [href, title, kind] of recs) {
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="badge">${esc(kind)}</span><a href="${esc(href)}">${esc(title)}</a><span class="sub">barcode ${esc(text)}</span>`;
+            top.push(li);
+          }
+          if (!recs.length) { const li = document.createElement('li'); li.append(g.missingLinks(text)); top.push(li); barcode = g.missingWords(text, true); }
+          else barcode = `${recs.length} with barcode ${text}`;
+        }
         let found;
         try {
           // a plain query: re-ranked (see search-rank.js); with a filter, pagefind's order;
@@ -116,7 +146,8 @@ import Icon from '../components/Icon.astro';
         if (!found || stale()) return;
         // the old results stay until the new ones are in
         clear(); hits = found;
-        status.textContent = hits.length ? `${hits.length} ${text ? 'result' : labels[type || (drive ? 'platform' : '')] || 'page'}${hits.length === 1 ? '' : 's'}` : 'No results';
+        results.append(...top);
+        status.textContent = (barcode ? barcode + '. ' : '') + (hits.length ? `${hits.length} ${text ? 'result' : labels[type || (drive ? 'platform' : '')] || 'page'}${hits.length === 1 ? '' : 's'}` : (barcode ? 'No other results' : 'No results'));
         await render();
       }
       // a search starts once typing pauses: one started mid-word cannot be stopped and delays the next

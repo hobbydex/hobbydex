@@ -1,7 +1,7 @@
 // Release table logic (public/release-table.js): the URL state, filters, facet counts and sort, on a small list.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decode, collapse, valueOf, presentValues, parseSearch, toSearch, filterRows, facets, options, sortRows, listRows, stepYear, isoText, dateLabel, NONE } from '../public/release-table.js';
+import { decode, collapse, valueOf, presentValues, parseSearch, toSearch, filterRows, facets, options, sortRows, listRows, stepYear, isoText, dateLabel, dateMode, NONE } from '../public/release-table.js';
 
 const list = {
   brands: [['traxxas', 'Traxxas'], ['arrma', 'Arrma']],
@@ -38,11 +38,15 @@ test('dates read as the static table words them', () => {
   assert.equal(isoText('2026-09-24'), '2026 Sep 24');
   assert.equal(isoText('2025-10'), '2025 Oct');
   assert.equal(isoText('2025'), '2025');
-  assert.equal(dateLabel('2025-10', 2), 'announced 2025 Oct');
+  assert.equal(dateLabel('2025-10', 2), '2025 Oct');
+  assert.equal(dateMode('2025-10', 2), 'announced');
+  assert.equal(dateMode('2026-12', 16), 'expected');
+  assert.equal(dateMode('2026-10', 5), 'seenby');
+  assert.equal(dateMode('2012', 0), '');
   assert.equal(dateLabel('', 0), 'unknown');
-  assert.equal(dateLabel('2026-10', 1), 'by 2026 Oct');
-  assert.equal(dateLabel('2026-10', 5), 'by 2026 Oct');
-  assert.deepEqual(rows.map((r) => r.dateText), ['2020 Mar', 'by 1998', 'unknown', '2024 May 1']);
+  assert.equal(dateLabel('2026-10', 1), '2026 Oct');
+  assert.equal(dateLabel('2026-10', 5), '2026 Oct');
+  assert.deepEqual(rows.map((r) => r.dateText), ['2020 Mar', '1998', 'unknown', '2024 May 1']);
 });
 
 test('the URL restores filters and drops unknown values', () => {
