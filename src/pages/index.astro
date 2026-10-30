@@ -38,8 +38,8 @@ const out = db.releases.filter((r) => r.status !== 'discontinued' && !isComing(r
 const latest = dateRows(out, dateKey, () => 0)
   .filter((x) => !seenKit.has(x.head.kit) && seenKit.add(x.head.kit)).slice(0, 10);
 // announced and not out yet, never labelled Released; all of them, so a later date is never pushed off the list by
-// newer announcements; a year-only date sorts at the end of its year
-const coming = dateRows(db.releases.filter(isComing), (r) => { const d = releasedOf(r)!; return d.length === 4 ? d + '-13' : d; }, () => 0);
+// newer announcements; a release known only by its year is left out (it has no place in a dated list)
+const coming = dateRows(db.releases.filter((r) => isComing(r) && (releasedOf(r) ?? '').length >= 7), (r) => releasedOf(r)!, () => 0);
 // one table, newest date first: upcoming releases above the latest ones, in date order throughout
 const newest = [...coming, ...latest].sort((a, b) => b.key.localeCompare(a.key));
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
