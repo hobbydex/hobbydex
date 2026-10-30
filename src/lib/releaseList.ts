@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { db, key, brandName, dateKey, dateDoubt, releasedOf, seenOnly, seenKind } from './data';
+import { db, key, brandName, dateKey, dateDoubt, releasedOf, seenOnly, seenKind, isComing } from './data';
 import { releaseType, releaseScale } from './releaseTypes';
 import { kitTypeLabel, kitTypeIcon, kitTypeOrder } from './kitTypes';
 import { wideIcons } from './wideIcons';
@@ -14,7 +14,7 @@ import { colourDotStyle } from './colourDot';
 // `doubts`. The release URL is /rc/releases/<brand slug>/<id tail>/. The date is the release's date key ("2026-11",
 // "2012-05-01" or "" when undated). art is the file name of the release's outline in /art/ (see releaseArts).
 // flags: 1 = a seen_by bound only (the date reads "by ...", shown with an eye icon), 4 = that bound is an archive capture,
-// 8 = a video upload (neither: a page we saw), 2 = an announced date (the date reads "announced ...").
+// 8 = a video upload (neither: a page we saw), 2 = an announced date (megaphone icon), 16 = coming, not out yet (clock icon); same modes as DateText.astro.
 // The 14th column is the power system: an index into `powers` ([value, label]; "unpowered" is a release with no motor or engine), null when no source states it.
 // A row with a doubt index has a date we are not sure of (the "?" with that reason).
 // The 13th column is the row's colourway group (lib/colourways.ts): an index into `groups`, or null. A group is
@@ -47,7 +47,7 @@ export function releaseList() {
     const [brand, ...tail] = key(r.id);
     if (brand !== key(r.brand)[0]) throw new Error(`release ${r.id} is not under brand ${r.brand}`);
     const type = releaseType(r);
-    const flags = (seenOnly(r) ? 1 | { archive: 4, video: 8, page: 0 }[seenKind(r)] : 0) | (!releasedOf(r) && r.announced ? 2 : 0);
+    const flags = (seenOnly(r) ? 1 | { archive: 4, video: 8, page: 0 }[seenKind(r)] : 0) | (!isComing(r) && !releasedOf(r) && r.announced ? 2 : 0) | (isComing(r) ? 16 : 0);
     // the main colour of the row's icon: its outline, or its type icon (a default icon takes the colour too)
     const main = colourShades(releaseColour(r))?.[0];
     const colour = main ? index(colours, tableColour(main)) : null;
