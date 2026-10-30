@@ -27,12 +27,15 @@ const brands = [...new Set(parts.map((p) => p.brand))].sort((a, b) => brandName(
 const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dropdown; a multi column (a list in one cell, scales) offers each item
   choices: c.num || c.field.compare_only || c.pick === false ? [] : [...new Set(rows.flatMap((r) => { const v = r.vals[i]; return v === undefined ? [] : c.multi ? String(v).split(', ') : [String(v)]; }))].sort() as string[] }))
   .filter((x) => x.choices.length > 1 && x.choices.length <= 60);
+// a column with filter = range gets a from-to box on its largest number (watts: "100 AC / 250 DC" counts as 250)
+const ranges = cols.map((c, i) => ({ c, i })).filter(({ c }) => c.field.filter === 'range');
 ---
 <div class="parttable" data-pagefind-ignore>
   <p class="websearch">
     <span class="sfield"><Icon name="search" /><input type="search" class="q search-box" placeholder="Filter by number or name" aria-label="Filter" /></span>
     {showBrand && brands.length > 1 && <select class="brand" aria-label="Brand"><option value="">every brand</option>{brands.map((b) => <option value={b}>{brandName(b)}</option>)}</select>}
     {picks.map(({ c, i, choices }) => <select class="pick" data-col={i} data-multi={c.multi ? '' : undefined} data-key={c.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} aria-label={c.label}><option value="">any {c.label.toLowerCase()}</option>{choices.map((v) => <option>{v}</option>)}</select>)}
+    {ranges.map(({ c, i }) => <span class="rangef" data-col={i} data-key={c.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}>{c.label} <input type="number" class="rmin" min="0" inputmode="numeric" placeholder="from" aria-label={`${c.label} from`} /> <input type="number" class="rmax" min="0" inputmode="numeric" placeholder="to" aria-label={`${c.label} to`} /></span>)}
     {cols.length > 0 && <label><input type="checkbox" class="known" /> only with specs</label>}
     {hasDisc && <HideDiscontinued />}
     <button type="button" class="btn cmp" disabled>Compare ticked</button>
@@ -50,7 +53,7 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
           const sw = f === 'color' && paint ? paintChip(p, 22, 'circle') : undefined;
           // a named colour (not a paint): a dot from the fixed palette
           const dot = (f === 'color' || f === 'wheel_color') && !paint ? colourDot((p as unknown as Record<string, string | undefined>)[f]) : '';
-          return <td class={`${cols[i].num ? 'num' : ''}${cols[i].field.compare_only ? ' conly' : ''}`}>{sw && <span class="swatch" title="approximate colour" set:html={sw} />}{dot && <Fragment set:html={dot} />}{cols[i].plug && v ? plugLinks(String(v)).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>) : (v ?? '')}</td>; })}
+          return <td class={`${cols[i].num ? 'num' : ''}${cols[i].field.compare_only ? ' conly' : ''}`}>{sw && <span class="swatch" title="approximate colour" set:html={sw} />}{dot && <Fragment set:html={dot} />}{cols[i].plug && v ? (cols[i].multi ? String(v).split(', ') : [String(v)]).map((name, k) => <>{k > 0 && ', '}{plugLinks(name).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>)}</>) : (v ?? '')}</td>; })}
       </tr>)}
     </tbody>
   </table></div>
@@ -59,6 +62,7 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
   for (const box of document.querySelectorAll<HTMLElement>('.parttable')) {
     const table = box.querySelector('table')!, body = table.tBodies[0];
     const q = box.querySelector<HTMLInputElement>('.q')!, brand = box.querySelector<HTMLSelectElement>('.brand');
+    const rangeBoxes = [...box.querySelectorAll<HTMLElement>('.rangef')];
     const picks = [...box.querySelectorAll<HTMLSelectElement>('.pick')], known = box.querySelector<HTMLInputElement>('.known');
     const cmp = box.querySelector<HTMLButtonElement>('.cmp')!, clear = box.querySelector<HTMLButtonElement>('.clear')!, side = box.querySelector<HTMLElement>('.side')!, count = box.querySelector<HTMLElement>('.count')!;
     const valueOf = (tr: HTMLTableRowElement, s: HTMLSelectElement): string[] => s === brand ? [tr.dataset.brand!] : s.dataset.multi !== undefined ? tr.cells[Number(s.dataset.col) + 2].textContent!.split(', ') : [tr.cells[Number(s.dataset.col) + 2].textContent!];
@@ -66,7 +70,15 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
     const passes = (tr: HTMLTableRowElement, skip: HTMLSelectElement | null) => {
       const text = q.value.trim().toLowerCase();
       return (!text || tr.cells[1].textContent!.toLowerCase().includes(text)) && (!known?.checked || !!tr.dataset.known)
-        && [brand, ...picks].every((s) => !s || s === skip || !s.value || valueOf(tr, s).includes(s.value));
+        && [brand, ...picks].every((s) => !s || s === skip || !s.value || valueOf(tr, s).includes(s.value))
+        && rangeBoxes.every((r) => {
+          const lo = r.querySelector<HTMLInputElement>('.rmin')!.value, hi = r.querySelector<HTMLInputElement>('.rmax')!.value;
+          if (lo === '' && hi === '') return true;
+          const nums = (tr.cells[Number(r.dataset.col) + 2].textContent!.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
+          if (!nums.length) return false;
+          const top = Math.max(...nums);
+          return (lo === '' || top >= Number(lo)) && (hi === '' || top <= Number(hi));
+        });
     };
     // the filters live in the URL (?q=...&brand=...&<spec>=...&specs=1), so a filtered view can be shared and survives a reload
     const keyOf = (s: HTMLSelectElement) => s === brand ? 'brand' : s.dataset.key!;
@@ -74,9 +86,11 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
     q.value = params.get('q') ?? '';
     for (const s of [brand, ...picks]) if (s) s.value = params.get(keyOf(s)) ?? '';
     if (known) known.checked = params.get('specs') === '1';
+    for (const r of rangeBoxes) { r.querySelector<HTMLInputElement>('.rmin')!.value = params.get(`${r.dataset.key}-min`) ?? ''; r.querySelector<HTMLInputElement>('.rmax')!.value = params.get(`${r.dataset.key}-max`) ?? ''; }
     const remember = () => {
       const u = new URLSearchParams(location.search);
-      for (const k of ['q', 'specs', ...[brand, ...picks].filter(Boolean).map((s) => keyOf(s!))]) u.delete(k);
+      for (const k of ['q', 'specs', ...[brand, ...picks].filter(Boolean).map((s) => keyOf(s!)), ...rangeBoxes.flatMap((r) => [`${r.dataset.key}-min`, `${r.dataset.key}-max`])]) u.delete(k);
+      for (const r of rangeBoxes) for (const [cls, suffix] of [['.rmin', 'min'], ['.rmax', 'max']]) { const v = r.querySelector<HTMLInputElement>(cls)!.value; if (v !== '') u.set(`${r.dataset.key}-${suffix}`, v); }
       if (q.value.trim()) u.set('q', q.value.trim());
       for (const s of [brand, ...picks]) if (s?.value) u.set(keyOf(s), s.value);
       if (known?.checked) u.set('specs', '1');
@@ -97,6 +111,7 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
       }
     };
     for (const el of [q, brand, ...picks, known]) el?.addEventListener(el === q ? 'input' : 'change', filter);
+    for (const r of rangeBoxes) r.addEventListener('input', filter);
     window.addEventListener('discontinued-toggle', filter);
     filter();
     table.tHead!.querySelectorAll<HTMLTableCellElement>('th[data-k]').forEach((th) => {
@@ -107,7 +122,7 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
         [...body.rows].sort((a, b) => {
           const x = val(a), y = val(b);
           if (!x) return 1; if (!y) return -1;
-          return (num ? Number(x) - Number(y) : x.localeCompare(y, undefined, { numeric: true })) * dir;
+          return (num ? parseFloat(x) - parseFloat(y) : x.localeCompare(y, undefined, { numeric: true })) * dir;
         }).forEach((tr) => body.appendChild(tr));
       });
     });
@@ -137,4 +152,5 @@ const picks = cols.map((c, i) => ({ c, i, // a column with pick false has no dro
   .parttable table .conly { display: none; }
   /* a long option (mount holes) must not push the filter row past a phone's width */
   .parttable .websearch select { max-width: 100%; }
+  .parttable .rangef input { width: 5.5em; }
 </style>

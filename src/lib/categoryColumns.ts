@@ -2,6 +2,7 @@
 // (data/categories/<slug>.toml): each value comes from the part or its linked spec.
 import { db, type Part, type Spec, type KeyField } from './data';
 import { radioUnitLabel } from './radio';
+import { chargerWatts, chargerInput, chemistries } from './chargers';
 
 // pick: a filter dropdown for the column (undefined: one when it has 2 to 60 values); multi: a cell holds a list joined by ', ' (scales); plug: a connector name, linked to its spec
 export type Column = { label: string; num?: boolean; pick?: boolean; multi?: boolean; plug?: boolean; field: KeyField; get: (p: Part, s?: Spec) => string | number | undefined };
@@ -9,7 +10,12 @@ const cat = new Map(db.categories.map((c) => [c.id.split('/')[1], c]));
 
 const POSITION: Record<string, string> = { 'front-rear': 'front and rear', 'front-2wd': 'front (2WD)', 'front-4wd': 'front (4WD)' };
 
-export function format(v: unknown, f: KeyField): string | number | undefined {
+export function format(v: unknown, f: KeyField, p?: Part): string | number | undefined {
+  // charger figures that join several fields (hobbydex-rc docs/schema.md "Chargers")
+  if (f.format === 'watts') return p ? chargerWatts(p) : undefined;
+  if (f.format === 'input') return p ? chargerInput(p) : undefined;
+  if (f.format === 'chemistries') return p && p.charges?.length ? chemistries(p).join(', ') : undefined;
+  if (f.format === 'plugs') return Array.isArray(v) && v.length ? v.join(', ') : undefined;
   if (v === undefined || v === null || v === '') return undefined;
   if (f.format === 'yesno' && typeof v === 'boolean') return v ? 'yes' : 'no';
   if (f.format === 'cells' && Array.isArray(v)) return v[0] === v[1] ? `${v[0]}S` : `${v[0]}-${v[1]}S`;
@@ -34,9 +40,10 @@ function isNumeric(slug: string, f: KeyField) {
 export const columns: Record<string, Column[]> = Object.fromEntries([...cat.entries()].filter(([, c]) => c.key_fields?.length).map(([slug, c]) => [slug,
   c.key_fields!.map((f) => ({
     label: f.unit ? `${f.label} ${f.unit}` : f.label,
-    num: f.format !== 'cells' && f.format !== 'range' && isNumeric(slug, f),
+    num: f.format !== 'cells' && f.format !== 'range' && !f.format?.match(/^(input|chemistries|plugs)$/) && isNumeric(slug, f),
     field: f,
-    get: (p: Part, s?: Spec) => format(f.from === 'spec' ? s?.[f.field] : (p as unknown as Record<string, unknown>)[f.field], f),
+    get: (p: Part, s?: Spec) => format(f.from === 'spec' ? s?.[f.field] : (p as unknown as Record<string, unknown>)[f.field], f, p),
+    multi: f.multi, plug: f.plug, pick: f.pick,
   }))]));
 
 /** The generic spec of a part for its category's columns. */

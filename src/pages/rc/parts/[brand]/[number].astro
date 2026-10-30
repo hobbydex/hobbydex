@@ -37,6 +37,7 @@ import { partSpecs } from '../../../../lib/partFacts';
 import { partSpecFacts } from '../../../../lib/specFacts';
 import FactRows from '../../../../components/FactRows.astro';
 import { plugLinks, balanceSpecId } from '../../../../lib/plugs';
+import { chemistries, chargerWatts, MAINS } from '../../../../lib/chargers';
 import { protocolSpecs } from '../../../../lib/protocols';
 export function getStaticPaths() {
   // a former id (renamed or corrected) or another number the part is sold under (numbers) keeps working:
@@ -212,6 +213,15 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.mount_holes?.length && <><dt>Mounting holes</dt><dd>{part.mount_holes.map((h) => h.count ? `${h.count} x ${h.thread} on a ${h.circle_mm} mm bolt circle` : `${h.thread} on a ${h.circle_mm} mm bolt circle (number of holes not stated)`).join(', ')}</dd></>}
     {part.sensored !== undefined && <><dt>{part.category === 'motor' ? 'Sensors' : 'Sensor port'}</dt><dd>{part.category === 'motor' ? (part.sensored ? 'sensored' : 'sensorless') : (part.sensored ? 'yes, runs sensored motors' : 'no, sensorless motors only')}</dd></>}
     {part.current_a && <><dt>ESC</dt><dd>{part.current_a} A{part.peak_current_a && ` (${part.peak_current_a} A peak)`}</dd></>}
+    {part.charges && <><dt>Charges</dt><dd>{chemistries(part).join(', ')}</dd></>}
+    {part.category === 'charger' && chargerWatts(part) && <><dt>Charge power</dt><dd>{chargerWatts(part)} W{part.power_ac_w === undefined && part.power_dc_w === undefined && <span class="muted"> (input not stated)</span>}</dd></>}
+    {part.charge_current_a !== undefined && <><dt>Charge current</dt><dd>up to {part.charge_current_a} A</dd></>}
+    {part.category === 'charger' && part.channels !== undefined && <><dt>Outputs</dt><dd>{part.channels} {part.channels === 1 ? 'channel' : 'channels'}</dd></>}
+    {part.mains_plug && <><dt>Mains plug</dt><dd>{MAINS[part.mains_plug] ?? part.mains_plug}{part.mains_plug_basis === 'name' && <span class="muted"> (stated in the part name)</span>}</dd></>}
+    {part.ac_input_v && <><dt>AC input</dt><dd>{part.ac_input_v[0] === part.ac_input_v[1] ? part.ac_input_v[0] : part.ac_input_v.join('-')} V</dd></>}
+    {(part.dc_input_v || part.dc_input_connector) && <><dt>DC input</dt><dd>{part.dc_input_v && `${part.dc_input_v.join('-')} V`}{part.dc_input_v && part.dc_input_connector && ', '}{part.dc_input_connector && plugLinks(part.dc_input_connector).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>)}</dd></>}
+    {part.output_connector && <><dt>Output plug</dt><dd>{part.output_connector.map((c, i) => <>{i > 0 && ', '}{plugLinks(c).map((l, j) => <>{j > 0 && '/'}{l.spec ? <a href={url.spec(l.spec)}>{l.text}</a> : l.text}</>)}</>)}</dd></>}
+    {part.balance_ports && part.category === 'charger' && <><dt>Balance port</dt><dd>{part.balance_ports.join(', ')}</dd></>}
     {part.lipo_cells && <><dt>LiPo</dt><dd>{part.lipo_cells[0] === part.lipo_cells[1] ? `${part.lipo_cells[0]}S` : `${part.lipo_cells[0]}-${part.lipo_cells[1]}S`}</dd></>}
     {part.motor_type && <><dt>Motor type</dt><dd>{part.motor_type === 'both' ? 'brushed and brushless' : part.motor_type}</dd></>}
     {(part.bec_v !== undefined || part.bec_a !== undefined) && <><dt>BEC</dt><dd>{[part.bec_v !== undefined && `${Array.isArray(part.bec_v) ? part.bec_v.join('/') : part.bec_v} V`, part.bec_a !== undefined && `${part.bec_a} A`].filter(Boolean).join(' at ')}</dd></>}
