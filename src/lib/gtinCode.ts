@@ -1,7 +1,7 @@
 // Barcode codes for the scan page and the shard index (src/pages/gtin/[shard].json.ts). A code is read as the
 // 13-digit EAN form the data stores: UPC-A (12 digits) gets a leading 0, GTIN-14 with a leading 0 drops it, and
-// UPC-E (8 digits, as a scanner may read it) is expanded to UPC-A first. The check digit must be right.
-// Returns null for anything else (EAN-8 and other lengths: Hobbydex holds none).
+// an 8-digit code is UPC-E (expanded to UPC-A) when it reads as one, else EAN-8 (kept with five leading zeros, its
+// GTIN-13 form; Tamiya's German 8-digit codes). The check digit must be right. Returns null for other lengths.
 // the GTIN check digit, weighted as EAN-13 (1, 3, 1, 3...); a 12-digit UPC-A is checked with a leading 0
 export function checkDigitOk(digits: string): boolean {
   let sum = 0;
@@ -29,7 +29,7 @@ export function gtin13(input: string): string | null {
   if (d.length === 13) code = d;
   else if (d.length === 12) code = '0' + d;
   else if (d.length === 14 && d[0] === '0') code = d.slice(1);
-  else if (d.length === 8) { const upca = expandUpcE(d); code = upca && '0' + upca; }
+  else if (d.length === 8) { const upca = expandUpcE(d); code = upca ? '0' + upca : '00000' + d; }
   return code && checkDigitOk(code) ? code : null;
 }
 
