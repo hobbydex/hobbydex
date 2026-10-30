@@ -255,7 +255,7 @@ details.morefmt > summary:hover { color: var(--fg); }
 html.hide-discontinued [data-discontinued] { display: none !important; }
 .hidedisc { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0; cursor: pointer; }
 /* The "?" and "*" date markers: the note shows on hover, focus or tap (tabindex makes the tap focus it). */
-.coming-date { white-space: nowrap; color: var(--accent, #0969da); }
+.coming-date { white-space: nowrap; }
 td.num .coming-date, td.num .seen-date { display: inline-block; }
 .seen-date { color: var(--muted); font-style: italic; }
 abbr.doubt { position: relative; cursor: help; }
@@ -324,4 +324,7 @@ body { overflow-x: clip; }
 
 @media (max-width: 600px) { table.home-new .relplat { display: none; } table.home-new td.num { padding-right: 0.5rem; } }
 .dslot { display: inline-block; width: 1.3em; text-align: left; vertical-align: -0.1em; }
+/* the slot only aligns table columns: outside a table an empty one takes no room */
+.dslot:empty { display: none; }
+td .dslot:empty { display: inline-block; }
 .dateline { white-space: nowrap; }

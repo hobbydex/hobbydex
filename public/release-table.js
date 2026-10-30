@@ -15,12 +15,22 @@ export function isoText(iso) {
   if (!m) return iso;
   return [m[1], m[2] && MONTHS[Number(m[2]) - 1], m[3] && String(Number(m[3]))].filter(Boolean).join(' ');
 }
-// The date column's words (data.ts dateTextPlain): an announced date says so, an undated release says unknown.
+// The date column's words (DateText.astro): the date alone, an undated release says unknown. The mode (icon) is
+// dateMode's.
 export function dateLabel(date, flags) {
-  if (!date) return 'unknown';
-  if (flags & 2) return `announced ${isoText(date)}`;
-  return flags & 1 ? `by ${isoText(date)}` : isoText(date);
+  return date ? isoText(date) : 'unknown';
 }
+// The date's mode as DateText.astro has it, from the list's flags: 16 = expected (coming, not out yet), 1 = seen by,
+// 2 = announced.
+export function dateMode(date, flags) {
+  if (!date) return '';
+  return flags & 16 ? 'expected' : flags & 1 ? 'seenby' : flags & 2 ? 'announced' : '';
+}
+export const MODE_LABELS = {
+  expected: 'Expected (coming, not out yet)',
+  seenby: 'Seen by: on sale by this day, not the release date',
+  announced: 'Announced',
+};
 
 // The rows as objects. The list's index columns are resolved here; the year is a number and its decade a value.
 // A row's trailing empty columns are left out of the list, so art, colour and doubt may be missing.
@@ -32,7 +42,7 @@ export function decode(list) {
     return {
       url: `/rc/releases/${brand}/${tail}/`, name, brand, brandName, type, typeLabel, icon, wide: !!wide,
       scale: list.scales[si], build: build[0], power: power == null ? '' : list.powers[power][0], buildLabel: power == null || list.powers[power][0] === 'unpowered' ? build[1] : `${build[1]} \u00b7 ${list.powers[power][1]}`.replace(/^ \u00b7 /, ''), status: list.statuses[st],
-      date, dateText: dateLabel(date, flags), year: date ? date.slice(0, 4) : NONE, seen: (flags & 1) > 0, seenKind: flags & 4 ? 'archive' : flags & 8 ? 'video' : 'page',
+      date, dateText: dateLabel(date, flags), dateMode: dateMode(date, flags), year: date ? date.slice(0, 4) : NONE, seen: (flags & 1) > 0, seenKind: flags & 4 ? 'archive' : flags & 8 ? 'video' : 'page',
       doubt: doubt == null ? '' : list.doubts[doubt], art: art || '', colour: colour == null ? '' : list.colours[colour],
       group: group == null ? -1 : group,
     };
@@ -242,8 +252,20 @@ if (root) {
   const rowEl = ({ row: r, name: groupName, members }) => {
     const tr = document.createElement('tr');
     const date = cell(tr, 'Released', 'num');
-    date.textContent = r.dateText;
-    if (r.seen) { date.textContent = r.dateText.replace(/^by /, ''); date.classList.add('seen-date'); const e = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); e.setAttribute('class', 'icon'); e.setAttribute('role', 'img'); e.setAttribute('aria-label', 'Seen by: on sale by this day, not the release date'); e.style.cssText = 'width:1em;height:1em'; const u = document.createElementNS('http://www.w3.org/2000/svg', 'use'); u.setAttribute('href', '/icons.svg#seenby'); e.append(u); date.title = 'Seen by: on sale by this day, not the release date'; date.prepend(e, ' '); }
+    const line = document.createElement('span');
+    const slot = document.createElement('span');
+    slot.className = 'dslot';
+    line.className = 'dateline' + (r.dateMode === 'expected' ? ' coming-date' : r.dateMode === 'seenby' ? ' seen-date' : '');
+    if (r.dateMode) {
+      const label = r.dateMode === 'expected' ? `Expected ${r.dateText} (coming, not out yet)` : r.dateMode === 'announced' ? `announced ${r.dateText}` : MODE_LABELS[r.dateMode];
+      const e = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      e.setAttribute('class', 'icon'); e.setAttribute('role', 'img'); e.setAttribute('aria-label', label); e.style.cssText = 'width:1em;height:1em';
+      const u = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      u.setAttribute('href', '/icons.svg#' + r.dateMode); e.append(u); slot.append(e);
+      line.title = label;
+    }
+    line.append(slot, r.dateText);
+    date.append(line);
     if (r.doubt) { const a = document.createElement('abbr'); a.className = 'doubt'; a.tabIndex = 0; a.dataset.tip = r.doubt; a.setAttribute('aria-label', r.doubt); a.textContent = '?'; date.append(a); }
     const brand = cell(tr, 'Brand');
     const b = document.createElement('a'); b.href = `/rc/brands/${r.brand}/`; b.textContent = r.brandName; brand.append(b);
