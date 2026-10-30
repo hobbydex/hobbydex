@@ -16,7 +16,7 @@ const stdText = list(stdCats.map((c) => (specLabel[c] ?? c).toLowerCase()));
   <p>A spec is the brand-independent version of a part: an M3x10 countersunk hex screw, a 5x10x4 bearing, a 350 cSt silicone oil. Branded parts link to the spec they are equivalent to, so you can find the same part from another brand, or every kit that uses it.</p>
   <table>
     <tr><th>Category</th><th class="num">Specs</th><th class="num">Linked parts</th></tr>
-    {cats.map((c) => { const ss = specsByCategory.get(c)!; const n = ss.reduce((t, s) => t + (db.partsBySpec.get(s.id)?.length ?? 0) + (db.protocolParts.get(s.id)?.length ?? 0), 0); return <tr>
+    {cats.map((c) => { const ss = specsByCategory.get(c)!; const n = ss.reduce((t, s) => t + (c === 'ring-pinion' ? (db.setsBySpec.get(s.id)?.length ?? 0) : 0) + (db.partsBySpec.get(s.id)?.length ?? 0) + (db.protocolParts.get(s.id)?.length ?? 0), 0); return <tr>
       <td><a href={`/rc/specs/${c}/`}>{specIcon[c] && <Icon name={specIcon[c]} size="1.25em" />} {specLabel[c] ?? c}</a></td><td class="num">{ss.length}</td><td class="num">{n}</td>
     </tr>; })}
   </table>

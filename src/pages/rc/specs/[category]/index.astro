@@ -24,7 +24,7 @@ const washerNames: [string, string][] = [['under 1 mm', 'shim'], ['1 mm to under
     <tr><th>Thickness</th><th>Name</th></tr>
     {washerNames.map(([t, n]) => <tr><td>{t}</td><td>{n}</td></tr>)}
   </table>}
-  <p class="muted">{specs.length} specs, sorted by size. Counts are branded parts linked to each spec.</p>
+  <p class="muted">{specs.length} specs, sorted by size. {category === 'ring-pinion' ? 'Counts are the branded sets that hold each gear.' : 'Counts are branded parts linked to each spec.'}</p>
   <div class="specbox">
     <SpecFilter columns={show.map(([k, l, unset]) => ({ label: l, values: specs.map((s) => cell(s, k, unset)) }))} total={specs.length} />
     <div class="tablescroll"><table>

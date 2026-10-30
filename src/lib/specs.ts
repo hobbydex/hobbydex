@@ -1,8 +1,8 @@
 import { db, type Spec } from './data';
 
 // the line icon of each spec category (public/icons.svg)
-export const specIcon: Record<string, string> = { 'ball-end': 'ball-end', screw: 'screw', nut: 'nut', washer: 'washer-shim', bearing: 'bearing', pin: 'pin', eclip: 'eclip', pinion: 'pinion', oil: 'oil-grease', battery: 'battery', servo: 'servo', motor: 'motor', engine: 'engine-fuel', 'wheel-hex': 'wheel', connector: 'wire', wire: 'wire', protocol: 'radio', circlip: 'circlip', 'o-ring': 'o-ring-seal' };
-export const specLabel: Record<string, string> = { 'ball-end': 'Ball ends', screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims', eclip: 'E-clips', connector: 'Connectors', wire: 'Wire gauges', protocol: 'Radio protocols', circlip: 'Circlips', 'o-ring': 'O-rings' };
+export const specIcon: Record<string, string> = { 'ball-end': 'ball-end', screw: 'screw', nut: 'nut', washer: 'washer-shim', bearing: 'bearing', pin: 'pin', eclip: 'eclip', pinion: 'pinion', 'ring-pinion': 'ring-pinion', oil: 'oil-grease', battery: 'battery', servo: 'servo', motor: 'motor', engine: 'engine-fuel', 'wheel-hex': 'wheel', connector: 'wire', wire: 'wire', protocol: 'radio', circlip: 'circlip', 'o-ring': 'o-ring-seal' };
+export const specLabel: Record<string, string> = { 'ball-end': 'Ball ends', screw: 'Screws', bearing: 'Bearings', oil: 'Silicone oils', pinion: 'Pinions', 'ring-pinion': 'Ring and pinion sets', battery: 'Batteries', servo: 'Servos', motor: 'Motors', 'wheel-hex': 'Wheel hexes', pin: 'Pins', nut: 'Nuts', washer: 'Washers and shims', eclip: 'E-clips', connector: 'Connectors', wire: 'Wire gauges', protocol: 'Radio protocols', circlip: 'Circlips', 'o-ring': 'O-rings' };
 
 /** Per spec category, the spec's own fields as table columns: [field, header, value shown when the field is unset]. */
 export const specColumns: Record<string, [string, string, string?][]> = {
@@ -12,6 +12,7 @@ export const specColumns: Record<string, [string, string, string?][]> = {
   battery: [['chemistry', 'Chemistry'], ['cells', 'Cells'], ['capacity_mah', 'mAh'], ['nominal_v', 'V']],
   servo: [['size_class', 'Size'], ['spline_teeth', 'Spline']],
   pinion: [['teeth', 'Teeth'], ['pitch_dp', 'Pitch'], ['module', 'Module']],
+  'ring-pinion': [['type', 'Gear'], ['teeth', 'Teeth'], ['pitch_dp', 'Pitch'], ['module', 'Module']],
   pin: [['diameter_mm', 'Diameter mm'], ['length_mm', 'Length mm']],
   eclip: [['shaft_mm', 'Shaft mm'], ['thickness_mm', 'Thickness mm'], ['outer_mm', 'Outer mm'], ['variant', 'Variant']],
   washer: [['bore_mm', 'Bore mm'], ['outer_mm', 'Outer mm'], ['thickness_mm', 'Thickness mm'], ['shape', 'Shape']],
@@ -48,6 +49,7 @@ export const specIntro: Record<string, string> = {
   eclip: 'E-clips (E-rings, DIN 6799 type) by the shaft they fit, in mm: a 3 mm E-clip goes on a 3 mm shaft, as the RC makers name them. Clips that state a thickness, and bowed (wave) E-rings, are listed apart from the plain clip of the same shaft.',
   connector: 'Power and signal connectors by family and size: the XT, EC and Deans plugs of the electric cars, Tamiya and JST balance and servo plugs, and the bullet and banana plugs of chargers and motors. A spec is one family and size; the pins, contact diameter and anti-spark design belong to the family, and a current is listed only where the maker states it, with its wire.',
   wire: 'Bare solid round copper conductors by AWG gauge, from 8 to 30. The smaller the number, the thicker the wire: a 12 AWG conductor is 0.0808 in (2.05 mm) across and 3.31 mm² in section. AWG is an inch system: ASTM B258 defines the diameters in inches, so the mm values are conversions. Insulation, strands and length are the branded part\'s own, and a wire part links to the gauge it names.',
+  'ring-pinion': 'The two gears of a differential or axle set, by tooth count: the large ring gear and the small pinion that drives it. A set lists one of each, so the ring tooth count over the pinion tooth count is the final drive ratio of that axle or differential (37T over 13T is 2.85:1). Pitch or module is shown only where the maker states it; a ring and pinion mesh only as a matched pair, so check the pitch before mixing sets. These are differential gears, not motor pinions (see Pinions).',
   pinion: 'Pinion gears by tooth count and pitch. The pitch (48, 32 or 64 DP, or module 1 and 0.8 in metric) must match the spur gear; the tooth count sets the gearing. The bore, 3.175 or 5 mm, follows the motor shaft and is on the branded parts.',
 };
 
@@ -68,6 +70,7 @@ export function specSort(a: Spec, b: Spec) {
   if (a.category === 'connector') return String(a.family).localeCompare(String(b.family)) || num(a.contact_mm) - num(b.contact_mm) || num(a.current_a) - num(b.current_a) || a.id.localeCompare(b.id);
   if (a.category === 'wire') return num(a.awg) - num(b.awg);
   if (a.category === 'pin') return num(a.diameter_mm) - num(b.diameter_mm) || num(a.length_mm) - num(b.length_mm);
+  if (a.category === 'ring-pinion') return String(a.type).localeCompare(String(b.type)) || num(a.teeth) - num(b.teeth) || num(a.pitch_dp) - num(b.pitch_dp) || num(a.module) - num(b.module);
   if (a.category === 'pinion') return num(a.module) - num(b.module) || num(b.pitch_dp) - num(a.pitch_dp) || num(a.teeth) - num(b.teeth);
   return a.id.localeCompare(b.id);
 }
@@ -84,7 +87,8 @@ export const specsByCategory = (() => {
 
 /** Branded parts linked to a spec, and how many distinct brands. */
 export function linkedCount(id: string) {
-  const ps = db.partsBySpec.get(id) ?? [];
+  // a ring or pinion gear is listed by the sets that hold it (includes), not by an equivalent part
+  const ps = id.startsWith('spec/ring-pinion/') ? (db.setsBySpec.get(id) ?? []) : (db.partsBySpec.get(id) ?? []);
   return { parts: ps.length, brands: new Set(ps.map((p) => p.part.brand)).size };
 }
 
