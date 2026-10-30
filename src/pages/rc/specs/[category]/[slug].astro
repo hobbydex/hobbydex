@@ -67,9 +67,9 @@ import SeenNote from '../../../../components/SeenNote.astro';
   </figure>}
   {specSinks.length > 0 && <><h2>Heat sinks and fan mounts for a {specCan} mm can <span class="muted">({specSinks.length}, any brand)</span></h2>
     <ul>{specSinks.map((h) => <li><a href={url.part(h.id)}>{brandName(h.brand)} {partLabel(h)}</a>{h.number && <span class="muted"> {h.name}</span>}</li>)}</ul></>}
-  <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>
+  {(spec.category !== 'ring-pinion' || linked.length > 0) && <h2>Branded parts matching this spec <span class="muted">({linked.length})</span></h2>}
   {spec.category === 'battery' && plugs.length > 1 && <p data-pagefind-ignore><label>Plug <select id="plugfilter"><option value="">any (plugs can be changed)</option>{plugs.map((c) => <option value={c}>{c}</option>)}</select></label></p>}
-  {linked.length === 0 ? <p class="muted">None linked yet.</p> :
+  {linked.length === 0 ? (spec.category === 'ring-pinion' ? null : <p class="muted">None linked yet.</p>) :
   <div class="tablescroll"><table class="stacked">
     <tr><th>Brand</th><th class="num">Number</th><th>Name</th><th class="num">Pack</th><th>Material</th>{spec.category === 'bearing' && <th>Seal</th>}{spec.category === 'pinion' && <th class="num">Bore mm</th>}{spec.category === 'battery' && <><th class="num">C</th><th>Case</th><th>Size mm</th><th class="num">g</th><th>Plug</th></>}<th>Match</th></tr>
     {linked.map(({ part, link }) => <tr data-plug={part.connector ?? ''}><td data-label="Brand">{brandName(part.brand)}</td><td class="num" data-label="Number">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td class="name">{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}</td><td class="num" data-label="Pack">{part.pack_qty ?? ''}</td><td data-label="Material">{part.material ?? ''}</td>{spec.category === 'bearing' && <td data-label="Seal">{part.seal ?? ''}</td>}{spec.category === 'pinion' && <td class="num" data-label="Bore mm">{part.bore_mm ?? ''}</td>}{spec.category === 'battery' && <><td class="num" data-label="C">{part.c_rating ?? ''}</td><td data-label="Case">{part.case ?? ''}</td><td data-label="Size mm">{part.dimensions_mm?.join(' x ') ?? ''}</td><td class="num" data-label="g">{part.weight_g ?? ''}</td><td data-label="Plug">{part.connector ?? ''}</td></>}<td data-label="Match">{link.match}</td></tr>)}
@@ -94,10 +94,10 @@ import SeenNote from '../../../../components/SeenNote.astro';
     </table></div></>}
   {(db.setsBySpec.get(spec.id) ?? []).length > 0 && <>
     <h2>In sets</h2>
-    <table>
+    <div class="tablescroll"><table class="stacked">
       <tr><th>Brand</th><th class="num">Number</th><th>Set</th><th class="num">Qty</th><th>Notes</th></tr>
-      {db.setsBySpec.get(spec.id)!.map((x) => <tr><td>{brandName(x.part.brand)}</td><td class="num">{x.part.number && <a href={url.part(x.part.id)}>{x.part.number}</a>}</td><td>{x.part.number ? x.part.name : <a href={url.part(x.part.id)}>{x.part.name}</a>}</td><td class="num">{x.qty ?? ''}</td><td class="muted">{x.notes ?? ''}</td></tr>)}
-    </table></>}
+      {db.setsBySpec.get(spec.id)!.map((x) => <tr><td data-label="Brand">{brandName(x.part.brand)}</td><td class="num" data-label="Number">{x.part.number && <a href={url.part(x.part.id)}>{x.part.number}</a>}</td><td class="name">{x.part.number ? x.part.name : <a href={url.part(x.part.id)}>{x.part.name}</a>}</td><td class="num" data-label="Qty">{x.qty ?? ''}</td><td class="muted" data-label="Notes">{x.notes ?? ''}</td></tr>)}
+    </table></div></>}
   {sameSize.length > 0 && <>
     <h2>All {String(spec.size_class).replace('-', ' ')} servos <span class="muted">({sameSize.length}, by case length then height)</span></h2>
     <p class="muted">Check the case size and the mounting holes before swapping: two servos of one size class do not always fit the same mount.</p>
