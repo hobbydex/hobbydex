@@ -108,7 +108,7 @@ export function lastmodFor(pathname: string): string | undefined {
     case 'platforms':
       if (!a || a === 'by-date') return releaseLists;
       if (a === 'types') return b ? newest(kitsByType.get(b), byType.get(b)) : releaseLists;
-      return recordLastmod.kit(`kit/${seg.slice(2).join('/')}`);
+      return recordLastmod.kit(`kit/${a}/${b}`);   // also /parts/<category>/ of a big platform
     case 'brands': return a ? byBrand.get(`brand/${a}`) : maxOf(db.brands);
     case 'categories':
       if (!a) return maxOf(db.categories);

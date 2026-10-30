@@ -1,0 +1,28 @@
+---
+// One category of the option parts listed as fitting a big platform (the platform page lists only the categories).
+import Base from '../../../../../../layouts/Base.astro';
+import Icon from '../../../../../../components/Icon.astro';
+import FitTable from '../../../../../../components/FitTable.astro';
+import HideDiscontinued from '../../../../../../components/HideDiscontinued.astro';
+import { db, key, url, brandName, partNo, type Kit } from '../../../../../../lib/data';
+import { optionFits, byCat, SPLIT_ABOVE } from '../../../../../../lib/kitFits';
+import { catName } from '../../../../../../lib/categories';
+import '../../../../../../styles/catgroup.css';
+export function getStaticPaths() {
+  return db.kits.flatMap((kit) => {
+    const { fits } = optionFits(kit);
+    if (fits.length <= SPLIT_ABOVE) return [];
+    return byCat(fits, (x) => x.part.category).map(({ g, rows }) => ({ params: { brand: key(kit.id)[0], slug: key(kit.id)[1], cat: g || 'other' }, props: { kit, g, rows, numn: Math.max(5, ...fits.map((x) => partNo(x.part).length)) } }));
+  });
+}
+const { kit, g, rows, numn } = Astro.props as { kit: Kit; g: string; rows: ReturnType<typeof optionFits>['fits']; numn: number };
+const name = `${brandName(kit.brand)} ${kit.name}`;
+const cat = g ? catName(g) : 'Other';
+---
+<Base title={`${cat} parts for the ${name}`} description={`${rows.length} ${cat.toLowerCase()} parts listed as fitting the ${name}.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / <a href={url.platform(kit.id)}>{kit.name}</a> / {cat}</div>
+  <h1>{g && <Icon name={g} />} {cat} parts for the {name} <span class="muted">({rows.length})</span></h1>
+  <p><a href={`${url.platform(kit.id)}#option-parts`}>All categories of option parts for the {name}</a></p>
+  {rows.some((x) => x.part.status === 'discontinued') && <HideDiscontinued />}
+  <div class="catgroup"><FitTable rows={rows} {numn} /></div>
+</Base>

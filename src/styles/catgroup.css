@@ -1,0 +1,23 @@
+.catgroup table { table-layout: fixed; width: 100%; }
+.catgroup td.num { white-space: normal; overflow-wrap: anywhere; }
+.w-brand { width: 9rem; } .w-from { width: 14rem; } .w-fit { width: 12rem; }
+/* phones: one line per part (number, name) with the brand and fit in small print under it, instead of four narrow columns */
+@media (max-width: 40rem) {
+  .catgroup table, .catgroup tbody, .catgroup tr { display: block; }
+  .catgroup tr:first-child { display: none; }
+  .catgroup tr { padding: 0.4rem 0.6rem; border-top: 1px solid var(--border-muted); }
+  .catgroup tr:nth-child(2) { border-top: 0; }
+  .catgroup td { display: inline; padding: 0; border: 0; background: none; white-space: normal; overflow-wrap: anywhere; }
+  .catgroup td.num { white-space: nowrap; margin-right: 0.4rem; }
+  .catgroup td.num:empty { display: none; }   /* a part without a number: the name is the link */
+  .catgroup td:nth-child(3), .catgroup td:nth-child(4) { display: inline; font-size: 0.8rem; color: var(--muted); }
+  .catgroup td:nth-child(3)::before { content: ''; display: block; }
+  .catgroup td:nth-child(4)::before { content: ' · '; }
+}
+.catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
+.catgroup > summary { cursor: pointer; list-style-position: outside; }
+.catgroup > summary h3 { display: inline-flex; margin: 0.6rem 0; }
+.catgroup[open] > summary { margin-bottom: 0.2rem; }
+.catlinks { columns: 14rem; list-style: none; padding: 0; }
+.catlinks li { padding: 0.15rem 0; }
+.partsummary { margin: 0.8rem 0; }

@@ -127,8 +127,10 @@ const boxCats = [...new Set(boxRows.map((c) => c.p.category ?? ''))].map((g) => 
   .sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1) || catName(a.g).localeCompare(catName(b.g)));
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 const conversions = conversionsForRelease(release);
-// the maker's videos of this release, then those of the whole kit
-const videos = [...new Set([...(db.videosByRelease.get(release.id) ?? []), ...(db.videosByKit.get(kit.id) ?? [])])];
+// the maker's videos that name this release; the kit's other videos (those that name no release of it) are about the
+// platform, not this release, and sit apart under their own heading
+const videos = db.videosByRelease.get(release.id) ?? [];
+const otherVideos = (db.videosByKit.get(kit.id) ?? []).filter((d) => !d.releases?.length);
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
 // the search index (Base's hidden block): brand, name, item number, platform, type, scale, year, depicted make and model, series
@@ -171,6 +173,11 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={releaseColour(release)} art={release.art} size="12rem" class="hero" /></span>
   </div>
   <Videos videos={videos} />
+  {otherVideos.length > 0 && <details class="platformvideos">
+    <summary>Videos for the {kit.name} platform <span class="muted">({otherVideos.length})</span></summary>
+    <p class="muted">Not about this release in particular: the maker's videos of the <a href={url.platform(kit.id)}>{kit.name} platform</a>.</p>
+    <Videos videos={otherVideos} heading={false} limit={otherVideos.length} />
+  </details>}
   <FanLinks links={release.links} />
   {!listedFrom && rows.length > 0 && <p data-pagefind-ignore><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p>}
   {seriesByPlatform.length > 0 && <><h2>{release.series} series <span class="muted">({seriesByPlatform.reduce((n, [, rs]) => n + rs.length, 0)})</span></h2>

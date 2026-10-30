@@ -23,6 +23,9 @@ import WebSearch from '../../../../components/WebSearch.astro';
 import Videos from '../../../../components/Videos.astro';
 import FanLinks from '../../../../components/FanLinks.astro';
 import { catName } from '../../../../lib/categories';
+import { optionFits, byCat, SPLIT_ABOVE, partsUrl } from '../../../../lib/kitFits';
+import FitTable from '../../../../components/FitTable.astro';
+import '../../../../styles/catgroup.css';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 import { driveLabel } from '../../../../lib/drive';
 import { gearing, type Gearing } from '../../../../lib/gearing';
@@ -56,15 +59,13 @@ const show = { number: releases.some((r) => r.number), edition: releases.some((r
 // the compare link takes the two newest dated releases (undated ones sort last)
 const dated = releases.filter((r) => r.released || yearOf(r));
 const pair = (dated.length >= 2 ? dated : releases).slice(-2);
-// current parts before discontinued ones, each group in part-number order
-const allFits = [...(db.fitsByKit.get(kit.id) ?? [])].sort((a, b) => (a.part.status === 'discontinued' ? 1 : 0) - (b.part.status === 'discontinued' ? 1 : 0) || byPartNo(a.part, b.part));
-// other makers' per-car bearing and screw sets (Fast Eddy, RCScrewZ...) would crowd out the option parts:
-// they get one collapsed line each; single bearings and the kit maker's own sets stay in the list
-const bearingSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.category === 'bearing'
-  && ((p.includes ?? []).some((i) => i.spec?.startsWith('spec/bearing/')) || /\b(kit|set)\b|bearings\b/i.test(p.name)));
-const screwSets = allFits.filter(({ part: p }) => p.brand !== kit.brand && p.category === 'screw' && /\b(screw|hardware|fastener|bolt)s?\s+(kit|set)\b/i.test(p.name));
-const fits = allFits.filter((x) => !bearingSets.includes(x) && !screwSets.includes(x));
+const { allFits, bearingSets, screwSets, fits } = optionFits(kit);
 // the newest option parts with a real date (latestParts.ts), current ones only, one per part
+const groups = byCat(fits, (x) => x.part.category);
+const split = fits.length > SPLIT_ABOVE;   // a big platform lists only its categories here; each has its own page
+const platUrl = url.platform(kit.id);
+const numn = Math.max(5, ...fits.map((x) => partNo(x.part).length));
+const partTotal = new Set(allFits.map((x) => x.part.id)).size;
 const newestParts = newestDatedParts([...new Map(fits.map((x) => [x.part.id, x.part])).values()].filter((p) => p.status !== 'discontinued'), 15);
 const relations = db.kitRelations.get(kit.id) ?? [];
 // successor links (supersedes): the newer platforms that replace this one, and the older one this one replaces
@@ -84,9 +85,6 @@ const borrowed = ownParts > 0 ? [] : relations.filter((r) => r.link.parts === 'i
 const gearings = new Map<string, { g: Gearing; rels: typeof releases }>();
 for (const r of releases) { const g = gearing(r); if (!g) continue; const k = `${g.zs}/${g.zp}`; if (!gearings.has(k)) gearings.set(k, { g, rels: [] }); gearings.get(k)!.rels.push(r); }
 const seen = new Set<string>();
-// rows grouped by part category, named categories alphabetically, uncategorised last
-const byCat = <T,>(rows: T[], cat: (r: T) => string | undefined) => [...new Set(rows.map((r) => cat(r) ?? ''))]
-  .sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))).map((g) => ({ g, rows: rows.filter((r) => (cat(r) ?? '') === g) }));
 const borrowedUnique = borrowed.filter((x) => !seen.has(x.c.part) && seen.add(x.c.part)).sort((a, b) => byPartNo(a.p, b.p));
 const conversions = conversionsForKit(kit.id);
 // the maker's videos of the whole kit, then those of its releases
@@ -173,23 +171,6 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
   </dl>
     <span class="typeicon" title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}>{kit.art ? <ReleaseArt id={kit.id} category={kit.category} kitArt={kit.art} size="5rem" /> : <Icon name={kitTypeIcon(kit.category)} label={kitTypeOne[kit.category ?? 'car'] ?? kit.category} size="5rem" />}</span>
   </div>
-  <Videos videos={videos} />
-  <FanLinks links={kit.links} />
-  {notesText && !isSourceNote(notesText) && <p class="muted">{notesText}</p>}
-  {seriesOn.map((x) => <p>Also in the {x.series} series on: {x.others.map(([id, name], i) => <>{i > 0 && ' · '}<a href={url.platform(id)}>{name}</a></>)}</p>)}
-  {relations.length > 0 && <>
-    <h2>Same car or platform</h2>
-    <ul>
-      {relations.map((r) => { const o = db.kit.get(r.other); const label = r.relation === 'rebrand' ? (r.reverse ? 'Also sold as' : 'Rebrand of') : 'Shares its platform with'; return <li>
-        {label} <a href={url.platform(r.other)}>{o ? `${brandName(o.brand)} ${o.name}` : r.other}</a>
-        {r.link.parts && <span class="muted"> · parts {r.link.parts}</span>}{r.link.notes && <span class="muted"> · {r.link.notes}</span>}
-      </li>; })}
-    </ul></>}
-  {(files.length > 0 || moreFiles > 0) && <>
-    <h2>Manuals and parts lists</h2>
-    {files.map(([label, ds]) => <><h3>{label}</h3>
-      <ul>{ds.map((d) => { const n = docRels.get(d.id)!.length; return <li><a href={d.page} rel="nofollow">{d.title}</a>{n < releases.length && <span class="muted"> ({n} of {releases.length} releases)</span>}</li>; })}</ul></>)}
-    {moreFiles > 0 && <p class="muted">{moreFiles} more on the release pages</p>}</>}
   <h2 id="releases">Releases</h2>
   {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
   {(() => {
@@ -213,6 +194,27 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
   <SeenNote rows={releases} />
   <DoubtNote on={releases.some((r) => !!yearDoubt(r))} /></>;
   })()}
+  {(fits.length > 0 || bearingSets.length > 0 || screwSets.length > 0) && <p class="partsummary" data-pagefind-ignore>
+    <a href="#option-parts"><strong>{count(partTotal, 'option part')}</strong></a> listed as fitting
+    {groups.length > 1 && <>: {groups.map(({ g, rows }, i) => <>{i > 0 && ' · '}<a href={split ? partsUrl(platUrl, g) : `#cat-${g || 'other'}`}>{g ? catName(g) : 'Other'}</a> ({rows.length})</>)}</>}
+    {(bearingSets.length > 0 || screwSets.length > 0) && <span class="muted"> · plus {count(bearingSets.length + screwSets.length, 'bearing and screw set')} from other makers</span>}</p>}
+  <Videos videos={videos} />
+  <FanLinks links={kit.links} />
+  {notesText && !isSourceNote(notesText) && <p class="muted">{notesText}</p>}
+  {seriesOn.map((x) => <p>Also in the {x.series} series on: {x.others.map(([id, name], i) => <>{i > 0 && ' · '}<a href={url.platform(id)}>{name}</a></>)}</p>)}
+  {relations.length > 0 && <>
+    <h2>Same car or platform</h2>
+    <ul>
+      {relations.map((r) => { const o = db.kit.get(r.other); const label = r.relation === 'rebrand' ? (r.reverse ? 'Also sold as' : 'Rebrand of') : 'Shares its platform with'; return <li>
+        {label} <a href={url.platform(r.other)}>{o ? `${brandName(o.brand)} ${o.name}` : r.other}</a>
+        {r.link.parts && <span class="muted"> · parts {r.link.parts}</span>}{r.link.notes && <span class="muted"> · {r.link.notes}</span>}
+      </li>; })}
+    </ul></>}
+  {(files.length > 0 || moreFiles > 0) && <>
+    <h2>Manuals and parts lists</h2>
+    {files.map(([label, ds]) => <><h3>{label}</h3>
+      <ul>{ds.map((d) => { const n = docRels.get(d.id)!.length; return <li><a href={d.page} rel="nofollow">{d.title}</a>{n < releases.length && <span class="muted"> ({n} of {releases.length} releases)</span>}</li>; })}</ul></>)}
+    {moreFiles > 0 && <p class="muted">{moreFiles} more on the release pages</p>}</>}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
     <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a><Discontinued item={c} />{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
   {gearings.size > 0 && <section data-pagefind-ignore>
@@ -241,22 +243,19 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
       <tr><th class="num">Date</th><th class="w-brand">Brand</th><th>Item</th></tr>
       {newestParts.map((p) => <tr><td class="num" data-label="Date"><DateText r={p} /></td><td data-label="Brand">{brandName(p.brand)}</td><td data-label="Item"><a href={url.part(p.id)}>{p.name}</a></td></tr>)}
     </table>
-    <p class="muted"><a href="#option-parts" data-sort-date>Show all option parts, newest first</a></p>
+    {!split && <p class="muted"><a href="#option-parts" data-sort-date>Show all option parts, newest first</a></p>}
   </section>}
   {(fits.length > 0 || bearingSets.length > 0 || screwSets.length > 0) && <section id="option-parts" data-pagefind-ignore>
     <h2>Option parts listed as fitting <span class="muted">({new Set(fits.map((x) => x.part.id)).size})</span></h2>
     {fits.some((x) => x.part.status === 'discontinued') && <HideDiscontinued />}
-    {fits.length > 1 && <label class="sortparts">Sort <select data-part-sort><option value="number">By part number</option><option value="date">Newest first</option></select></label>}
+    {fits.length > 1 && !split && <label class="sortparts">Sort <select data-part-sort><option value="number">By part number</option><option value="date">Newest first</option></select></label>}
     <KitSets rows={bearingSets} kind="bearing kit" kitName={kit.name} />
     <KitSets rows={screwSets} kind="screw kit" kitName={kit.name} />
-    {(() => { const groups = byCat(fits, (x) => x.part.category); return <>
-      {groups.length > 2 && <p class="muted" data-pagefind-ignore>{groups.map(({ g, rows }, i) => <>{i > 0 && ' · '}<a href={`#cat-${g || 'other'}`}>{g ? catName(g) : 'Other'}</a> ({rows.length})</>)}</p>}
-      {groups.map(({ g, rows }) => <div class="catgroup" id={`cat-${g || 'other'}`}>
-        <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3>
-        <table>
-          <tr><th class="num numcol" style={`--numn:${Math.max(5, ...fits.map((x) => partNo(x.part).length))}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
-          {rows.map(({ part, fit }, i) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined} data-date={realPartDate(part) ?? ''} data-order={i}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
-        </table></div>)}</>; })()}
+    {groups.length > 0 && !split && groups.map(({ g, rows }) => <details class="catgroup" id={`cat-${g || 'other'}`}>
+      <summary><h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({rows.length})</span></h3></summary>
+      <FitTable rows={rows} {numn} />
+    </details>)}
+    {split && <ul class="catlinks">{groups.map(({ g, rows }) => <li><a href={partsUrl(platUrl, g)}>{g && <Icon name={g} />} {g ? catName(g) : 'Other'}</a> <span class="muted">({rows.length})</span></li>)}</ul>}
   </section>}
   {relatedFits.map(({ o, link, rows }) => <details class="kitsets relatedfits" data-pagefind-ignore>
     <summary>Listed for the related {brandName(o.brand)} {o.name} <span class="muted">({rows.length})</span></summary>
@@ -284,27 +283,13 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
       }
       if (sel) sel.value = mode;
     };
+    // a category chip (#cat-...) opens its closed section
+    const openHash = () => { const el = document.getElementById(decodeURIComponent(location.hash.slice(1))); if (el instanceof HTMLDetailsElement) el.open = true; };
+    openHash(); addEventListener('hashchange', openHash);
     sel?.addEventListener('change', () => sortBy(sel.value));
     document.querySelector<HTMLAnchorElement>('a[data-sort-date]')?.addEventListener('click', () => sortBy('date'));
   </script>
   <style>
-    .catgroup table { table-layout: fixed; width: 100%; }
-    .catgroup td.num { white-space: normal; overflow-wrap: anywhere; }
-    .w-brand { width: 9rem; } .w-from { width: 14rem; } .w-fit { width: 12rem; }
-    /* phones: one line per part (number, name) with the brand and fit in small print under it, instead of four narrow columns */
-    @media (max-width: 40rem) {
-      .catgroup table, .catgroup tbody, .catgroup tr { display: block; }
-      .catgroup tr:first-child { display: none; }
-      .catgroup tr { padding: 0.4rem 0.6rem; border-top: 1px solid var(--border-muted); }
-      .catgroup tr:nth-child(2) { border-top: 0; }
-      .catgroup td { display: inline; padding: 0; border: 0; background: none; white-space: normal; overflow-wrap: anywhere; }
-      .catgroup td.num { white-space: nowrap; margin-right: 0.4rem; }
-      .catgroup td.num:empty { display: none; }   /* a part without a number: the name is the link */
-      .catgroup td:nth-child(3), .catgroup td:nth-child(4) { display: inline; font-size: 0.8rem; color: var(--muted); }
-      .catgroup td:nth-child(3)::before { content: ''; display: block; }
-      .catgroup td:nth-child(4)::before { content: ' · '; }
-    }
-    .catgroup h3 { display: flex; align-items: center; gap: 0.4rem; margin: 1.2rem 0 0.4rem; font-size: 1rem; }
     .gearing { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; margin: 0.5rem 0; }
     .gearing p { margin: 0; flex: 1 1 14rem; }
     .gearing .ratio { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
