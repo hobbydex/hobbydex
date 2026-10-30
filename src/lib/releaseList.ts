@@ -13,7 +13,7 @@ import { colourDotStyle } from './colourDot';
 // Brand, type, scale, build and status index the lists beside the rows; colour and doubt index `colours` and
 // `doubts`. The release URL is /rc/releases/<brand slug>/<id tail>/. The date is the release's date key ("2026-11",
 // "2012-05-01" or "" when undated). art is the file name of the release's outline in /art/ (see releaseArts).
-// flags: 1 = a seen_by bound only (the date reads "by ..." with an asterisk), 4 = that bound is an archive capture,
+// flags: 1 = a seen_by bound only (the date reads "by ...", shown with an eye icon), 4 = that bound is an archive capture,
 // 8 = a video upload (neither: a page we saw), 2 = an announced date (the date reads "announced ...").
 // The 14th column is the power system: an index into `powers` ([value, label]; "unpowered" is a release with no motor or engine), null when no source states it.
 // A row with a doubt index has a date we are not sure of (the "?" with that reason).

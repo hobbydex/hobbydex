@@ -4,10 +4,13 @@
 // A release that is announced (status, or only an announcement date) shows a megaphone before its date, in place of
 // the word "announced".
 import Icon from './Icon.astro';
-import { seenNote, dateTextPlain, isoText, releasedOf, seenOnly, yearTextPlain } from '../lib/data';
-interface Props { r: { year?: number; released?: string; announced?: string; seen_by?: string; seen_by_source?: string; model_year?: number; status?: string }; year?: boolean }
-const { r, year } = Astro.props;
-const announced = r.status === 'announced' || (!releasedOf(r) && !!r.announced);
+import { seenNote, dateTextPlain, isoText, releasedOf, seenOnly, yearTextPlain, statusOf, isComing, comingText } from '../lib/data';
+interface Props { r: { year?: number; released?: string; announced?: string; seen_by?: string; seen_by_source?: string; model_year?: number; status?: string }; year?: boolean; verbose?: boolean }
+const { r, year, verbose } = Astro.props;
+const announced = statusOf(r) === 'announced' || (!releasedOf(r) && !!r.announced);
 const when = releasedOf(r) ? (year ? yearTextPlain(r) : isoText(releasedOf(r)!)) : r.announced ? isoText(r.announced) : undefined;
+const mode = isComing(r) ? 'expected' : seenOnly(r) ? 'seenby' : announced && when ? 'announced' : '';
+const label = mode === 'expected' ? comingText(r) + ' (coming, not out yet)' : mode === 'seenby' ? 'Seen by: on sale by this day, not the release date' : mode === 'announced' ? (releasedOf(r) ? `announced, due ${when}` : `announced ${when}`) : '';
+const text = mode === 'seenby' ? isoText(r.seen_by!) : mode ? when : year ? yearTextPlain(r) : dateTextPlain(r);
 ---
-{announced && when ? <span class="announced" title={releasedOf(r) ? `announced, due ${when}` : `announced ${when}`}><Icon name="announced" label="announced" size="1em" /> {when}</span> : year ? yearTextPlain(r) : dateTextPlain(r)}{seenOnly(r) && <abbr class="doubt seen" tabindex="0" data-tip={seenNote(r)} aria-label={seenNote(r)}>*</abbr>}
+<span class={`dateline${mode === 'expected' ? ' coming-date' : mode === 'seenby' ? ' seen-date' : ''}`} title={label || undefined}><span class="dslot">{mode && <Icon name={mode} label={label} size="1em" />}</span>{text}</span>

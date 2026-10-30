@@ -255,6 +255,9 @@ details.morefmt > summary:hover { color: var(--fg); }
 html.hide-discontinued [data-discontinued] { display: none !important; }
 .hidedisc { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0; cursor: pointer; }
 /* The "?" and "*" date markers: the note shows on hover, focus or tap (tabindex makes the tap focus it). */
+.coming-date { white-space: nowrap; color: var(--accent, #0969da); }
+td.num .coming-date, td.num .seen-date { display: inline-block; }
+.seen-date { color: var(--muted); font-style: italic; }
 abbr.doubt { position: relative; cursor: help; }
 abbr.doubt:is(:hover, :focus, :focus-visible)::after {
   content: attr(data-tip); position: absolute; left: 0; top: 1.5em; z-index: 10;
@@ -318,3 +321,7 @@ body { overflow-x: clip; }
 /* a part's default icon in its one colour: a thin outline (muted, or the text colour for a dark fill) keeps it readable */
 .typeicon.tinted .icon { color: var(--tint); filter: drop-shadow(1px 0 0 var(--muted)) drop-shadow(-1px 0 0 var(--muted)) drop-shadow(0 1px 0 var(--muted)) drop-shadow(0 -1px 0 var(--muted)); }
 .typeicon.tinted[data-dark] .icon { filter: drop-shadow(1px 0 0 var(--fg)) drop-shadow(-1px 0 0 var(--fg)) drop-shadow(0 1px 0 var(--fg)) drop-shadow(0 -1px 0 var(--fg)); }
+
+@media (max-width: 600px) { table.home-new .relplat { display: none; } table.home-new td.num { padding-right: 0.5rem; } }
+.dslot { display: inline-block; width: 1.3em; text-align: left; vertical-align: -0.1em; }
+.dateline { white-space: nowrap; }

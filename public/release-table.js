@@ -243,7 +243,7 @@ if (root) {
     const tr = document.createElement('tr');
     const date = cell(tr, 'Released', 'num');
     date.textContent = r.dateText;
-    if (r.seen) { const a = document.createElement('abbr'); a.className = 'doubt seen'; a.tabIndex = 0; a.dataset.tip = SEEN_NOTES[r.seenKind]; a.setAttribute('aria-label', SEEN_NOTES[r.seenKind]); a.textContent = '*'; date.append(a); }
+    if (r.seen) { date.textContent = r.dateText.replace(/^by /, ''); date.classList.add('seen-date'); const e = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); e.setAttribute('class', 'icon'); e.setAttribute('role', 'img'); e.setAttribute('aria-label', 'Seen by: on sale by this day, not the release date'); e.style.cssText = 'width:1em;height:1em'; const u = document.createElementNS('http://www.w3.org/2000/svg', 'use'); u.setAttribute('href', '/icons.svg#seenby'); e.append(u); date.title = 'Seen by: on sale by this day, not the release date'; date.prepend(e, ' '); }
     if (r.doubt) { const a = document.createElement('abbr'); a.className = 'doubt'; a.tabIndex = 0; a.dataset.tip = r.doubt; a.setAttribute('aria-label', r.doubt); a.textContent = '?'; date.append(a); }
     const brand = cell(tr, 'Brand');
     const b = document.createElement('a'); b.href = `/rc/brands/${r.brand}/`; b.textContent = r.brandName; brand.append(b);

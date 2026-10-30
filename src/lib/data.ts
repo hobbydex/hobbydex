@@ -282,7 +282,7 @@ export const yearOf = (r: { year?: number; model_year?: number }) => r.year ?? r
 // Dates are ISO 8601 at the precision the source gives: "2012", "2012-05", "2012-05-01". A release's
 // date is released (or year, until released carries every year), then announced (the maker's
 // announcement, a real date), then seen_by: the first archived capture of the maker's page, an upper
-// bound that is not the release date and is marked with a *. The helpers below are the only place
+// bound that is not the release date. The helpers below are the only place
 // that orders or words these.
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const isoText = (iso: string) => {
@@ -304,6 +304,26 @@ export const listYear = (r: { year?: number; released?: string; announced?: stri
   const k = dateKey(r);
   return k ? Number(k.slice(0, 4)) : undefined;
 };
+/** The last day a date covers: "2026-12" -> 2026-12-31, "2026" -> 2026-12-31. */
+const periodEnd = (iso: string) => {
+  const m = iso.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/);
+  if (!m) return undefined;
+  return m[3] ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : m[2] ? new Date(Date.UTC(+m[1], +m[2], 0)) : new Date(Date.UTC(+m[1], 11, 31));
+};
+/** The release status as shown: an announced release whose expected date has fully passed (the build day is after its
+ * last day) counts as released, so no data edit is needed when the day comes. An announced release with no expected
+ * date stays announced. Computed at build time; the daily deploy keeps it current. */
+export const statusOf = (r: { status?: string; year?: number; released?: string }) => {
+  if (r.status !== 'announced') return r.status;
+  const due = releasedOf(r);
+  const end = due ? periodEnd(due) : undefined;
+  return end && end.getTime() < Date.now() - 86400000 ? 'released' : 'announced';
+};
+/** Not out yet: announced, with an expected date still to come. */
+export const isComing = (r: { status?: string; year?: number; released?: string }) =>
+  statusOf(r) === 'announced' && !!releasedOf(r);
+/** What the date column says for a coming release: "Expected 2026 Dec". */
+export const comingText = (r: { year?: number; released?: string }) => `Expected ${isoText(releasedOf(r)!)}`;
 /** The date column: "2012", "2012 May", "2012 May 1"; "announced 2012 May"; "by 2012 May" for seen_by alone. */
 export const dateTextPlain = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => {
   const real = releasedOf(r);
@@ -314,16 +334,16 @@ export const dateTextPlain = (r: { year?: number; released?: string; announced?:
 };
 /** dateTextPlain with the "*" for seen_by alone (see SEEN_NOTE), for a plain-text context. */
 export const dateText = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) =>
-  dateTextPlain(r) + (seenOnly(r) ? '*' : '');
+  dateTextPlain(r);
 // The footnote of a seen_by date, worded by where the bound comes from (seen_by_source): an archive capture, the
 // upload of a maker video, or a page we saw ourselves (the maker's, or a dealer's).
 export type SeenKind = 'archive' | 'video' | 'page';
 export const seenKind = (r: { seen_by_source?: string }): SeenKind =>
   /^https?:\/\/web\.archive\.org\//.test(r.seen_by_source ?? '') ? 'archive' : /youtube\.com|youtu\.be/.test(r.seen_by_source ?? '') ? 'video' : 'page';
 export const SEEN_NOTES: Record<SeenKind, string> = {
-  archive: '* not the release date: the first time a maker or shop page for it was archived, so it was on sale by then.',
-  video: "* not the release date: the day the maker's video for it was uploaded, so it was on sale by then.",
-  page: '* not the release date: the first time we saw a maker or shop page for it, so it was on sale by then.',
+  archive: 'not the release date: the first time a maker or shop page for it was archived, so it was on sale by then.',
+  video: "not the release date: the day the maker's video for it was uploaded, so it was on sale by then.",
+  page: 'not the release date: the first time we saw a maker or shop page for it, so it was on sale by then.',
 };
 export const seenNote = (r: { seen_by_source?: string }) => SEEN_NOTES[seenKind(r)];
 // The reason the date dateText shows is doubtful (released_doubt, or year_doubt when only the year is shown); undefined when it is sure.
@@ -368,7 +388,7 @@ export const yearTextPlain = (r: { year?: number; released?: string; announced?:
   hasDate(r) ? dateTextPlain(r) : r.model_year ? `${r.model_year} model` : 'unknown';
 /** yearTextPlain with the "*" for seen_by alone, for a plain-text context. */
 export const yearText = (r: { year?: number; released?: string; announced?: string; seen_by?: string; model_year?: number }) =>
-  yearTextPlain(r) + (seenOnly(r) ? '*' : '');
+  yearTextPlain(r);
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
 // The short name of the page an announced date comes from, for the release page: the brand's video, Big Squid RC,
 // the maker's press release (a PDF) or, else, the maker's news.
