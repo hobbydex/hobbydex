@@ -304,6 +304,26 @@ export const listYear = (r: { year?: number; released?: string; announced?: stri
   const k = dateKey(r);
   return k ? Number(k.slice(0, 4)) : undefined;
 };
+/** The last day a date covers: "2026-12" -> 2026-12-31, "2026" -> 2026-12-31. */
+const periodEnd = (iso: string) => {
+  const m = iso.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/);
+  if (!m) return undefined;
+  return m[3] ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : m[2] ? new Date(Date.UTC(+m[1], +m[2], 0)) : new Date(Date.UTC(+m[1], 11, 31));
+};
+/** The release status as shown: an announced release whose expected date has fully passed (the build day is after its
+ * last day) counts as released, so no data edit is needed when the day comes. An announced release with no expected
+ * date stays announced. Computed at build time; the daily deploy keeps it current. */
+export const statusOf = (r: { status?: string; year?: number; released?: string }) => {
+  if (r.status !== 'announced') return r.status;
+  const due = releasedOf(r);
+  const end = due ? periodEnd(due) : undefined;
+  return end && end.getTime() < Date.now() - 86400000 ? 'released' : 'announced';
+};
+/** Not out yet: announced, with an expected date still to come. */
+export const isComing = (r: { status?: string; year?: number; released?: string }) =>
+  statusOf(r) === 'announced' && !!releasedOf(r);
+/** What the date column says for a coming release: "Expected 2026 Dec". */
+export const comingText = (r: { year?: number; released?: string }) => `Expected ${isoText(releasedOf(r)!)}`;
 /** The date column: "2012", "2012 May", "2012 May 1"; "announced 2012 May"; "by 2012 May" for seen_by alone. */
 export const dateTextPlain = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => {
   const real = releasedOf(r);

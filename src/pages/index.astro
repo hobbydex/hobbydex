@@ -6,7 +6,7 @@ import { kitTypeOne } from '../lib/kitTypes';
 import { releasesByType } from '../lib/releaseTypes';
 import Base from '../layouts/Base.astro';
 import { readFileSync } from 'node:fs';
-import { db, url, brandName, dateKey, dateDoubt, releasesByMake, bodiesByMake } from '../lib/data';
+import { db, url, brandName, dateKey, dateDoubt, isComing, releasedOf, releasesByMake, bodiesByMake } from '../lib/data';
 import DateText from '../components/DateText.astro';
 import DateDoubt from '../components/DateDoubt.astro';
 import DoubtNote from '../components/DoubtNote.astro';
@@ -32,10 +32,13 @@ for (const r of db.releases) byBrand.set(r.brand, (byBrand.get(r.brand) ?? 0) + 
 const brands = top(byBrand, 12);
 // the newest rows: one per colourway group (the same car in several colours is one row, lib/colourways.ts), of the
 // releases that are not discontinued; one row per kit, so one platform cannot fill the list
-const byNewest = (a: (typeof db.releases)[number], b: (typeof db.releases)[number]) => (a.status === 'announced' ? -1 : b.status === 'announced' ? 1 : 0);
 const seenKit = new Set<string>();
-const latest = dateRows(db.releases.filter((r) => r.status !== 'discontinued'), dateKey, byNewest)
+const out = db.releases.filter((r) => r.status !== 'discontinued' && !isComing(r));
+const latest = dateRows(out, dateKey, () => 0)
   .filter((x) => !seenKit.has(x.head.kit) && seenKit.add(x.head.kit)).slice(0, 10);
+// announced and not out yet, soonest first: their own group above the latest releases, never labelled Released
+const coming = dateRows(db.releases.filter(isComing), (r) => { const d = releasedOf(r)!; return d.length === 4 ? d + '-13' : d; }, () => 0)
+  .sort((a, b) => a.key.localeCompare(b.key)).slice(0, 6);
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 // the hero's car: the site's own buggy icon (public/icons.svg#buggy, 48x24, front to the left, wheels on
 // y=23.2), split into body and wing (its first two subpaths) and the two wheels, so the suspension can work
@@ -171,9 +174,20 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
     <a class="stat" href="/rc/specs/"><b>{db.specs.length}</b> generic specs</a>
   </div>
 
+  {coming.length > 0 && <>
+  <h2>Coming soon</h2>
+  <table>
+    <tr><th class="num">Date</th><th>Release</th></tr>
+    {coming.map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; const labels = colourLabels(g); return <tr><td class="num"><DateText r={r} verbose /><DateDoubt reason={dateDoubt(r)} /></td>
+      <td><span class="muted" title={kitTypeOne[cat ?? 'car']}><ReleaseArt id={r.id} category={cat} art={r.art} color={g.length > 1 ? undefined : releaseColour(r)} size="1em" /></span> <a href={url.release(r.id)}>{brandName(r.brand)} {groupName(g)}</a><Discontinued item={r} />
+        {g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}
+        {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td></tr>; })}
+  </table>
+  </>}
+
   <h2>Latest releases</h2>
   <table>
-    <tr><th class="num">Released</th><th>Release</th></tr>
+    <tr><th class="num">Date</th><th>Release</th></tr>
     {latest.map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; const labels = colourLabels(g); return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
       <td><span class="muted" title={kitTypeOne[cat ?? 'car']}><ReleaseArt id={r.id} category={cat} art={r.art} color={g.length > 1 ? undefined : releaseColour(r)} size="1em" /></span> <a href={url.release(r.id)}>{brandName(r.brand)} {groupName(g)}</a><Discontinued item={r} />
         {g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}

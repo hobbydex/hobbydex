@@ -17,7 +17,7 @@ const { rows, counts } = latestRows(100, 150);
 <Base title="Latest" description="The newest cars, bodies, and generic electronics and batteries in Hobbydex, newest first. Only items with a known date are listed.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Latest</div>
   <h1>Latest</h1>
-  <p class="muted">Everything with a known date, newest first: cars, bodies, and electronics and batteries that are not spares for one brand's cars. Items no source dates are left out. A date with an asterisk is not a release date: it is the day the maker's page or shop listing was first seen.</p>
+  <p class="muted">Everything with a known date, newest first: cars, bodies, and electronics and batteries that are not spares for one brand's cars. Releases that are announced but not out yet carry a Coming badge and an expected date. Items no source dates are left out. A date with an asterisk is not a release date: it is the day the maker's page or shop listing was first seen.</p>
   <div class="search-filters latest-tabs" role="group" aria-label="Show" data-pagefind-ignore>
     {TABS.map((t, i) => <button data-tab={t.id} aria-pressed={i === 0 ? "true" : "false"} title={'hint' in t ? t.hint : undefined}>{t.label} <span class="muted">{counts[t.id].toLocaleString('en')}</span></button>)}
   </div>
@@ -25,7 +25,7 @@ const { rows, counts } = latestRows(100, 150);
     <thead><tr><th class="num">Date</th><th>Brand</th><th>Item</th><th>Kind</th></tr></thead>
     <tbody>
     {rows.map(({ r, group: g, tab, what, inAll }) => <tr data-tab={tab} data-all={inAll ? '1' : '0'}>
-      <td class="num" data-label="Date"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
+      <td class="num" data-label="Date"><DateText r={r} verbose /><DateDoubt reason={dateDoubt(r)} /></td>
       <td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td>
       <td class="name" data-label="Item">{g
         ? <><span class="muted" title={kitTypeOne[(r as any).category ?? db.kit.get((r as any).kit)?.category ?? 'car']}><ReleaseArt id={r.id} category={(r as any).category ?? db.kit.get((r as any).kit)?.category} art={(r as any).art} color={g.length > 1 ? undefined : releaseColour(g[0])} size="1em" /></span> <a href={url.release(r.id)}>{groupName(g)}</a></>
