@@ -41,7 +41,9 @@ const latest = dateRows(out, dateKey, () => 0)
 // newer announcements; a release known only by its year is left out (it has no place in a dated list)
 const coming = dateRows(db.releases.filter((r) => isComing(r) && (releasedOf(r) ?? '').length >= 7), (r) => releasedOf(r)!, () => 0);
 // one table, newest date first: upcoming releases above the latest ones, in date order throughout
-const newest = [...coming, ...latest].sort((a, b) => b.key.localeCompare(a.key));
+// a month without a day sorts at the end of its month
+const sortKey = (k: string) => (k.length === 7 ? k + '-32' : k);
+const newest = [...coming, ...latest].sort((a, b) => sortKey(b.key).localeCompare(sortKey(a.key)));
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 // the hero's car: the site's own buggy icon (public/icons.svg#buggy, 48x24, front to the left, wheels on
 // y=23.2), split into body and wing (its first two subpaths) and the two wheels, so the suspension can work
