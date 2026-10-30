@@ -10,4 +10,8 @@ const { r, year, verbose } = Astro.props;
 const announced = statusOf(r) === 'announced' || (!releasedOf(r) && !!r.announced);
 const when = releasedOf(r) ? (year ? yearTextPlain(r) : isoText(releasedOf(r)!)) : r.announced ? isoText(r.announced) : undefined;
 ---
-{verbose && isComing(r) ? <><span class="badge-coming">Coming</span> <span class="coming-date">{comingText(r)}</span></> : announced && when ? <span class="announced" title={releasedOf(r) ? `announced, due ${when}` : `announced ${when}`}><Icon name="announced" label="announced" size="1em" /> {when}</span> : year ? yearTextPlain(r) : dateTextPlain(r)}{seenOnly(r) && <abbr class="doubt seen" tabindex="0" data-tip={seenNote(r)} aria-label={seenNote(r)}>*</abbr>}
+{isComing(r)
+  ? <span class="coming-date" title={comingText(r) + ' (coming, not out yet)'}><Icon name="expected" label={comingText(r) + ' (coming, not out yet)'} size="1em" /> {when}</span>
+  : seenOnly(r)
+  ? <span class="seen-date" title="Seen by this day (not the release date)"><Icon name="seenby" label="Seen by this day (not the release date)" size="1em" /> {isoText(r.seen_by!)}</span>
+  : announced && when ? <span class="announced" title={releasedOf(r) ? `announced, due ${when}` : `announced ${when}`}><Icon name="announced" label="announced" size="1em" /> {when}</span> : year ? yearTextPlain(r) : dateTextPlain(r)}{seenOnly(r) && <abbr class="doubt seen" tabindex="0" data-tip={seenNote(r)} aria-label={seenNote(r)}>*</abbr>}
