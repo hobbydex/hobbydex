@@ -50,6 +50,22 @@ ul.cards li { background: var(--surface); border: 1px solid var(--border); borde
 .search-box:focus { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
 /* a magnifier inside a search field without a button, on the left; the home box has it on its button instead (.home-search) */
 .sfield { position: relative; display: block; }
+.sfield-row { display: flex; align-items: stretch; gap: 0; }
+.sfield-row > .sfield, .sfield-row > .search-box { flex: 1 1 auto; min-width: 0; }
+/* one joined control: shared border, no gap, rounded only at the outer ends */
+.sfield-row > * { border-radius: 0; }
+.sfield-row > * + * { margin-left: -1px; }
+.sfield-row > :first-child, .sfield-row > :first-child .search-box { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+.sfield-row > :last-child, .sfield-row > :last-child .search-box { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+.sfield-row > .search-box:focus, .sfield-row .search-box:focus { position: relative; z-index: 1; }
+.sfield-row > button { white-space: nowrap; box-sizing: border-box; min-height: 44px; padding: 0.5rem 0.9rem; cursor: pointer; background: var(--surface); }
+.sfield-row > button:hover { background: var(--surface-2); }
+.sfield-row:has(.scanbtn:not([hidden])) .search-box { min-height: 44px; }
+.scanbtn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; flex: none; width: 44px; min-height: 44px; color: var(--fg); background: var(--surface); border: 1px solid var(--border); }
+.scanbtn[hidden] { display: none; }
+.scanbtn:hover { background: var(--surface-2); text-decoration: none; }
+.scanbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.scanbtn .icon { width: 1.4rem; height: 1.4rem; }
 .sfield > input { display: block; padding-left: 2.1rem; }
 .sfield > .icon { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); width: 1.1rem; height: 1.1rem; vertical-align: 0; color: var(--muted); pointer-events: none; }
 .search-filters { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.75rem 0; }
