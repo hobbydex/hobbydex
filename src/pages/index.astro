@@ -36,9 +36,10 @@ const seenKit = new Set<string>();
 const out = db.releases.filter((r) => r.status !== 'discontinued' && !isComing(r));
 const latest = dateRows(out, dateKey, () => 0)
   .filter((x) => !seenKit.has(x.head.kit) && seenKit.add(x.head.kit)).slice(0, 10);
-// announced and not out yet, soonest first: their own group above the latest releases, never labelled Released
+// announced and not out yet, soonest first: their own group above the latest releases, never labelled Released;
+// all of them, so a later date is never pushed off the list by newer announcements
 const coming = dateRows(db.releases.filter(isComing), (r) => { const d = releasedOf(r)!; return d.length === 4 ? d + '-13' : d; }, () => 0)
-  .sort((a, b) => a.key.localeCompare(b.key)).slice(0, 6);
+  .sort((a, b) => a.key.localeCompare(b.key));
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 // the hero's car: the site's own buggy icon (public/icons.svg#buggy, 48x24, front to the left, wheels on
 // y=23.2), split into body and wing (its first two subpaths) and the two wheels, so the suspension can work
