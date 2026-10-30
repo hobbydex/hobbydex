@@ -174,29 +174,17 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
     <a class="stat" href="/rc/specs/"><b>{db.specs.length}</b> generic specs</a>
   </div>
 
-  {coming.length > 0 && <>
-  <h2>Coming soon</h2>
-  <p class="muted">Announced, not out yet: the clock shows the expected date.</p>
-  <table class="coming-table">
+  <h2>New and upcoming</h2>
+  <table class="home-new">
     <tr><th class="num">Date</th><th>Release</th></tr>
-    {coming.map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; const labels = colourLabels(g); return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
-      <td><span class="muted" title={kitTypeOne[cat ?? 'car']}><ReleaseArt id={r.id} category={cat} art={r.art} color={g.length > 1 ? undefined : releaseColour(r)} size="1em" /></span> <a href={url.release(r.id)}>{brandName(r.brand)} {groupName(g)}</a><Discontinued item={r} />
-        {g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}
-        {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td></tr>; })}
-  </table>
-  </>}
-
-  <h2>Latest releases</h2>
-  <table>
-    <tr><th class="num">Date</th><th>Release</th></tr>
-    {latest.map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; const labels = colourLabels(g); return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
+    {[...coming, ...latest].map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const cat = r.category ?? k?.category; const labels = colourLabels(g); return <tr><td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>
       <td><span class="muted" title={kitTypeOne[cat ?? 'car']}><ReleaseArt id={r.id} category={cat} art={r.art} color={g.length > 1 ? undefined : releaseColour(r)} size="1em" /></span> <a href={url.release(r.id)}>{brandName(r.brand)} {groupName(g)}</a><Discontinued item={r} />
         {g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}
         {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td></tr>; })}
   </table>
   <p><a href="/rc/releases/">Show more</a> <span class="muted">· every release, newest first</span></p>
   <p><a href="/rc/latest/">Latest of everything</a> <span class="muted">· new cars, bodies, servos, radios, ESCs, motors, batteries and other parts</span></p>
-  <DoubtNote on={latest.some((x) => x.group.some((r) => !!dateDoubt(r)))} />
+  <DoubtNote on={[...coming, ...latest].some((x) => x.group.some((r) => !!dateDoubt(r)))} />
 
   <div class="home-grid">
     <section>

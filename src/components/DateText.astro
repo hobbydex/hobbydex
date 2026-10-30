@@ -9,9 +9,8 @@ interface Props { r: { year?: number; released?: string; announced?: string; see
 const { r, year, verbose } = Astro.props;
 const announced = statusOf(r) === 'announced' || (!releasedOf(r) && !!r.announced);
 const when = releasedOf(r) ? (year ? yearTextPlain(r) : isoText(releasedOf(r)!)) : r.announced ? isoText(r.announced) : undefined;
+const mode = isComing(r) ? 'expected' : seenOnly(r) ? 'seenby' : announced && when ? 'announced' : '';
+const label = mode === 'expected' ? comingText(r) + ' (coming, not out yet)' : mode === 'seenby' ? 'Seen by this day (not the release date)' : mode === 'announced' ? (releasedOf(r) ? `announced, due ${when}` : `announced ${when}`) : '';
+const text = mode === 'seenby' ? isoText(r.seen_by!) : mode ? when : year ? yearTextPlain(r) : dateTextPlain(r);
 ---
-{isComing(r)
-  ? <span class="coming-date" title={comingText(r) + ' (coming, not out yet)'}><Icon name="expected" label={comingText(r) + ' (coming, not out yet)'} size="1em" /> {when}</span>
-  : seenOnly(r)
-  ? <span class="seen-date" title="Seen by this day (not the release date)"><Icon name="seenby" label="Seen by this day (not the release date)" size="1em" /> {isoText(r.seen_by!)}</span>
-  : announced && when ? <span class="announced" title={releasedOf(r) ? `announced, due ${when}` : `announced ${when}`}><Icon name="announced" label="announced" size="1em" /> {when}</span> : year ? yearTextPlain(r) : dateTextPlain(r)}{seenOnly(r) && <abbr class="doubt seen" tabindex="0" data-tip={seenNote(r)} aria-label={seenNote(r)}>*</abbr>}
+<span class={`dateline${mode === 'expected' ? ' coming-date' : mode === 'seenby' ? ' seen-date' : ''}`} title={label || undefined}><span class="dslot">{mode && <Icon name={mode} label={label} size="1em" />}</span>{text}</span>{seenOnly(r) && <abbr class="doubt seen" tabindex="0" data-tip={seenNote(r)} aria-label={seenNote(r)}>*</abbr>}

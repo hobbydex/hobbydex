@@ -322,4 +322,6 @@ body { overflow-x: clip; }
 .typeicon.tinted .icon { color: var(--tint); filter: drop-shadow(1px 0 0 var(--muted)) drop-shadow(-1px 0 0 var(--muted)) drop-shadow(0 1px 0 var(--muted)) drop-shadow(0 -1px 0 var(--muted)); }
 .typeicon.tinted[data-dark] .icon { filter: drop-shadow(1px 0 0 var(--fg)) drop-shadow(-1px 0 0 var(--fg)) drop-shadow(0 1px 0 var(--fg)) drop-shadow(0 -1px 0 var(--fg)); }
 
-@media (max-width: 600px) { table.coming-table .relplat { display: none; } table.coming-table td.num { padding-right: 0.5rem; } }
+@media (max-width: 600px) { table.home-new .relplat { display: none; } table.home-new td.num { padding-right: 0.5rem; } }
+.dslot { display: inline-block; width: 1.3em; text-align: left; vertical-align: -0.1em; }
+.dateline { white-space: nowrap; }
