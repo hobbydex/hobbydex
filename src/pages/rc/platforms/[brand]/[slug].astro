@@ -267,8 +267,8 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
         {grp.map(({ part, rels }) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td data-label="Brand">{brandName(part.brand)}</td><td data-label="Listed for">{rels.length > 0 ? rels.join(', ') : `Whole ${o.name}`}</td></tr>)}
       </table></div>)}
   </details>)}
-  {sources.length > 0 && <><h2 id="sources">Sources</h2>
-    <ul>{sources.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></>}
+  {sources.length > 0 && <><h2>Sources <span class="muted">({sources.length})</span></h2>
+    <details class="sheets" id="sources"><summary class="muted">{sources.length === 1 ? "the source" : "all sources"}</summary><ul>{sources.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details></>}
   <script>
     // the option parts list: by part number (as built), or newest first within each category; the newest block's
     // "Show all" link switches to newest first
