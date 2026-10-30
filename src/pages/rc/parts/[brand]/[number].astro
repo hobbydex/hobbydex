@@ -135,7 +135,7 @@ const indexWords = [brand?.name, part.number, ...(part.numbers ?? []), part.gtin
 // the meta description: the category, the spec clauses the record states, the platforms it fits and the releases it is in
 const lcfirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 const bearingIncludes = (part.includes ?? []).filter((i) => i.spec?.startsWith('spec/bearing/'));
-const bearingPcs = bearingIncludes.reduce((n, i) => n + (i.qty ?? 1), 0);
+const bearingPcs = part.includes_qty === 'unstated' ? 0 : bearingIncludes.reduce((n, i) => n + (i.qty ?? 1), 0);
 const fitsPlatforms = new Set((part.fits ?? []).map((f) => f.kit)).size;
 const metaDescription = describe(`${brand?.name} ${numName}`,
   [part.category && lcfirst(catName(part.category)), ...partSpecs(part, bearingIncludes.map((i) => i.spec!.split('/').pop()!), bearingPcs), part.applies_to && `for ${part.applies_to}`].filter((x): x is string => !!x),
@@ -257,11 +257,12 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
       {upgrades.map((u) => <tr><td class="num">{u.number && <a href={url.part(u.id)}>{u.number}</a>}</td><td>{u.category && <a class="caticon" href={`/rc/categories/${u.category}/`} title={catName(u.category)}><Icon name={u.category} /></a>} {u.number ? u.name : <a href={url.part(u.id)}>{u.name}</a>}<Discontinued item={u} /></td><td>{u.material === 'carbon' ? 'carbon fibre' : (u.material ?? '')}{u.material_grade && ` ${u.material_grade}`}</td></tr>)}
     </table></>}
   {part.includes && part.includes.length > 0 && <>
-    <h2>Includes <span class="muted">({part.includes.reduce((n, i) => n + (i.qty ?? 1), 0)} pcs)</span></h2>
+    <h2>Includes{part.includes_qty !== 'unstated' && <> <span class="muted">({part.includes.reduce((n, i) => n + (i.qty ?? 1), 0)} pcs)</span></>}</h2>
+    {part.includes_qty === 'unstated' && part.includes_qty_note && <p class="muted">{part.includes_qty_note[0].toUpperCase() + part.includes_qty_note.slice(1)}.</p>}
     <div class="tablescroll"><table class="stacked">
       <tr><th class="num">Qty</th><th>Item</th><th>Spec</th><th>Notes</th><th>Source</th></tr>
       {part.includes.map((i) => { const p = i.part ? db.part.get(i.part) : undefined; const sp = db.spec.get(i.spec ?? p?.equivalent_to?.[0]?.spec ?? ''); const d = i.source ? db.doc.get(i.source) : undefined; return <tr>
-        <td class="num" data-label="Qty">{i.qty ?? ''}</td>
+        <td class="num" data-label="Qty">{i.qty ?? (part.includes_qty === 'unstated' ? <span class="muted">unknown amount</span> : '')}</td>
         <td class="name">{i.part ? <><a href={url.part(i.part)}>{p ? (p.number ? `${p.number} ${p.name}` : p.name) : i.part}</a>{p && <Discontinued item={p} />}</> : (i.notes ?? sp?.name ?? i.spec)}</td>
         <td data-label="Spec">{sp ? <a href={url.spec(sp.id)}>{sp.name}</a> : ''}</td><td class="muted" data-label="Notes">{i.part ? (i.notes ?? '') : ''}</td><td class="muted" data-label="Source">{d?.title ?? i.source ?? ''}</td>
       </tr>; })}
