@@ -11,13 +11,13 @@ import { groupName, releaseColour } from '../../lib/colourways';
 import { kitTypeOne } from '../../lib/kitTypes';
 import { TABS, latestRows } from '../../lib/latest';
 // Everything with a date, newest first: the newest 100 of every tab, and of Everything the newest 150. Items with no
-// date at all never show; parts are only the bodies and generic electronics (lib/latestParts.ts); a date that is only a seen_by bound carries the asterisk of the releases list.
+// date at all never show; parts are only the bodies and generic electronics (lib/latestParts.ts); a date that is only a seen_by bound shows the eye icon.
 const { rows, counts } = latestRows(100, 150);
 ---
 <Base title="Latest" description="The newest cars, bodies, and generic electronics and batteries in Hobbydex, newest first. Only items with a known date are listed.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Latest</div>
   <h1>Latest</h1>
-  <p class="muted">Everything with a known date, newest first: cars, bodies, and electronics and batteries that are not spares for one brand's cars. A clock marks a release that is announced but not out yet (its date is the expected one); an eye marks a first-seen date. Items no source dates are left out. A date with an asterisk is not a release date: it is the day the maker's page or shop listing was first seen.</p>
+  <p class="muted">Everything with a known date, newest first: cars, bodies, and electronics and batteries that are not spares for one brand's cars. A clock marks a release that is announced but not out yet (its date is the expected one); an eye marks a date that is only the first day we saw the release, not its release date. Items no source dates are left out.</p>
   <div class="search-filters latest-tabs" role="group" aria-label="Show" data-pagefind-ignore>
     {TABS.map((t, i) => <button data-tab={t.id} aria-pressed={i === 0 ? "true" : "false"} title={'hint' in t ? t.hint : undefined}>{t.label} <span class="muted">{counts[t.id].toLocaleString('en')}</span></button>)}
   </div>

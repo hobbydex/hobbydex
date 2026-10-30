@@ -282,7 +282,7 @@ export const yearOf = (r: { year?: number; model_year?: number }) => r.year ?? r
 // Dates are ISO 8601 at the precision the source gives: "2012", "2012-05", "2012-05-01". A release's
 // date is released (or year, until released carries every year), then announced (the maker's
 // announcement, a real date), then seen_by: the first archived capture of the maker's page, an upper
-// bound that is not the release date and is marked with a *. The helpers below are the only place
+// bound that is not the release date. The helpers below are the only place
 // that orders or words these.
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const isoText = (iso: string) => {
@@ -334,16 +334,16 @@ export const dateTextPlain = (r: { year?: number; released?: string; announced?:
 };
 /** dateTextPlain with the "*" for seen_by alone (see SEEN_NOTE), for a plain-text context. */
 export const dateText = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) =>
-  dateTextPlain(r) + (seenOnly(r) ? '*' : '');
+  dateTextPlain(r);
 // The footnote of a seen_by date, worded by where the bound comes from (seen_by_source): an archive capture, the
 // upload of a maker video, or a page we saw ourselves (the maker's, or a dealer's).
 export type SeenKind = 'archive' | 'video' | 'page';
 export const seenKind = (r: { seen_by_source?: string }): SeenKind =>
   /^https?:\/\/web\.archive\.org\//.test(r.seen_by_source ?? '') ? 'archive' : /youtube\.com|youtu\.be/.test(r.seen_by_source ?? '') ? 'video' : 'page';
 export const SEEN_NOTES: Record<SeenKind, string> = {
-  archive: '* not the release date: the first time a maker or shop page for it was archived, so it was on sale by then.',
-  video: "* not the release date: the day the maker's video for it was uploaded, so it was on sale by then.",
-  page: '* not the release date: the first time we saw a maker or shop page for it, so it was on sale by then.',
+  archive: 'not the release date: the first time a maker or shop page for it was archived, so it was on sale by then.',
+  video: "not the release date: the day the maker's video for it was uploaded, so it was on sale by then.",
+  page: 'not the release date: the first time we saw a maker or shop page for it, so it was on sale by then.',
 };
 export const seenNote = (r: { seen_by_source?: string }) => SEEN_NOTES[seenKind(r)];
 // The reason the date dateText shows is doubtful (released_doubt, or year_doubt when only the year is shown); undefined when it is sure.
@@ -388,7 +388,7 @@ export const yearTextPlain = (r: { year?: number; released?: string; announced?:
   hasDate(r) ? dateTextPlain(r) : r.model_year ? `${r.model_year} model` : 'unknown';
 /** yearTextPlain with the "*" for seen_by alone, for a plain-text context. */
 export const yearText = (r: { year?: number; released?: string; announced?: string; seen_by?: string; model_year?: number }) =>
-  yearTextPlain(r) + (seenOnly(r) ? '*' : '');
+  yearTextPlain(r);
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
 // The short name of the page an announced date comes from, for the release page: the brand's video, Big Squid RC,
 // the maker's press release (a PDF) or, else, the maker's news.

@@ -5,7 +5,7 @@ import { showPartInLatest } from './latestParts';
 
 // The "Latest" view (/rc/latest/): releases, bodies and generic electronics and power parts with a date, newest first,
 // in tabs (which parts count: lib/latestParts.ts). Undated items never appear; a release dated only by seen_by shows as
-// such (DateText's asterisk), not as a release date.
+// such (DateText's eye icon), not as a release date.
 export const TABS = [
   { id: 'all', label: 'Everything' },
   { id: 'cars', label: 'Cars' },

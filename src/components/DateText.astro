@@ -10,7 +10,7 @@ const { r, year, verbose } = Astro.props;
 const announced = statusOf(r) === 'announced' || (!releasedOf(r) && !!r.announced);
 const when = releasedOf(r) ? (year ? yearTextPlain(r) : isoText(releasedOf(r)!)) : r.announced ? isoText(r.announced) : undefined;
 const mode = isComing(r) ? 'expected' : seenOnly(r) ? 'seenby' : announced && when ? 'announced' : '';
-const label = mode === 'expected' ? comingText(r) + ' (coming, not out yet)' : mode === 'seenby' ? 'Seen by this day (not the release date)' : mode === 'announced' ? (releasedOf(r) ? `announced, due ${when}` : `announced ${when}`) : '';
+const label = mode === 'expected' ? comingText(r) + ' (coming, not out yet)' : mode === 'seenby' ? 'Seen by: on sale by this day, not the release date' : mode === 'announced' ? (releasedOf(r) ? `announced, due ${when}` : `announced ${when}`) : '';
 const text = mode === 'seenby' ? isoText(r.seen_by!) : mode ? when : year ? yearTextPlain(r) : dateTextPlain(r);
 ---
-<span class={`dateline${mode === 'expected' ? ' coming-date' : mode === 'seenby' ? ' seen-date' : ''}`} title={label || undefined}><span class="dslot">{mode && <Icon name={mode} label={label} size="1em" />}</span>{text}</span>{seenOnly(r) && <abbr class="doubt seen" tabindex="0" data-tip={seenNote(r)} aria-label={seenNote(r)}>*</abbr>}
+<span class={`dateline${mode === 'expected' ? ' coming-date' : mode === 'seenby' ? ' seen-date' : ''}`} title={label || undefined}><span class="dslot">{mode && <Icon name={mode} label={label} size="1em" />}</span>{text}</span>
