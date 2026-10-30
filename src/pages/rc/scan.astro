@@ -1,12 +1,13 @@
 ---
 import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
 ---
 <Base title="Scan a barcode" description="Find a part or release by its barcode or its printed part number, with a scanner or your phone camera, and see which cars it fits. The code is looked up in your browser; nothing you scan is sent to a server.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Scan</div>
   <h1>Scan a barcode</h1>
   <p data-pagefind-ignore>A bag with no car name? Scan its barcode, or type the part number printed on it. Hobbydex shows the parts with that code or number, which cars they fit and which releases contain them.</p>
 
-  <p class="scan-main" data-pagefind-ignore><button type="button" id="camera-btn" class="primary">Scan with camera</button></p>
+  <p class="scan-main" data-pagefind-ignore><button type="button" id="camera-btn" class="primary"><Icon name="camera" /> Scan with camera</button></p>
   <div id="camera" class="scan-camera" hidden data-pagefind-ignore>
     <video id="video" playsinline muted></video>
     <p class="muted">Hold the barcode or the part number inside the picture. It is read as soon as it is in focus.</p>
@@ -15,7 +16,7 @@ import Base from '../../layouts/Base.astro';
 
   <form class="scan-form" id="scan-form" role="search" data-pagefind-ignore>
     <label for="code">Or type or scan a barcode or part number</label>
-    <div class="scan-row">
+    <div class="sfield-row scan-row">
       <input class="search-box" id="code" name="code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. 8044, 51531, 4250650912253" />
       <button type="submit">Look up</button>
     </div>
@@ -256,15 +257,20 @@ import Base from '../../layouts/Base.astro';
 
   <style>
     .scan-main { margin: 1rem 0; }
-    #camera-btn.primary { font-size: 1.15rem; font-weight: 600; width: 100%; padding: 0.9rem 1rem; }
+    /* the page's main action: a filled accent button (Primer's emphasis tokens keep the contrast in light and dark) */
+    #camera-btn.primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem; font-size: 1.15rem; font-weight: 600; width: 100%; min-height: 56px; padding: 0.9rem 1rem; cursor: pointer;
+      color: var(--fgColor-onEmphasis); background: var(--bgColor-accent-emphasis); border-color: var(--bgColor-accent-emphasis); }
+    #camera-btn.primary:hover { filter: brightness(1.1); }
+    #camera-btn.primary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+    #camera-btn.primary .icon { width: 1.5rem; height: 1.5rem; }
     @media (min-width: 600px) { #camera-btn.primary { width: auto; } }
     .scan-camera { margin: 0.75rem 0; }
     .scan-camera video { width: 100%; max-width: 480px; max-height: 60vh; background: #000; border-radius: 6px; display: block; }
     .scan-form { margin-top: 1.5rem; }
     .scan-form label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
-    .scan-row { display: flex; gap: 0.5rem; align-items: center; margin: 0.5rem 0; }
-    .scan-row input { flex: 1; min-width: 0; font-size: 1.15rem; font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
-    .scan-row button, #camera-stop { padding: 0.5rem 0.9rem; }
+    .scan-row { margin: 0.5rem 0; }
+    .scan-row input { min-height: 48px; font-size: 1.15rem; font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
+    #camera-stop { padding: 0.5rem 0.9rem; }
     .scan-status { min-height: 1.5em; font-weight: 600; }
     #results details { border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.75rem; margin: 0.5rem 0; }
     #results summary { cursor: pointer; font-weight: 600; }
