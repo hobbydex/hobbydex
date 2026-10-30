@@ -101,6 +101,8 @@ ul.search-results mark { background: var(--mark); color: inherit; border-radius:
 .home-search { display: flex; margin: 1rem 0; max-width: 40rem; }
 .home-search input { flex: 1; min-width: 0; font: inherit; font-size: 1rem; padding: 0.5rem 0.75rem; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px 0 0 6px; }
 .home-search :is(input, button):focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; position: relative; z-index: 1; }
+.home-search .scanbtn { border-radius: 6px 0 0 6px; margin-right: -1px; }
+.home-search .scanbtn:not([hidden]) + .ac input { border-radius: 0; }
 .home-search .ac { position: relative; flex: 1; min-width: 0; display: flex; }
 .ac-pop { position: absolute; z-index: 10; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.15); overflow: hidden; }
 .ac-status { color: var(--muted); font-size: 0.8rem; padding: 0.4rem 0.75rem; }

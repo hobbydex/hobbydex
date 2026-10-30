@@ -10,6 +10,7 @@ import { db, url, brandName, dateKey, dateDoubt, isComing, releasedOf, releasesB
 import DateText from '../components/DateText.astro';
 import DateDoubt from '../components/DateDoubt.astro';
 import DoubtNote from '../components/DoubtNote.astro';
+import ScanButton from '../components/ScanButton.astro';
 import ColourSwitch from '../components/ColourSwitch.astro';
 import { dateRows, colourLabels, groupName, releaseColour } from '../lib/colourways';
 
@@ -67,6 +68,7 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
   <section class="home-hero">
     <p class="tagline">The open RC database: what's new, what's inside, what fits.</p>
     <form class="home-search" action="/search/" method="get" role="search">
+      <ScanButton />
       <div class="ac">
         <input type="search" name="q" id="home-q" placeholder="Part number, part name, platform or brand" aria-label="Search"
           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="home-ac" autocomplete="off" />
