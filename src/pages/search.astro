@@ -1,11 +1,12 @@
 ---
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
+import ScanButton from '../components/ScanButton.astro';
 ---
 <Base title="Search" description="Search Hobbydex by part number, part name, kit, release or brand, and filter by part category, drive or real vehicle make.">
   <h1>Search</h1>
   <div class="sfield-row">
-    <a class="scanbtn" id="scan-icon" href="/rc/scan/?camera=1" aria-label="Scan a barcode with the camera" title="Scan a barcode with the camera" hidden data-pagefind-ignore><Icon name="barcode" /></a>
+    <ScanButton />
     <div class="sfield"><Icon name="search" /><input class="search-box" id="q" type="search" placeholder="Part number, part name, platform or brand" autocomplete="off" autofocus /></div>
   </div>
   <div class="search-filters" id="filters" role="group" aria-label="Result type">
@@ -23,19 +24,6 @@ import Icon from '../components/Icon.astro';
   <div class="search-status" id="status"></div>
   <ul class="search-results" id="results"></ul>
   <div class="search-more" id="more" hidden><button id="more-btn">Show more</button></div>
-  <script is:inline>
-    // the camera icon appears only where the scan page can work: a secure page with getUserMedia and a listed camera
-    // (the scanner itself falls back to ZXing where BarcodeDetector is missing, so that is not required)
-    (async () => {
-      const icon = document.getElementById('scan-icon');
-      const md = navigator.mediaDevices;
-      if (!icon || !window.isSecureContext || !md || !md.getUserMedia) return;
-      try {
-        if (md.enumerateDevices && !(await md.enumerateDevices()).some((d) => d.kind === 'videoinput')) return;
-      } catch (e) { /* the list is unavailable: try the camera anyway */ }
-      icon.hidden = false;
-    })();
-  </script>
   <script>
     // the barcode lookup shared with the scan page (src/lib/gtinLookup.ts), handed to the search script below
     import { gtin13 } from '../lib/gtinCode';
