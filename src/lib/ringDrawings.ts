@@ -1,7 +1,7 @@
 // Dimensioned drawings of O-rings (the ring seen from above and its round cross-section) and circlips (DIN 471 external
 // retaining rings: top view with the lug holes, the groove and the table dimensions). Drawn in currentColor like the other
 // spec drawings. The circlip outline is built from the DIN 471 table values the same way as the bag drawing
-// (tools/hardware/make_more_drawings.py, circlip_profile).
+// (hobbydex-tools tools/hardware/make_more_drawings.py, circlip_profile).
 import type { Spec } from './data';
 import type { ScrewDrawing } from './screwDrawing';
 

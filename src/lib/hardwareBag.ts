@@ -1,4 +1,4 @@
-// Which specs have a hardware bag drawing (src/assets/hardware/index.json, written by tools/hardware/make_drawings.py),
+// Which specs have a hardware bag drawing (src/assets/hardware/index.json, written by hobbydex-tools tools/hardware/make_drawings.py),
 // and the bag items a part shows: its `includes` (a spec row, or a part row drawn as that part's equivalent_to spec),
 // else its equivalent_to spec (its pack of one spec, from pack_qty). When some includes rows have no drawing, the bag
 // draws the others and says how many rows it draws. A self-tapping screw shows the spec's "-flat" drawing

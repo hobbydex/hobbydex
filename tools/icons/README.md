@@ -7,8 +7,9 @@ follow the light and dark themes.
   shapely (`pip install shapely`): `python3 vehicles.py vehicles.svgpart`, then
   paste the symbols into `public/icons.svg` (or replace the ones with the same
   ids). Edit the point lists to change a silhouette.
-- `parts.py` generates the part-category and theme icons (24x24):
-  `python3 parts.py parts.svg`.
+- `parts.py` (the part-category and theme icons) and `circlip.py` moved to hobbydex-tools
+  (`tools/hardware/icons/`) with the FreeCAD drawing scripts; their output is still pasted into
+  `public/icons.svg`.
 - `ballend.py` draws the ball end icons (ball stud, through-hole ball, ball nut)
   and the rod end around the same ball: `python3 ballend.py ballend.svgpart`.
 - `src/lib/wideIcons.ts` lists the 2:1 icons so `Icon.astro` sizes them.
