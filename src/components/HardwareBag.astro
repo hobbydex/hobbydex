@@ -11,7 +11,7 @@
 // "quantities not stated" on its first line, or "some quantities not stated" when only some items lack one.
 import { colourShades } from '../lib/colourDot';
 import { db } from '../lib/data';
-import { hardwareFile, hardwareSvg, metalTone, type BagItem } from '../lib/hardwareBag';
+import { hardwareFile, hardwareSvg, isDrawnFile, metalTone, type BagItem } from '../lib/hardwareBag';
 
 interface Props { items: BagItem[]; drawn?: number; total?: number; seal?: string; color?: string; finish?: string; material?: string }
 const { items, drawn, total, seal, color, finish, material } = Astro.props;
@@ -62,8 +62,8 @@ const groups = [...new Map(items.filter((i) => hardwareFile(i.spec, i.point)).ma
     const svg = hardwareSvg(file)!;
     const vb = svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number) as [number, number, number, number];
     return {
-      spec, qty, copies, useSeal, vb,
-      id: `hb-${file.replace(/\.svg$/, '')}${useSeal ? '-seal' : ''}`,
+      spec, qty, copies, useSeal, vb, drawn: isDrawnFile(file),
+      id: `hb-${file.replace(/\.svg$/, '').replace(/[^\w.-]/g, '_')}${useSeal ? '-seal' : ''}`,
       pitchX: Number(svg.match(/data-pitch-x="([^"]+)"/)![1]), pitchY: Number(svg.match(/data-pitch-y="([^"]+)"/)![1]),
       sil: svg.match(/<path class="sil" d="([^"]*)"/)![1], seg: svg.match(/<path class="seal" d="([^"]*)"/)?.[1],
       lines: svg.match(/<g class="lines"[^>]*>([\s\S]*?)<\/g>/)![0],
@@ -87,7 +87,8 @@ const caption = (g: (typeof groups)[number]) => {
 // the lines above the groups: the partial line, then a line for the quantities the data does not state
 const unstated = groups.filter((g) => g.qty === undefined).length;
 const qtyNote = unstated === 0 ? undefined : unstated === groups.length ? 'quantities not stated' : 'some quantities not stated';
-const headLines = [partial, qtyNote].filter((line): line is string => !!line);
+const drawnNote = groups.some((g) => g.drawn) ? (groups.every((g) => g.drawn) ? 'drawn from the size' : 'some drawn from the size') : undefined;
+const headLines = [partial, qtyNote, drawnNote].filter((line): line is string => !!line);
 
 // the layout in mm: captions, rows of copies, the bar. The caption font grows with a wide bag (at least 2.2 mm,
 // a width/28 otherwise) so it stays readable when the whole bag is drawn small on a phone.

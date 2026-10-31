@@ -6,6 +6,7 @@
 import index from '../assets/hardware/index.json';
 import approx from '../assets/hardware/approx.json';
 import { db, type Includes, type Part } from './data';
+import { drawnSvg } from './drawnHardware.ts';
 
 const files = index as Record<string, string>;
 // the drawings' text, bundled at build time
@@ -13,8 +14,19 @@ const svgs = import.meta.glob('../assets/hardware/*.svg', { query: '?raw', impor
 
 /** The SVG text of a drawing file (from index.json), or undefined. */
 export function hardwareSvg(file: string): string | undefined {
+  if (file.startsWith(DRAWN)) return drawnSvgOf(file.slice(DRAWN.length));
   return svgs[`../assets/hardware/${file}`];
 }
+
+/** A spec with no traced drawing is drawn from its size (drawnHardware.ts): its "file" is DRAWN + the spec id. */
+const DRAWN = 'drawn:';
+const drawnCache = new Map<string, string | undefined>();
+function drawnSvgOf(specId: string): string | undefined {
+  if (!drawnCache.has(specId)) { const sp = db.spec.get(specId); drawnCache.set(specId, sp ? drawnSvg(sp) : undefined); }
+  return drawnCache.get(specId);
+}
+/** True when a drawing file (from hardwareFile) is one drawn from the spec's size, not traced from a maker drawing. */
+export function isDrawnFile(file: string): boolean { return file.startsWith(DRAWN); }
 
 const approxKeys = new Set(approx as string[]);
 
@@ -23,11 +35,11 @@ export function isApproxDrawing(specId: string | undefined): boolean {
   return !!specId && approxKeys.has(specId.replace(/^spec\//, ''));
 }
 
-/** The drawing file of a spec id (spec/...), or undefined when the spec has none. */
+/** The drawing file of a spec id (spec/...): its traced drawing, else one drawn from its size, else undefined. */
 export function hardwareFile(specId: string | undefined, point?: string): string | undefined {
   if (!specId) return undefined;
   const key = specId.replace(/^spec\//, '');
-  return (point !== 'cone' && files[`${key}-flat`]) || files[key];
+  return (point !== 'cone' && files[`${key}-flat`]) || files[key] || (drawnSvgOf(specId) ? DRAWN + specId : undefined);
 }
 
 /** One drawing of a bag: qty is the count the data states (undefined when it states none: the caption prints no
