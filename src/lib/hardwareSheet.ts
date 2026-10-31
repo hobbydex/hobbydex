@@ -5,6 +5,7 @@
 // outline is drawn from the spec's size, the same way for every item: a flat side view for screws and pins, a face
 // view for washers, nuts, bearings, e-clips and ball ends. A spec with a size but no outline is listed as text.
 import { db, type Part, type Release, type Spec } from './data';
+import { topView } from './screwTop';
 import { colourShades } from './colourDot';
 import { metalTone } from './hardwareBag';
 
@@ -93,27 +94,6 @@ function headSize(head: string, d: number): { dk: number; k: number } {
 const PITCH: Record<string, number> = { 1.4: 0.3, 1.6: 0.35, 2: 0.4, 2.5: 0.45, 3: 0.5, 4: 0.7, 5: 0.8, 6: 1 };
 const DASH = 'fill="none" stroke="currentColor" stroke-width="0.1" stroke-dasharray="0.4 0.3"';
 const THIN = 'fill="none" stroke="currentColor" stroke-width="0.12"';
-const hexPts = (r: number) => [0, 1, 2, 3, 4, 5].map((i) => `${fx(r * Math.cos((i * Math.PI) / 3 + Math.PI / 6))} ${fx(r * Math.sin((i * Math.PI) / 3 + Math.PI / 6))}`).join('L');
-
-// The top view of a head at the same scale, centred on 0 0: the head outline (round, hex, flanged) and the drive.
-function topView(s: Spec, d: number, dk: number): string {
-  const head = String(s.head ?? 'pan');
-  const base = head.replace(/^flanged-/, '');
-  const set = base === 'set';
-  const R = (set ? d : dk) / 2;
-  let o = '';
-  if (base === 'hex') o += `<path d="M${hexPts(R / Math.cos(Math.PI / 6) / 1)}Z" ${FILL} ${LINE}/>`;
-  else o += `<circle r="${fx(R)}" ${FILL} ${LINE}/>`;
-  if (head.startsWith('flanged-')) o += `<circle r="${fx(R * 0.78)}" ${THIN}/>`;
-  const drive = String(s.drive ?? '');
-  const key = hexKey(s) ?? 0.6 * R;
-  if (drive === 'hex') o += `<path d="M${hexPts(key / Math.sqrt(3))}Z" ${FILL} ${LINE}/>`;
-  else if (drive === 'phillips' || drive === 'jis') { const l = R * 1.0, w = Math.max(0.35, R * 0.16); o += `<path d="M${fx(-l / 2)} ${fx(-w / 2)}H${fx(-w / 2)}V${fx(-l / 2)}H${fx(w / 2)}V${fx(-w / 2)}H${fx(l / 2)}V${fx(w / 2)}H${fx(w / 2)}V${fx(l / 2)}H${fx(-w / 2)}V${fx(w / 2)}H${fx(-l / 2)}Z" ${FILL} ${LINE}/>`; }
-  else if (drive === 'torx') { const r1 = R * 0.5, r2 = r1 * 0.78; o += `<path d="M${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => { const r = i % 2 ? r2 : r1, a = (i * Math.PI) / 6; return `${fx(r * Math.cos(a))} ${fx(r * Math.sin(a))}`; }).join('L')}Z" ${FILL} ${LINE}/>`; }
-  else if (drive === 'slot') o += `<path d="M${fx(-R * 0.85)} 0H${fx(R * 0.85)}" fill="none" stroke="currentColor" stroke-width="${fx(Math.max(0.3, R * 0.14))}"/>`;
-  return o;
-}
-
 // A screw, drawn from its size alone: the flat side view (head shape, dashed drive, thread marks, a point for a
 // self-tapping screw) with the top view of its head beside it at the same scale.
 function screwOutline(s: Spec): Outline | undefined {
@@ -137,7 +117,7 @@ function screwOutline(s: Spec): Outline | undefined {
   else if (!set) h = `M${fx(-dk / 2)} 0H${fx(dk / 2)}V${fx(k)}H${fx(-dk / 2)}Z`;
   const t0 = top + (csk ? 0.2 : 0.1) * Math.min(L, 4), marks: string[] = [];
   for (let y = t0 + pitch; y < end - tip - 0.05; y += pitch) marks.push(`M${fx(-r)} ${fx(y)}L${fx(r)} ${fx(y - pitch * 0.6)}`);
-  const key = hexKey(s) ?? 0.6 * dk;
+  const key = hexKey(s) ?? 0.45 * dk;
   const drive = String(s.drive ?? '');
   const hidden = drive === 'hex' ? `<path d="M${fx(-key / 2)} 0V${fx(Math.min(set ? L / 2 : k * 0.7, set ? key : k - 0.2))}H${fx(key / 2)}V0" ${DASH}/>`
     : drive && !set ? `<path d="M${fx(-dk / 4)} ${fx(k * 0.25)}H${fx(dk / 4)}" ${DASH}/>` : '';
@@ -147,7 +127,7 @@ function screwOutline(s: Spec): Outline | undefined {
   const sw = Math.max(dk, d), gap = 1.5, tw = Math.max(dk, d), m = 0.3;
   const cx = sw / 2 + gap + tw / 2, cy = tw / 2;
   const W = sw + gap + tw + 2 * m, H = Math.max(end, tw) + 2 * m;
-  return { w: W, h: H, viewBox: `${fx(-sw / 2 - m)} ${fx(-m)} ${fx(W)} ${fx(H)}`, inner: `${side}<g transform="translate(${fx(cx)} ${fx(cy)})">${topView(s, d, dk)}</g>` };
+  return { w: W, h: H, viewBox: `${fx(-sw / 2 - m)} ${fx(-m)} ${fx(W)} ${fx(H)}`, inner: `${side}<g transform="translate(${fx(cx)} ${fx(cy)})">${topView({ head, drive, d, dk, key }).svg}</g>` };
 }
 
 /** An outline of width w (centred on x = 0) and height h. */
