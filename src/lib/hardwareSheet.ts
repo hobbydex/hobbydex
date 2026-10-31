@@ -2,17 +2,16 @@
 // `kit` rows (screws, nuts, washers, bearings, e-clips, pins, ball ends), each with a true-size outline in mm, a size
 // label and a quantity, grouped by bag where the rows say which bag they are built from, else by kind.
 // A row's sizes come from its part: the specs in `includes`, else the spec it is `equivalent_to`. The outline is the
-// traced bag drawing of the spec (src/assets/hardware, see hardwareBag.ts) when there is one, else a plain outline
-// drawn from the spec's size (`traced: false`). A spec with a size but no outline is listed as text.
+// outline is drawn from the spec's size, the same way for every item: a flat side view for screws and pins, a face
+// view for washers, nuts, bearings, e-clips and ball ends. A spec with a size but no outline is listed as text.
 import { db, type Part, type Release, type Spec } from './data';
-import { hardwareFile, hardwareSvg } from './hardwareBag';
 
 export type Kind = 'screw' | 'nut' | 'washer' | 'bearing' | 'eclip' | 'pin' | 'ball-end';
 const KINDS: Kind[] = ['screw', 'nut', 'washer', 'bearing', 'eclip', 'pin', 'ball-end'];
 export const KIND_LABEL: Record<Kind, string> = { screw: 'Screws', nut: 'Nuts', washer: 'Washers', bearing: 'Bearings', eclip: 'E-clips', pin: 'Pins', 'ball-end': 'Ball ends' };
 
 /** A drawing in mm: `svg` is a complete <svg> of width w and height h (viewBox in mm), drawn in currentColor. */
-export type Outline = { w: number; h: number; inner: string; viewBox: string; traced: boolean };
+export type Outline = { w: number; h: number; inner: string; viewBox: string};
 export type SheetItem = { spec: string; kind: Kind; size: string; sub: string; qty: number; qtyKnown: boolean; bag?: string; outline?: Outline; parts: string[] };
 export type Sheet = { groups: { title: string; items: SheetItem[] }[]; sized: number; noOutline: number; unsized: Part[]; byBag: boolean };
 
@@ -43,19 +42,6 @@ const fx = (v: number) => String(Math.round(v * 100) / 100);
 const LINE = 'fill="none" stroke="currentColor" stroke-width="0.15" stroke-linejoin="round"';
 const FILL = 'fill="var(--sheet-fill)"';
 
-/** The traced bag drawing of a spec (true size: its viewBox is in mm). */
-function traced(specId: string, point?: string): Outline | undefined {
-  const file = hardwareFile(specId, point);
-  const svg = file && hardwareSvg(file);
-  if (!svg) return undefined;
-  const vb = svg.match(/viewBox="([^"]+)"/)![1];
-  const [, , w, h] = vb.split(' ').map(Number);
-  const sil = svg.match(/<path class="sil" d="([^"]*)"/)?.[1];
-  const lines = svg.match(/<g class="lines"[^>]*>([\s\S]*?)<\/g>/)?.[0];
-  if (!sil || !lines) return undefined;
-  return { w, h, viewBox: vb, traced: true, inner: `<path d="${sil}" ${FILL} fill-rule="evenodd"/>${lines}` };
-}
-
 // head diameter and height of a screw by head type and thread, mm (the usual ISO proportions; see screwDrawing.ts)
 function headSize(head: string, d: number): { dk: number; k: number } {
   const cap: Record<string, [number, number]> = { 1.6: [3, 1.6], 2: [3.8, 2], 2.5: [4.5, 2.5], 3: [5.5, 3], 4: [7, 4], 5: [8.5, 5], 6: [10, 6] };
@@ -71,33 +57,48 @@ function headSize(head: string, d: number): { dk: number; k: number } {
   return { dk: 1.9 * d, k: 0.7 * d };   // pan and the rest
 }
 
+const PITCH: Record<string, number> = { 1.4: 0.3, 1.6: 0.35, 2: 0.4, 2.5: 0.45, 3: 0.5, 4: 0.7, 5: 0.8, 6: 1 };
+const KEY: Record<string, number> = { 1.6: 1.5, 2: 1.5, 2.5: 2, 3: 2.5, 4: 3, 5: 4, 6: 5 };   // cap screw hex key
+
+// A flat side view, head up, drawn from the size alone: the head shape (cap, button, countersunk, pan, hex, set),
+// the drive as dashed hidden lines, thread marks on the shank, and a point for a self-tapping screw.
 function screwOutline(s: Spec): Outline | undefined {
   const d = num(String(s.thread).replace(/^M/, '')), L = num(s.length_mm);
   if (!d || !L) return undefined;
   const head = String(s.head ?? 'pan');
-  const m = 0.3;
-  if (head === 'set') {
-    return wrap(d, L, `<rect x="${fx(-d / 2)}" y="0" width="${d}" height="${L}" ${FILL} ${LINE}/>`, m);
-  }
-  const { dk, k } = headSize(head, d);
   const base = head.replace(/^flanged-/, '');
-  let h: string;
-  if (base === 'countersunk' || base === 'flat') h = `M${fx(-dk / 2)} 0H${fx(dk / 2)}L${fx(d / 2)} ${fx(k)}H${fx(-d / 2)}Z`;
+  const tapping = s.thread_type === 'self-tapping';
+  const pitch = tapping ? 0.7 * d * 0.6 : PITCH[String(d)] ?? 0.2 * d;
+  const r = d / 2;
+  const DASH = 'fill="none" stroke="currentColor" stroke-width="0.1" stroke-dasharray="0.4 0.3"';
+  const set = base === 'set';
+  const csk = base === 'countersunk' || base === 'flat';
+  const { dk, k } = set ? { dk: d, k: 0 } : headSize(head, d);
+  const top = set ? 0 : k;                         // where the shank starts
+  const end = csk ? L : top + L;                   // the tip
+  const tip = tapping ? Math.min(1.2 * d, L / 2) : 0;
+  const shank = `M${fx(-r)} ${fx(top)}V${fx(end - tip)}${tapping ? `L${fx(-r * 0.45)} ${fx(end)}H${fx(r * 0.45)}` : `V${fx(end)}H${fx(r)}`}${tapping ? `L${fx(r)} ${fx(end - tip)}` : ''}V${fx(top)}Z`;
+  let h = '';
+  if (csk) h = `M${fx(-dk / 2)} 0H${fx(dk / 2)}L${fx(r)} ${fx(k)}H${fx(-r)}Z`;
   else if (base === 'button' || base === 'pan' || base === 'truss') h = `M${fx(-dk / 2)} ${fx(k)}Q${fx(-dk / 2)} 0 ${fx(-dk / 4)} 0H${fx(dk / 4)}Q${fx(dk / 2)} 0 ${fx(dk / 2)} ${fx(k)}Z`;
-  else h = `M${fx(-dk / 2)} 0H${fx(dk / 2)}V${fx(k)}H${fx(-dk / 2)}Z`;
-  const body = `<path d="${h}" ${FILL} ${LINE}/><rect x="${fx(-d / 2)}" y="${fx(k)}" width="${d}" height="${L}" ${FILL} ${LINE}/>`;
-  // the length is the shank below the head (countersunk: the whole screw under the flat top)
-  if (base === 'countersunk' || base === 'flat') {
-    const b = `<path d="${h}" ${FILL} ${LINE}/><rect x="${fx(-d / 2)}" y="${fx(k)}" width="${d}" height="${fx(L - k)}" ${FILL} ${LINE}/>`;
-    return wrap(dk, L, b, m);
-  }
-  return wrap(dk, k + L, body, m);
+  else if (!set) h = `M${fx(-dk / 2)} 0H${fx(dk / 2)}V${fx(k)}H${fx(-dk / 2)}Z`;
+  // thread marks: short diagonal strokes down the shank
+  const t0 = top + (csk ? 0.2 : 0.1) * Math.min(L, 4), marks: string[] = [];
+  for (let y = t0 + pitch; y < end - tip - 0.05; y += pitch) marks.push(`M${fx(-r)} ${fx(y)}L${fx(r)} ${fx(y - pitch * 0.6)}`);
+  // the drive, hidden: a hex socket (cap, button, countersunk, set) or a cross slot (pan)
+  const key = (KEY[String(d)] ?? 0.8 * d) * (base === 'socket-cap' ? 1 : 0.7);
+  const drive = set ? `<path d="M${fx(-key / 2)} 0V${fx(Math.min(L / 2, key))}H${fx(key / 2)}V0" ${DASH}/>`
+    : base === 'pan' ? `<path d="M${fx(-dk / 4)} ${fx(k * 0.25)}H${fx(dk / 4)}" ${DASH}/>`
+    : base === 'hex' ? '' : `<path d="M${fx(-key / 2)} 0V${fx(Math.min(k * 0.7, k - 0.2))}H${fx(key / 2)}V0" ${DASH}/>`;
+  const inner = `<path d="${shank}" ${FILL} ${LINE}/>${marks.length ? `<path d="${marks.join('')}" fill="none" stroke="currentColor" stroke-width="0.08"/>` : ''}`
+    + (h ? `<path d="${h}" ${FILL} ${LINE}/>` : '') + drive;
+  return wrap(Math.max(dk, d), end, inner, 0.3);
 }
 
 /** An outline of width w (centred on x = 0) and height h. */
 function wrap(w: number, h: number, inner: string, m: number): Outline {
   const W = w + 2 * m, H = h + 2 * m;
-  return { w: W, h: H, viewBox: `${fx(-W / 2)} ${fx(-m)} ${fx(W)} ${fx(H)}`, traced: false, inner };
+  return { w: W, h: H, viewBox: `${fx(-W / 2)} ${fx(-m)} ${fx(W)} ${fx(H)}`, inner };
 }
 
 const AF: Record<string, number> = { 1.4: 3, 1.6: 3.2, 2: 4, 2.5: 5, 3: 5.5, 4: 7, 5: 8, 6: 10, 8: 13 };   // hex nut across flats, mm
@@ -117,16 +118,21 @@ function nutOutline(s: Spec): Outline | undefined {
 
 function ring(r: number, inner: string): Outline {
   const W = 2 * r + 0.6;
-  return { w: W, h: W, viewBox: `${fx(-W / 2)} ${fx(-W / 2)} ${fx(W)} ${fx(W)}`, traced: false, inner };
+  return { w: W, h: W, viewBox: `${fx(-W / 2)} ${fx(-W / 2)} ${fx(W)} ${fx(W)}`, inner };
 }
 
 function ringOutline(s: Spec): Outline | undefined {
   if (s.category === 'washer' || s.category === 'bearing') {
-    const bore = num(s.bore_mm), out = num(s.outer_mm);
+    const bore = num(s.bore_mm), out = num(s.outer_mm), t = num(s.thickness_mm ?? s.width_mm);
     if (!bore || !out) return undefined;
-    const race = s.category === 'bearing' ? `<circle r="${fx(bore / 2 + (out - bore) * 0.22)}" fill="none" stroke="currentColor" stroke-width="0.1"/>` +
-      `<circle r="${fx(out / 2 - (out - bore) * 0.22)}" fill="none" stroke="currentColor" stroke-width="0.1"/>` : '';
-    return ring(out / 2, `<path d="M${fx(-out / 2)} 0a${fx(out / 2)} ${fx(out / 2)} 0 1 0 ${fx(out)} 0a${fx(out / 2)} ${fx(out / 2)} 0 1 0 ${fx(-out)} 0ZM${fx(-bore / 2)} 0a${fx(bore / 2)} ${fx(bore / 2)} 0 1 0 ${fx(bore)} 0a${fx(bore / 2)} ${fx(bore / 2)} 0 1 0 ${fx(-bore)} 0Z" ${FILL} fill-rule="evenodd" ${LINE}/>${race}`);
+    const R = out / 2, r = bore / 2, m = 0.3, gap = 1.5;
+    const race = s.category === 'bearing' ? `<circle r="${fx(r + (out - bore) * 0.22)}" fill="none" stroke="currentColor" stroke-width="0.1"/><circle r="${fx(R - (out - bore) * 0.22)}" fill="none" stroke="currentColor" stroke-width="0.1"/>` : '';
+    const face = `<path d="M${fx(-R)} 0a${fx(R)} ${fx(R)} 0 1 0 ${fx(out)} 0a${fx(R)} ${fx(R)} 0 1 0 ${fx(-out)} 0ZM${fx(-r)} 0a${fx(r)} ${fx(r)} 0 1 0 ${fx(bore)} 0a${fx(r)} ${fx(r)} 0 1 0 ${fx(-bore)} 0Z" ${FILL} fill-rule="evenodd" ${LINE}/>${race}`;
+    // the side view below the face: the thickness, with the bore as dashed lines
+    const y0 = R + gap;
+    const side = t ? `<rect x="${fx(-R)}" y="${fx(y0)}" width="${fx(out)}" height="${fx(t)}" ${FILL} ${LINE}/><path d="M${fx(-r)} ${fx(y0)}v${fx(t)}M${fx(r)} ${fx(y0)}v${fx(t)}" fill="none" stroke="currentColor" stroke-width="0.1" stroke-dasharray="0.4 0.3"/>` : '';
+    const W = out + 2 * m, H = 2 * R + (t ? gap + t : 0) + 2 * m;
+    return { w: W, h: H, viewBox: `${fx(-W / 2)} ${fx(-R - m)} ${fx(W)} ${fx(H)}`, inner: `${face}${side}` };
   }
   if (s.category === 'ball-end') {
     const b = num(s.ball_mm);
@@ -147,9 +153,8 @@ function pinOutline(s: Spec): Outline | undefined {
   return d && L ? wrap(d, L, `<rect x="${fx(-d / 2)}" y="0" width="${d}" height="${L}" ${FILL} ${LINE}/>`, 0.3) : undefined;
 }
 
-function outlineOf(s: Spec, point?: string): Outline | undefined {
-  return traced(s.id, point)
-    ?? (s.category === 'screw' ? screwOutline(s) : s.category === 'nut' ? nutOutline(s) : s.category === 'pin' ? pinOutline(s) : ringOutline(s));
+function outlineOf(s: Spec): Outline | undefined {
+  return (s.category === 'screw' ? screwOutline(s) : s.category === 'nut' ? nutOutline(s) : s.category === 'pin' ? pinOutline(s) : ringOutline(s));
 }
 
 // ---- bags ----------------------------------------------------------------------------------------------------------
@@ -191,7 +196,7 @@ export function hardwareSheet(release: Release): Sheet | undefined {
       const k = `${r.spec}|${bag ?? ''}`;
       const have = map.get(k);
       if (have) { have.qty += r.qty; have.qtyKnown &&= r.known; have.parts.push(p.id); continue; }
-      map.set(k, { spec: r.spec, kind: s.category as Kind, ...l, qty: r.qty, qtyKnown: r.known, bag, outline: outlineOf(s, p.point), parts: [p.id] });
+      map.set(k, { spec: r.spec, kind: s.category as Kind, ...l, qty: r.qty, qtyKnown: r.known, bag, outline: outlineOf(s), parts: [p.id] });
     }
   }
   const all = [...map.values()];

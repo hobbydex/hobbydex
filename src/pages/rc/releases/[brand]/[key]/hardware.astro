@@ -31,7 +31,7 @@ const ticks = Array.from({ length: 51 }, (_, i) => i);
     {sheet.groups.map((g) => <section class="bag">
       <h2>{g.title} <span class="count">{g.items.length}</span></h2>
       <div class="items">
-        {g.items.map((i) => <figure class="item" class:list={{ approx: i.outline && !i.outline.traced }}>
+        {g.items.map((i) => <figure class="item">
           {i.outline
             ? <svg viewBox={i.outline.viewBox} style={`width:${i.outline.w.toFixed(2)}mm;height:${i.outline.h.toFixed(2)}mm`} role="img" aria-label={`${i.size} ${i.sub}`} set:html={i.outline.inner} />
             : <div class="nooutline">no outline</div>}
@@ -41,7 +41,7 @@ const ticks = Array.from({ length: 51 }, (_, i) => i);
     </section>)}
 
     <section class="foot">
-      <p>Outlines in a grey shape with detail lines are traced from the bag drawings; plain outlines (marked with a dotted frame) are drawn from the size alone. A quantity with ~ is a pack size (or unstated), not a count from the manual.
+      <p>Every outline is drawn to scale from the size: a side view for screws and pins (dashed lines show the drive, short strokes the thread), a face view for nuts, bearings, washers and clips (washers and bearings also get a thin side view below, for their thickness). A quantity with ~ is a pack size (or unstated), not a count from the manual.
         {sheet.noOutline > 0 && ` ${sheet.noOutline} sized item${sheet.noOutline > 1 ? 's have' : ' has'} no outline yet.`}</p>
       {sheet.unsized.length > 0 && <details class="noprint"><summary>{sheet.unsized.length} hardware part number{sheet.unsized.length > 1 ? 's' : ''} in the box with no size data</summary>
         <ul>{sheet.unsized.map((p) => <li><a href={url.part(p.id)}>{p.number} {p.name}</a></li>)}</ul></details>}
@@ -59,7 +59,6 @@ const ticks = Array.from({ length: 51 }, (_, i) => i);
   .hwsheet .items { display: flex; flex-wrap: wrap; gap: 4mm 6mm; align-items: flex-end; }
   .hwsheet .item { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 14mm; break-inside: avoid; page-break-inside: avoid; text-align: center; font-size: 0.72rem; line-height: 1.25; }
   .hwsheet .item svg { display: block; flex: none; overflow: visible; color: #111; }
-  .hwsheet .item.approx svg { outline: 0.2mm dotted #999; }
   .hwsheet figcaption { margin-top: 1.5mm; }
   .hwsheet .sub, .hwsheet .qty { color: #555; }
   .hwsheet .nooutline { color: #888; font-size: 0.65rem; border: 0.2mm dashed #bbb; padding: 2mm; }
@@ -73,6 +72,5 @@ const ticks = Array.from({ length: 51 }, (_, i) => i);
     .hwsheet .bag { border: 0; border-top: 0.3mm solid #999; border-radius: 0; padding: 1mm 0 0; margin: 4mm 0; }
     .hwsheet .item { font-size: 7.5pt; }
     .hwsheet .foot { font-size: 8pt; break-inside: avoid; }
-    .hwsheet .item.approx svg { outline-color: #bbb; }
   }
 </style>
