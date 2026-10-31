@@ -22,3 +22,22 @@ export function withoutKnownFromParts(note?: string): string | undefined {
   if (at < 0) return note;
   return note.slice(0, at).replace(/[\s;]+$/, '') || undefined;
 }
+
+// A note that names the document it was read from ("... from a scanned Tamiya manual; verify ...") links the word
+// "manual" (or "parts list") to that document's page: [before, word, after], or undefined when the note has no such word.
+export function splitAtDocWord(note: string | undefined): [string, string, string] | undefined {
+  const m = note?.match(/\b(manual|parts list)\b/);
+  if (!note || !m || m.index === undefined) return undefined;
+  return [note.slice(0, m.index), m[0], note.slice(m.index + m[0].length)];
+}
+
+// The document a part's name or note was read from: its own documents and source first, else the sources of the
+// releases that list it (a box content before an option). Only a manual, parts list or exploded view with a page counts.
+export function readFromDoc<D extends { kind: string }>(ids: (string | undefined)[], get: (id: string) => D | undefined, page: (d: D) => string | undefined): { doc: D; page: string } | undefined {
+  for (const id of ids) {
+    const d = id ? get(id) : undefined;
+    const pg = d && ['manual', 'part_list', 'exploded_view'].includes(d.kind) ? page(d) : undefined;
+    if (d && pg) return { doc: d, page: pg };
+  }
+  return undefined;
+}

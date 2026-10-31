@@ -45,10 +45,10 @@ function group<T>(xs: T[], key: (x: T) => string) {
   return m;
 }
 
-const usesByPart = new Map<string, { release: Release; role: Contains['role'] }[]>();
+const usesByPart = new Map<string, { release: Release; role: Contains['role']; source?: string }[]>();
 for (const r of raw.releases) for (const c of r.contains ?? []) {
   if (!usesByPart.has(c.part)) usesByPart.set(c.part, []);
-  usesByPart.get(c.part)!.push({ release: r, role: c.role });
+  usesByPart.get(c.part)!.push({ release: r, role: c.role, source: c.source });
 }
 
 const setsBySpec = new Map<string, { part: Part; qty?: number; notes?: string }[]>();
