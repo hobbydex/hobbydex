@@ -2,7 +2,7 @@
 // The colour switch of a part whose range is one part in several colours: a swatch per version, each a link to
 // that version's page; the page's own part is marked with aria-current. A version without a palette colour but with
 // a livery (a release's `livery`, "Rally Sanremo") gets a striped livery dot, as a livery is not a colour; else it
-// shows its number. The livery name is in the swatch's name, with the colour when it has both. The colour name is the swatch's accessible name and tooltip (the Colour fact names it on the page).
+// shows its colour name as a text chip, else its number. The livery name is in the swatch's name, with the colour when it has both. The colour name is the swatch's accessible name and tooltip (the Colour fact names it on the page).
 // A version's link is its part page, or its href when given (a release's colourway). size="small" draws the swatches
 // about the size of body text (a release's colourway under a heading), each with padding for a tap target;
 // size="inline" draws small dots on the line of a table row's name, like the colour dot after a release title.
@@ -18,6 +18,6 @@ const label = (i: SwitchItem) => [i.text, i.colour, i.number].filter(Boolean).jo
 <nav class={size ? `colourswitch ${size}` : 'colourswitch'} aria-label={navLabel}>
   {lead && <span class="colourswitch-lead">{lead}</span>}
   <ul>
-    {items.map((i) => <li><a href={i.href ?? url.part(i.id)} class={kind(i)} style={style(i)} aria-label={label(i)} title={label(i)} aria-current={i.current ? 'true' : undefined}>{!style(i) && !i.text && (i.number ?? '?')}</a></li>)}
+    {items.map((i) => <li><a href={i.href ?? url.part(i.id)} class={kind(i)} style={style(i)} aria-label={label(i)} title={label(i)} aria-current={i.current ? 'true' : undefined}>{!style(i) && !i.text && (i.colour ?? i.number ?? '?')}</a></li>)}
   </ul>
 </nav>

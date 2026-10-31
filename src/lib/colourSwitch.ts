@@ -1,6 +1,6 @@
 // The colour switch of a part whose range is one part in several colours (range "...-colours"): one swatch per
 // version of the range, the page's own part marked. A version whose colour is not in the palette has no swatch
-// and shows its number instead.
+// and shows its colour name (else its number) as a text chip.
 import type { Part } from './data';
 import { colourDotStyle } from './colourDot.ts';
 
