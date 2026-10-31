@@ -1,0 +1,78 @@
+---
+// A printable hardware reference sheet at 1:1 scale: lay a screw on the paper and match it. Prototype.
+import Base from '../../../../../layouts/Base.astro';
+import { db, key, url, brandName } from '../../../../../lib/data';
+import { hardwareSheet } from '../../../../../lib/hardwareSheet';
+
+export function getStaticPaths() {
+  return db.releases.flatMap((r) => {
+    const sheet = hardwareSheet(r);
+    return sheet ? [{ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r, sheet } }] : [];
+  });
+}
+const { release, sheet } = Astro.props;
+const title = `${brandName(release.brand)} ${release.name}`;
+const total = sheet.groups.reduce((n, g) => n + g.items.length, 0);
+const ticks = Array.from({ length: 51 }, (_, i) => i);
+---
+<Base title={`Hardware sheet: ${title}`} description={`True-size hardware reference sheet for ${title}: screws, nuts, washers, bearings and clips to lay on the paper.`}>
+  <article class="hwsheet">
+    <p class="noprint crumbs"><a href={url.release(release.id)}>&larr; {title}</a> <button type="button" onclick="window.print()">Print</button></p>
+    <h1>Hardware sheet: {title}</h1>
+    <p class="note"><strong>Print at 100% (actual size)</strong>, not "fit to page". Check that the bar below measures 50 mm.{" "}
+      {total} sized items{sheet.byBag ? ', grouped by the bag or steps the manual names' : ', grouped by kind'}.
+      On screen the sizes are only approximate.</p>
+    <svg class="scalebar" viewBox="0 -1 50 8" style="width:50mm;height:8mm" role="img" aria-label="Scale bar, 50 millimetres" font-family="sans-serif">
+      <path d="M0 3H50" stroke="#111" stroke-width="0.2" />
+      {ticks.map((m) => <line x1={m} y1="3" x2={m} y2={m % 10 === 0 ? 0 : m % 5 === 0 ? 1 : 2} stroke="#111" stroke-width="0.15" />)}
+      {[0, 10, 20, 30, 40, 50].map((m) => <text x={m} y="6.2" font-size="2.2" text-anchor={m === 0 ? 'start' : m === 50 ? 'end' : 'middle'} fill="#111">{m === 50 ? '50 mm' : m}</text>)}
+    </svg>
+
+    {sheet.groups.map((g) => <section class="bag">
+      <h2>{g.title} <span class="count">{g.items.length}</span></h2>
+      <div class="items">
+        {g.items.map((i) => <figure class="item" class:list={{ approx: i.outline && !i.outline.traced }}>
+          {i.outline
+            ? <svg viewBox={i.outline.viewBox} style={`width:${i.outline.w.toFixed(2)}mm;height:${i.outline.h.toFixed(2)}mm`} role="img" aria-label={`${i.size} ${i.sub}`} set:html={i.outline.inner} />
+            : <div class="nooutline">no outline</div>}
+          <figcaption><strong>{i.size}</strong> <span class="sub">{i.sub}</span><br /><span class="qty">x {i.qtyKnown ? '' : '~'}{i.qty}</span></figcaption>
+        </figure>)}
+      </div>
+    </section>)}
+
+    <section class="foot">
+      <p>Outlines in a grey shape with detail lines are traced from the bag drawings; plain outlines (marked with a dotted frame) are drawn from the size alone. A quantity with ~ is a pack size (or unstated), not a count from the manual.
+        {sheet.noOutline > 0 && ` ${sheet.noOutline} sized item${sheet.noOutline > 1 ? 's have' : ' has'} no outline yet.`}</p>
+      {sheet.unsized.length > 0 && <details class="noprint"><summary>{sheet.unsized.length} hardware part number{sheet.unsized.length > 1 ? 's' : ''} in the box with no size data</summary>
+        <ul>{sheet.unsized.map((p) => <li><a href={url.part(p.id)}>{p.number} {p.name}</a></li>)}</ul></details>}
+      <p class="muted">Source: the hobbydex parts list of this release and the sizes of the generic parts it is equivalent to.</p>
+    </section>
+  </article>
+</Base>
+<style is:global>
+  .hwsheet { --sheet-fill: #e3e6ea; }
+  .hwsheet .crumbs button { margin-left: 1rem; font: inherit; cursor: pointer; }
+  .hwsheet .scalebar { display: block; margin: 0.5rem 0 1rem; overflow: visible; background: #fff; color: #111; }
+  .hwsheet .bag { background: #fff; color: #111; margin: 1rem 0; padding: 0.5rem 0.75rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; }
+  .hwsheet .bag h2 { font-size: 1.05rem; margin: 0.25rem 0 0.5rem; break-after: avoid; color: #111; }
+  .hwsheet .count { font-weight: 400; color: #666; font-size: 0.85rem; }
+  .hwsheet .items { display: flex; flex-wrap: wrap; gap: 4mm 6mm; align-items: flex-end; }
+  .hwsheet .item { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 14mm; break-inside: avoid; page-break-inside: avoid; text-align: center; font-size: 0.72rem; line-height: 1.25; }
+  .hwsheet .item svg { display: block; flex: none; overflow: visible; color: #111; }
+  .hwsheet .item.approx svg { outline: 0.2mm dotted #999; }
+  .hwsheet figcaption { margin-top: 1.5mm; }
+  .hwsheet .sub, .hwsheet .qty { color: #555; }
+  .hwsheet .nooutline { color: #888; font-size: 0.65rem; border: 0.2mm dashed #bbb; padding: 2mm; }
+  @media print {
+    @page { margin: 10mm; }
+    header.site, footer.site, .noprint, [data-pagefind-ignore].noprint { display: none !important; }
+    body { background: #fff !important; color: #111 !important; }
+    main { max-width: none; padding: 0; margin: 0; }
+    .hwsheet h1 { font-size: 14pt; margin: 0 0 2mm; }
+    .hwsheet .note { font-size: 9pt; margin: 0 0 2mm; }
+    .hwsheet .bag { border: 0; border-top: 0.3mm solid #999; border-radius: 0; padding: 1mm 0 0; margin: 4mm 0; }
+    .hwsheet .item { font-size: 7.5pt; }
+    .hwsheet .foot { font-size: 8pt; break-inside: avoid; }
+    .hwsheet .item.approx svg { outline-color: #bbb; }
+  }
+</style>

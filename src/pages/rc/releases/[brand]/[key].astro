@@ -28,6 +28,7 @@ import { colourSiblings } from '../../../../lib/colourSiblings';
 import { colourwayOf, colourLabels, releaseColour } from '../../../../lib/colourways';
 import ColourSwitch from '../../../../components/ColourSwitch.astro';
 import { gearing } from '../../../../lib/gearing';
+import { hardwareSheet } from '../../../../lib/hardwareSheet';
 import { fileRows, pageLabel, hostLabel, makerOwnLinks, archiveLinks } from '../../../../lib/docFacts';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
@@ -121,6 +122,7 @@ const otherCars = (o: { part: Part; releases: string[]; cars: string[] }[]) => o
 const otherBearing = otherCars(bearingFits.other), otherScrew = otherCars(screwFits.other);
 const copyText = bearings ? bearings.lines.map((l) => `${l.qty !== undefined ? `${l.qty}x ` : ''}${l.name}`).join('\n') : '';
 const gear = gearing(release);
+const hwSheet = hardwareSheet(release);   // 3 or more sized hardware items in the box: a printable 1:1 sheet
 // the box at a glance: part numbers per category, each linking to its group in the table
 const boxRows = section('kit');
 const boxCats = [...new Set(boxRows.map((c) => c.p.category ?? ''))].map((g) => ({ g, n: boxRows.filter((c) => (c.p.category ?? '') === g).length }))
@@ -225,6 +227,7 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     <h2>In the box: parts list of {listedFrom.number} <span class="muted">({boxRows.length} part numbers)</span></h2>
     <p class="muted">(same release in another colour; the maker lists it under {listedFrom.number}) <a href={url.release(listedFrom.id)}>{brandName(listedFrom.brand)} {listedFrom.name}</a></p>
   </section>}
+  {hwSheet && <p data-pagefind-ignore><a href={`${url.release(release.id)}hardware/`}>Printable hardware sheet</a> <span class="muted">({hwSheet.sized} sized screws, nuts, washers, bearings and clips at 1:1 scale)</span></p>}
   {boxCats.length > 1 && <CategoryBoxes label="In the box by category" items={boxCats.map(({ g, n }) => ({ category: g, n, href: `#kit-${g || 'other'}`, title: `${n} ${g ? catName(g) : 'other'} part number${n > 1 ? 's' : ''}` }))}>
     {!listedFrom && <h2>In the box <span class="muted">({boxRows.length} part numbers)</span></h2>}
   </CategoryBoxes>}
