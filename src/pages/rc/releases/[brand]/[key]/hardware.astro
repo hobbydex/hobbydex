@@ -2,7 +2,7 @@
 // A printable hardware reference sheet at 1:1 scale: lay a screw on the paper and match it. Prototype.
 import Base from '../../../../../layouts/Base.astro';
 import { db, key, url, brandName } from '../../../../../lib/data';
-import { hardwareSheet } from '../../../../../lib/hardwareSheet';
+import { hardwareSheet, bagNote } from '../../../../../lib/hardwareSheet';
 
 export function getStaticPaths() {
   return db.releases.flatMap((r) => {
@@ -20,7 +20,7 @@ const ticks = Array.from({ length: 51 }, (_, i) => i);
     <p class="noprint crumbs"><a href={url.release(release.id)}>&larr; {title}</a> <button type="button" onclick="window.print()">Print</button></p>
     <h1>Hardware sheet: {title}</h1>
     <p class="note"><strong>Print at 100% (actual size)</strong>, not "fit to page". Check that the bar below measures 50 mm.{" "}
-      {total} sized items{sheet.byBag ? ', grouped by the bag or steps the manual names' : ', grouped by kind'}.
+      {total} sized items, grouped by type and size, in the part's own colour where the data has one.
       On screen the sizes are only approximate.</p>
     <svg class="scalebar" viewBox="0 -1 50 8" style="width:50mm;height:8mm" role="img" aria-label="Scale bar, 50 millimetres" font-family="sans-serif">
       <path d="M0 3H50" stroke="#111" stroke-width="0.2" />
@@ -33,16 +33,17 @@ const ticks = Array.from({ length: 51 }, (_, i) => i);
       <div class="items">
         {g.items.map((i) => <figure class="item">
           {i.outline
-            ? <svg viewBox={i.outline.viewBox} style={`width:${i.outline.w.toFixed(2)}mm;height:${i.outline.h.toFixed(2)}mm`} role="img" aria-label={`${i.size} ${i.sub}`} set:html={i.outline.inner} />
+            ? <svg viewBox={i.outline.viewBox} style={`width:${i.outline.w.toFixed(2)}mm;height:${i.outline.h.toFixed(2)}mm${i.fill ? `;--sheet-fill:${i.fill};color:${i.ink}` : ''}`} role="img" aria-label={`${i.size} ${i.sub}`} set:html={i.outline.inner} />
             : <div class="nooutline">no outline</div>}
-          <figcaption><strong>{i.size}</strong> <span class="sub">{i.sub}</span><br /><span class="qty">x {i.qtyKnown ? '' : '~'}{i.qty}</span></figcaption>
+          <figcaption><strong>{i.size}</strong> <span class="sub">{i.sub}</span>{i.detail && <><br /><span class="sub">{i.detail}</span></>}<br /><span class="qty">x {i.qtyKnown ? '' : '~'}{i.qty}</span>{bagNote(i.bags) && <><br /><span class="bag-note">{bagNote(i.bags)}</span></>}</figcaption>
         </figure>)}
       </div>
     </section>)}
 
     <section class="foot">
-      <p>Every outline is drawn to scale from the size: a side view for screws and pins (dashed lines show the drive, short strokes the thread), a face view for nuts, bearings, washers and clips (washers and bearings also get a thin side view below, for their thickness). A quantity with ~ is a pack size (or unstated), not a count from the manual.
+      <p>Every outline is drawn to scale from the size: a side view for screws (dashed lines show the drive, short strokes the thread) with the top view of the head beside it, a side view for pins, a face view for nuts, bearings, washers and clips (washers and bearings also get a thin side view below, for their thickness). Fill is the colour or finish the part states; grey when none is stated. The screw drive is the spec's; a hex key size comes from the ISO table for that head, not from the maker. A quantity with ~ is a pack size (or unstated), not a count from the manual.
         {sheet.noOutline > 0 && ` ${sheet.noOutline} sized item${sheet.noOutline > 1 ? 's have' : ' has'} no outline yet.`}</p>
+      <p class="muted">{sheet.stats.withColour} of {sheet.stats.items} items state a colour or finish; {sheet.stats.withDrive} of {sheet.stats.screws} screws state a drive.</p>
       {sheet.unsized.length > 0 && <details class="noprint"><summary>{sheet.unsized.length} hardware part number{sheet.unsized.length > 1 ? 's' : ''} in the box with no size data</summary>
         <ul>{sheet.unsized.map((p) => <li><a href={url.part(p.id)}>{p.number} {p.name}</a></li>)}</ul></details>}
       <p class="muted">Source: the hobbydex parts list of this release and the sizes of the generic parts it is equivalent to.</p>
@@ -60,6 +61,7 @@ const ticks = Array.from({ length: 51 }, (_, i) => i);
   .hwsheet .item { margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 14mm; break-inside: avoid; page-break-inside: avoid; text-align: center; font-size: 0.72rem; line-height: 1.25; }
   .hwsheet .item svg { display: block; flex: none; overflow: visible; color: #111; }
   .hwsheet figcaption { margin-top: 1.5mm; }
+  .hwsheet .bag-note { color: #888; font-size: 0.85em; }
   .hwsheet .sub, .hwsheet .qty { color: #555; }
   .hwsheet .nooutline { color: #888; font-size: 0.65rem; border: 0.2mm dashed #bbb; padding: 2mm; }
   @media print {

@@ -5,6 +5,8 @@
 // outline is drawn from the spec's size, the same way for every item: a flat side view for screws and pins, a face
 // view for washers, nuts, bearings, e-clips and ball ends. A spec with a size but no outline is listed as text.
 import { db, type Part, type Release, type Spec } from './data';
+import { colourShades } from './colourDot';
+import { metalTone } from './hardwareBag';
 
 export type Kind = 'screw' | 'nut' | 'washer' | 'bearing' | 'eclip' | 'pin' | 'ball-end';
 const KINDS: Kind[] = ['screw', 'nut', 'washer', 'bearing', 'eclip', 'pin', 'ball-end'];
@@ -12,29 +14,60 @@ export const KIND_LABEL: Record<Kind, string> = { screw: 'Screws', nut: 'Nuts', 
 
 /** A drawing in mm: `svg` is a complete <svg> of width w and height h (viewBox in mm), drawn in currentColor. */
 export type Outline = { w: number; h: number; inner: string; viewBox: string};
-export type SheetItem = { spec: string; kind: Kind; size: string; sub: string; qty: number; qtyKnown: boolean; bag?: string; outline?: Outline; parts: string[] };
-export type Sheet = { groups: { title: string; items: SheetItem[] }[]; sized: number; noOutline: number; unsized: Part[]; byBag: boolean };
+export type SheetItem = { spec: string; kind: Kind; size: string; sub: string; detail: string; colour?: string; fill?: string; ink?: string; qty: number; qtyKnown: boolean; bags: string[]; outline?: Outline; parts: string[] };
+export type Sheet = { groups: { title: string; items: SheetItem[] }[]; sized: number; noOutline: number; unsized: Part[]; stats: { items: number; withColour: number; screws: number; withDrive: number } };
 
 const n = (v: unknown) => String(Number(v));   // 10.0 -> "10", 3.175 -> "3.175"
 const num = (v: unknown) => Number(v);
 const HEAD_NAME: Record<string, string> = { 'socket-cap': 'cap', 'low-head': 'low cap', button: 'button', countersunk: 'countersunk', flat: 'countersunk', pan: 'pan', set: 'set', truss: 'truss', hex: 'hex', 'flanged-button': 'flanged button', 'flanged-socket-cap': 'flanged cap', 'flanged-pan': 'flanged pan' };
 
 // ---- sizes: the label of a spec ------------------------------------------------------------------------------------
-function label(s: Spec): { size: string; sub: string } | undefined {
+function label(s: Spec): { size: string; sub: string; detail: string } | undefined {
   switch (s.category) {
     case 'screw': {
       if (!s.thread || !s.length_mm) return undefined;
       const head = HEAD_NAME[String(s.head)] ?? String(s.head ?? '');
       const t = s.thread_type === 'self-tapping' ? ' tapping' : '';
-      return { size: `${s.thread}x${n(s.length_mm)} ${head}${t}`.trim(), sub: 'screw' };
+      return { size: `${s.thread}x${n(s.length_mm)} ${head}${t}`.trim(), sub: 'screw', detail: driveWords(s) };
     }
-    case 'nut': return s.thread ? { size: `${s.thread} ${String(s.type ?? '').replace(/-/g, ' ')}`.trim(), sub: 'nut' } : undefined;
-    case 'washer': return s.bore_mm && s.outer_mm ? { size: `${n(s.bore_mm)}x${n(s.outer_mm)}${s.thickness_mm ? `x${n(s.thickness_mm)}` : ''}`, sub: 'washer' } : undefined;
-    case 'bearing': return s.bore_mm && s.outer_mm ? { size: `${n(s.bore_mm)}x${n(s.outer_mm)}${s.width_mm ? `x${n(s.width_mm)}` : ''}`, sub: 'bearing' } : undefined;
-    case 'eclip': return s.shaft_mm ? { size: `${n(s.shaft_mm)} mm`, sub: 'e-clip' } : undefined;
-    case 'pin': return s.diameter_mm && s.length_mm ? { size: `${n(s.diameter_mm)}x${n(s.length_mm)}`, sub: 'pin' } : undefined;
-    case 'ball-end': return s.ball_mm ? { size: `${n(s.ball_mm)} mm ${String(s.type ?? '').replace(/-/g, ' ')}`.trim(), sub: 'ball end' } : undefined;
+    case 'nut': return s.thread ? { size: `${s.thread} ${String(s.type ?? '').replace(/-/g, ' ')}`.trim(), sub: 'nut', detail: '' } : undefined;
+    case 'washer': return s.bore_mm && s.outer_mm ? { size: `${n(s.bore_mm)}x${n(s.outer_mm)}${s.thickness_mm ? `x${n(s.thickness_mm)}` : ''}`, sub: 'washer', detail: '' } : undefined;
+    case 'bearing': return s.bore_mm && s.outer_mm ? { size: `${n(s.bore_mm)}x${n(s.outer_mm)}${s.width_mm ? `x${n(s.width_mm)}` : ''}`, sub: 'bearing', detail: '' } : undefined;
+    case 'eclip': return s.shaft_mm ? { size: `${n(s.shaft_mm)} mm`, sub: 'e-clip', detail: '' } : undefined;
+    case 'pin': return s.diameter_mm && s.length_mm ? { size: `${n(s.diameter_mm)}x${n(s.length_mm)}`, sub: 'pin', detail: '' } : undefined;
+    case 'ball-end': return s.ball_mm ? { size: `${n(s.ball_mm)} mm ${String(s.type ?? '').replace(/-/g, ' ')}`.trim(), sub: 'ball end', detail: '' } : undefined;
   }
+}
+
+
+// ---- the drive of a screw ------------------------------------------------------------------------------------------
+const DRIVE_NAME: Record<string, string> = { hex: 'hex', phillips: 'Phillips cross', jis: 'JIS cross', torx: 'Torx', slot: 'slot' };
+// hex key (across flats) by thread for a socket cap screw (ISO 4762), a button or countersunk screw (ISO 7380, 10642) and a set screw (ISO 4029), mm
+const CAPKEY: Record<string, number> = { 1.6: 1.5, 2: 1.5, 2.5: 2, 3: 2.5, 4: 3, 5: 4, 6: 5 };
+const BTNKEY: Record<string, number> = { 1.4: 0.9, 1.6: 0.9, 2: 1.3, 2.5: 1.5, 3: 2, 4: 2.5, 5: 3, 6: 4 };
+const SETKEY: Record<string, number> = { 2: 0.9, 2.5: 1.3, 3: 1.5, 4: 2, 5: 2.5, 6: 3 };
+/** The hex key size in mm of a screw spec, from the standard its head follows; undefined when no table gives it. */
+function hexKey(s: Spec): number | undefined {
+  if (String(s.drive) !== 'hex') return undefined;
+  const d = String(num(String(s.thread).replace(/^M/, ''))), head = String(s.head).replace(/^flanged-/, '');
+  return head === 'socket-cap' ? CAPKEY[d] : head === 'set' ? SETKEY[d] : head === 'button' || head === 'countersunk' || head === 'flat' ? BTNKEY[d] : undefined;
+}
+function driveWords(s: Spec): string {
+  if (!s.drive) return 'drive not stated';
+  const k = hexKey(s);
+  return `${DRIVE_NAME[String(s.drive)] ?? String(s.drive)}${k ? ` ${n(k)} mm` : ''}`;
+}
+
+// ---- colour --------------------------------------------------------------------------------------------------------
+const TONE_HEX: Record<string, string> = { steel: '#c9ccd1', darkzinc: '#807e72', black: '#2b2e33', titanium: '#a39e96', aluminium: '#dfe2e6', brass: '#c8a24a', copper: '#b8683d', plastic: '#f2efe6' };
+const lum = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+/** The look of a part: the colour word it states (its colour, else its finish), the fill (its colour, else the tone of its finish or material) and the ink for the lines on it. */
+function look(p: Part): { word?: string; fill?: string; ink?: string } {
+  const word = p.color ?? p.finish;
+  const shade = colourShades(p.color)?.[0]?.c;
+  const tone = metalTone(p.finish, p.material);
+  const fill = shade ?? (tone ? TONE_HEX[tone] : undefined);
+  return { word, fill, ink: fill ? (lum(fill) < 0.3 ? '#f2f2f5' : '#1a1a1f') : undefined };
 }
 
 // ---- outlines ------------------------------------------------------------------------------------------------------
@@ -58,10 +91,31 @@ function headSize(head: string, d: number): { dk: number; k: number } {
 }
 
 const PITCH: Record<string, number> = { 1.4: 0.3, 1.6: 0.35, 2: 0.4, 2.5: 0.45, 3: 0.5, 4: 0.7, 5: 0.8, 6: 1 };
-const KEY: Record<string, number> = { 1.6: 1.5, 2: 1.5, 2.5: 2, 3: 2.5, 4: 3, 5: 4, 6: 5 };   // cap screw hex key
+const DASH = 'fill="none" stroke="currentColor" stroke-width="0.1" stroke-dasharray="0.4 0.3"';
+const THIN = 'fill="none" stroke="currentColor" stroke-width="0.12"';
+const hexPts = (r: number) => [0, 1, 2, 3, 4, 5].map((i) => `${fx(r * Math.cos((i * Math.PI) / 3 + Math.PI / 6))} ${fx(r * Math.sin((i * Math.PI) / 3 + Math.PI / 6))}`).join('L');
 
-// A flat side view, head up, drawn from the size alone: the head shape (cap, button, countersunk, pan, hex, set),
-// the drive as dashed hidden lines, thread marks on the shank, and a point for a self-tapping screw.
+// The top view of a head at the same scale, centred on 0 0: the head outline (round, hex, flanged) and the drive.
+function topView(s: Spec, d: number, dk: number): string {
+  const head = String(s.head ?? 'pan');
+  const base = head.replace(/^flanged-/, '');
+  const set = base === 'set';
+  const R = (set ? d : dk) / 2;
+  let o = '';
+  if (base === 'hex') o += `<path d="M${hexPts(R / Math.cos(Math.PI / 6) / 1)}Z" ${FILL} ${LINE}/>`;
+  else o += `<circle r="${fx(R)}" ${FILL} ${LINE}/>`;
+  if (head.startsWith('flanged-')) o += `<circle r="${fx(R * 0.78)}" ${THIN}/>`;
+  const drive = String(s.drive ?? '');
+  const key = hexKey(s) ?? 0.6 * R;
+  if (drive === 'hex') o += `<path d="M${hexPts(key / Math.sqrt(3))}Z" ${FILL} ${LINE}/>`;
+  else if (drive === 'phillips' || drive === 'jis') { const l = R * 1.0, w = Math.max(0.35, R * 0.16); o += `<path d="M${fx(-l / 2)} ${fx(-w / 2)}H${fx(-w / 2)}V${fx(-l / 2)}H${fx(w / 2)}V${fx(-w / 2)}H${fx(l / 2)}V${fx(w / 2)}H${fx(w / 2)}V${fx(l / 2)}H${fx(-w / 2)}V${fx(w / 2)}H${fx(-l / 2)}Z" ${FILL} ${LINE}/>`; }
+  else if (drive === 'torx') { const r1 = R * 0.5, r2 = r1 * 0.78; o += `<path d="M${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => { const r = i % 2 ? r2 : r1, a = (i * Math.PI) / 6; return `${fx(r * Math.cos(a))} ${fx(r * Math.sin(a))}`; }).join('L')}Z" ${FILL} ${LINE}/>`; }
+  else if (drive === 'slot') o += `<path d="M${fx(-R * 0.85)} 0H${fx(R * 0.85)}" fill="none" stroke="currentColor" stroke-width="${fx(Math.max(0.3, R * 0.14))}"/>`;
+  return o;
+}
+
+// A screw, drawn from its size alone: the flat side view (head shape, dashed drive, thread marks, a point for a
+// self-tapping screw) with the top view of its head beside it at the same scale.
 function screwOutline(s: Spec): Outline | undefined {
   const d = num(String(s.thread).replace(/^M/, '')), L = num(s.length_mm);
   if (!d || !L) return undefined;
@@ -70,29 +124,30 @@ function screwOutline(s: Spec): Outline | undefined {
   const tapping = s.thread_type === 'self-tapping';
   const pitch = tapping ? 0.7 * d * 0.6 : PITCH[String(d)] ?? 0.2 * d;
   const r = d / 2;
-  const DASH = 'fill="none" stroke="currentColor" stroke-width="0.1" stroke-dasharray="0.4 0.3"';
   const set = base === 'set';
   const csk = base === 'countersunk' || base === 'flat';
   const { dk, k } = set ? { dk: d, k: 0 } : headSize(head, d);
   const top = set ? 0 : k;                         // where the shank starts
   const end = csk ? L : top + L;                   // the tip
   const tip = tapping ? Math.min(1.2 * d, L / 2) : 0;
-  const shank = `M${fx(-r)} ${fx(top)}V${fx(end - tip)}${tapping ? `L${fx(-r * 0.45)} ${fx(end)}H${fx(r * 0.45)}` : `V${fx(end)}H${fx(r)}`}${tapping ? `L${fx(r)} ${fx(end - tip)}` : ''}V${fx(top)}Z`;
+  const shank = `M${fx(-r)} ${fx(top)}V${fx(end - tip)}${tapping ? `L${fx(-r * 0.45)} ${fx(end)}H${fx(r * 0.45)}L${fx(r)} ${fx(end - tip)}` : `V${fx(end)}H${fx(r)}`}V${fx(top)}Z`;
   let h = '';
   if (csk) h = `M${fx(-dk / 2)} 0H${fx(dk / 2)}L${fx(r)} ${fx(k)}H${fx(-r)}Z`;
   else if (base === 'button' || base === 'pan' || base === 'truss') h = `M${fx(-dk / 2)} ${fx(k)}Q${fx(-dk / 2)} 0 ${fx(-dk / 4)} 0H${fx(dk / 4)}Q${fx(dk / 2)} 0 ${fx(dk / 2)} ${fx(k)}Z`;
   else if (!set) h = `M${fx(-dk / 2)} 0H${fx(dk / 2)}V${fx(k)}H${fx(-dk / 2)}Z`;
-  // thread marks: short diagonal strokes down the shank
   const t0 = top + (csk ? 0.2 : 0.1) * Math.min(L, 4), marks: string[] = [];
   for (let y = t0 + pitch; y < end - tip - 0.05; y += pitch) marks.push(`M${fx(-r)} ${fx(y)}L${fx(r)} ${fx(y - pitch * 0.6)}`);
-  // the drive, hidden: a hex socket (cap, button, countersunk, set) or a cross slot (pan)
-  const key = (KEY[String(d)] ?? 0.8 * d) * (base === 'socket-cap' ? 1 : 0.7);
-  const drive = set ? `<path d="M${fx(-key / 2)} 0V${fx(Math.min(L / 2, key))}H${fx(key / 2)}V0" ${DASH}/>`
-    : base === 'pan' ? `<path d="M${fx(-dk / 4)} ${fx(k * 0.25)}H${fx(dk / 4)}" ${DASH}/>`
-    : base === 'hex' ? '' : `<path d="M${fx(-key / 2)} 0V${fx(Math.min(k * 0.7, k - 0.2))}H${fx(key / 2)}V0" ${DASH}/>`;
-  const inner = `<path d="${shank}" ${FILL} ${LINE}/>${marks.length ? `<path d="${marks.join('')}" fill="none" stroke="currentColor" stroke-width="0.08"/>` : ''}`
-    + (h ? `<path d="${h}" ${FILL} ${LINE}/>` : '') + drive;
-  return wrap(Math.max(dk, d), end, inner, 0.3);
+  const key = hexKey(s) ?? 0.6 * dk;
+  const drive = String(s.drive ?? '');
+  const hidden = drive === 'hex' ? `<path d="M${fx(-key / 2)} 0V${fx(Math.min(set ? L / 2 : k * 0.7, set ? key : k - 0.2))}H${fx(key / 2)}V0" ${DASH}/>`
+    : drive && !set ? `<path d="M${fx(-dk / 4)} ${fx(k * 0.25)}H${fx(dk / 4)}" ${DASH}/>` : '';
+  const side = `<path d="${shank}" ${FILL} ${LINE}/>${marks.length ? `<path d="${marks.join('')}" fill="none" stroke="currentColor" stroke-width="0.08"/>` : ''}`
+    + (h ? `<path d="${h}" ${FILL} ${LINE}/>` : '') + hidden;
+  // the top view sits to the right of the side view, its top level with the head
+  const sw = Math.max(dk, d), gap = 1.5, tw = Math.max(dk, d), m = 0.3;
+  const cx = sw / 2 + gap + tw / 2, cy = tw / 2;
+  const W = sw + gap + tw + 2 * m, H = Math.max(end, tw) + 2 * m;
+  return { w: W, h: H, viewBox: `${fx(-sw / 2 - m)} ${fx(-m)} ${fx(W)} ${fx(H)}`, inner: `${side}<g transform="translate(${fx(cx)} ${fx(cy)})">${topView(s, d, dk)}</g>` };
 }
 
 /** An outline of width w (centred on x = 0) and height h. */
@@ -189,31 +244,42 @@ export function hardwareSheet(release: Release): Sheet | undefined {
       continue;
     }
     const bag = bagOf(row.step);
+    const lk = look(p);
     for (const r of hw) {
-      const s = db.spec.get(r.spec)!;
-      const l = label(s);
+      const sp = db.spec.get(r.spec)!;
+      const l = label(sp);
       if (!l) { unsized.set(p.id, p); continue; }
-      const k = `${r.spec}|${bag ?? ''}`;
+      // two parts of one size in different colours are two items
+      const k = `${r.spec}|${lk.word ?? ''}|${lk.fill ?? ''}`;
       const have = map.get(k);
-      if (have) { have.qty += r.qty; have.qtyKnown &&= r.known; have.parts.push(p.id); continue; }
-      map.set(k, { spec: r.spec, kind: s.category as Kind, ...l, qty: r.qty, qtyKnown: r.known, bag, outline: outlineOf(s), parts: [p.id] });
+      if (have) { have.qty += r.qty; have.qtyKnown &&= r.known; have.parts.push(p.id); if (bag && !have.bags.includes(bag)) have.bags.push(bag); continue; }
+      const detail = [l.detail, lk.word].filter(Boolean).join(', ');
+      map.set(k, { spec: r.spec, kind: sp.category as Kind, size: l.size, sub: l.sub, detail, colour: lk.word, fill: lk.fill, ink: lk.ink, qty: r.qty, qtyKnown: r.known, bags: bag ? [bag] : [], outline: outlineOf(sp), parts: [p.id] });
     }
   }
   const all = [...map.values()];
   const sized = new Set(all.map((i) => i.spec)).size;
   if (sized < 3) return undefined;
-  const byBag = all.filter((i) => i.bag).length >= all.length / 2;
-  const kindOrder = (i: SheetItem) => KINDS.indexOf(i.kind);
-  const bySize = (a: SheetItem, b: SheetItem) => kindOrder(a) - kindOrder(b) || a.size.localeCompare(b.size, undefined, { numeric: true });
+  // by type, then size: screws by thread then length, the rest by size
+  const thread = (i: SheetItem) => num(String(db.spec.get(i.spec)?.thread ?? '').replace(/^M/, '')) || 0;
+  const length = (i: SheetItem) => num(db.spec.get(i.spec)?.length_mm) || 0;
+  const bySize = (a: SheetItem, b: SheetItem) => thread(a) - thread(b) || length(a) - length(b) || a.size.localeCompare(b.size, undefined, { numeric: true }) || (a.colour ?? '').localeCompare(b.colour ?? '');
   const groups: Sheet['groups'] = [];
-  if (byBag) {
-    const names = [...new Set(all.map((i) => i.bag))].sort((a, b) => (a ? 0 : 1) - (b ? 0 : 1) || (a ?? '').localeCompare(b ?? '', undefined, { numeric: true }));
-    for (const g of names) groups.push({ title: g ?? 'No bag stated', items: all.filter((i) => i.bag === g).sort(bySize) });
-  } else {
-    for (const k of KINDS) {
-      const items = all.filter((i) => i.kind === k).sort(bySize);
-      if (items.length) groups.push({ title: KIND_LABEL[k], items });
-    }
+  for (const kd of KINDS) {
+    const items = all.filter((i) => i.kind === kd).sort(bySize);
+    if (!items.length) continue;
+    if (kd === 'screw') for (const t of [...new Set(items.map(thread))]) groups.push({ title: `Screws M${n(t)}`, items: items.filter((i) => thread(i) === t) });
+    else groups.push({ title: KIND_LABEL[kd], items });
   }
-  return { groups, sized, noOutline: all.filter((i) => !i.outline).length, unsized: [...unsized.values()], byBag };
+  const screws = all.filter((i) => i.kind === 'screw');
+  const stats = { items: all.length, withColour: all.filter((i) => i.colour).length, screws: screws.length, withDrive: screws.filter((i) => !i.detail.startsWith('drive not stated')).length };
+  return { groups, sized, noOutline: all.filter((i) => !i.outline).length, unsized: [...unsized.values()], stats };
+}
+
+/** The bags of an item as a short note: "bag 5, 7", or the steps' letters ("steps MA, MB"). */
+export function bagNote(bags: string[]): string {
+  if (!bags.length) return '';
+  const nums = bags.filter((b) => b.startsWith('Bag ')).map((b) => b.slice(4));
+  const steps = bags.filter((b) => b.startsWith('Steps ')).map((b) => b.slice(6));
+  return [nums.length ? `bag ${nums.sort((a, b) => Number(a) - Number(b)).join(', ')}` : '', steps.length ? `steps ${steps.sort().join(', ')}` : ''].filter(Boolean).join('; ');
 }
