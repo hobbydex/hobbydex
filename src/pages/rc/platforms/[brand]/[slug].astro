@@ -1,4 +1,5 @@
 ---
+import { rebrandLabel, rebrandSource } from '../../../../lib/rebrand';
 import { colourDot } from '../../../../lib/colourDot';
 import { buildLabel } from '../../../../lib/build';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
@@ -205,9 +206,9 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
   {relations.length > 0 && <>
     <h2>Same car or platform</h2>
     <ul>
-      {relations.map((r) => { const o = db.kit.get(r.other); const label = r.relation === 'rebrand' ? (r.reverse ? 'Also sold as' : 'Rebrand of') : 'Shares its platform with'; return <li>
+      {relations.map((r) => { const o = db.kit.get(r.other); const likely = r.link.certainty === 'likely'; const src = rebrandSource(r.link.source, (id) => db.doc.get(id)); const label = r.relation === 'rebrand' ? rebrandLabel(r.reverse, likely) : 'Shares its platform with'; return <li class={likely ? 'likely-rebrand' : undefined}>
         {label} <a href={url.platform(r.other)}>{o ? `${brandName(o.brand)} ${o.name}` : r.other}</a>
-        {r.link.parts && <span class="muted"> · parts {r.link.parts}</span>}{r.link.notes && <span class="muted"> · {r.link.notes}</span>}
+        {r.link.parts && <span class="muted"> · parts {r.link.parts}</span>}{r.link.notes && <span class="muted"> · {r.link.notes}</span>}{src && <span class="muted"> · source: {src.href ? <a href={src.href} rel="nofollow noopener" target="_blank">{src.title}</a> : src.title}</span>}
       </li>; })}
     </ul></>}
   {(files.length > 0 || moreFiles > 0) && <>
