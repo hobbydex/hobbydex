@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@primer/primitives": "^11.10.0",
-    "astro": "^7.4.2"
+    "astro": "^7.4.4"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
