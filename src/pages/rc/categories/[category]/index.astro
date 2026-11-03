@@ -3,8 +3,9 @@ import Base from '../../../../layouts/Base.astro';
 import PartTable from '../../../../components/PartTable.astro';
 import { db, brandName, key } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
+import CategoryExplorer from '../../../../components/CategoryExplorer.astro';
 import Icon from '../../../../components/Icon.astro';
-import { byCategory, categories, countOf, specFor } from '../../../../lib/categoryIndex';
+import { byCategory, categories, countOf, specFor, BIG } from '../../../../lib/categoryIndex';
 import { columns } from '../../../../lib/categoryColumns';
 import { MOTOR_SPEED_NOTE, BATTERY_NOTE } from '../../../../lib/specs';
 export function getStaticPaths() {
@@ -17,14 +18,14 @@ const { redirect } = Astro.props as { redirect?: string };
 if (redirect) return Astro.redirect(redirect, 301);
 const brands = [...byCategory.get(category)!.entries()].sort((a, b) => brandName(a[0]).localeCompare(brandName(b[0])));
 const parts = brands.flatMap(([, ps]) => ps);
-// A category of a few thousand parts is not listed on one page (bearings alone are 12,000 rows and 9 MB):
-// above BIG the page offers the brands' own lists and the search instead of the table.
-const BIG = 3000;
+// A category above BIG parts is not one plain table (bearings alone are 12,000 rows and 9 MB): the page holds the
+// first rows and the filters, and the script loads the rest from parts.json.
+const big = parts.length > BIG;
 const table = !!columns[category] && parts.length <= BIG;
 const byCount = [...brands].sort((a, b) => b[1].length - a[1].length);
 const info = db.categories.find((c) => c.id === `category/${category}`);
 ---
-<Base title={catName(category)} description={`${catName(category)}: ${countOf(category)} RC parts from ${brands.length} brands${table ? ', with their key specs' : ''}.`} kind="category" words={[catName(category), info?.summary].filter(Boolean).join(' ')}>
+<Base title={catName(category)} description={`${catName(category)}: ${countOf(category)} RC parts from ${brands.length} brands${table || (big && columns[category]) ? ', with their key specs' : ''}.`} kind="category" words={[catName(category), info?.summary].filter(Boolean).join(' ')}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/categories/">Categories</a> / {catName(category)}</div>
   <h1><Icon name={category} size="1.4em" /> {catName(category)}</h1>
   {info?.description && <p>{info.description}</p>}
@@ -35,16 +36,10 @@ const info = db.categories.find((c) => c.id === `category/${category}`);
     {specFor[category] && <> Brand-independent sizes: <a href={`/rc/specs/${specFor[category]}/`}>generic specs</a>.</>}
     {' '}<a href={`/search/?category=${encodeURIComponent(catName(category))}`}>Search in this category</a>
     {category === 'esc' && <> · <a href="/rc/escs/">Compare ESCs</a></>}{category === 'motor' && <> · <a href="/rc/motors/">Compare motors</a></>}</p>
-  {parts.length <= BIG
+  {!big
     ? <p class="muted">By brand: {brands.map(([b, ps], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${category}/${key(b)[0]}/`}>{brandName(b)}</a> {ps.length}</>)}</p>
-    : <>
-      <p class="muted">Too many to list on one page: pick a brand below, or <a href={`/search/?category=${encodeURIComponent(catName(category))}`}>search in this category</a>.</p>
-      <table class="sortable">
-        <thead><tr><th>Brand</th><th class="num">Parts</th></tr></thead>
-        <tbody>{byCount.map(([b, ps]) => <tr><td><a href={`/rc/categories/${category}/${key(b)[0]}/`}>{brandName(b)}</a></td><td class="num">{ps.length}</td></tr>)}</tbody>
-      </table>
-      <script src="/sort-table.js" defer></script>
-    </>}
+    : <details class="muted"><summary>Brand pages ({brands.length})</summary><p>{byCount.map(([b, ps], i) => <>{i > 0 && ' · '}<a href={`/rc/categories/${category}/${key(b)[0]}/`}>{brandName(b)}</a> {ps.length}</>)}</p></details>}
+  {big && <CategoryExplorer category={category} parts={parts} />}
   {table && <PartTable category={category} parts={parts} />}
 </Base>
 <style>

@@ -1,0 +1,89 @@
+---
+// The filter table of a big category: every part without picking a brand first. The page holds the first PAGE rows
+// and the drop-downs with their overall counts (works without JavaScript, and for search engines); the script loads
+// the whole category as one JSON (parts.json), filters in the browser and keeps the filters in the URL.
+// Each drop-down shows the values that still have parts under the other filters, with their counts, and an
+// "unknown" entry counting the parts that do not state that field.
+import { rowHtml, optionsHtml, countFacets, PAGE } from '../lib/explorerRows';
+import { buildExplorer } from '../lib/categoryExplorer';
+import HideDiscontinued from './HideDiscontinued.astro';
+import type { Part } from '../lib/data';
+interface Props { category: string; parts: Part[] }
+const { category, parts } = Astro.props;
+const { facets, rows } = buildExplorer(category, parts);
+const sel = facets.map(() => '');
+const { counts, unknown } = countFacets(rows, facets, sel, () => true);
+const filters = facets.map((f, i) => ({ f, i })).filter(({ f }) => f.filter);
+const cols = facets.filter((f) => f.column);
+const hasDisc = rows.some((r) => r[3]);
+---
+<div class="explorer" data-pagefind-ignore data-json={`/rc/categories/${category}/parts.json`}>
+  <p class="websearch">
+    <span class="sfield"><input type="search" class="q search-box" placeholder="Filter by number or name" aria-label="Filter" /></span>
+    {filters.map(({ f, i }) => <select data-key={f.key} aria-label={f.label} set:html={optionsHtml(f, counts[i], unknown[i], '')} />)}
+    {hasDisc && <HideDiscontinued />}
+    <a href="#" class="reset" hidden>Reset</a>
+  </p>
+  <p class="muted status" aria-live="polite">Showing the first {Math.min(PAGE, rows.length)} of {rows.length} parts. The filters need JavaScript.</p>
+  <div class="tablescroll"><table>
+    <thead><tr><th>Part</th>{cols.map((c) => <th>{c.label}</th>)}</tr></thead>
+    <tbody set:html={rows.slice(0, PAGE).map((r) => rowHtml(r, facets)).join('')} />
+  </table></div>
+  <p><button type="button" class="btn more" hidden>Show more</button></p>
+</div>
+<style>
+  .explorer .websearch select { max-width: 100%; }
+  .explorer :global(tbody td + td) { white-space: nowrap; }
+  .explorer .websearch .sfield { flex-basis: 100%; max-width: none; }
+  /* a phone: each part is a card, the specs run on one line under its name */
+  @media (max-width: 639px) {
+    .explorer :global(table), .explorer :global(tbody), .explorer :global(tr) { display: block; }
+    .explorer :global(thead) { display: none; }
+    .explorer :global(tbody tr) { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+    .explorer :global(tbody td) { display: inline; padding: 0 0.5rem 0 0; border: 0; white-space: normal; }
+    .explorer :global(tbody td:first-child) { display: block; }
+    .explorer :global(tbody td + td) { color: var(--muted, inherit); font-size: 0.85rem; }
+    .explorer :global(tbody td:empty) { display: none; }
+  }
+  @media (min-width: 640px) { .explorer .websearch .sfield { flex-basis: 14rem; max-width: 24rem; } }
+</style>
+<script>
+  import { rowHtml, optionsHtml, countFacets, rowPasses, PAGE, type Facet, type Row } from '../lib/explorerRows';
+  const box = document.querySelector<HTMLElement>('.explorer');
+  if (box) {
+    const q = box.querySelector<HTMLInputElement>('.q')!, body = box.querySelector('tbody')!, status = box.querySelector<HTMLElement>('.status')!;
+    const more = box.querySelector<HTMLButtonElement>('.more')!, reset = box.querySelector<HTMLAnchorElement>('.reset')!;
+    const selects = [...box.querySelectorAll<HTMLSelectElement>('select[data-key]')];
+    let data: { facets: Facet[]; rows: Row[] } | undefined, shown = PAGE;
+    const sel = () => data!.facets.map((f) => selects.find((s) => s.dataset.key === f.key)?.value ?? '');
+    const apply = () => {
+      if (!data) return;
+      const { facets, rows } = data, s = sel(), text = q.value.trim().toLowerCase();
+      const noDisc = document.documentElement.classList.contains('hide-discontinued');
+      const base = (r: Row) => (!text || (r[1] + ' ' + r[2]).toLowerCase().includes(text)) && !(noDisc && r[3]);
+      const { counts, unknown, idx } = countFacets(rows, facets, s, base);
+      facets.forEach((f, i) => { const el = selects.find((x) => x.dataset.key === f.key); if (el) el.innerHTML = optionsHtml(f, counts[i], unknown[i], s[i]); });
+      const hit = rows.filter((r) => base(r) && rowPasses(r, facets, s, idx));
+      body.innerHTML = hit.slice(0, shown).map((r) => rowHtml(r, facets)).join('');
+      status.textContent = `${hit.length} of ${rows.length} parts${hit.length > shown ? `, showing the first ${shown}` : ''}.`;
+      more.hidden = hit.length <= shown;
+      more.textContent = `Show ${Math.min(PAGE, hit.length - shown)} more`;
+      const u = new URLSearchParams();
+      if (text) u.set('q', q.value.trim());
+      facets.forEach((f, i) => { if (s[i]) u.set(f.key, s[i]); });
+      history.replaceState(null, '', (u.size ? `?${u}` : location.pathname) + location.hash);
+      reset.hidden = !u.size;
+    };
+    const change = () => { shown = PAGE; apply(); };
+    const params = new URLSearchParams(location.search);
+    q.value = params.get('q') ?? '';
+    for (const s of selects) { const v = params.get(s.dataset.key!); if (v) { if (![...s.options].some((o) => o.value === v)) s.add(new Option(v === '?' ? 'unknown' : v, v)); s.value = v; } }
+    for (const s of selects) s.addEventListener('change', change);
+    q.addEventListener('input', change);
+    more.addEventListener('click', () => { shown += PAGE; apply(); });
+    reset.addEventListener('click', (e) => { e.preventDefault(); q.value = ''; for (const s of selects) s.value = ''; change(); });
+    window.addEventListener('discontinued-toggle', change);
+    const load = () => fetch(box.dataset.json!).then((r) => r.json()).then((d) => { data = d; apply(); }).catch(() => { status.textContent = 'The filters could not load; reload the page to try again.'; });
+    load();
+  }
+</script>
