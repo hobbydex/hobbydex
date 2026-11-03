@@ -6,6 +6,7 @@
 interface Column { label: string; values: string[] }
 interface Props { columns: Column[]; total: number }
 const { columns, total } = Astro.props;
+import { lowerLabel } from '../lib/explorerRows';
 const SELECT_MAX = 24;
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const isNum = (v: string) => /^-?\d+(\.\d+)?$/.test(v);
@@ -22,8 +23,8 @@ const controls = columns.flatMap((c, i) => {
 ---
 {controls.length > 0 && <div class="websearch specfilter" data-pagefind-ignore hidden>
   {controls.map((c) => c.choices
-    ? <select data-col={c.i} data-param={c.param} aria-label={c.label}><option value="">any {c.label.toLowerCase()}</option>{c.choices.map((v) => <option>{v}</option>)}</select>
-    : <input type="search" class="search-box" data-col={c.i} data-param={c.param} data-numeric={c.numeric ? '' : undefined} placeholder={c.label.toLowerCase()} aria-label={c.label} />)}
+    ? <select data-col={c.i} data-param={c.param} aria-label={c.label}><option value="">any {lowerLabel(c.label)}</option>{c.choices.map((v) => <option>{v}</option>)}</select>
+    : <input type="search" class="search-box" data-col={c.i} data-param={c.param} data-numeric={c.numeric ? '' : undefined} placeholder={lowerLabel(c.label)} aria-label={c.label} />)}
   <a href="#" class="reset" hidden>Reset</a>
   <span class="muted count">{total} of {total}</span>
 </div>}
