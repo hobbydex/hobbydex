@@ -2,7 +2,7 @@
 
 The Hobbydex website: a static site generated from the open hobby parts
 datasets (currently [hobbydex-rc](https://github.com/hobbydex/hobbydex-rc)).
-Built with Astro, searched with Pagefind, deployed to GitHub Pages at
+Built with Astro, searched with Pagefind, served from its own server at
 https://hobbydex.com.
 
 ## Develop
@@ -22,14 +22,17 @@ npm run build      # dist/, including the Pagefind index
 ## Deploy
 
 `.github/workflows/deploy.yml` checks out the data repo, validates and exports
-it, builds the site and publishes it to GitHub Pages on every push to `main`,
+it, builds the site and publishes it to the server on every push to `main`,
 on demand, and once a day to pick up new data.
 
-After each deploy, the pages whose HTML changed since the previous deploy
-are submitted to IndexNow (`tools/indexnow.mjs`, key in
-`public/57e36ab789104bcf088bfd87194fc1b2.txt`). The deployed
-`/indexnow-manifest.json.gz` holds the page hashes the next deploy compares
-against.
+After each deploy, the pages whose own content (head data and `<main>`, not
+the shared header, footer or asset names) changed since they were last
+submitted go to IndexNow (`tools/indexnow.mjs`, key in
+`public/57e36ab789104bcf088bfd87194fc1b2.txt`), at most 2,000 URLs per UTC day
+across all deploys, newest changes first. The deployed
+`/indexnow-manifest.json.gz` records the hash and day of each page's last
+submission and the day's count; each deploy logs changed, submitted and
+skipped by the cap.
 
 ## Thanks
 

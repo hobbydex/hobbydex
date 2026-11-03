@@ -1,4 +1,4 @@
-name: Build and deploy to GitHub Pages
+name: Build and deploy
 
 on:
   push:
@@ -9,23 +9,74 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false   # a running deploy always finishes; GitHub keeps only the newest waiting one
 
 jobs:
-  build:
+  # Runs outside every concurrency group, so GitHub never cancels it. A run whose
+  # older sibling is still waiting to build skips; that sibling builds the latest
+  # main and data when it starts, so nothing is lost.
+  gate:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+    steps:
+      - name: Skip when an older run is still waiting to build
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ME: ${{ github.run_id }}
+        run: |
+          # unknown state: build anyway rather than skip the site update
+          ids=""
+          for status in queued in_progress waiting requested pending; do
+            if ! list=$(gh api --paginate "repos/$REPO/actions/workflows/deploy.yml/runs?status=$status&per_page=100" --jq '.workflow_runs[].id'); then
+              echo "::warning::Could not list $status runs; building without the queue check"
+              echo "build=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            ids="$ids $list"
+          done
+          waiting=""
+          for id in $(printf '%s\n' $ids | sort -un); do
+            [ -n "$id" ] && [ "$id" -lt "$ME" ] || continue
+            # the build job is "none" until this run's gate has passed and it has been queued
+            if ! state=$(gh api "repos/$REPO/actions/runs/$id/jobs?per_page=100" --jq '[.jobs[] | select(.name == "build")][0].status // "none"'); then
+              echo "::warning::Could not read run $id; building without the queue check"
+              echo "build=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            case "$state" in
+              queued|waiting|requested|pending|none) waiting="$waiting $id" ;;
+            esac
+          done
+          if [ -n "$waiting" ]; then
+            echo "Older run(s) still waiting to build:$waiting; this run skips"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    # a running build is never cancelled; newer runs skip rather than queue behind a waiting build
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0   # the sitemap's lastmod of static pages is their source file's last commit
       - name: Check out the RC dataset
         uses: actions/checkout@v7
         with:
           repository: hobbydex/hobbydex-rc
           path: data-repo
+          fetch-depth: 0   # export.py dates every record by its last commit
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -37,6 +88,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          check-latest: true
           cache: npm
       - run: npm ci
       - run: npm run build
@@ -59,21 +111,56 @@ jobs:
           path: indexnow-plan.json
           if-no-files-found: ignore
           retention-days: 7
-      - uses: actions/upload-pages-artifact@v5
+      # one tar file: half a million small files are slow to upload one by one
+      - name: Pack the site
+        run: tar -cf site.tar -C dist .
+      - uses: actions/upload-artifact@v7
         with:
-          path: dist
-  deploy:
+          name: site
+          path: site.tar
+          compression-level: 0
+          retention-days: 3
+  # Own server (Hetzner + Caddy, see ops/server/): runs only when the DEPLOY_* secrets are set.
+  deploy-server:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Skip when the server is not configured
+        if: env.DEPLOY_HOST == '' || env.DEPLOY_SSH_KEY == ''
+        run: echo "DEPLOY_HOST / DEPLOY_SSH_KEY not set; skipping the server deploy"
+      - uses: actions/checkout@v7
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        with:
+          sparse-checkout: |
+            ops/server
+            tools/smoke.mjs
+      - uses: actions/download-artifact@v8
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        with:
+          name: site
+      - name: Upload the release and switch to it
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        run: |
+          mkdir -p dist ~/.ssh
+          tar -xf site.tar -C dist
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          SSH_OPTS="-i $HOME/.ssh/deploy_key" ops/server/deploy.sh dist
+      - uses: actions/setup-node@v7
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        with:
+          node-version: 22
+      - name: Smoke check
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        run: node tools/smoke.mjs --dist dist --base https://hobbydex.com
   # tells IndexNow search engines which pages changed; never fails the deploy
   indexnow:
-    needs: deploy
+    needs: deploy-server
     runs-on: ubuntu-latest
     continue-on-error: true
     permissions:

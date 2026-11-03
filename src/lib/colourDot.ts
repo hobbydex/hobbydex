@@ -12,6 +12,10 @@ const PALETTE: Record<string, Shade> = {
   brown: { c: '#7a4a25' }, tan: { c: '#d2b48c' }, khaki: { c: '#b8a46a' }, sand: { c: '#d8c391' },
   olive: { c: '#6b6f2a' }, turquoise: { c: '#2ab7b0' }, teal: { c: '#148a8a' }, cyan: { c: '#22c3e6' },
   flesh: { c: '#f1c6a7' }, 'navy blue': { c: '#1f2f6b' }, 'lime green': { c: '#8bc34a' }, 'lime yellow': { c: '#d4e034' },
+  lavender: { c: '#c3a6e6' }, beige: { c: '#e0d2b4' }, maroon: { c: '#7a1f2b' }, 'lemon yellow': { c: '#f4e04d' },
+  'gray green': { c: '#7d8f7a' }, 'black green': { c: '#1f3a2c' }, 'blue violet': { c: '#5b4fd0' }, 'blue green': { c: '#1f8a8a' },
+  'military desert': { c: '#c2a878' }, 'mandarin alert': { c: '#ff8a1f' }, 'kiwi power': { c: '#9ad13a' },
+  'cassis haze': { c: '#7a3a6b' }, 'energy mint': { c: '#8fe3c0' },
   'yellow green': { c: '#a5c33a' }, 'olive green': { c: '#5e6b2a' }, 'army green': { c: '#4b5a2a' }, 'military green': { c: '#4b5a2a' }, 'red brown': { c: '#8a3324' },
   // anodized shades
   'light blue': { c: '#4fa8e8' }, 'dark blue': { c: '#173d8f' }, 'charcoal gray': { c: '#4a4e54' }, 'light gray': { c: '#c3c7cc' },
@@ -20,6 +24,8 @@ const PALETTE: Record<string, Shade> = {
   silver: { c: '#bfc3c8', metal: true }, aluminum: { c: '#c4c8cc', metal: true }, chrome: { c: '#d9dde1', metal: true },
   'gun metal': { c: '#4f565c', metal: true }, gold: { c: '#c9a23a', metal: true }, 'champagne gold': { c: '#d7c08a', metal: true },
   bronze: { c: '#a0703a', metal: true }, copper: { c: '#b8683d', metal: true }, titanium: { c: '#8c8f93', metal: true },
+  'dark titanium': { c: '#5f6266', metal: true }, 'dark silver': { c: '#8d9196', metal: true }, 'dark copper': { c: '#8a4a2b', metal: true },
+  'neo chrome': { c: '#b9c4cf', metal: true },
   platinum: { c: '#d5d3cc', metal: true }, 'black chrome': { c: '#2d3034', metal: true }, 'black metal chrome': { c: '#2d3034', metal: true },
   // see-through
   clear: { c: 'rgba(255,255,255,0)', see: true }, smoke: { c: 'rgba(40,40,44,0.6)', see: true },
@@ -45,7 +51,7 @@ function shade(word: string): Shade | undefined {
   if (!b || b.see) return first === 'translucent' && b ? b : undefined;
   if (first === 'light' && !b.metal) return { c: mix(b.c, 255, 0.45) };
   if (first === 'dark' && !b.metal) return { c: mix(b.c, 0, 0.4) };
-  if (first === 'fluorescent' || first === 'fluo' || first === 'neon') return FLUO[base] ? { c: FLUO[base] } : undefined;
+  if (first === 'fluorescent' || first === 'fluorescence' || first === 'fluo' || first === 'neon') return FLUO[base] ? { c: FLUO[base] } : undefined;
   if (first === 'translucent') return { c: b.c + '99', see: true };
   return undefined;
 }
@@ -86,4 +92,17 @@ export function colourDot(color: string | undefined): string {
   if (!style) return '';
   const label = color!.replace(/"/g, '');
   return `<span class="cdot" role="img" aria-label="${label}" title="${label}" style="${style}"></span>`;
+}
+
+/** The fill for a part's default icon in its one colour, and whether its outline is the text colour (a dark
+ *  fill, which would vanish on a dark page) or a muted line (every other fill). Undefined for an unknown
+ *  colour and for two or three colours side by side, which stay untinted. */
+export function iconTint(color: string | undefined): { fill: string; dark: boolean } | undefined {
+  const shades = colourShades(color);
+  if (!shades || shades.length !== 1) return undefined;
+  const s = shades[0];
+  if (s.see) return { fill: 'rgba(150,150,160,0.6)', dark: false };
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(s.c.slice(i, i + 2), 16) / 255);
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;   // linear enough for the outline choice
+  return { fill: s.c, dark: lum < 0.15 };
 }

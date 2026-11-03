@@ -12,5 +12,16 @@ for (const p of db.parts) {
 }
 export const categories = [...byCategory.keys()].sort((a, b) => (categoryLabel[a] ?? a).localeCompare(categoryLabel[b] ?? b));
 export const countOf = (c: string) => [...(byCategory.get(c)?.values() ?? [])].reduce((n, ps) => n + ps.length, 0);
+// A category above this many parts is not one plain table: it gets the filter table (components/CategoryExplorer.astro).
+export const BIG = 3000;
+// parts with no category, by brand: listed under /rc/categories/uncategorised/<brand>/ (uncategorised is no category id)
+export const uncatSlug = 'uncategorised';
+export const uncategorised = new Map<string, Part[]>();
+for (const p of db.parts) {
+  if (p.category) continue;
+  if (!uncategorised.has(p.brand)) uncategorised.set(p.brand, []);
+  uncategorised.get(p.brand)!.push(p);
+}
+export const uncategorisedCount = [...uncategorised.values()].reduce((n, ps) => n + ps.length, 0);
 // generic spec pages that match a part category
 export const specFor: Record<string, string> = { screw: 'screw', bearing: 'bearing', pinion: 'pinion', battery: 'battery', servo: 'servo', 'oil-grease': 'oil', motor: 'motor', wheel: 'wheel-hex' };

@@ -1,0 +1,16 @@
+---
+import Base from '../../../layouts/Base.astro';
+import PartTable from '../../../components/PartTable.astro';
+import { db } from '../../../lib/data';
+import { motorFields, isMotorSpare } from '../../../lib/compareColumns';
+const motors = db.parts.filter((p) => p.category === 'motor');
+// spare parts of the motor category (rotors, brushes, rebuild kits) are not motors: see isMotorSpare
+const parts = motors.filter((p) => !isMotorSpare(p));
+const spares = motors.length - parts.length;
+---
+<Base title="Compare motors" description="RC motors side by side: brushed or brushless, kV, turns, can, shaft, leads, waterproofing and scales, from the makers' specifications.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Motors</div>
+  <h1>Compare motors</h1>
+  <p class="muted">Figures are the maker's. Click a heading to sort, tick two or more to see them side by side. Can and shaft come from the <a href="/rc/specs/motor/">motor specs</a>; check the motor mount before swapping. Rotors, brushes and rebuild kits are left out ({spares} spare parts). <a href="/rc/categories/motor/">Motor category</a> · <a href="/rc/escs/">Compare ESCs</a></p>
+  <PartTable category="motor" parts={parts} fields={motorFields} />
+</Base>

@@ -3,7 +3,7 @@
 // the URL state, the facet counts and the sort. The DOM part runs only where #release-results is on the page.
 
 export const PAGE = 20;
-export const DIMS = ['brand', 'type', 'scale', 'build', 'year'];
+export const DIMS = ['brand', 'type', 'scale', 'build', 'power', 'year'];
 export const SORTS = ['date', 'name', 'brand'];
 export const NONE = 'none';
 const DEFAULT_DIR = { date: 'desc', name: 'asc', brand: 'asc' };
@@ -15,24 +15,36 @@ export function isoText(iso) {
   if (!m) return iso;
   return [m[1], m[2] && MONTHS[Number(m[2]) - 1], m[3] && String(Number(m[3]))].filter(Boolean).join(' ');
 }
-// The date column's words (data.ts dateTextPlain): an announced date says so, an undated release says unknown.
+// The date column's words (DateText.astro): the date alone, an undated release says unknown. The mode (icon) is
+// dateMode's.
 export function dateLabel(date, flags) {
-  if (!date) return 'unknown';
-  return flags & 2 ? `announced ${isoText(date)}` : isoText(date);
+  return date ? isoText(date) : 'unknown';
 }
+// The date's mode as DateText.astro has it, from the list's flags: 16 = expected (coming, not out yet), 1 = seen by,
+// 2 = announced.
+export function dateMode(date, flags) {
+  if (!date) return '';
+  return flags & 16 ? 'expected' : flags & 1 ? 'seenby' : flags & 2 ? 'announced' : '';
+}
+export const MODE_LABELS = {
+  expected: 'Expected (coming, not out yet)',
+  seenby: 'Seen by: on sale by this day, not the release date',
+  announced: 'Announced',
+};
 
 // The rows as objects. The list's index columns are resolved here; the year is a number and its decade a value.
 // A row's trailing empty columns are left out of the list, so art, colour and doubt may be missing.
 export function decode(list) {
-  return list.rows.map(([tail, name, bi, ti, si, bu, st, date, flags, art, colour, doubt]) => {
+  return list.rows.map(([tail, name, bi, ti, si, bu, st, date, flags, art, colour, doubt, group, power]) => {
     const [brand, brandName] = list.brands[bi];
     const [type, typeLabel, icon, wide] = list.types[ti];
     const build = list.builds[bu];
     return {
       url: `/rc/releases/${brand}/${tail}/`, name, brand, brandName, type, typeLabel, icon, wide: !!wide,
-      scale: list.scales[si], build: build[0], buildLabel: build[1], status: list.statuses[st],
-      date, dateText: dateLabel(date, flags), year: date ? date.slice(0, 4) : NONE, seen: (flags & 1) > 0,
+      scale: list.scales[si], build: build[0], power: power == null ? '' : list.powers[power][0], buildLabel: power == null || list.powers[power][0] === 'unpowered' ? build[1] : `${build[1]} \u00b7 ${list.powers[power][1]}`.replace(/^ \u00b7 /, ''), status: list.statuses[st],
+      date, dateText: dateLabel(date, flags), dateMode: dateMode(date, flags), year: date ? date.slice(0, 4) : NONE, seen: (flags & 1) > 0, seenKind: flags & 4 ? 'archive' : flags & 8 ? 'video' : 'page',
       doubt: doubt == null ? '' : list.doubts[doubt], art: art || '', colour: colour == null ? '' : list.colours[colour],
+      group: group == null ? -1 : group,
     };
   });
 }
@@ -45,6 +57,7 @@ export function valueOf(row, dim) {
     case 'type': return row.type;
     case 'scale': return row.scale || NONE;
     case 'build': return row.build || NONE;
+    case 'power': return row.power || NONE;
     case 'year': return row.year;
   }
 }
@@ -64,7 +77,7 @@ export function stepYear(current, delta, [min, max]) {
   return String(Math.min(max, Math.max(min, Number(current) + delta)));
 }
 
-// The filters and sort in the URL: ?brand=traxxas&type=monster&scale=1-10&build=rtr&year=2020s&sort=name&dir=asc.
+// The filters and sort in the URL: ?brand=traxxas&type=monster&scale=1-10&build=rtr&power=brushless&year=2020s&sort=name&dir=asc.
 // Values that occur in no row are dropped; the sort and direction appear only when they are not the default.
 export function parseSearch(search, present) {
   const p = new URLSearchParams(search);
@@ -122,6 +135,7 @@ export function options(list, rows, filters, counts) {
     type: list.types.map((t) => t[0]),
     scale: list.scales.map((s) => s || NONE),
     build: list.builds.map((b) => b[0] || NONE),
+    power: [...(list.powers ?? []).map((x) => x[0]), NONE],
     year: [...years, NONE],
   };
   const labelOf = {
@@ -129,6 +143,7 @@ export function options(list, rows, filters, counts) {
     type: (v) => list.types.find((t) => t[0] === v)?.[1] ?? v,
     scale: (v) => (v === NONE ? 'No scale' : v),
     build: (v) => (v === NONE ? 'No build kind' : list.builds.find((b) => (b[0] || NONE) === v)?.[1] ?? v),
+    power: (v) => (v === NONE ? 'Not stated' : (list.powers ?? []).find((x) => x[0] === v)?.[1] ?? v),
     year: (v) => (v === NONE ? 'No date' : v),
   };
   const out = {};
@@ -168,6 +183,22 @@ export function listRows(rows, filters, sort, dir) {
   return sorted.filter((r) => r.year === y);
 }
 
+// The list as table rows: a colourway group (the same car in several colours) is one row, at the place of its first
+// release in the list's order, with all its colours; every other release is its own row. A group's `row` keeps the
+// first release, `members` the group's [id tail, swatch style, swatch name, livery flag] entries, `name` the group's name.
+export function collapse(rows, groups) {
+  const seen = new Set();
+  const out = [];
+  for (const r of rows) {
+    if (r.group < 0) { out.push({ row: r }); continue; }
+    if (seen.has(r.group)) continue;
+    seen.add(r.group);
+    const [name, members] = groups[r.group];
+    out.push({ row: r, name, members });
+  }
+  return out;
+}
+
 // ---- the page (only where the results table is) ----
 
 const root = typeof document !== 'undefined' ? document.getElementById('release-results') : null;
@@ -179,7 +210,7 @@ if (root) {
   const more = document.getElementById('release-more');
   const newest = document.getElementById('release-newest');
   const sortSelect = document.getElementById('f-sort');
-  const SEEN_NOTE = root.dataset.seenNote;
+  const SEEN_NOTES = JSON.parse(root.dataset.seenNotes);
   const NS = 'http://www.w3.org/2000/svg';
 
   const cell = (tr, label, cls) => {
@@ -199,22 +230,54 @@ if (root) {
     tr.append(th);
     return tr;
   };
-  const rowEl = (r) => {
+  // the colour switch of a group, as ColourSwitch.astro draws it inline: a dot per colour, each linking its release
+  const swatches = (members, brand) => {
+    const nav = document.createElement('nav');
+    nav.className = 'colourswitch inline';
+    nav.setAttribute('aria-label', 'Colours of this release');
+    const ul = document.createElement('ul');
+    for (const [tail, style, label, livery] of members) {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = `/rc/releases/${brand}/${tail}/`;
+      a.className = style ? 'swatch' : livery ? 'swatch livery' : 'swatch nodot';
+      if (style) a.setAttribute('style', style);
+      a.setAttribute('aria-label', label); a.title = label;
+      if (!style && !livery) a.textContent = label.split(', ').pop();
+      li.append(a); ul.append(li);
+    }
+    nav.append(ul);
+    return nav;
+  };
+  const rowEl = ({ row: r, name: groupName, members }) => {
     const tr = document.createElement('tr');
     const date = cell(tr, 'Released', 'num');
-    date.textContent = r.dateText;
-    if (r.seen) { const a = document.createElement('abbr'); a.className = 'doubt seen'; a.tabIndex = 0; a.dataset.tip = SEEN_NOTE; a.setAttribute('aria-label', SEEN_NOTE); a.textContent = '*'; date.append(a); }
+    const line = document.createElement('span');
+    const slot = document.createElement('span');
+    slot.className = 'dslot';
+    line.className = 'dateline' + (r.dateMode === 'expected' ? ' coming-date' : r.dateMode === 'seenby' ? ' seen-date' : '');
+    if (r.dateMode) {
+      const label = r.dateMode === 'expected' ? `Expected ${r.dateText} (coming, not out yet)` : r.dateMode === 'announced' ? `announced ${r.dateText}` : MODE_LABELS[r.dateMode];
+      const e = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      e.setAttribute('class', 'icon'); e.setAttribute('role', 'img'); e.setAttribute('aria-label', label); e.style.cssText = 'width:1em;height:1em';
+      const u = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+      u.setAttribute('href', '/icons.svg#' + r.dateMode); e.append(u); slot.append(e);
+      line.title = label;
+    }
+    line.append(slot, r.dateText);
+    date.append(line);
     if (r.doubt) { const a = document.createElement('abbr'); a.className = 'doubt'; a.tabIndex = 0; a.dataset.tip = r.doubt; a.setAttribute('aria-label', r.doubt); a.textContent = '?'; date.append(a); }
     const brand = cell(tr, 'Brand');
     const b = document.createElement('a'); b.href = `/rc/brands/${r.brand}/`; b.textContent = r.brandName; brand.append(b);
     const name = cell(tr, 'Release', 'name');
-    name.append(outline(r));
-    const a = document.createElement('a'); a.href = r.url; a.textContent = r.name; name.append(' ', a);
+    name.append(outline(members ? { ...r, colour: '' } : r));
+    const a = document.createElement('a'); a.href = r.url; a.textContent = members ? groupName : r.name; name.append(' ', a);
     if (r.status === 'discontinued') {
       const d = document.createElement('span'); d.className = 'disc'; d.title = 'Discontinued';
       d.innerHTML = '<svg class="icon" style="width:1em;height:1em" aria-hidden="true"><use href="/icons.svg#discontinued"></use></svg><span class="sr-only"> discontinued</span>';
       name.append(d);
     }
+    if (members) name.append(' ', swatches(members, r.brand));
     cell(tr, 'Type').textContent = r.typeLabel;
     cell(tr, 'Scale').textContent = r.scale;
     cell(tr, 'Build').textContent = r.buildLabel;
@@ -247,7 +310,15 @@ if (root) {
     const u = document.createElementNS(NS, 'use');
     u.setAttribute('href', `/icons.svg#${r.icon}`);
     svg.append(u);
-    return svg;
+    if (!r.colour) return svg;
+    // the type icon in the release's colour (as a default part icon is): a dark or white colour gets the thin outline
+    const edge = r.colour.startsWith('!');
+    svg.style.color = edge ? r.colour.slice(1) : r.colour;
+    if (!edge) return svg;
+    const wrap = document.createElement('span');
+    wrap.className = 'relart-edge';
+    wrap.append(svg);
+    return wrap;
   };
 
   let rows = [], list = null, state = null, shown = PAGE, sorted = [];
@@ -274,16 +345,18 @@ if (root) {
     sorted = listRows(rows, state.filters, state.sort, state.dir);
     // the stepper shows the year at the top of the list
     if (state.filters.year && sorted.length && /^\d{4}$/.test(sorted[0].year)) state.filters.year = sorted[0].year;
+    const entries = collapse(sorted, list.groups);
     count.textContent = `${sorted.length} release${sorted.length === 1 ? '' : 's'}`;
     const nodes = [];
     let prev = null;
-    for (const r of sorted.slice(0, shown)) {
+    for (const e of entries.slice(0, shown)) {
+      const r = e.row;
       if (state.sort === 'date' && (!prev || r.year !== prev.year)) nodes.push(dividerEl(r.year));
-      nodes.push(rowEl(r));
+      nodes.push(rowEl(e));
       prev = r;
     }
     body.replaceChildren(...nodes);
-    const left = sorted.length - shown;
+    const left = entries.length - shown;
     more.hidden = left <= 0;
     more.textContent = `Show ${Math.min(PAGE, left)} more`;
     for (const th of root.querySelectorAll('th[data-sort]')) {

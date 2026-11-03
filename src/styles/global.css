@@ -50,6 +50,22 @@ ul.cards li { background: var(--surface); border: 1px solid var(--border); borde
 .search-box:focus { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
 /* a magnifier inside a search field without a button, on the left; the home box has it on its button instead (.home-search) */
 .sfield { position: relative; display: block; }
+.sfield-row { display: flex; align-items: stretch; gap: 0; }
+.sfield-row > .sfield, .sfield-row > .search-box { flex: 1 1 auto; min-width: 0; }
+/* one joined control: shared border, no gap, rounded only at the outer ends */
+.sfield-row > * { border-radius: 0; }
+.sfield-row > * + * { margin-left: -1px; }
+.sfield-row > :first-child, .sfield-row > :first-child .search-box { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+.sfield-row > :last-child, .sfield-row > :last-child .search-box { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+.sfield-row > .search-box:focus, .sfield-row .search-box:focus { position: relative; z-index: 1; }
+.sfield-row > button { white-space: nowrap; box-sizing: border-box; min-height: 44px; padding: 0.5rem 0.9rem; cursor: pointer; background: var(--surface); }
+.sfield-row > button:hover { background: var(--surface-2); }
+.sfield-row:has(.scanbtn:not([hidden])) .search-box { min-height: 44px; }
+.scanbtn { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; flex: none; width: 44px; min-height: 44px; color: var(--fg); background: var(--surface); border: 1px solid var(--border); }
+.scanbtn[hidden] { display: none; }
+.scanbtn:hover { background: var(--surface-2); text-decoration: none; }
+.scanbtn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.scanbtn .icon { width: 1.4rem; height: 1.4rem; }
 .sfield > input { display: block; padding-left: 2.1rem; }
 .sfield > .icon { position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); width: 1.1rem; height: 1.1rem; vertical-align: 0; color: var(--muted); pointer-events: none; }
 .search-filters { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.75rem 0; }
@@ -85,6 +101,8 @@ ul.search-results mark { background: var(--mark); color: inherit; border-radius:
 .home-search { display: flex; margin: 1rem 0; max-width: 40rem; }
 .home-search input { flex: 1; min-width: 0; font: inherit; font-size: 1rem; padding: 0.5rem 0.75rem; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px 0 0 6px; }
 .home-search :is(input, button):focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; position: relative; z-index: 1; }
+.home-search .scanbtn { border-radius: 6px 0 0 6px; margin-right: -1px; }
+.home-search .scanbtn:not([hidden]) + .ac input { border-radius: 0; }
 .home-search .ac { position: relative; flex: 1; min-width: 0; display: flex; }
 .ac-pop { position: absolute; z-index: 10; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.15); overflow: hidden; }
 .ac-status { color: var(--muted); font-size: 0.8rem; padding: 0.4rem 0.75rem; }
@@ -121,9 +139,8 @@ ul.cards li.kitcard > a { color: var(--muted); } ul.cards li.kitcard > a:hover {
 p.bycat a { white-space: nowrap; }
 /* spec drawings (lib/screwDrawing.ts, lib/specDrawings.ts, lib/gearing.ts): line art in the text colour */
 figure.drawing { margin: 0.5rem 0 1rem; max-width: 36rem; }
+.specicon { color: var(--muted); margin: 0.5rem 0 1rem; }
 figure.drawing svg { max-width: 100%; height: auto; display: block; }
-.factsrow > figure.drawing { min-width: 0; width: min(100%, 36rem); margin-left: auto; }
-.factsrow > figure.drawing svg { width: 100%; }
 .screwdrawing .s { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
 .screwdrawing .thin { stroke-width: 0.8; }
 .screwdrawing .solid { fill: currentColor; stroke: none; }
@@ -134,7 +151,11 @@ figure.drawing figcaption { font-size: 0.8rem; }
 .screwdrawing .fill { fill: currentColor; fill-opacity: 0.12; }
 .screwdrawing.plug .fill { fill: var(--plug); fill-opacity: 1; }
 .screwdrawing .metal { fill: #c9a54a; }
-.screwdrawing.plug .ln { stroke: var(--plug-line, currentColor); }
+.screwdrawing .blk { fill: #33363b; }
+.screwdrawing .cover { fill: #8a8f96; }
+.screwdrawing.plug .fill, .screwdrawing.plug .ink { stroke: var(--plug-stroke, currentColor); }
+.screwdrawing .inkfill { fill: var(--plug-stroke, currentColor); stroke: none; }
+.screwdrawing.plug .inlay { fill: var(--plug-inlay); stroke: none; }
 .screwdrawing .bg { fill: var(--bg); }
 .screwdrawing .ball { fill: var(--bg); stroke-width: 1.2; }
 .screwdrawing .shield { fill: currentColor; fill-opacity: 0.35; stroke-width: 0.8; }
@@ -151,12 +172,16 @@ svg.paintchip { vertical-align: middle; margin-right: 0.5rem; }
 .cdot { display: inline-block; width: 0.85em; height: 0.85em; border-radius: 50%; vertical-align: -0.1em; margin-right: 0.35em;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent); }
 .paintcolour { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; }
-.factsrow { display: flex; align-items: flex-start; gap: 2rem; flex-wrap: wrap; }
+.factsrow { display: flex; align-items: flex-start; gap: 0.5rem 2rem; flex-wrap: wrap; }
 .factsrow .typeicon { color: var(--muted); margin-left: auto; }
 .factsrow > dl.facts { flex: 1 1 20rem; min-width: 0; }
-.factsrow .typeicon.bagicon { align-self: flex-start; flex: 0 1 26rem; }
+/* the column beside the facts (part and spec pages): the hardware bag, art or type icon; below the facts on a phone.
+   The dimension drawing sits full width under the facts row. */
+.factsside { flex: 0 1 26rem; min-width: 0; margin-left: auto; display: flex; flex-direction: column; }
+.factsside > .typeicon { align-self: flex-end; max-width: 100%; }
+.factsside .hardwarebag { margin-top: 0; }
 .partnotes { max-width: 46rem; font-size: 0.9rem; }
-@media (max-width: 40rem) { .factsrow .typeicon.bagicon { flex: 1 1 100%; margin-left: 0; } }
+@media (max-width: 40rem) { .factsside { flex: 1 1 100%; margin-left: 0; } }
 .relart { vertical-align: -0.25em; flex: none; }
 .relart.hero { height: 12rem !important; width: auto !important; max-width: 100%; }   /* the release page outline or type icon: 12rem tall, as wide as its shape, never wider than a phone */
 .relart.inrow { color: var(--muted); margin-right: 0.15rem; }
@@ -196,6 +221,7 @@ a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
   table:is(.releases, .stacked) td:empty { display: none; }
   table:is(.releases, .stacked) td[data-label] { margin-right: 0.9rem; font-size: 0.8rem; white-space: nowrap; }
   table.stacked td[data-label]:not(:empty) { display: inline-block; }   /* boxes, not inline runs, so a row of labelled values can wrap between them */
+  table.stacked td[data-label="Notes"]:not(:empty) { display: none; }   /* a long note would run off the phone screen; the set page has it */
   table:is(.releases, .stacked) td[data-label]::before { content: attr(data-label) " "; color: var(--muted); }
   table.releases tr[hidden] { display: none; }   /* rows a filter hides stay hidden as blocks */
   table.releases thead { display: none; }   /* a table with a thead (the brand page): its first body row is a row, not the header */
@@ -248,6 +274,9 @@ details.morefmt > summary:hover { color: var(--fg); }
 html.hide-discontinued [data-discontinued] { display: none !important; }
 .hidedisc { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0; cursor: pointer; }
 /* The "?" and "*" date markers: the note shows on hover, focus or tap (tabindex makes the tap focus it). */
+.coming-date { white-space: nowrap; }
+td.num .coming-date, td.num .seen-date { display: inline-block; }
+.seen-date { color: var(--muted); font-style: italic; }
 abbr.doubt { position: relative; cursor: help; }
 abbr.doubt:is(:hover, :focus, :focus-visible)::after {
   content: attr(data-tip); position: absolute; left: 0; top: 1.5em; z-index: 10;
@@ -272,7 +301,8 @@ body { overflow-x: clip; }
 .home-hero .home-search { margin: 0 auto; }
 .hero-edge { display: block; width: 100vw; height: auto; aspect-ratio: 1200 / 170; margin: -0.75rem calc(50% - 50vw) -1px; }
 /* the whole wave and the jump scale with the width, down to a phone; on very wide screens the height stops
-   growing and the edge is trimmed on the left (the crest stays: the drawing is anchored right) */
+   growing and the drawing, anchored right, shows more of the flat ground on the left (never trimmed at the top,
+   where the car flies) */
 @media (min-width: 1600px) { .hero-edge { height: 227px; aspect-ratio: auto; } }
 @media (max-width: 700px) { .hero-edge { margin-top: 0.75rem; } }   /* the scaled-down car clears the search box */
 .hero-edge .below { fill: var(--bg); }   /* the page below the wave; above it the band's gradient shows through */
@@ -280,3 +310,40 @@ body { overflow-x: clip; }
 .specguide { margin: 0.5rem 0 1rem; max-width: 46rem; }
 .specguide dt { font-weight: 600; margin-top: 0.5rem; }
 .specguide dd { margin: 0.1rem 0 0; }
+/* the page type above the title: a platform (a chassis and its releases) or a release (one box) */
+.pagetype { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.pagenote { margin: 0 0 0.75rem; }
+
+/* the colour switch: a swatch per version of a range of one part in several colours (ColourSwitch.astro) */
+.colourswitch { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.75rem; margin: 0.5rem 0 0.75rem; }
+.colourswitch ul { display: flex; flex-wrap: wrap; gap: 0.6rem; list-style: none; margin: 0; padding: 5px; }
+.colourswitch-lead { color: var(--muted); font-size: 0.9rem; }
+.colourswitch a.swatch { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent); text-decoration: none; }
+/* a livery, not a colour: diagonal stripes in the text colour */
+.colourswitch a.swatch.livery { background-image: repeating-linear-gradient(135deg, var(--fg) 0 0.12em, transparent 0.12em 0.3em); box-shadow: inset 0 0 0 1px var(--border); }
+.colourswitch a.swatch.nodot { width: auto; min-width: 1.5rem; height: 1.4rem; padding: 0 0.5rem; border-radius: 1rem; font-size: 0.85em; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
+.colourswitch a.swatch[aria-current="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
+.colourswitch a.swatch:hover { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--muted); }
+.colourswitch a.swatch:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+/* small swatches: a dot about body text high; the padding keeps the tap target near 27 px (ColourSwitch size="small") */
+.colourswitch.small { margin: 0.3rem 0 0.1rem; gap: 0.3rem 0.5rem; }
+.colourswitch.small ul { gap: 0.35rem; padding: 4px; }
+.colourswitch.small a.swatch { width: 1em; height: 1em; padding: 0.2em; box-sizing: content-box; background-clip: content-box; }
+.colourswitch.small a.swatch.nodot { width: auto; height: auto; min-width: 0; padding: 0.1em 0.4em; font-size: 0.8em; }
+/* inline swatches: dots on the line of a row's name, about the size of the colour dot after a release title */
+/* no block padding and a negative block margin: the tap padding and the ring stay within the row's line height */
+.colourswitch.inline { display: inline-flex; margin: 0 0 0 0.35em; vertical-align: middle; line-height: 1; }
+.colourswitch.inline ul { gap: 0.15em; padding: 0 2px; }
+.colourswitch.inline a.swatch { width: 0.75em; height: 0.75em; padding: 0.2em; margin: -0.2em 0; box-sizing: content-box; background-clip: content-box; }
+.colourswitch.inline a.swatch.nodot { width: auto; height: auto; min-width: 0; padding: 0 0.3em; font-size: 0.75em; }
+/* a part's default icon in its one colour: a thin outline (muted, or the text colour for a dark fill) keeps it readable */
+.typeicon.tinted .icon { color: var(--tint); filter: drop-shadow(1px 0 0 var(--muted)) drop-shadow(-1px 0 0 var(--muted)) drop-shadow(0 1px 0 var(--muted)) drop-shadow(0 -1px 0 var(--muted)); }
+.typeicon.tinted[data-dark] .icon { filter: drop-shadow(1px 0 0 var(--fg)) drop-shadow(-1px 0 0 var(--fg)) drop-shadow(0 1px 0 var(--fg)) drop-shadow(0 -1px 0 var(--fg)); }
+
+@media (max-width: 600px) { table.home-new .relplat { display: none; } table.home-new td.num { padding-right: 0.5rem; } }
+.dslot { display: inline-block; width: 1.3em; text-align: left; vertical-align: -0.1em; }
+/* the slot only aligns table columns: outside a table an empty one takes no room */
+.dslot:empty { display: none; }
+td .dslot:empty { display: inline-block; }
+.dateline { white-space: nowrap; }

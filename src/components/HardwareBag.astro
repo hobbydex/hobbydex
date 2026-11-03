@@ -1,16 +1,21 @@
 ---
 // A hardware bag: one inline SVG in millimetres. Each spec is a symbol (its drawing from src/assets/hardware,
-// made by tools/hardware/make_drawings.py); its copies are <use> elements placed in mm, five per row, up to 20 per
+// made by hobbydex-tools tools/hardware/make_drawings.py); its copies are <use> elements placed in mm, five per row, up to 20 per
 // spec and then "+N". Groups run largest drawing first, each with a caption. One 1 cm bar sits under the last row,
 // left-aligned with the bottom-left item, its ticks pointing down. The svg is as wide as its page column, but at most
 // 12 px per mm, so a single small part is not blown up. Lines are currentColor with non-scaling strokes; the silhouette
 // takes the part's colour, else its finish or material tone, else the page background. A rubber seal fills the bearing's shield face.
+// A caption prints the count the data states ("3x8 x 4"), and no count when it states none. A screw caption adds its
+// head word ("3x8 countersunk") when the bag holds more than one head type of that size. A bag that draws only some
+// of a set's rows says so on its first line ("10 of 18 items drawn"). A bag whose items state no quantity says
+// "quantities not stated" on its first line, or "some quantities not stated" when only some items lack one.
 import { colourShades } from '../lib/colourDot';
 import { db } from '../lib/data';
 import { hardwareFile, hardwareSvg, metalTone, type BagItem } from '../lib/hardwareBag';
 
-interface Props { items: BagItem[]; seal?: string; color?: string; finish?: string; material?: string }
-const { items, seal, color, finish, material } = Astro.props;
+interface Props { items: BagItem[]; drawn?: number; total?: number; seal?: string; color?: string; finish?: string; material?: string }
+const { items, drawn, total, seal, color, finish, material } = Astro.props;
+const partial = drawn !== undefined && total !== undefined && drawn < total ? `${drawn} of ${total} items drawn` : undefined;
 const COLS = 5, CAP = 20, BAR = 10, MARGIN = 0.5, MAX_PX_PER_MM = 12;
 const SEAL_FILL = 'var(--seal-rubber, #8a8f98)'; // a rubber seal (2RS/RS) face; a metal shield keeps the part's fill
 
@@ -23,10 +28,14 @@ const shortName = (id: string) => {
     case 'nut': return `${num(s.thread)} ${num(s.type)}`;
     case 'washer': return `${num(s.bore_mm)}x${num(s.outer_mm)}x${num(s.thickness_mm)}`;
     case 'eclip': return `${num(s.shaft_mm)} mm e-clip`;
+    case 'circlip': return `${num(s.shaft_mm)} mm circlip`;
+    case 'o-ring': return `${num(s.inner_mm)}x${num(s.cross_mm)} O-ring`;
     case 'pinion': return s.pitch_dp ? `${num(s.teeth)}T ${num(s.pitch_dp)}dp` : `${num(s.teeth)}T mod ${num(s.module)}`;
     default: return `${num(s.thread ?? s.diameter_mm)}x${num(s.length_mm)}`;
   }
 };
+const specOf = (id: string) => db.spec.get(id) as Record<string, unknown> | undefined;
+const headWord = (id: string) => String(specOf(id)?.head ?? '').replace(/-/g, ' ');
 const fullName = (id: string) => db.spec.get(id)?.name ?? id.split('/').pop()!;
 const luminance = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
   .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
@@ -38,20 +47,22 @@ const sealed = (seal === 'rubber' || seal === 'rubber-metal') && items.length > 
 const sealShade = sealed ? colourShades(color)?.[0]?.c : undefined;
 const shade = sealed ? undefined : colourShades(color)?.[0]?.c;
 // metal hardware (screws, nuts, washers, pins, e-clips, bearings, pinions) is steel unless the part says otherwise: silver rather than the page background
-const steelByDefault = items.length > 0 && items.every((i) => /^spec\/(eclip|bearing|screw|nut|washer|pin|pinion)\//.test(i.spec));
-const tone = shade ? undefined : metalTone(finish, material) ?? (steelByDefault ? 'steel' : undefined);
+const steelByDefault = items.length > 0 && items.every((i) => /^spec\/(eclip|circlip|bearing|screw|nut|washer|pin|pinion)\//.test(i.spec));
+// an O-ring is black rubber unless the part says otherwise
+const rubberByDefault = items.length > 0 && items.every((i) => i.spec.startsWith('spec/o-ring/'));
+const tone = shade ? undefined : metalTone(finish, material) ?? (steelByDefault ? 'steel' : rubberByDefault ? 'black' : undefined);
 const fill = shade ?? (tone ? `var(--hb-${tone})` : 'var(--bg, #fff)');
 const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : tone ? `var(--hb-${tone}-ink)` : 'currentColor';
 
 // the groups, largest drawing first; a spec listed twice is one group
 const groups = [...new Map(items.filter((i) => hardwareFile(i.spec, i.point)).map((i) => [hardwareFile(i.spec, i.point)!, i])).values()]
-  .map(({ spec, qty, point }) => {
+  .map(({ spec, qty, copies, point }) => {
     const useSeal = !!seal && (seal === 'rubber' || seal === 'rubber-metal') && spec.startsWith('spec/bearing/');
     const file = hardwareFile(spec, point)!;
     const svg = hardwareSvg(file)!;
     const vb = svg.match(/viewBox="([^"]+)"/)![1].split(' ').map(Number) as [number, number, number, number];
     return {
-      spec, qty, useSeal, vb,
+      spec, qty, copies, useSeal, vb,
       id: `hb-${file.replace(/\.svg$/, '')}${useSeal ? '-seal' : ''}`,
       pitchX: Number(svg.match(/data-pitch-x="([^"]+)"/)![1]), pitchY: Number(svg.match(/data-pitch-y="([^"]+)"/)![1]),
       sil: svg.match(/<path class="sil" d="([^"]*)"/)![1], seg: svg.match(/<path class="seal" d="([^"]*)"/)?.[1],
@@ -59,6 +70,24 @@ const groups = [...new Map(items.filter((i) => hardwareFile(i.spec, i.point)).ma
     };
   })
   .sort((a, b) => b.vb[2] * b.vb[3] - a.vb[2] * a.vb[3]);
+
+// a screw's caption carries its head word when the bag holds another head type of the same size (M3x6 button, M3x6 countersunk)
+const headsOfSize = new Map<string, Set<string>>();
+groups.forEach((g) => {
+  if (specOf(g.spec)?.category !== 'screw') return;
+  const size = shortName(g.spec);
+  headsOfSize.set(size, (headsOfSize.get(size) ?? new Set()).add(headWord(g.spec)));
+});
+const caption = (g: (typeof groups)[number]) => {
+  const size = shortName(g.spec);
+  const head = specOf(g.spec)?.category === 'screw' && headsOfSize.get(size)!.size > 1 ? ` ${headWord(g.spec)}` : '';
+  return `${size}${head}${g.qty !== undefined ? ` x ${g.qty}` : ''}`;
+};
+
+// the lines above the groups: the partial line, then a line for the quantities the data does not state
+const unstated = groups.filter((g) => g.qty === undefined).length;
+const qtyNote = unstated === 0 ? undefined : unstated === groups.length ? 'quantities not stated' : 'some quantities not stated';
+const headLines = [partial, qtyNote].filter((line): line is string => !!line);
 
 // the layout in mm: captions, rows of copies, the bar. The caption font grows with a wide bag (at least 2.2 mm,
 // a width/28 otherwise) so it stays readable when the whole bag is drawn small on a phone.
@@ -71,10 +100,17 @@ groups.forEach((g) => {
 function layout(FONT: number) {
   const parts: string[] = [];
   let y = 0, width = BAR;
+  headLines.forEach((line, i) => {
+    parts.push(`<text class="hbnote" x="0" y="${(FONT + i * FONT * 1.8).toFixed(2)}" font-size="${FONT.toFixed(2)}" font-style="italic" fill="currentColor">${line}</text>`);
+    width = Math.max(width, FONT * 0.55 * line.length);
+  });
+  y = headLines.length * FONT * 1.8;
   groups.forEach((g) => {
     const [, , vw, vh] = g.vb;
-    const n = Math.min(g.qty, CAP), more = g.qty - n;
-    parts.push(`<text x="0" y="${(y + FONT).toFixed(2)}" font-size="${FONT.toFixed(2)}" fill="currentColor">${shortName(g.spec)} x ${g.qty}</text>`);
+    const n = Math.min(g.copies, CAP), more = g.copies - n;
+    const text = caption(g);
+    parts.push(`<text x="0" y="${(y + FONT).toFixed(2)}" font-size="${FONT.toFixed(2)}" fill="currentColor">${text}</text>`);
+    width = Math.max(width, FONT * 0.55 * text.length);
     const top = y + FONT * 1.5;
     let lastX = 0, lastY = top;
     for (let k = 0; k < n; k++) {
@@ -104,7 +140,7 @@ function layout(FONT: number) {
 const first = layout(2.2);
 const FONT = Math.max(2.2, (first.width + 2 * MARGIN) / 28);
 const { parts: body, width, height } = FONT === 2.2 ? first : layout(FONT);
-const label = groups.map((g) => `${g.qty} x ${fullName(g.spec)}`).join(', ');
+const label = headLines.map((line) => `${line}: `).join('') + groups.map((g) => `${g.qty !== undefined ? `${g.qty} x ` : ''}${fullName(g.spec)}`).join(', ');
 const vbox = [-MARGIN, -MARGIN, width + 2 * MARGIN, height + 2 * MARGIN].map((v) => v.toFixed(2)).join(' ');
 const maxWidth = ((width + 2 * MARGIN) * MAX_PX_PER_MM).toFixed(0);
 ---

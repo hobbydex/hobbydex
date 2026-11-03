@@ -1,7 +1,7 @@
 // Release table logic (public/release-table.js): the URL state, filters, facet counts and sort, on a small list.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decode, presentValues, parseSearch, toSearch, filterRows, facets, options, sortRows, listRows, stepYear, isoText, dateLabel, NONE } from '../public/release-table.js';
+import { decode, collapse, valueOf, presentValues, parseSearch, toSearch, filterRows, facets, options, sortRows, listRows, stepYear, isoText, dateLabel, dateMode, NONE } from '../public/release-table.js';
 
 const list = {
   brands: [['traxxas', 'Traxxas'], ['arrma', 'Arrma']],
@@ -38,8 +38,14 @@ test('dates read as the static table words them', () => {
   assert.equal(isoText('2026-09-24'), '2026 Sep 24');
   assert.equal(isoText('2025-10'), '2025 Oct');
   assert.equal(isoText('2025'), '2025');
-  assert.equal(dateLabel('2025-10', 2), 'announced 2025 Oct');
+  assert.equal(dateLabel('2025-10', 2), '2025 Oct');
+  assert.equal(dateMode('2025-10', 2), 'announced');
+  assert.equal(dateMode('2026-12', 16), 'expected');
+  assert.equal(dateMode('2026-10', 5), 'seenby');
+  assert.equal(dateMode('2012', 0), '');
   assert.equal(dateLabel('', 0), 'unknown');
+  assert.equal(dateLabel('2026-10', 1), '2026 Oct');
+  assert.equal(dateLabel('2026-10', 5), '2026 Oct');
   assert.deepEqual(rows.map((r) => r.dateText), ['2020 Mar', '1998', 'unknown', '2024 May 1']);
 });
 
@@ -96,4 +102,34 @@ test('a year starts the newest-first list there and runs on into older years', (
   assert.deepEqual(listRows(rows, { year: '2020' }, 'date', 'desc').map((r) => r.name), ['E-Revo', 'Old Car', 'Plain']);
   assert.deepEqual(listRows(rows, { year: '2020', brand: 'arrma' }, 'date', 'desc').map((r) => r.name), ['Old Car', 'Plain']);
   assert.deepEqual(listRows(rows, { year: '1998' }, 'name', 'asc').map((r) => r.name), ['Old Car']);
+});
+
+test('collapse: a colourway group is one row at its first release', () => {
+  const l = { ...list, groups: [['Kit One', [['kit-1', '', 'a', 0], ['old', '', 'b', 0]]]] };
+  const rs = decode({ ...l, rows: [l.rows[0], [...l.rows[3].slice(0, 11), null, 0], [...l.rows[1].slice(0, 9), null, null, null, 0], l.rows[2]] });
+  const out = collapse(rs, l.groups);
+  assert.deepEqual(out.map((e) => e.row.url.split('/')[4]), ['4-tec', 'kit-1', 'no-date']);
+  assert.equal(out[1].name, 'Kit One');
+  assert.equal(out[1].members.length, 2);
+  assert.equal(out[0].members, undefined);
+});
+
+test('the power system: label next to the build, filter values, "not stated" for the rest', () => {
+  const plist = { ...list, builds: [['rtr', 'RTR'], ['kit', 'Kit'], ['roller', 'Roller (rolling chassis)']], powers: [['brushless', 'brushless'], ['nitro', 'nitro'], ['unpowered', 'No motor or engine']],
+    rows: [
+      ['flux', 'Flux RTR', 0, 0, 0, 0, 0, '2026-08', 0, null, null, null, null, 0],
+      ['plain', 'Plain RTR', 0, 0, 0, 0, 0, '2026-08'],
+      ['roll', 'Roller', 0, 0, 0, 2, 0, '2026-08', 0, null, null, null, null, 2],
+    ] };
+  const prows = decode(plist);
+  assert.deepEqual(prows.map((r) => r.power), ['brushless', '', 'unpowered']);
+  assert.deepEqual(prows.map((r) => r.buildLabel), ['RTR · brushless', 'RTR', 'Roller (rolling chassis)']);
+  assert.deepEqual(prows.map((r) => valueOf(r, 'power')), ['brushless', NONE, 'unpowered']);
+  assert.deepEqual(filterRows(prows, { power: 'brushless' }).map((r) => r.name), ['Flux RTR']);
+  const present = presentValues(prows);
+  assert.deepEqual(parseSearch('?power=brushless', present).filters, { power: 'brushless' });
+  assert.deepEqual(parseSearch('?power=nitro', present).filters, {});
+  assert.equal(toSearch({ filters: { build: 'rtr', power: 'brushless' }, sort: 'date', dir: 'desc' }), '?build=rtr&power=brushless');
+  const opts = options(plist, prows, {}, facets(prows, {}));
+  assert.deepEqual(opts.power.map((o) => [o.label, o.count]), [['brushless', 1], ['No motor or engine', 1], ['Not stated', 1]]);
 });

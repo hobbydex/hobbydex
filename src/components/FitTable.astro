@@ -1,0 +1,17 @@
+---
+import { colourDot } from '../lib/colourDot';
+import { paintChip } from '../lib/paintSwatch';
+import { shownNote, isSourceNote } from '../lib/notes';
+import SourceNote from './SourceNote.astro';
+import Discontinued from './Discontinued.astro';
+import { url, brandName, partNo } from '../lib/data';
+import { realPartDate } from '../lib/latestParts';
+import type { Fits, Part } from '../lib/data';
+// One category's table of the parts listed as fitting a platform.
+interface Props { rows: { part: Part; fit: Fits }[]; numn: number }
+const { rows, numn } = Astro.props;
+---
+<table>
+  <tr><th class="num numcol" style={`--numn:${numn}`}>Number</th><th>Name</th><th class="w-brand">Brand</th><th class="w-fit">Fit</th></tr>
+  {rows.map(({ part, fit }, i) => <tr data-discontinued={part.status === 'discontinued' ? '' : undefined} data-date={realPartDate(part) ?? ''} data-order={i}><td class="num">{part.number && <a href={url.part(part.id)}>{part.number}</a>}</td><td><Fragment set:html={part.category === 'paint' ? (paintChip(part, 14, 'circle') ?? '') : colourDot(part.color)} />{part.number ? part.name : <a href={url.part(part.id)}>{part.name}</a>}<Discontinued item={part} /></td><td>{brandName(part.brand)}</td><td>{fit.type}{shownNote(fit.notes) && (isSourceNote(shownNote(fit.notes)) ? <> <SourceNote text={shownNote(fit.notes)!} /></> : <span class="muted"> · {shownNote(fit.notes)}</span>)}</td></tr>)}
+</table>

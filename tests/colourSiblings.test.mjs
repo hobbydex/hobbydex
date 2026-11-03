@@ -63,3 +63,11 @@ test('a colour code after a dash pairs; the motor version before it keeps BRS an
   const nocolour = rel('d', 'BRS-DG', '1:8 Bronco Raptor BRS-DG');
   assert.deepEqual(ids(nocolour, [yw, gy, nocolour]), []);
 });
+
+test('releases sharing a range are siblings', async () => {
+  const { colourSiblings } = await import('../src/lib/colourSiblings.ts');
+  const r = (id, number, name, extra = {}) => ({ id: `release/hpi/${id}`, brand: 'brand/hpi', kit: 'kit/hpi/vectr4', kind: 'rtr', number, name, status: 'released', range: 'hpi/x-colours', ...extra });
+  const a = r('161300', '161300', 'VectR4 Rally Sanremo');
+  const b = r('161301', '161301', 'VectR4 Imperial Blue');
+  assert.deepEqual(colourSiblings(a, [a, b]).map((x) => x.number), ['161301']);
+});

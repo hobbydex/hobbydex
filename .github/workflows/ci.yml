@@ -13,11 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the sitemap's lastmod of static pages is their source file's last commit
       - name: Check out the RC dataset
         uses: actions/checkout@v7
         with:
           repository: hobbydex/hobbydex-rc
           path: data-repo
+          fetch-depth: 0   # export.py dates every record by its last commit
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -27,12 +30,16 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          check-latest: true
           cache: npm
       - run: npm ci
       - name: Build the site
         run: npm run build
         env:
           HOBBYDEX_DATA: data/hobbydex-rc.json
+      # fails on any internal link whose target page does not exist
+      - name: Internal link check
+        run: node tools/check-links.mjs --max 0
       - name: Search tests (ranking rules and the built index)
         run: npm test
       - name: Type check

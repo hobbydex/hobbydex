@@ -9,3 +9,13 @@ export function figureLabel(p: Part, what: 'size' | 'weight'): string {
   const who = p.radio_unit === 'receiver' ? 'Receiver' : p.radio_unit === 'gyro' ? 'Gyro' : p.radio_unit ? 'Transmitter' : '';
   return who ? `${who} ${what}` : what[0].toUpperCase() + what.slice(1);
 }
+
+/** What a radio part is for the protocol page's groups: its `radio_unit`, or the name's word when none is set. */
+export function radioGroup(p: Part): 'transmitter' | 'receiver' | 'other' {
+  if (p.radio_unit === 'transmitter' || p.radio_unit === 'set') return 'transmitter';
+  if (p.radio_unit === 'receiver') return 'receiver';
+  if (p.radio_unit) return 'other';
+  if (/\breceiver\b|\brx\b/i.test(p.name) && !/\btransmitter\b|\btx\b/i.test(p.name)) return 'receiver';
+  if (/\btransmitter\b|\bradio\b|\btx\b/i.test(p.name)) return 'transmitter';
+  return 'other';
+}

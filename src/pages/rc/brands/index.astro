@@ -13,7 +13,8 @@ const releaseCount = (id: string) => db.releases.filter((r) => r.brand === id).l
     <thead><tr><th aria-sort="ascending">Brand</th><th>Country</th><th>Owned by</th><th class="num">Platforms</th><th class="num">Releases</th><th class="num">Parts</th></tr></thead>
     <tbody>{brands.map((b) => <tr data-discontinued={b.status === 'gone' ? '' : undefined}>
       <td><a href={url.brand(b.id)}>{b.name}</a></td><td>{b.country ? countryName(b.country) : ''}</td><td>{(b.owner && db.company.get(b.owner)?.name) ?? ''}</td>
-      <td class="num">{db.kitsByBrand.get(b.id)?.length || ''}</td><td class="num">{releaseCount(b.id) || ''}</td><td class="num">{db.partsByBrand.get(b.id)?.length || ''}</td>
+      {[[db.kitsByBrand.get(b.id)?.length, 'platforms'], [releaseCount(b.id), 'platforms'], [db.partsByBrand.get(b.id)?.length, 'parts']].map(([n, at]) =>
+        <td class="num">{n ? <a href={`${url.brand(b.id)}#${at}`}>{n}</a> : ''}</td>)}
     </tr>)}</tbody>
   </table>
   <script src="/sort-table.js" defer></script>

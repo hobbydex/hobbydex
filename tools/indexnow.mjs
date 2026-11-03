@@ -2,8 +2,8 @@
 // Yahoo, ChatGPT search, Copilot) which pages changed in a deploy.
 //
 //   node tools/indexnow.mjs plan --dist dist --previous <url|file> --out indexnow-plan.json
-//     hashes every page in the built sitemaps, compares with the manifest of the live
-//     site and writes the URLs to submit, plus dist/indexnow-manifest.json.gz for next time
+//     hashes every page in the built sitemaps (own content only), compares with the manifest of the live
+//     site and writes the URLs to submit (at most 2000 a day), plus dist/indexnow-manifest.json.gz for next time
 //   node tools/indexnow.mjs submit --plan indexnow-plan.json [--dry-run]
 //     posts the planned URLs to api.indexnow.org in batches (--dry-run only prints them)
 //
@@ -20,7 +20,7 @@ const SITE = 'https://hobbydex.com';
 const HOST = 'hobbydex.com';
 const ENDPOINT = 'https://api.indexnow.org/indexnow';
 export const MANIFEST = 'indexnow-manifest.json.gz';
-export const MAX_PER_RUN = 10000; // one run submits at most this many; the rest wait for the next run
+export const DAILY_CAP = 2000; // URLs submitted per UTC day across all deploys; the rest stay pending
 const BATCH = 10000; // the protocol's limit per request
 
 // the key file: <key>.txt whose content is the key
@@ -43,10 +43,18 @@ export function sitemapPaths(dist) {
   return paths.sort();
 }
 
-// a page's content hash; hashed asset file names (/_astro/Base.BiW4y49O.css) are left out,
-// so a style or script change does not count as every page changing
+// A page's own content hash. The shared chrome (header, footer with its "Last updated on <date>",
+// stylesheet and script links) and build artefacts (hashed asset names, scoped-style ids) are left
+// out, so only a change to the page's head data (title, description, JSON-LD) or its <main> counts.
 export function pageHash(html) {
-  const text = html.replace(/\/_astro\/[^"'\s)]+/g, '/_astro/');
+  const text = html
+    .replace(/<header class="site"[\s\S]*?<\/header>/, '')
+    .replace(/<footer class="site"[\s\S]*?<\/footer>/, '')
+    .replace(/<link rel="(?:stylesheet|modulepreload)"[^>]*>/g, '')
+    .replace(/<script\b[^>]*\bsrc="[^"]*"[^>]*><\/script>/g, '')
+    .replace(/\/_astro\/[^"'\s)]+/g, '/_astro/')
+    .replace(/ data-astro-cid-[a-z0-9]+(?:="")?/g, '')
+    .replace(/\bastro-[a-z0-9]{8}\b/g, 'astro-');
   return createHash('sha256').update(text).digest('hex').slice(0, 16);
 }
 
@@ -67,36 +75,72 @@ export function seedPaths(current) {
   return Object.keys(current).filter((p) => depth(p) <= 2).sort(byDepth);
 }
 
-// Compares the live manifest with the new build. Returns the paths to submit (changed, new
-// and removed pages, shallow paths first, capped) and the manifest to publish: it records
-// what has been submitted, so pages over the cap keep their old hash (or stay out) and
-// show up as changed again next run.
-export function plan(previous, current, cap = MAX_PER_RUN) {
+export const dayOf = (now) => new Date(now).toISOString().slice(0, 10);
+
+// Manifest (version 2): { day, sent, pages: { path: [hash, submittedDay, pendingSince] } }
+//  - hash: content hash at the last submission (null: never submitted)
+//  - submittedDay: that day as "YYYY-MM-DD" ("" when never)
+//  - pendingSince: ms timestamp when the page was first seen changed and not yet submitted (0: none)
+//  - day / sent: the UTC day and the number of URLs submitted on it, for the daily cap
+//
+// Compares the live manifest with the new build. A page is submitted only when its content hash
+// differs from the hash at its last submission (new and removed pages count as changed), so an
+// unchanged page is never resent. At most DAILY_CAP URLs go out per UTC day across all deploys,
+// newest changes first (then shallow paths); the rest stay pending and are reconsidered next run.
+// `previous` is a decoded manifest, null (none yet) or { legacy: true } (version 1, full-page
+// hashes that are not comparable with the new ones: adopted without submitting anything).
+export function plan(previous, current, { now = Date.now(), dailyCap = DAILY_CAP } = {}) {
+  const today = dayOf(now);
+  const wrap = (pages, sent, extra) => ({ manifest: { day: today, sent, pages }, ...extra });
   if (!previous) {
-    return { first: true, pending: 0, submit: seedPaths(current).slice(0, cap), manifest: { ...current } };
+    const submit = seedPaths(current).slice(0, dailyCap);
+    const pages = {};
+    for (const [p, h] of Object.entries(current)) pages[p] = submit.includes(p) ? [h, today, 0] : [null, '', now];
+    return wrap(pages, submit.length, { first: true, changed: submit.length, removed: 0, skipped: 0, submit });
   }
-  const changed = Object.keys(current).filter((p) => previous[p] !== current[p]);
-  const removed = Object.keys(previous).filter((p) => !(p in current));
-  const all = [...changed, ...removed].sort(byDepth);
-  const submit = all.slice(0, cap);
-  const manifest = { ...current };
-  for (const p of all.slice(cap)) {
-    if (p in previous) manifest[p] = previous[p];
-    else delete manifest[p];
+  if (previous.legacy) {
+    const pages = {};
+    for (const [p, h] of Object.entries(current)) pages[p] = [h, today, 0];
+    return wrap(pages, 0, { migrated: true, changed: 0, removed: 0, skipped: 0, submit: [] });
   }
-  return { first: false, pending: all.length - submit.length, changed: changed.length, removed: removed.length, submit, manifest };
+  const prev = previous.pages;
+  const sentToday = previous.day === today ? previous.sent : 0;
+  const budget = Math.max(0, dailyCap - sentToday);
+  const pending = []; // [path, pendingSince]
+  for (const [p, h] of Object.entries(current)) {
+    const old = prev[p];
+    if (!old || old[0] !== h) pending.push([p, old?.[2] || now]);
+  }
+  let removed = 0;
+  for (const p of Object.keys(prev)) {
+    if (!(p in current) && prev[p][0] !== null) { pending.push([p, prev[p][2] || now]); removed++; }
+  }
+  pending.sort((a, b) => b[1] - a[1] || byDepth(a[0], b[0]));
+  const submit = pending.slice(0, budget).map(([p]) => p);
+  const sent = new Set(submit);
+  const pages = {};
+  for (const [p, h] of Object.entries(current)) {
+    const old = prev[p];
+    if (sent.has(p)) pages[p] = [h, today, 0];
+    else if (!old || old[0] !== h) pages[p] = [old?.[0] ?? null, old?.[1] ?? '', old?.[2] || now];
+    else pages[p] = old;
+  }
+  for (const [p, since] of pending.slice(budget)) if (!(p in current)) pages[p] = [prev[p][0], prev[p][1], since];
+  return wrap(pages, sentToday + submit.length, { first: false, changed: pending.length, removed, skipped: pending.length - submit.length, submit });
 }
 
-export function encodeManifest(pages) {
-  return gzipSync(JSON.stringify({ version: 1, pages }));
+export function encodeManifest(m) {
+  return gzipSync(JSON.stringify({ version: 2, ...m }));
 }
 
+// returns { day, sent, pages } or { legacy: true } for a version 1 manifest
 export function decodeManifest(buf) {
   const bytes = Buffer.from(buf);
   const text = bytes[0] === 0x1f && bytes[1] === 0x8b ? gunzipSync(bytes).toString('utf8') : bytes.toString('utf8');
   const json = JSON.parse(text);
-  if (json.version !== 1 || typeof json.pages !== 'object') throw new Error('unknown manifest format');
-  return json.pages;
+  if (json.version === 1 && typeof json.pages === 'object') return { legacy: true, pages: json.pages };
+  if (json.version !== 2 || typeof json.pages !== 'object') throw new Error('unknown manifest format');
+  return { day: json.day, sent: json.sent ?? 0, pages: json.pages };
 }
 
 // the live manifest: null when there is none yet (404); throws on anything else
@@ -133,13 +177,11 @@ async function cmdPlan(a) {
     console.log(`IndexNow: previous manifest unavailable (${e.message}); nothing submitted this run`);
     skip = true;
   }
-  const result = skip ? { first: false, submit: [], pending: 0, manifest: current } : plan(previous, current);
+  const result = plan(skip ? { legacy: true } : previous, current);
   writeFileSync(join(dist, MANIFEST), encodeManifest(result.manifest));
   writeFileSync(a.out ?? 'indexnow-plan.json', JSON.stringify({ key, urls: result.submit.map((p) => SITE + p) }));
-  const summary = result.first
-    ? `first run: ${result.submit.length} home and section pages`
-    : `${result.changed ?? 0} changed or new, ${result.removed ?? 0} removed; submitting ${result.submit.length}, ${result.pending} left for the next run`;
-  console.log(`IndexNow: ${Object.keys(current).length} pages hashed; ${summary}`);
+  const note = result.first ? ' (first run: home and section pages only)' : result.migrated ? ' (manifest format changed: hashes adopted, nothing submitted)' : '';
+  console.log(`IndexNow: ${Object.keys(current).length} pages hashed; changed ${result.changed} (${result.removed} removed), submitted ${result.submit.length}, skipped by the daily cap of ${DAILY_CAP}: ${result.skipped}; sent today ${result.manifest.sent}${note}`);
 }
 
 async function cmdSubmit(a) {

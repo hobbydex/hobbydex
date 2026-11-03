@@ -1,31 +1,34 @@
 // Loads the dataset export produced by hobbydex-rc/tools/export.py.
 // The site reads only this JSON (schema_version 0); it never touches TOML.
 import { readFileSync } from 'node:fs';
-import { plugSpecId } from './plugs';
+import { balanceSpecId, plugSpecIds } from './plugs';
 
-export type Brand = { id: string; name: string; legal_name?: string; country?: string; website?: string; youtube?: string[]; kind?: string; status: string; launched?: string; launched_source?: string; launched_doubt?: string; ended?: string; ended_source?: string; ended_doubt?: string; item_numbers?: boolean; notes?: string; owner?: string; owner_source?: string; owner_since?: number };
+export type Brand = { id: string; modified?: string; name: string; legal_name?: string; country?: string; website?: string; youtube?: string[]; kind?: string; status: string; launched?: string; launched_source?: string; launched_doubt?: string; ended?: string; ended_source?: string; ended_doubt?: string; item_numbers?: boolean; notes?: string; owner?: string; owner_source?: string; owner_since?: number };
 // A company that owns brands (hobbydex-rc docs/schema.md "company"); brand: the brand that carries its own range, when it has one.
-export type Make = { id: string; name: string; country: string; notes: string; toml_path?: string };   // a real vehicle make (data/makes); name as the make spells itself
-export type Company = { id: string; name: string; legal_name?: string; country?: string; website?: string; status?: string; brand?: string; parent?: string; notes?: string };
-export type Link = { site: string; url: string; kind?: 'fan-site' | 'press' | 'dealer' };   // dealer: a shop's product page, never the maker's
+export type Make = { id: string; modified?: string; name: string; country: string; notes: string; toml_path?: string };   // a real vehicle make (data/makes); name as the make spells itself
+export type Company = { id: string; modified?: string; name: string; legal_name?: string; country?: string; website?: string; status?: string; brand?: string; parent?: string; notes?: string };
+// dealer: a shop's product page, never the maker's; archive: a Wayback capture of a maker page that is gone; gone: the day the page answered 404 (hidden)
+export type Link = { site: string; url: string; kind?: 'fan-site' | 'press' | 'dealer' | 'maker' | 'archive'; gone?: string };
 export type KitLink = { kit: string; parts?: 'interchangeable' | 'partly' | 'unknown'; source?: string; notes?: string };
-export type Kit = { id: string; sources?: Record<string, string>; placeholder?: boolean; toml_path?: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; art?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[]; supersedes?: string; links?: Link[] };
+export type Kit = { id: string; modified?: string; sources?: Record<string, string>; placeholder?: boolean; toml_path?: string; former_ids?: string[]; brand: string; name: string; category: string; surface?: string[]; scale?: string; drive?: string; power?: string; notes?: string; art?: string; rebrand_of?: KitLink[]; same_platform_as?: KitLink[]; supersedes?: string; links?: Link[] };
 export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source: string; qty?: number; step?: string; slot?: string };
 // What a buyer must get separately to complete a release (hobbydex-rc docs/schema.md "release", needs): a part, or a generic item
 export type Need = { part?: string; item?: string; source: string; qty?: number; note?: string };
 export type Depicts = { make?: string; model: string; year?: number; licensed?: boolean };   // the real vehicle a release or body shell replicates; no make when several makers built it (a Sherman)
-export type Release = { id: string; sources?: Record<string, string>; depicts?: Depicts; toml_path?: string; announced_source?: string; series?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; scale?: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; kind: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; related?: { release: string; relation: string; source: string }[]; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
+export type Release = { id: string; modified?: string; range?: string; livery?: string; sources?: Record<string, string>; depicts?: Depicts; toml_path?: string; announced_source?: string; series?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; scale?: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; kind: string; power?: string; power_source?: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; related?: { release: string; relation: string; source: string }[]; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; source?: string; notes?: string };
 export type Fits = { kit: string; releases?: string[]; car?: string; type: 'direct' | 'replaces' | 'modification'; replaces?: string; source?: string; notes?: string };   // releases: the cars of the kit the maker lists the part for; car: a car that is none of them; neither: every release
 export type MountHoles = { thread: string; count?: number; circle_mm: number };   // count left out: the maker gives thread and spacing only
-export type Part = { id: string; wire_awg?: number | number[]; insulation?: 'silicone' | 'pvc' | 'teflon'; strands?: number; shrink_ratio?: number; flat_width_mm?: number; sources?: Record<string, string>; status?: string; depicts?: Depicts; toml_path?: string; gtin?: string; former_ids?: string[]; brand: string; number?: string; numbers?: string[]; name: string; category?: string; art?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string | string[]; paint_type?: string; thread_type?: string; point?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; released_doubt?: string; documents?: string[]; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; connectors?: string[]; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; links?: Link[]; kv?: number; turns?: number; sensored?: boolean; mount_holes?: MountHoles[]; motor_can_mm?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; radio_unit?: 'transmitter' | 'receiver' | 'set' | 'gyro'; torque_kgcm?: number; speed_s?: number; bearings?: number; bearing_kind?: 'ball' | 'bushing'; dead_band_us?: number; frequency_hz?: number | [number, number]; voltage?: number; gear_material?: string; motor?: string; range?: string; displacement_cc?: number; engine_class?: string; stroke_mm?: number; output_hp?: number; output_rpm?: number; rpm_range?: number[]; fuel?: string; motor_type?: 'brushed' | 'brushless' | 'both'; bec_v?: number | number[]; bec_a?: number; waterproof?: boolean; motor_limit_t?: number; motor_limit_kv?: number; nimh_cells?: number[]; programming?: string[]; resistance_mohm?: number };
+export type Part = { id: string; thickness_mm?: number; thickness_basis?: 'name' | 'page' | 'manual' | 'owner'; width_mm?: number; width_basis?: 'name' | 'page' | 'manual' | 'owner'; wheelbase_mm?: number; modified?: string; wire_awg?: number | number[]; insulation?: 'silicone' | 'pvc' | 'teflon'; strands?: number; shrink_ratio?: number; flat_width_mm?: number; sources?: Record<string, string>; status?: string; depicts?: Depicts; toml_path?: string; gtin?: string; former_ids?: string[]; brand: string; number?: string; numbers?: string[]; name: string; category?: string; art?: string; teeth?: number; module?: number; pitch_dp?: number; mounting?: string; wheel_size?: string; compound?: string; offset_mm?: number; beadlock?: boolean; color?: string; wheel_color?: string; material_grade?: string; rate?: string; rate_n_mm?: number; rate_lb_in?: number; wire_mm?: number; free_length_mm?: number | string; pack_qty?: number; pack_qty_basis?: 'name' | 'page' | 'includes' | 'photo' | 'photos' | 'owner'; former_names?: string[]; applies_to?: string; material?: string; strength_class?: string; finish?: string; swatch?: string; application?: string | string[]; paint_type?: string; thread_type?: string; point?: string; seal?: string; lubricant?: string; volume_ml?: number; viscosity_wt?: number; bore_mm?: number; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; documents?: string[]; source?: string; supersedes?: string; c_rating?: number; case?: string; dimensions_mm?: number[]; weight_g?: number; connector?: string; motor_connector?: string; receiver_connector?: string; scales?: string[]; scale?: string; position?: string; balance_connector?: string; balance_connector_basis?: 'maker' | 'convention'; connectors?: string[]; chemistry?: string; cells?: number; capacity_mah?: number; notes?: string; equivalent_to?: EquivalentTo[]; fits?: Fits[]; includes?: Includes[]; includes_qty?: 'unstated'; includes_qty_note?: string; links?: Link[]; kv?: number; turns?: number; sensored?: boolean; mount_holes?: MountHoles[]; motor_can_mm?: number; lipo_cells?: number[]; diameter_mm?: number; length_mm?: number; shaft_mm?: number; current_a?: number; peak_current_a?: number; rotation_deg?: number; rebrand_of?: { part: string; source?: string; notes?: string }[]; related?: { part: string; relation: string; notes?: string }[]; channels?: number; protocol?: string; protocols?: string[]; radio_unit?: 'transmitter' | 'receiver' | 'set' | 'gyro'; torque_kgcm?: number; speed_s?: number; bearings?: number; bearing_kind?: 'ball' | 'bushing'; ball_type?: 'stud' | 'set-screw' | 'through-hole' | 'nut'; dead_band_us?: number; frequency_hz?: number | [number, number]; voltage?: number; gear_material?: string; motor?: string; range?: string; displacement_cc?: number; engine_class?: string; stroke_mm?: number; output_hp?: number; output_rpm?: number; rpm_range?: number[]; fuel?: string; motor_type?: 'brushed' | 'brushless' | 'both'; bec_v?: number | number[]; bec_a?: number; waterproof?: boolean; motor_limit_t?: number; motor_limit_kv?: number; nimh_cells?: number[]; programming?: string[]; resistance_mohm?: number; power_w?: number; charges?: string[]; power_ac_w?: number; power_dc_w?: number; charge_current_a?: number; ac_input_v?: number[]; dc_input_v?: number[]; mains_plug?: string; mains_plug_basis?: 'maker' | 'name'; dc_input_connector?: string; output_connector?: string[]; balance_ports?: string[]; charger_source?: string };
 export type Includes = { part?: string; spec?: string; qty?: number; source?: string; notes?: string };
-export type Spec = { id: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
-export type Doc = { id: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; page?: string; releases?: string[]; kits?: string[]; parts?: string[]; channel?: string; duration_s?: number };
-export type KeyField = { field: string; label: string; from: 'part' | 'spec'; unit?: string; format?: string; compare_only?: boolean };
-export type Standard = { id: string; code: string; title: string; url?: string; replaced_by?: string; notes?: string };
-export type Category = { id: string; name: string; summary?: string; description?: string; spec_type?: string; former_ids?: string[]; key_fields?: KeyField[]; terms?: { term: string; text: string }[] };
-export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[]; companies?: Company[]; makes?: Make[] };
+export type Spec = { id: string; modified?: string; category: string; name?: string; standards?: string[]; [k: string]: unknown };
+export type Doc = { id: string; modified?: string; brand?: string; kind: string; title: string; version?: string; date?: string; url?: string; page?: string; releases?: string[]; kits?: string[]; parts?: string[]; channel?: string; duration_s?: number };
+export type KeyField = { field: string; label: string; from: 'part' | 'spec'; unit?: string; format?: string; compare_only?: boolean; multi?: boolean; plug?: boolean; pick?: boolean; filter?: 'range' };
+export type Standard = { id: string; modified?: string; code: string; title: string; url?: string; replaced_by?: string; notes?: string };
+export type Category = { id: string; modified?: string; name: string; any_car?: boolean; summary?: string; description?: string; spec_type?: string; former_ids?: string[]; key_fields?: KeyField[]; terms?: { term: string; text: string }[] };
+export type Dataset = { schema_version: number; dataset: string; generated: string; brands: Brand[]; kits: Kit[]; releases: Release[]; parts: Part[]; documents: Doc[]; specs: Spec[]; categories?: Category[]; standards?: Standard[]; companies?: Company[]; makes?: Make[]; retired?: Retired[] };
+// an id that is gone (hobbydex-rc data/retired.toml); replaced_by: the record that took its place, which its old address redirects to
+export type Retired = { id: string; reason: string; replaced_by?: string };
 
 const path = process.env.HOBBYDEX_DATA ?? 'data/hobbydex-rc.json';
 const raw: Dataset = JSON.parse(readFileSync(path, 'utf8'));
@@ -42,10 +45,10 @@ function group<T>(xs: T[], key: (x: T) => string) {
   return m;
 }
 
-const usesByPart = new Map<string, { release: Release; role: Contains['role'] }[]>();
+const usesByPart = new Map<string, { release: Release; role: Contains['role']; source?: string }[]>();
 for (const r of raw.releases) for (const c of r.contains ?? []) {
   if (!usesByPart.has(c.part)) usesByPart.set(c.part, []);
-  usesByPart.get(c.part)!.push({ release: r, role: c.role });
+  usesByPart.get(c.part)!.push({ release: r, role: c.role, source: c.source });
 }
 
 const setsBySpec = new Map<string, { part: Part; qty?: number; notes?: string }[]>();
@@ -95,11 +98,25 @@ for (const p of raw.parts) for (const e of p.equivalent_to ?? []) {
 }
 // Leads, adapters and harnesses by each connector spec they list (`connectors`); a part lists a plug once.
 const leadsBySpec = new Map<string, Part[]>();
-for (const p of raw.parts) for (const name of new Set(p.connectors ?? [])) {
-  const id = plugSpecId(name);
-  if (!id) continue;
+for (const p of raw.parts) for (const id of new Set((p.connectors ?? []).flatMap(plugSpecIds))) {
   if (!leadsBySpec.has(id)) leadsBySpec.set(id, []);
   leadsBySpec.get(id)!.push(p);
+}
+
+// Parts by the connector spec their `connector` names (batteries, ESCs, servos) and batteries by their balance lead.
+const plugsBySpec = new Map<string, Part[]>();
+const balanceBySpec = new Map<string, Part[]>();
+for (const p of raw.parts) {
+  const bid = balanceSpecId(p);
+  for (const id of plugSpecIds(p.connector)) { if (!plugsBySpec.has(id)) plugsBySpec.set(id, []); plugsBySpec.get(id)!.push(p); }
+  if (bid) { if (!balanceBySpec.has(bid)) balanceBySpec.set(bid, []); balanceBySpec.get(bid)!.push(p); }
+}
+
+// Radios, receivers and sets by the protocol specs they list (`protocols`, hobbydex-rc docs/schema.md "Protocol specs").
+const protocolParts = new Map<string, Part[]>();
+for (const p of raw.parts) for (const id of p.protocols ?? []) {
+  if (!protocolParts.has(id)) protocolParts.set(id, []);
+  protocolParts.get(id)!.push(p);
 }
 
 // Parts sold for a release's kit, split by the cars a per-car set is listed for: `here` fit this release (the fit
@@ -168,6 +185,9 @@ export const db = {
   spec: byId(raw.specs ?? []),
   partsBySpec,
   leadsBySpec,
+  plugsBySpec,
+  protocolParts,
+  balanceBySpec,
   brand: byId(raw.brands),
   company: byId(raw.companies ?? []),
   makeByName: new Map((raw.makes ?? []).map((m) => [m.name, m])),
@@ -209,12 +229,26 @@ export const key = (id: string) => id.split('/').slice(1);
 export const url = {
   brand: (id: string) => `/rc/brands/${key(id)[0]}/`,
   platform: (id: string) => `/rc/platforms/${key(id).join('/')}/`,
+  /** The platform's page, or undefined for a placeholder kit (a chassis no source names yet), which has none. */
+  platformPage: (id: string) => db.kit.get(id)?.placeholder ? undefined : `/rc/platforms/${key(id).join('/')}/`,
   release: (id: string) => `/rc/releases/${key(id).join('/')}/`,
   part: (id: string) => `/rc/parts/${key(id).join('/')}/`,
   spec: (id: string) => `/rc/specs/${key(id).join('/')}/`,
   standard: (id: string) => `/rc/standards/${key(id)[0]}/`,
   make: (make: string) => `/rc/makes/${makeSlug(make)}/`,
 };
+// The page address of any record id ("part/x/1", "release/x/k", "kit/x/k", "spec/a/b", "brand/x").
+export const urlOf = (id: string) => {
+  const t = id.split('/')[0];
+  return t === 'part' ? url.part(id) : t === 'release' ? url.release(id) : t === 'kit' ? url.platform(id)
+    : t === 'spec' ? url.spec(id) : t === 'brand' ? url.brand(id) : undefined;
+};
+// Retired ids of one type that name a successor: each keeps its address as a redirect to the successor's page,
+// whatever the successor's type (a Corally base release now points at its platform). Ids still live are left out.
+export const retiredMoves = (type: string, live: Set<string>) => (db.retired ?? [])
+  .filter((r) => r.id.startsWith(type + '/') && r.replaced_by && !live.has(r.id))
+  .map((r) => ({ id: r.id, to: urlOf(r.replaced_by!) }))
+  .filter((m): m is { id: string; to: string } => !!m.to);
 // Real vehicle makes (release and body shell `depicts`): "Mercedes-Benz" -> "mercedes-benz", "Land Rover" -> "land-rover"
 export const makeSlug = (make: string) => make.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 // ISO 3166 alpha-2 code -> English country name ("DE" -> "Germany"); the code itself when the runtime has no name for it
@@ -250,7 +284,7 @@ export const yearOf = (r: { year?: number; model_year?: number }) => r.year ?? r
 // Dates are ISO 8601 at the precision the source gives: "2012", "2012-05", "2012-05-01". A release's
 // date is released (or year, until released carries every year), then announced (the maker's
 // announcement, a real date), then seen_by: the first archived capture of the maker's page, an upper
-// bound that is not the release date and is marked with a *. The helpers below are the only place
+// bound that is not the release date. The helpers below are the only place
 // that orders or words these.
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export const isoText = (iso: string) => {
@@ -272,18 +306,48 @@ export const listYear = (r: { year?: number; released?: string; announced?: stri
   const k = dateKey(r);
   return k ? Number(k.slice(0, 4)) : undefined;
 };
-/** The date column: "2012", "2012 May", "2012 May 1"; "announced 2012 May"; "2012 May" for seen_by alone. */
+/** The last day a date covers: "2026-12" -> 2026-12-31, "2026" -> 2026-12-31. */
+const periodEnd = (iso: string) => {
+  const m = iso.match(/^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/);
+  if (!m) return undefined;
+  return m[3] ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : m[2] ? new Date(Date.UTC(+m[1], +m[2], 0)) : new Date(Date.UTC(+m[1], 11, 31));
+};
+/** The release status as shown: an announced release whose expected date has fully passed (the build day is after its
+ * last day) counts as released, so no data edit is needed when the day comes. An announced release with no expected
+ * date stays announced. Computed at build time; the daily deploy keeps it current. */
+export const statusOf = (r: { status?: string; year?: number; released?: string }) => {
+  if (r.status !== 'announced') return r.status;
+  const due = releasedOf(r);
+  const end = due ? periodEnd(due) : undefined;
+  return end && end.getTime() < Date.now() - 86400000 ? 'released' : 'announced';
+};
+/** Not out yet: announced, with an expected date still to come. */
+export const isComing = (r: { status?: string; year?: number; released?: string }) =>
+  statusOf(r) === 'announced' && !!releasedOf(r);
+/** What the date column says for a coming release: "Expected 2026 Dec". */
+export const comingText = (r: { year?: number; released?: string }) => `Expected ${isoText(releasedOf(r)!)}`;
+/** The date column: "2012", "2012 May", "2012 May 1"; "announced 2012 May"; "by 2012 May" for seen_by alone. */
 export const dateTextPlain = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) => {
   const real = releasedOf(r);
   if (real) return isoText(real);
   if (r.announced) return `announced ${isoText(r.announced)}`;
-  if (r.seen_by) return isoText(r.seen_by);
+  if (r.seen_by) return `by ${isoText(r.seen_by)}`;
   return 'unknown';
 };
 /** dateTextPlain with the "*" for seen_by alone (see SEEN_NOTE), for a plain-text context. */
 export const dateText = (r: { year?: number; released?: string; announced?: string; seen_by?: string }) =>
-  dateTextPlain(r) + (seenOnly(r) ? '*' : '');
-export const SEEN_NOTE = "* not the release date: the first time the maker's page for it was archived, so it was on sale by then.";
+  dateTextPlain(r);
+// The footnote of a seen_by date, worded by where the bound comes from (seen_by_source): an archive capture, the
+// upload of a maker video, or a page we saw ourselves (the maker's, or a dealer's).
+export type SeenKind = 'archive' | 'video' | 'page';
+export const seenKind = (r: { seen_by_source?: string }): SeenKind =>
+  /^https?:\/\/web\.archive\.org\//.test(r.seen_by_source ?? '') ? 'archive' : /youtube\.com|youtu\.be/.test(r.seen_by_source ?? '') ? 'video' : 'page';
+export const SEEN_NOTES: Record<SeenKind, string> = {
+  archive: 'not the release date: the first time a maker or shop page for it was archived, so it was on sale by then.',
+  video: "not the release date: the day the maker's video for it was uploaded, so it was on sale by then.",
+  page: 'not the release date: the first time we saw a maker or shop page for it, so it was on sale by then.',
+};
+export const seenNote = (r: { seen_by_source?: string }) => SEEN_NOTES[seenKind(r)];
 // The reason the date dateText shows is doubtful (released_doubt, or year_doubt when only the year is shown); undefined when it is sure.
 export const dateDoubt = (r: { year?: number; released?: string; year_doubt?: string; released_doubt?: string }) =>
   r.released ? r.released_doubt : r.year ? r.year_doubt : undefined;
@@ -326,7 +390,7 @@ export const yearTextPlain = (r: { year?: number; released?: string; announced?:
   hasDate(r) ? dateTextPlain(r) : r.model_year ? `${r.model_year} model` : 'unknown';
 /** yearTextPlain with the "*" for seen_by alone, for a plain-text context. */
 export const yearText = (r: { year?: number; released?: string; announced?: string; seen_by?: string; model_year?: number }) =>
-  yearTextPlain(r) + (seenOnly(r) ? '*' : '');
+  yearTextPlain(r);
 export const brandName = (id: string) => db.brand.get(id)?.name ?? id;
 // The short name of the page an announced date comes from, for the release page: the brand's video, Big Squid RC,
 // the maker's press release (a PDF) or, else, the maker's news.

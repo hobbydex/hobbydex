@@ -9,12 +9,13 @@ import CopyButton from '../../../../components/CopyButton.astro';
 import OtherCarSets from '../../../../components/OtherCarSets.astro';
 import Videos from '../../../../components/Videos.astro';
 import { gtinLabel } from '../../../../lib/gtin';
+import { gtin13 } from '../../../../lib/gtinCode';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
 import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
-import { SEEN_NOTE, db, key, url, brandName, announcedSourceLabel, byPartNo, partLabel, partRest, partNo, yearOf, isoText, dateDoubt, brandGone, docPage, dateSource, requiredName, conversionsForRelease, fitsForRelease, seriesMates, type Part } from '../../../../lib/data';
+import { seenNote, sourceHref, db, key, url, retiredMoves, brandName, announcedSourceLabel, byPartNo, partLabel, partRest, partNo, yearOf, isoText, statusOf, isComing, releasedOf, dateDoubt, brandGone, docPage, dateSource, requiredName, conversionsForRelease, fitsForRelease, seriesMates, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import FactSource from '../../../../components/FactSource.astro';
@@ -23,17 +24,30 @@ import DataLink from '../../../../components/DataLink.astro';
 import { kitTypeIcon, kitTypeOne } from '../../../../lib/kitTypes';
 import { driveLabel } from '../../../../lib/drive';
 import { bearingList } from '../../../../lib/bearingList';
-import { colourSiblings, colourName } from '../../../../lib/colourSiblings';
+import { colourSiblings } from '../../../../lib/colourSiblings';
+import { colourwayOf, colourLabels, releaseColour } from '../../../../lib/colourways';
+import ColourSwitch from '../../../../components/ColourSwitch.astro';
 import { gearing } from '../../../../lib/gearing';
-import { fileRows, pageLabel, hostLabel, makerOwnLinks } from '../../../../lib/docFacts';
+import { fileRows, pageLabel, hostLabel, makerOwnLinks, archiveLinks } from '../../../../lib/docFacts';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.releases.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], key: key(f)[1] }, props: { redirect: url.release(x.id) } })));
-  return [...db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } })), ...moved];
+  const taken = new Set([...db.releases.map((r) => r.id), ...db.releases.flatMap((x) => x.former_ids ?? [])]);
+  const gone = retiredMoves('release', taken).map((m) => ({ params: { brand: key(m.id)[0], key: key(m.id)[1] }, props: { redirect: m.to } }));
+  return [...db.releases.map((r) => ({ params: { brand: key(r.id)[0], key: key(r.id)[1] }, props: { release: r } })), ...moved, ...gone];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const release = Astro.props.release!;   // set on every page that is not a redirect
 const kit = db.kit.get(release.kit)!;
+// what states the release's power system (power_source): the motor, ESC or engine part, the maker's document, or its wording
+const powerSource = (() => {
+  const s = release.power_source;
+  if (!release.power || release.power === 'none' || !s) return null;
+  // a short label; the full source name is the link's title
+  if (s.startsWith('part/')) { const p = db.part.get(s); return p ? { text: 'motor', title: p.name, href: url.part(p.id) } : null; }
+  if (s.startsWith('doc/')) { const d = db.doc.get(s); return d ? { text: d.kind === 'manual' ? 'manual' : 'document', title: d.title, href: d.page ?? d.url } : null; }
+  return s === 'name' ? { text: 'name' } : s === 'kit' ? { text: 'platform' } : null;
+})();
 const shownCat = release.category ?? kit.category;   // the release's own category overrides its kit's
 const catSrc = release.category ? release.sources?.category : kit.sources?.category;
 const scaleSrc = release.scale ? release.sources?.scale : kit.sources?.scale;
@@ -54,12 +68,14 @@ const sheets = docs.filter((d) => d.kind === 'setup_sheet');
 // a catalogue paged by month links the month that lists this release (docPage)
 const webLink = (d: { page?: string; url?: string; kind?: string }) => docPage(d, release.released);
 const dated = dateSource(release);
+const coming = isComing(release);
 // the maker's page for this release: its own links (not fan sites), else its product_page documents (the maker page
 // that lists it), English first
 const ownLinks = makerOwnLinks(release.links);
 const productPages = docs.filter((d) => d.kind === 'product_page' && webLink(d)).map((d) => ({ site: pageLabel(webLink(d)!), url: webLink(d)! }))
   .sort((a, b) => Number(b.site === 'English') - Number(a.site === 'English'));
 const makerLinks = ownLinks.length > 0 ? ownLinks : productPages;
+const releaseArchive = makerLinks.length > 0 ? [] : archiveLinks(release.links);
 // a shop's product page, when the maker has none: its own row, never under Product page
 const dealerLinks = (release.links ?? []).filter((l) => l.kind === 'dealer');
 const mainDocs = docs.filter((d) => d.kind !== 'setup_sheet');
@@ -69,6 +85,9 @@ const ITEM_LABEL: Record<string, string> = { radio: 'Radio', receiver: 'Receiver
 const needs = (release.needs ?? []).map((n) => ({ ...n, p: n.part ? db.part.get(n.part) : undefined })).filter((n) => !n.part || n.p);
 // the same release in other colours (colourSiblings.ts); a release with no parts list of its own shows the one of the sibling with the most rows
 const siblings = colourSiblings(release, db.releases);
+// the colourway (lib/colourways.ts): the same release in each colour of the kit, the switch under the heading
+const colourway = colourwayOf(release, db.releasesByKit.get(release.kit) ?? [release]);
+const colourItems = colourway.length > 1 ? colourLabels(colourway).map((colour, i) => ({ id: colourway[i].id, number: colourway[i].number, colour, text: colourway[i].livery, current: colourway[i].id === release.id, href: url.release(colourway[i].id) })) : [];
 const listedFrom = (release.contains ?? []).length === 0 ? siblings.filter((s) => (s.contains ?? []).length > 0).sort((a, b) => b.contains!.length - a.contains!.length)[0] : undefined;
 const rows = ((listedFrom ?? release).contains ?? []).map((c) => ({ ...c, p: db.part.get(c.part)! })).filter((c) => c.p);
 // current parts before discontinued ones, each group in part-number order
@@ -108,18 +127,22 @@ const boxCats = [...new Set(boxRows.map((c) => c.p.category ?? ''))].map((g) => 
   .sort((a, b) => (a.g ? 0 : 1) - (b.g ? 0 : 1) || catName(a.g).localeCompare(catName(b.g)));
 const sections: [string, string][] = [['kit', 'In the box'], ['option', 'Option and upgrade parts'], ['listed', hasSplit ? 'Also listed for this release' : 'Spare parts list']];
 const conversions = conversionsForRelease(release);
-// the maker's videos of this release, then those of the whole kit
-const videos = [...new Set([...(db.videosByRelease.get(release.id) ?? []), ...(db.videosByKit.get(kit.id) ?? [])])];
+// the maker's videos that name this release; the kit's other videos (those that name no release of it) are about the
+// platform, not this release, and sit apart under their own heading
+const videos = db.videosByRelease.get(release.id) ?? [];
+const otherVideos = (db.videosByKit.get(kit.id) ?? []).filter((d) => !d.releases?.length);
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
 // the search index (Base's hidden block): brand, name, item number, platform, type, scale, year, depicted make and model, series
-const indexWords = [brandName(release.brand), release.number, release.name, kit.placeholder ? '' : kit.name, shownCat && (kitTypeOne[shownCat] ?? shownCat),
+const indexWords = [brandName(release.brand), release.number, release.gtin, release.gtin && gtin13(release.gtin), release.name, kit.placeholder ? '' : kit.name, shownCat && (kitTypeOne[shownCat] ?? shownCat),
   release.scale ?? kit.scale, yearOf(release) || '', release.depicts?.make, release.depicts?.model, release.series].filter(Boolean).join(' ');
 const indexFilters = [release.status === 'discontinued' && 'status:discontinued', release.depicts?.make && `make:${release.depicts.make}`].filter((x): x is string => !!x);
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)} words={indexWords} filters={indexFilters}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(release.brand)}>{brandName(release.brand)}</a>{brandGone(release.brand) && <span class="muted"> (brand defunct)</span>} / {kit.placeholder ? <span>Chassis not yet known</span> : <a href={url.platform(kit.id)}>{kit.name}</a>} / {release.name}</div>
+  <p class="pagetype">{release.kind === 'kit' ? 'Kit release' : 'Release'}</p>
   <h1><span>{brandName(release.brand)} {release.name}</span><Discontinued item={release} />{release.color && <Fragment set:html={' ' + colourDot(release.color)} />}</h1>
+  {colourItems.length > 0 && <ColourSwitch label="Colours of this release" lead="Also available in" size="small" items={colourItems} />}
   {release.sources?.name && <p><FactSource field="name" url={release.sources.name} dot={false} /></p>}
   <WebSearch query={release.number ? `"${release.number}" ${brandName(release.brand)}` : `${brandName(release.brand)} ${release.name}`} copy={release.number} copyLabel="Copy item number" links={release.links} />
   <div class="factsrow">
@@ -129,30 +152,36 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     {release.requires?.length && <><dt>Needs</dt><dd>{release.requires.length > 1 && 'one of: '}{release.requires.map((id, i) => { const n = requiredName(id); return <>{i > 0 && (i === release.requires!.length - 1 ? ' or ' : ', ')}{n ? <a href={n.href}>{n.name}</a> : id}</>; })}<span class="muted"> (not included: this is a conversion kit)</span></dd></>}
     {(release.scale ?? kit.scale) && <><dt>Scale</dt><dd>{release.scale ?? kit.scale}{scaleSrc && <FactSource field="scale" url={scaleSrc} />}</dd></>}
     {(shownCat || kit.drive || kit.power) && <><dt>Type</dt><dd>{shownCat && <><a href={`/rc/platforms/types/${shownCat}/`}>{kitTypeOne[shownCat] ?? shownCat}</a>{catSrc && <FactSource field="category" url={catSrc} />}{(kit.drive || kit.power) && ' · '}</>}{[driveLabel(kit.drive), kit.power].filter(Boolean).join(' · ')}</dd></>}
-    {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && <br />}<a href={url.platform(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
-    {release.number && <><dt>Item number</dt><dd>{release.number}</dd></>}
-    {release.released ? <><dt>Released</dt><dd><DateText r={release} /><DateDoubt reason={dateDoubt(release)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></> : release.year ? <><dt>Year</dt><dd><DateText r={release} year /><DateDoubt reason={dateDoubt(release)} /></dd></> : release.announced ? <><dt>Released</dt><dd><DateText r={release} />{release.announced_source && <span class="muted"> · <a href={release.announced_source} rel="nofollow">{announcedSourceLabel(release.announced_source, brandName(release.brand))}</a></span>}</dd></> : release.seen_by ? <><dt>Released</dt><dd>on sale by {release.seen_by_source ? <a href={release.seen_by_source} rel="nofollow">{isoText(release.seen_by)}</a> : isoText(release.seen_by)}<abbr class="doubt seen" tabindex="0" data-tip={SEEN_NOTE} aria-label={SEEN_NOTE}>*</abbr></dd></> : <><dt>Year</dt><dd><DateText r={release} year /></dd></>}
-    {siblings.length > 0 && <><dt>Other colours</dt><dd>{siblings.map((s, i) => <>{i > 0 && <br />}<Fragment set:html={colourDot(colourName(s))} /> <a href={url.release(s.id)}>{s.number}</a>{colourName(s) && <span class="muted"> · {colourName(s)}</span>}</>)}</dd></>}
+    {related.length > 0 && <><dt>Related</dt><dd>{related.map((r, i) => <>{i > 0 && <br />}<a href={url.platformPage(r.k!.id)}>{brandName(r.k!.brand)} {r.k!.name}</a> <span class="muted">({r.relation === 'rebrand' ? 'rebrand' : 'same platform'}{r.link.parts ? `, parts ${r.link.parts}` : ''})</span></>)}</dd></>}
+    {release.number ? <><dt>Item number</dt><dd>{release.number}</dd></> : <><dt>Item number</dt><dd class="muted">unknown</dd></>}
+    {coming ? <><dt>{release.announced ? 'Announced' : 'Expected'}</dt><dd><Icon name="expected" label="Coming: not out yet" size="1em" /> {release.announced && <>{isoText(release.announced)}{releasedOf(release) && <>, expected {isoText(releasedOf(release)!)}</>}</>}{!release.announced && releasedOf(release) && isoText(releasedOf(release)!)}<DateDoubt reason={dateDoubt(release)} />{release.announced_source && <span class="muted"> · <a href={release.announced_source} rel="nofollow">{announcedSourceLabel(release.announced_source, brandName(release.brand))}</a></span>}</dd></>
+    : release.released ? <><dt>Released</dt><dd><DateText r={release} /><DateDoubt reason={dateDoubt(release)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></> : release.year ? <><dt>Released</dt><dd><DateText r={release} year /><DateDoubt reason={dateDoubt(release)} /></dd></> : release.announced ? <><dt>Announced</dt><dd><Icon name="announced" label="Announced" size="1em" /> {isoText(release.announced)}{release.announced_source && <span class="muted"> · <a href={release.announced_source} rel="nofollow">{announcedSourceLabel(release.announced_source, brandName(release.brand))}</a></span>}</dd></> : release.seen_by ? <><dt>Seen by</dt><dd><Icon name="seenby" label="Seen by: on sale by this day, not the release date" size="1em" /> <span class="seen-date">{sourceHref(release.seen_by_source) ? <a href={sourceHref(release.seen_by_source)} rel="nofollow">{isoText(release.seen_by)}</a> : isoText(release.seen_by)}</span><span class="muted"> (on sale by this day, not the release date)</span></dd></> : <><dt>Year</dt><dd><DateText r={release} year /></dd></>}
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
+    {releaseArchive.length > 0 && <><dt>Product page</dt><dd>{releaseArchive.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">archived page</a></>)} <span class="muted">(no longer online)</span></dd></>}
     {makerLinks.length > 0 && <><dt>Product page</dt><dd>{makerLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : hostLabel(l.url)}</a></>)}</dd></>}
     {dealerLinks.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerLinks.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{hostLabel(l.url)}</a></>)}</dd></>}
     {files.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : hostLabel(d.page!)}</a></>)}</dd></>)}
-    <dt>Build</dt><dd>{buildLabel(release.kind)}{release.sources?.kind && <FactSource field="kind" url={release.sources.kind} />}</dd>
-    <dt>Status</dt><dd>{release.status}</dd>
+    <dt>Build</dt><dd>{buildLabel(release.kind, release.power)}{release.sources?.kind && <FactSource field="kind" url={release.sources.kind} />}{powerSource && <span class="muted"> · power from {powerSource.href ? <a href={powerSource.href} title={powerSource.title}>{powerSource.text}</a> : powerSource.text}</span>}</dd>
+    <dt>Status</dt><dd>{statusOf(release) === 'released' && !releasedOf(release) ? 'on sale' : statusOf(release)}</dd>
     {replacedByReleases.length > 0 && <><dt>Replaced by</dt><dd>{replacedByReleases.map((r, i) => <>{i > 0 && <br />}<a href={url.release(r.id)}>{brandName(r.brand)} {r.name}</a></>)}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.release(replaces.id)}>{brandName(replaces.brand)} {replaces.name}</a></dd></>}
     {original && <><dt>Re-release of</dt><dd><a href={url.release(original.id)}>{original.name}</a>{original.year ? ` (${original.year})` : ''}</dd></>}
     {reReleases.length > 0 && <><dt>Re-released as</dt><dd>{reReleases.map((r, i) => <>{i > 0 && <br />}<a href={url.release(r.id)}>{r.name}</a>{r.year ? ` (${r.year})` : ''}</>)}</dd></>}
   </dl>
-    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={release.color} art={release.art} size="12rem" class="hero" /></span>
+    <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={releaseColour(release)} art={release.art} size="12rem" class="hero" /></span>
   </div>
   <Videos videos={videos} />
+  {otherVideos.length > 0 && <details class="platformvideos">
+    <summary>Videos for the {kit.name} platform <span class="muted">({otherVideos.length})</span></summary>
+    <p class="muted">Not about this release in particular: the maker's videos of the <a href={url.platformPage(kit.id)}>{kit.name} platform</a>.</p>
+    <Videos videos={otherVideos} heading={false} limit={otherVideos.length} />
+  </details>}
   <FanLinks links={release.links} />
   {!listedFrom && rows.length > 0 && <p data-pagefind-ignore><a href={`/rc/compare/?a=${encodeURIComponent(release.id)}`}>Compare with another release</a></p>}
   {seriesByPlatform.length > 0 && <><h2>{release.series} series <span class="muted">({seriesByPlatform.reduce((n, [, rs]) => n + rs.length, 0)})</span></h2>
-    <ul>{seriesByPlatform.map(([kitId, rs]) => <li><a href={url.platform(kitId)}>{db.kit.get(kitId)?.name ?? kitId}</a><span class="muted">:</span> {rs.map((x, i) => <>{i > 0 && ' · '}<a href={url.release(x.id)}>{x.name}</a></>)}</li>)}</ul></>}
+    <ul>{seriesByPlatform.map(([kitId, rs]) => <li><a href={url.platformPage(kitId)}>{db.kit.get(kitId)?.name ?? kitId}</a><span class="muted">:</span> {rs.map((x, i) => <>{i > 0 && ' · '}<a href={url.release(x.id)}>{x.name}</a></>)}</li>)}</ul></>}
   {conversions.length > 0 && <><h2>Conversion kits for this car <span class="muted">({conversions.length})</span></h2>
     <ul>{conversions.map((c) => <li><a href={url.release(c.id)}>{brandName(c.brand)} {c.name}</a><Discontinued item={c} />{c.number && <span class="muted"> {c.number}</span>}</li>)}</ul></>}
   {gear && <section data-pagefind-ignore>
@@ -202,7 +231,7 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
   {(cats.length > 1 || hasStep) && <p data-pagefind-ignore>{cats.length > 1 && <label>Show <select id="catfilter"><option value="">all categories</option>{cats.map((c) => <option value={c}>{catName(c)}</option>)}</select></label>}{hasStep && <label class="steptoggle"><input type="checkbox" id="showsteps" /> Build steps</label>}</p>}
   {(() => { const shown = sections.map(([role, label]) => ({ role, label, rows: section(role) })).filter((x) => x.rows.length > 0); return shown.length > 0 && <div data-pagefind-ignore>
     {shown.length > 1 && <div class="tabs" role="tablist" data-pagefind-ignore>{shown.map((x, i) => <button type="button" role="tab" class="tab" data-tab={x.role} aria-selected={i === 0 ? 'true' : 'false'}>{({ kit: 'In the box', option: 'Options', listed: 'Also listed' } as Record<string, string>)[x.role] ?? x.label} <span class="muted">({x.rows.length})</span></button>)}</div>}
-    {shown.map((x) => { const groups = [...new Set(x.rows.map((c) => c.p.category ?? ''))].sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))); return <section class="tabpanel" data-panel={x.role}>
+    {shown.map((x) => { const groups = [...new Set(x.rows.map((c) => c.p.category ?? ''))].sort((g, h) => (g ? 0 : 1) - (h ? 0 : 1) || catName(g).localeCompare(catName(h))); return <section class="tabpanel" id={x.role} data-panel={x.role}>
       <h2 class="panelhead">{x.label} <span class="muted">({x.rows.length})</span></h2>
       {groups.map((g) => { const gr = x.rows.filter((c) => (c.p.category ?? '') === g); return <div class="catgroup" data-cat={g} id={`${x.role}-${g || 'other'}`}>
         <h3>{g && <Icon name={g} />} {g ? catName(g) : 'Other'} <span class="muted">({gr.length})</span></h3>

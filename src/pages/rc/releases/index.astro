@@ -2,23 +2,27 @@
 import { buildLabel } from '../../../lib/build';
 import Base from '../../../layouts/Base.astro';
 import Discontinued from '../../../components/Discontinued.astro';
-import { db, url, key, brandName, dateKey, dateDoubt, SEEN_NOTE } from '../../../lib/data';
+import { db, url, key, brandName, dateKey, dateDoubt, SEEN_NOTES } from '../../../lib/data';
 import DateText from '../../../components/DateText.astro';
 import DateDoubt from '../../../components/DateDoubt.astro';
 import DoubtNote from '../../../components/DoubtNote.astro';
+import ColourSwitch from '../../../components/ColourSwitch.astro';
+import { dateRows, colourLabels, groupName } from '../../../lib/colourways';
 // The newest releases with a known date, the filterable table over every release (list.json, loaded by the
 // release table script), and every brand's full release list on its own page (/rc/releases/<brand>/): one table
 // of all 5,500 releases was 1.3 MB. The newest table stays in the HTML for readers without script and for search engines.
 const NEWEST = 100;
-const dated = db.releases.filter((r) => dateKey(r)).sort((a, b) => dateKey(b).localeCompare(dateKey(a)) || brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name)).slice(0, NEWEST);
+// the newest rows: one per colourway group (the same car in several colours is one row, lib/colourways.ts)
+const newest = dateRows(db.releases, dateKey, (a, b) => brandName(a.brand).localeCompare(brandName(b.brand)) || a.name.localeCompare(b.name)).slice(0, NEWEST);
+const dated = newest.flatMap((x) => x.group);
 const byBrand = [...db.releases.reduce((m, r) => m.set(r.brand, (m.get(r.brand) ?? 0) + 1), new Map<string, number>())]
   .sort((a, b) => b[1] - a[1] || brandName(a[0]).localeCompare(brandName(b[0])));
 import SeenNote from '../../../components/SeenNote.astro';
 ---
-<Base title="Releases" description="RC kit and RTR releases in Hobbydex: filter every release by brand, type, scale, build and year, or see the newest, and every brand's releases on its own page.">
+<Base title="Releases" description="RC kit and RTR releases in Hobbydex: filter every release by brand, type, scale, build, power system and year, or see the newest, and every brand's releases on its own page.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Releases</div>
   <h1>Releases</h1>
-  <p class="muted">{db.releases.length} releases from {byBrand.length} brands. A table you can filter by brand, type, scale, build and year, then every brand's release list.</p>
+  <p class="muted">{db.releases.length} releases from {byBrand.length} brands. A table you can filter by brand, type, scale, build, power system and year, then every brand's release list.</p>
   <p><a href="/rc/types/">Browse by type</a></p>
   <h2 id="table">Releases <span class="muted">· <a href="/rc/releases/by-year/">all releases by year</a></span></h2>
   <form id="release-filters" class="release-filters" hidden>
@@ -26,6 +30,7 @@ import SeenNote from '../../../components/SeenNote.astro';
     <label><span>Type</span><select id="f-type"></select></label>
     <label><span>Scale</span><select id="f-scale"></select></label>
     <label><span>Build</span><select id="f-build"></select></label>
+    <label><span>Power</span><select id="f-power"></select></label>
     <div class="yearstep" role="group" aria-label="Year">
       <span class="yearlbl">Year</span>
       <span class="ybtns">
@@ -43,7 +48,7 @@ import SeenNote from '../../../components/SeenNote.astro';
     </select></label>
     <button type="button" id="release-clear">Clear filters</button>
   </form>
-  <div id="release-results" hidden data-src="/rc/releases/list.json" data-seen-note={SEEN_NOTE}>
+  <div id="release-results" hidden data-src="/rc/releases/list.json" data-seen-notes={JSON.stringify(SEEN_NOTES)}>
     <p class="muted" id="release-count" aria-live="polite"></p>
     <table class="releases">
       <thead><tr><th data-sort="date"><button type="button" class="sortbtn">Released</button></th><th data-sort="brand"><button type="button" class="sortbtn">Brand</button></th><th data-sort="name"><button type="button" class="sortbtn">Release</button></th><th>Type</th><th>Scale</th><th>Build</th></tr></thead>
@@ -53,10 +58,10 @@ import SeenNote from '../../../components/SeenNote.astro';
   </div>
   <table class="releases" id="release-newest">
     <tr><th class="num">Released</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr>
-    {dated.map((r) => <tr>
-      <td class="num" data-label="Released"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td class="name" data-label="Release"><a href={url.release(r.id)}>{r.name}</a><Discontinued item={r} /></td>
-      <td class="num" data-label="Item no.">{r.number ?? ''}</td><td data-label="Build">{buildLabel(r.kind)}</td><td class="num" data-label="Parts">{r.contains?.length ?? 0}</td>
-    </tr>)}
+    {newest.map(({ group: g, head: r }) => { const labels = colourLabels(g); return <tr>
+      <td class="num" data-label="Released"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td class="name" data-label="Release"><a href={url.release(r.id)}>{g.length > 1 ? groupName(g) : r.name}</a><Discontinued item={r} />{g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}</td>
+      <td class="num" data-label="Item no.">{g.map((x) => x.number ?? '').filter(Boolean).join(', ')}</td><td data-label="Build">{buildLabel(r.kind, r.power)}</td><td class="num" data-label="Parts">{r.contains?.length ?? 0}</td>
+    </tr>; })}
   </table>
   <DoubtNote on={dated.some((r) => !!dateDoubt(r))} />
   <SeenNote rows={dated} />

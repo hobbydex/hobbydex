@@ -1,0 +1,53 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import PartTable from '../../../../components/PartTable.astro';
+import DataLink from '../../../../components/DataLink.astro';
+import { db, key, url, brandName, partLabel } from '../../../../lib/data';
+import { columns, type Column } from '../../../../lib/categoryColumns';
+import { protocolTitle, compatibleWith } from '../../../../lib/protocols';
+import { radioGroup } from '../../../../lib/radio';
+export function getStaticPaths() {
+  return db.specs.filter((s) => s.category === 'protocol').map((s) => ({ params: { slug: key(s.id)[1] }, props: { spec: s } }));
+}
+const spec = Astro.props.spec!;
+const title = protocolTitle(spec);
+const parts = db.protocolParts.get(spec.id) ?? [];
+const groups = { transmitter: parts.filter((p) => radioGroup(p) === 'transmitter'), receiver: parts.filter((p) => radioGroup(p) === 'receiver'), other: parts.filter((p) => radioGroup(p) === 'other') };
+const { out, into } = compatibleWith(spec);
+const aliases = (spec.aliases as string[] | undefined) ?? [];
+const maker = typeof spec.brand === 'string' ? spec.brand : undefined;
+const links = (spec.links as { site: string; url: string }[] | undefined) ?? [];
+// the category's Unit and Channels columns, then every protocol mode a part lists (a radio that runs FH5, FH4 and FH3 shows all three)
+const base = (columns.radio ?? []).filter((c) => c.field.field !== 'protocol');
+const modes: Column = { label: 'Modes', field: { field: 'protocols', label: 'Modes', from: 'part' } as Column['field'], multi: true,
+  get: (p) => (p.protocols ?? []).map((id) => db.spec.get(id)?.name).filter(Boolean).join(', ') || undefined };
+const fields = [...base, modes];
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const sections: [keyof typeof groups, string][] = [['transmitter', 'Transmitters and sets'], ['receiver', 'Receivers'], ['other', 'Other radio parts']];
+---
+<Base title={title} description={`${title} radio protocol: ${plural(groups.transmitter.length, 'transmitter or set', 'transmitters and sets')} and ${plural(groups.receiver.length, 'receiver', 'receivers')} that use it, and the protocols it also runs.`} kind="spec" sub="protocol" words="protocol">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">Specs</a> / <a href="/rc/specs/protocol/">Radio protocols</a> / {title}</div>
+  <h1>{title}</h1>
+  <dl class="facts">
+    <dt>Category</dt><dd><a href="/rc/specs/protocol/">Radio protocol</a></dd>
+    {maker && <><dt>Maker</dt><dd><a href={url.brand(maker)}>{brandName(maker)}</a></dd></>}
+    {aliases.length > 0 && <><dt>Also written</dt><dd>{aliases.join(', ')} <span class="muted">(the maker's pages use both)</span></dd></>}
+    {out.length > 0 && <><dt>Also runs</dt><dd>{out.map((r, i) => { const o = db.spec.get(r.spec as string); return <>{i > 0 && ', '}{o ? <a href={url.spec(o.id)}>{protocolTitle(o)}</a> : r.spec}</>; })}</dd></>}
+    {into.length > 0 && <><dt>Also run by</dt><dd>{into.map((r, i) => <>{i > 0 && ', '}<a href={url.spec(r.from.id)}>{protocolTitle(r.from)}</a></>)}</dd></>}
+    {links.map((l) => <><dt>Maker page</dt><dd><a href={l.url} rel="nofollow noopener">{l.site}</a></dd></>)}
+  </dl>
+  {(out.length > 0 || into.length > 0) && <>
+    <h2>Other protocols it works with</h2>
+    <p class="muted">Stated by the maker on a radio or receiver that lists several modes; a device in one mode runs receivers of the others it lists.</p>
+    <ul>
+      {out.map((r) => { const o = db.spec.get(r.spec as string); return o && <li>A {title} device also runs <a href={url.spec(o.id)}>{protocolTitle(o)}</a>, as listed on {(r.via ?? []).map((v, i) => { const p = db.part.get(v); return <>{i > 0 && ', '}{p ? <a href={url.part(p.id)}>{partLabel(p)}</a> : v}</>; })}.</li>; })}
+      {into.map((r) => <li>A {protocolTitle(r.from)} device also runs {title}, as listed on {(r.via ?? []).map((v, i) => { const p = db.part.get(v); return <>{i > 0 && ', '}{p ? <a href={url.part(p.id)}>{partLabel(p)}</a> : v}</>; })}.</li>)}
+    </ul></>}
+  {sections.map(([g, label]) => groups[g].length > 0 && <>
+    <h2 id={g}>{label} <span class="muted">({groups[g].length})</span></h2>
+    <PartTable category="radio" parts={groups[g]} fields={fields} />
+  </>)}
+  {parts.length === 0 && <p class="muted">No radio part lists this protocol yet.</p>}
+  <p class="muted">Each part lists the protocols its maker names for it; a part with no stated protocol is not here.</p>
+  <DataLink path={(spec as { toml_path?: string }).toml_path} id={spec.id} />
+</Base>

@@ -3,9 +3,10 @@
 // follow as a plain "Source:" line (user, 2026-10-14: links, not shop-like buttons); fan sites are in FanLinks.
 import type { Link } from '../lib/data';
 import CopyButton from './CopyButton.astro';
+import { makerOwnLinks } from '../lib/docFacts';
 interface Props { query: string; copy?: string; copyLabel?: string; links?: Link[] }
 const { query, copy, copyLabel = 'Copy number', links = [] } = Astro.props;
-const own = links.filter((l) => l.kind !== 'fan-site' && l.kind !== 'dealer');
+const own = makerOwnLinks(links);   // a page marked gone is hidden; an archive capture shows as the product page row
 ---
 <p class="websearch" data-pagefind-ignore data-q={query}>
   <a class="btn" href={`https://www.google.com/search?q=${encodeURIComponent(query)}`} rel="nofollow noopener" target="_blank">Search the web</a>

@@ -1,0 +1,17 @@
+---
+import Icon from './Icon.astro';
+---
+<!-- Camera button for a search box: placed first in the field row, it appears only where the scan page can work
+     (a secure page with getUserMedia and a listed camera). The scanner falls back to ZXing where BarcodeDetector is missing. -->
+<a class="scanbtn" id="scan-icon" href="/rc/scan/?camera=1" aria-label="Scan a barcode with the camera" title="Scan a barcode with the camera" hidden data-pagefind-ignore><Icon name="barcode" /></a>
+<script is:inline>
+  (async () => {
+    const icon = document.getElementById('scan-icon');
+    const md = navigator.mediaDevices;
+    if (!icon || !window.isSecureContext || !md || !md.getUserMedia) return;
+    try {
+      if (md.enumerateDevices && !(await md.enumerateDevices()).some((d) => d.kind === 'videoinput')) return;
+    } catch (e) { /* the list is unavailable: try the camera anyway */ }
+    icon.hidden = false;
+  })();
+</script>

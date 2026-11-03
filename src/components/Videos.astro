@@ -5,20 +5,29 @@
 // the video on YouTube in a new tab.
 import type { Doc } from '../lib/data';
 import { isoText } from '../lib/data';
-interface Props { videos: Doc[] }
+interface Props { videos: Doc[]; limit?: number; heading?: string | false; id?: string }
+const { limit = 6, heading = 'Videos', id = 'videos' } = Astro.props;
 // newest first, undated last (a list may join a kit's videos and its releases')
 const videos = [...Astro.props.videos].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || a.title.localeCompare(b.title));
 const vid = (d: Doc) => new URL(d.url!).searchParams.get('v') ?? '';
+const first = videos.slice(0, limit), rest = videos.slice(limit);
 const length = (s?: number) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '');
 ---
 {videos.length > 0 && <>
-  <h2 id="videos">Videos <span class="muted">({videos.length})</span></h2>
-  <ul class="videos">{videos.map((d) => <li>
+  {heading !== false && <h2 id={id}>{heading} <span class="muted">({videos.length})</span></h2>}
+  {[first, rest].map((list, i) => list.length > 0 && (i === 0
+    ? <ul class="videos">{list.map((d) => <li>
     <a class="thumb" href={d.url} rel="nofollow noopener" target="_blank" tabindex="-1" aria-hidden="true"><img src={`https://i.ytimg.com/vi/${vid(d)}/mqdefault.jpg`} width="128" height="72" loading="lazy" decoding="async" referrerpolicy="no-referrer" alt={d.title} />{d.duration_s && <span class="len">{length(d.duration_s)}</span>}</a>
     <span class="text"><a href={d.url} rel="nofollow noopener" target="_blank">{d.title}</a>
       <span class="muted">{[d.channel ?? 'YouTube', d.date && isoText(d.date)].filter(Boolean).join(' · ')}</span></span>
   </li>)}</ul>
+    : <details class="allvideos"><summary>Show all {videos.length} videos</summary><ul class="videos">{list.map((d) => <li>
+    <a class="thumb" href={d.url} rel="nofollow noopener" target="_blank" tabindex="-1" aria-hidden="true"><img src={`https://i.ytimg.com/vi/${vid(d)}/mqdefault.jpg`} width="128" height="72" loading="lazy" decoding="async" referrerpolicy="no-referrer" alt={d.title} />{d.duration_s && <span class="len">{length(d.duration_s)}</span>}</a>
+    <span class="text"><a href={d.url} rel="nofollow noopener" target="_blank">{d.title}</a>
+      <span class="muted">{[d.channel ?? 'YouTube', d.date && isoText(d.date)].filter(Boolean).join(' · ')}</span></span>
+  </li>)}</ul></details>))}
 </>}
+
 <style>
   .videos { list-style: none; padding: 0; margin: 0.5rem 0 1rem; display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); }
   .videos li { display: flex; gap: 0.6rem; align-items: flex-start; min-width: 0; }
@@ -29,4 +38,5 @@ const length = (s?: number) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padS
   .text { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; overflow-wrap: anywhere; line-height: 1.3; }
   .text .muted { font-size: 0.8rem; }
   @media (max-width: 40rem) { .videos { grid-template-columns: 1fr; } .thumb img { width: 112px; height: 63px; } }
+  .allvideos > summary { cursor: pointer; margin: 0 0 0.5rem; }
 </style>
