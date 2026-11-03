@@ -11,7 +11,7 @@
 // break a deploy.
 
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { gunzipSync, gzipSync } from 'node:zlib';
@@ -67,6 +67,16 @@ export function buildManifest(dist) {
   return pages;
 }
 
+// bytes of each built page's HTML: a proxy for how much data the page holds (ranks never-submitted pages)
+export function pageSizes(dist, paths) {
+  const sizes = {};
+  for (const p of paths) {
+    const file = join(dist, p, 'index.html');
+    if (existsSync(file)) sizes[p] = statSync(file).size;
+  }
+  return sizes;
+}
+
 const depth = (p) => p.split('/').filter(Boolean).length;
 const byDepth = (a, b) => depth(a) - depth(b) || (a < b ? -1 : a > b ? 1 : 0);
 
@@ -86,10 +96,11 @@ export const dayOf = (now) => new Date(now).toISOString().slice(0, 10);
 // Compares the live manifest with the new build. A page is submitted only when its content hash
 // differs from the hash at its last submission (new and removed pages count as changed), so an
 // unchanged page is never resent. At most DAILY_CAP URLs go out per UTC day across all deploys,
-// newest changes first (then shallow paths); the rest stay pending and are reconsidered next run.
+// never-submitted pages first (largest HTML first, `sizes` maps path -> bytes), then changed pages,
+// newest change first; the rest stay pending and are reconsidered next run.
 // `previous` is a decoded manifest, null (none yet) or { legacy: true } (version 1, full-page
 // hashes that are not comparable with the new ones: adopted without submitting anything).
-export function plan(previous, current, { now = Date.now(), dailyCap = DAILY_CAP } = {}) {
+export function plan(previous, current, { now = Date.now(), dailyCap = DAILY_CAP, sizes = {} } = {}) {
   const today = dayOf(now);
   const wrap = (pages, sent, extra) => ({ manifest: { day: today, sent, pages }, ...extra });
   if (!previous) {
@@ -106,17 +117,24 @@ export function plan(previous, current, { now = Date.now(), dailyCap = DAILY_CAP
   const prev = previous.pages;
   const sentToday = previous.day === today ? previous.sent : 0;
   const budget = Math.max(0, dailyCap - sentToday);
-  const pending = []; // [path, pendingSince]
+  // pending: { path, since, never } (never: not submitted yet, so new to the search engines)
+  const pending = [];
   for (const [p, h] of Object.entries(current)) {
     const old = prev[p];
-    if (!old || old[0] !== h) pending.push([p, old?.[2] || now]);
+    if (!old || old[0] !== h) pending.push({ path: p, since: old?.[2] || now, never: old?.[0] == null });
   }
   let removed = 0;
   for (const p of Object.keys(prev)) {
-    if (!(p in current) && prev[p][0] !== null) { pending.push([p, prev[p][2] || now]); removed++; }
+    if (!(p in current) && prev[p][0] !== null) { pending.push({ path: p, since: prev[p][2] || now, never: false }); removed++; }
   }
-  pending.sort((a, b) => b[1] - a[1] || byDepth(a[0], b[0]));
-  const submit = pending.slice(0, budget).map(([p]) => p);
+  // never-submitted pages first, the biggest (richest) page first, then by path; then the changed
+  // pages, newest change first, then shallow paths
+  pending.sort((a, b) => {
+    if (a.never !== b.never) return a.never ? -1 : 1;
+    if (a.never) return (sizes[b.path] ?? 0) - (sizes[a.path] ?? 0) || byDepth(a.path, b.path);
+    return b.since - a.since || byDepth(a.path, b.path);
+  });
+  const submit = pending.slice(0, budget).map((e) => e.path);
   const sent = new Set(submit);
   const pages = {};
   for (const [p, h] of Object.entries(current)) {
@@ -125,9 +143,8 @@ export function plan(previous, current, { now = Date.now(), dailyCap = DAILY_CAP
     else if (!old || old[0] !== h) pages[p] = [old?.[0] ?? null, old?.[1] ?? '', old?.[2] || now];
     else pages[p] = old;
   }
-  for (const [p, since] of pending.slice(budget)) if (!(p in current)) pages[p] = [prev[p][0], prev[p][1], since];
-  // of the pending pages: never submitted yet (a backlog drained by the daily cap) vs changed since their last submission
-  const backlog = pending.filter(([p]) => p in current && prev[p]?.[0] == null).length;
+  for (const e of pending.slice(budget)) if (!(e.path in current)) pages[e.path] = [prev[e.path][0], prev[e.path][1], e.since];
+  const backlog = pending.filter((e) => e.never).length;
   return wrap(pages, sentToday + submit.length, { first: false, changed: pending.length, backlog, removed, skipped: pending.length - submit.length, submit });
 }
 
@@ -179,7 +196,7 @@ async function cmdPlan(a) {
     console.log(`IndexNow: previous manifest unavailable (${e.message}); nothing submitted this run`);
     skip = true;
   }
-  const result = plan(skip ? { legacy: true } : previous, current);
+  const result = plan(skip ? { legacy: true } : previous, current, { sizes: pageSizes(dist, Object.keys(current)) });
   writeFileSync(join(dist, MANIFEST), encodeManifest(result.manifest));
   writeFileSync(a.out ?? 'indexnow-plan.json', JSON.stringify({ key, urls: result.submit.map((p) => SITE + p) }));
   const note = result.first ? ' (first run: home and section pages only)' : result.migrated ? ' (manifest format changed: hashes adopted, nothing submitted)' : '';
