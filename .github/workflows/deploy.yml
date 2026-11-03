@@ -1,4 +1,4 @@
-name: Build and deploy to GitHub Pages
+name: Build and deploy
 
 on:
   push:
@@ -9,8 +9,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   # Runs outside every concurrency group, so GitHub never cancels it. A run whose
@@ -113,22 +111,16 @@ jobs:
           path: indexnow-plan.json
           if-no-files-found: ignore
           retention-days: 7
-      - uses: actions/upload-pages-artifact@v5
+      # one tar file: half a million small files are slow to upload one by one
+      - name: Pack the site
+        run: tar -cf site.tar -C dist .
+      - uses: actions/upload-artifact@v7
         with:
-          path: dist
-          # public/.well-known/ (the crawler's Web Bot Auth key directory) is a dot folder
-          include-hidden-files: true
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
-  # Own server (Hetzner + Caddy, see ops/server/): runs only when the DEPLOY_* secrets are set, so it
-  # does nothing until the server exists. Independent of the Pages deploy: neither blocks the other.
+          name: site
+          path: site.tar
+          compression-level: 0
+          retention-days: 3
+  # Own server (Hetzner + Caddy, see ops/server/): runs only when the DEPLOY_* secrets are set.
   deploy-server:
     needs: build
     runs-on: ubuntu-latest
@@ -149,12 +141,12 @@ jobs:
       - uses: actions/download-artifact@v8
         if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
         with:
-          name: github-pages
+          name: site
       - name: Upload the release and switch to it
         if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
         run: |
           mkdir -p dist ~/.ssh
-          tar -xf artifact.tar -C dist
+          tar -xf site.tar -C dist
           umask 077
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
@@ -163,14 +155,12 @@ jobs:
         if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
         with:
           node-version: 22
-      # --resolve talks to the server by IP, so this works before DNS has moved; --insecure is only needed
-      # while the server still has its internal certificate (setup.sh --pre-dns)
       - name: Smoke check
         if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
-        run: node tools/smoke.mjs --dist dist --base https://hobbydex.com --resolve "hobbydex.com:$DEPLOY_HOST" ${{ vars.DEPLOY_INSECURE == 'true' && '--insecure' || '' }}
+        run: node tools/smoke.mjs --dist dist --base https://hobbydex.com
   # tells IndexNow search engines which pages changed; never fails the deploy
   indexnow:
-    needs: deploy
+    needs: deploy-server
     runs-on: ubuntu-latest
     continue-on-error: true
     permissions:
