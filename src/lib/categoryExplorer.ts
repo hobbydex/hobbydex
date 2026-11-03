@@ -24,6 +24,7 @@ const tire: Def[] = [
   { key: 'rim', label: 'Rim size', column: true, get: (p) => (p.wheel_size ? p.wheel_size.split('/') : []), order: (a, b) => parseFloat(a) - parseFloat(b) },
   { key: 'position', label: 'Position', column: true, get: (p) => (p.position ? [POSITION[p.position] ?? cap(p.position)] : []), order: (a, b) => rank(a, ['Front', 'Rear', 'Front and rear']) - rank(b, ['Front', 'Rear', 'Front and rear']) },
   { key: 'mounting', label: 'Mounting', column: true, get: (p) => (p.mounting ? [MOUNT[p.mounting] ?? cap(p.mounting)] : []) },
+  { key: 'hardness', label: 'Hardness (Shore A)', column: true, unknown: 'not stated', get: (p) => (p.hardness ? [String(p.hardness)] : []), order: (a, b) => Number(a) - Number(b) },
   { key: 'compound', label: 'Compound', column: false, get: (p) => (p.compound ? [softness(p.compound) ?? p.compound] : []),
     group: (v) => ((SOFTNESS as readonly string[]).includes(v) ? 'Softness' : 'Maker names'),
     order: (a, b) => rank(a, SOFTNESS) - rank(b, SOFTNESS) || a.localeCompare(b, undefined, { numeric: true }) },
