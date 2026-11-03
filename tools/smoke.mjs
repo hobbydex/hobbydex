@@ -6,7 +6,7 @@
 // --insecure accepts the server's self-signed certificate (Caddy `tls internal`, before DNS moves).
 // Fails when the server's certificate expires within --min-cert-days (default 14) days.
 // Also checks that a missing page answers 404, so a server that answers 200 for everything fails.
-import { readdirSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve, relative, sep } from 'node:path';
 import http from 'node:http';
 import https from 'node:https';
@@ -39,13 +39,13 @@ if (asset) urls.add('/_astro/' + asset);
 const step = Math.max(1, Math.floor(pages.length / Math.max(1, count - urls.size)));
 for (let i = 0; i < pages.length && urls.size < count; i += step) urls.add(pages[i]);
 
-const get = (path) => new Promise((done) => {
+const get = (path, keep = false) => new Promise((done) => {
   const u = new URL(path, base);
   const lib = u.protocol === 'https:' ? https : http;
   const opts = { headers: { 'Accept-Encoding': 'gzip', 'User-Agent': 'hobbydex-smoke' }, timeout: 30000 };
   if (insecure) opts.rejectUnauthorized = false;
   if (pin) opts.lookup = (_h, o, cb) => (o && o.all ? cb(null, [{ address: pin.ip, family: pin.ip.includes(':') ? 6 : 4 }]) : cb(null, pin.ip, pin.ip.includes(':') ? 6 : 4));
-  const r = lib.get(u, opts, (m) => { m.resume(); m.on('end', () => done({ status: m.statusCode, enc: m.headers['content-encoding'] || '' })); });
+  const r = lib.get(u, opts, (m) => { const parts = []; m.on('data', (c) => keep && parts.push(c)); m.on('end', () => done({ status: m.statusCode, enc: m.headers['content-encoding'] || '', body: Buffer.concat(parts) })); });
   r.on('timeout', () => r.destroy(new Error('timeout')));
   r.on('error', (e) => done({ status: 0, enc: '', error: e.message }));
 });
@@ -65,6 +65,26 @@ if (base.protocol === 'https:') {
 for (const path of urls) {
   const r = await get(path);
   if (r.status !== 200) { bad++; console.log(`FAIL ${r.status} ${path} ${r.error ?? ''}`); }
+}
+// Search: the live entry file must equal the built one, and the index files it names must exist
+// (a stale file on the server shows up as an entry naming a .pf_meta that is not there).
+{
+  const entry = await get('/pagefind/pagefind-entry.json', true);
+  let want = null;
+  try { want = readFileSync(join(dist, 'pagefind', 'pagefind-entry.json')); } catch { /* no local copy */ }
+  if (entry.status !== 200) { bad++; console.log(`FAIL ${entry.status} /pagefind/pagefind-entry.json`); }
+  else {
+    if (want && !want.equals(entry.body)) { bad++; console.log('FAIL /pagefind/pagefind-entry.json differs from the built site'); }
+    try {
+      const langs = JSON.parse(entry.body.toString()).languages;
+      for (const [lang, v] of Object.entries(langs)) {
+        for (const f of [`pagefind.${v.hash}.pf_meta`, `wasm.${v.wasm}.pagefind`]) {
+          const r = await get('/pagefind/' + f);
+          if (r.status !== 200) { bad++; console.log(`FAIL ${r.status} /pagefind/${f} (${lang})`); }
+        }
+      }
+    } catch (e) { bad++; console.log(`FAIL pagefind-entry.json is not valid: ${e.message}`); }
+  }
 }
 const missing = await get('/this-page-does-not-exist-smoke/');
 if (missing.status !== 404) { bad++; console.log(`FAIL a missing page answered ${missing.status}, expected 404`); }
