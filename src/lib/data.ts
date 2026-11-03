@@ -229,6 +229,8 @@ export const key = (id: string) => id.split('/').slice(1);
 export const url = {
   brand: (id: string) => `/rc/brands/${key(id)[0]}/`,
   platform: (id: string) => `/rc/platforms/${key(id).join('/')}/`,
+  /** The platform's page, or undefined for a placeholder kit (a chassis no source names yet), which has none. */
+  platformPage: (id: string) => db.kit.get(id)?.placeholder ? undefined : `/rc/platforms/${key(id).join('/')}/`,
   release: (id: string) => `/rc/releases/${key(id).join('/')}/`,
   part: (id: string) => `/rc/parts/${key(id).join('/')}/`,
   spec: (id: string) => `/rc/specs/${key(id).join('/')}/`,

@@ -284,7 +284,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     <h2>Fits these platforms <span class="muted">({kitsOf.length})</span></h2>
     <table>
       <tr><th>Platform</th><th>How</th><th>Source</th></tr>
-      {kitsOf.map((k) => <tr><td><a href={url.platform(k.id)}>{k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : k.id}</a></td>
+      {kitsOf.map((k) => <tr><td><a href={url.platformPage(k.id)}>{k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : k.id}</a></td>
         <td>{[...k.roles].join(', ')}{k.releases > 0 && ` (${k.releases} release${k.releases > 1 ? 's' : ''})`}{k.fits.map((f, i) => { const n = shownNote(f.notes); return <>{(k.releases > 0 || i > 0) && '; '}fitment list: {f.type}{n && (isSourceNote(n) ? <> <SourceNote text={n} /></> : <span class="muted"> · {n}</span>)}</>; })}</td>
         <td class="muted">{[...new Set(k.fits.map((f) => (f.source && db.doc.get(f.source)?.title) ?? f.source ?? ''))].filter(Boolean).join('; ')}</td></tr>)}
     </table></>}

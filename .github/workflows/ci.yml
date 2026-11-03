@@ -37,9 +37,9 @@ jobs:
         run: npm run build
         env:
           HOBBYDEX_DATA: data/hobbydex-rc.json
-      # reports only: known broken targets are tracked in the backlog; fails nothing yet
+      # fails on any internal link whose target page does not exist
       - name: Internal link check
-        run: node tools/check-links.mjs --report
+        run: node tools/check-links.mjs --max 0
       - name: Search tests (ranking rules and the built index)
         run: npm test
       - name: Type check
