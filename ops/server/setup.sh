@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time (and safe to repeat) setup of a fresh Debian 12 / Ubuntu 24.04 server for hobbydex.com.
+# One-time (and safe to repeat) setup of a fresh Debian 12/13 or Ubuntu 24.04 server for hobbydex.com.
 # Run as root, from a directory holding this script and the Caddyfile next to it:
 #   ./setup.sh <deploy-public-key-or-file> [--pre-dns]
 # The first argument is a public key line ("ssh-ed25519 AAAA... comment") or a file with one key per line;
@@ -61,6 +61,10 @@ EOF
 cat > /etc/apt/apt.conf.d/52hobbydex-unattended <<'EOF'
 Unattended-Upgrade::Automatic-Reboot "true";
 Unattended-Upgrade::Automatic-Reboot-Time "03:30";
+EOF
+# Caddy comes from its own repository, not the Debian one; upgrade it with the rest.
+cat > /etc/apt/apt.conf.d/52hobbydex-caddy <<'EOF'
+Unattended-Upgrade::Origins-Pattern { "site=dl.cloudsmith.io"; };
 EOF
 
 # --- firewall: SSH, HTTP, HTTPS (443 also over UDP for HTTP/3)
