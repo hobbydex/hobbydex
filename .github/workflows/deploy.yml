@@ -127,6 +127,47 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+  # Own server (Hetzner + Caddy, see ops/server/): runs only when the DEPLOY_* secrets are set, so it
+  # does nothing until the server exists. Independent of the Pages deploy: neither blocks the other.
+  deploy-server:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+    steps:
+      - name: Skip when the server is not configured
+        if: env.DEPLOY_HOST == '' || env.DEPLOY_SSH_KEY == ''
+        run: echo "DEPLOY_HOST / DEPLOY_SSH_KEY not set; skipping the server deploy"
+      - uses: actions/checkout@v7
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        with:
+          sparse-checkout: |
+            ops/server
+            tools/smoke.mjs
+      - uses: actions/download-artifact@v8
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        with:
+          name: github-pages
+      - name: Upload the release and switch to it
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        run: |
+          mkdir -p dist ~/.ssh
+          tar -xf artifact.tar -C dist
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          SSH_OPTS="-i $HOME/.ssh/deploy_key" ops/server/deploy.sh dist
+      - uses: actions/setup-node@v7
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        with:
+          node-version: 22
+      # --resolve talks to the server by IP, so this works before DNS has moved; --insecure is only needed
+      # while the server still has its internal certificate (setup.sh --pre-dns)
+      - name: Smoke check
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        run: node tools/smoke.mjs --dist dist --base https://hobbydex.com --resolve "hobbydex.com:$DEPLOY_HOST" ${{ vars.DEPLOY_INSECURE == 'true' && '--insecure' || '' }}
   # tells IndexNow search engines which pages changed; never fails the deploy
   indexnow:
     needs: deploy

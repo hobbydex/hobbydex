@@ -1,0 +1,47 @@
+# Caddyfile for hobbydex.com on its own server. Installed to /etc/caddy/Caddyfile by setup.sh.
+# The site is a static build: /srv/hobbydex/current is a symlink to the newest release directory.
+# HTTPS certificates are automatic (Let's Encrypt); ports 80 and 443 must be open and the DNS
+# records must point here. Before DNS moves, setup.sh --pre-dns writes /etc/caddy/tls.d/internal.conf
+# (`tls internal`) so the site can be tested with `tools/smoke.mjs --insecure --resolve ...`;
+# delete that file and `systemctl reload caddy` when DNS has moved.
+
+www.hobbydex.com {
+	import tls.d/*
+	redir https://hobbydex.com{uri} permanent
+}
+
+hobbydex.com {
+	import tls.d/*
+
+	root * /srv/hobbydex/current
+	encode zstd gzip
+
+	# The build writes no .gz/.br files, so there is nothing for `precompressed`; Caddy compresses
+	# on the fly and caches nothing, which is fine at this size.
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# Hashed file names never change: Astro assets and the Pagefind index and fragments.
+	@immutable path /_astro/* /pagefind/index/* /pagefind/fragment/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	# Everything else (HTML, sitemaps, data/rc.json, the unhashed scripts) changes with each deploy.
+	@mutable not path /_astro/* /pagefind/index/* /pagefind/fragment/*
+	header @mutable Cache-Control "public, max-age=300, must-revalidate"
+
+	# The site has no server-side redirects: Astro writes redirect stubs as HTML pages, and
+	# public/CNAME only matters to GitHub Pages. Directory URLs ("/x/" -> "/x/index.html") are served
+	# by file_server's own index handling, and "/x" is redirected to "/x/" (trailingSlash is "always").
+	file_server
+
+	# The build has no 404.html yet; until it does, a 404 shows Caddy's plain "Not Found".
+	@notfound expression {err.status_code} == 404
+	handle_errors @notfound {
+		rewrite * /404.html
+		file_server
+	}
+}
