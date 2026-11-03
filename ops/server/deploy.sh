@@ -5,7 +5,7 @@
 #      DEPLOY_BASE (/srv/hobbydex), DEPLOY_ID (release name; default a UTC timestamp), SSH_OPTS (extra ssh options).
 # The new release is hard-linked against the live one (--link-dest; mtimes are normalised so it works), so only
 # changed files travel and unchanged files take no extra disk. A sha256 manifest check (changed files only) gates the
-# switch. Nothing under `current` is touched until the final symlink switch,
+# switch; old releases are then deleted in the background at idle priority. Nothing under `current` is touched until the final symlink switch,
 # which is atomic: visitors never see a half-uploaded or half-deleted site.
 set -euo pipefail
 
@@ -69,7 +69,11 @@ $SSH "$USER_@$HOST" "set -e; export LC_ALL=C; cd $BASE/releases/$ID
   echo \"manifest check ok: $FILES files, \$(wc -l < ../.$ID.check) hashed (not linked from the live release)\"
   rm -f ../.$ID.sha256 ../.$ID.have ../.$ID.new ../.$ID.check"
 echo "server CPU for the upload and check: $(( $(cpu) - CPU0 )) jiffies (1/100 s)"
+T0="$(date +%s)"
 $SSH "$USER_@$HOST" "set -e; cd $BASE
   ln -sfn releases/$ID current.new && mv -T current.new current
-  ls -1d releases/* | sort -r | tail -n +$((KEEP + 2)) | xargs -r rm -rf"
-echo "deployed release $ID to $HOST"
+  # Old releases: rename out of the way (instant), then delete in the background at idle priority, so this
+  # job ends right after the switch. A release holds ~575k directory entries; deleting takes about a minute.
+  ls -1d releases/* | sort -r | tail -n +$((KEEP + 2)) | while read -r r; do mv -T \"\$r\" \"releases/.trash-\${r#releases/}\"; done
+  nohup setsid nice -n 19 ionice -c 3 sh -c 'rm -rf releases/.trash-*' > /dev/null 2>&1 < /dev/null &"
+echo "switched in $(( $(date +%s) - T0 )) s; deployed release $ID to $HOST (old releases are removed in the background)"
