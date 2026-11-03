@@ -37,8 +37,8 @@ hobbydex.com {
 	@mutable not path /_astro/* /pagefind/index/* /pagefind/fragment/*
 	header @mutable Cache-Control "public, max-age=300, must-revalidate"
 
-	# The site has no server-side redirects: Astro writes redirect stubs as HTML pages, and
-	# public/CNAME only matters to GitHub Pages. Directory URLs ("/x/" -> "/x/index.html") are served
+	# The site has no server-side redirects: Astro writes redirect stubs as HTML pages.
+	# Directory URLs ("/x/" -> "/x/index.html") are served
 	# by file_server's own index handling, and "/x" is redirected to "/x/" (trailingSlash is "always").
 	file_server
 
