@@ -126,7 +126,9 @@ export function plan(previous, current, { now = Date.now(), dailyCap = DAILY_CAP
     else pages[p] = old;
   }
   for (const [p, since] of pending.slice(budget)) if (!(p in current)) pages[p] = [prev[p][0], prev[p][1], since];
-  return wrap(pages, sentToday + submit.length, { first: false, changed: pending.length, removed, skipped: pending.length - submit.length, submit });
+  // of the pending pages: never submitted yet (a backlog drained by the daily cap) vs changed since their last submission
+  const backlog = pending.filter(([p]) => p in current && prev[p]?.[0] == null).length;
+  return wrap(pages, sentToday + submit.length, { first: false, changed: pending.length, backlog, removed, skipped: pending.length - submit.length, submit });
 }
 
 export function encodeManifest(m) {
@@ -181,7 +183,7 @@ async function cmdPlan(a) {
   writeFileSync(join(dist, MANIFEST), encodeManifest(result.manifest));
   writeFileSync(a.out ?? 'indexnow-plan.json', JSON.stringify({ key, urls: result.submit.map((p) => SITE + p) }));
   const note = result.first ? ' (first run: home and section pages only)' : result.migrated ? ' (manifest format changed: hashes adopted, nothing submitted)' : '';
-  console.log(`IndexNow: ${Object.keys(current).length} pages hashed; changed ${result.changed} (${result.removed} removed), submitted ${result.submit.length}, skipped by the daily cap of ${DAILY_CAP}: ${result.skipped}; sent today ${result.manifest.sent}${note}`);
+  console.log(`IndexNow: ${Object.keys(current).length} pages hashed; pending ${result.changed} (${result.backlog ?? 0} never submitted, ${result.removed} removed), submitted ${result.submit.length}, skipped by the daily cap of ${DAILY_CAP}: ${result.skipped}; sent today ${result.manifest.sent}${note}`);
 }
 
 async function cmdSubmit(a) {
