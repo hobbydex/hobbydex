@@ -17,6 +17,15 @@ www.hobbydex.com {
 hobbydex.com {
 	import tls.d/*
 
+	# BEGIN web-bot-auth directory (generated: python3 -I tools/web_bot_auth.py directory-headers)
+	@botdirectory path /.well-known/http-message-signatures-directory
+	header @botdirectory {
+		Content-Type application/http-message-signatures-directory+json
+		Signature-Input `sig1=("@authority";req);created=1793822980;expires=1799006980;keyid="WsEm09fJOh9aKQpR9MLuIPWiT_TCsbNk79kruzYbhmA";alg="ed25519";tag="http-message-signatures-directory"`
+		Signature `sig1=:yRcezdSZuNA6pMEl+U8eAC6eFpdi3n1KJDw8wB7Wg+ovfFxvicIdyypFrf8zQ6b9Ls/wSPEdsjQkHiY+qpqyDQ==:`
+	}
+	# END web-bot-auth directory
+
 	root * /srv/hobbydex/current
 	encode zstd gzip
 
