@@ -16,7 +16,7 @@ import CopyButton from '../../../../components/CopyButton.astro';
 import { similarServos, servoRow, shortName } from '../../../../lib/servos';
 import Base from '../../../../layouts/Base.astro';
 import Discontinued from '../../../../components/Discontinued.astro';
-import { db, key, url, retiredMoves, brandName, partLabel, byReleaseDate, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, isLikelyFit, type Fits, type Spec, yearDoubt } from '../../../../lib/data';
+import { db, key, url, retiredMoves, brandName, partLabel, byReleaseDate, dateDoubt, brandGone, docPage, dateSource, heatsinksByCan, canDiameter, type Fits, type Spec, yearDoubt } from '../../../../lib/data';
 import { catName, partIcon } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import ReleaseArt from '../../../../components/ReleaseArt.astro';
@@ -60,6 +60,8 @@ for (const u of uses) {
   k.roles.add(u.role === 'kit' ? 'in the box' : u.role); k.releases++; kitMap.set(u.release.kit, k);
 }
 for (const f of part.fits ?? []) {
+  // a family fit adds nothing where the part is in a release of that kit or a direct fit names the kit: not shown
+  if (f.type === 'family' && ((kitMap.get(f.kit)?.releases ?? 0) > 0 || (part.fits ?? []).some((g) => g.kit === f.kit && g.type !== 'family'))) continue;
   const k = kitMap.get(f.kit) ?? { roles: new Set<string>(), releases: 0, fits: [] };
   k.fits.push(f); kitMap.set(f.kit, k);
 }
@@ -67,7 +69,7 @@ for (const f of part.fits ?? []) {
 const dated = dateSource(part);
 const kitsOf = [...kitMap.entries()].map(([id, v]) => ({ id, kit: db.kit.get(id), ...v })).sort((a, b) => (a.kit?.name ?? a.id).localeCompare(b.kit?.name ?? b.id));
 // platforms this part is only likely to fit: named by the car family alone, with no release in the box (type "family")
-const isLikelyKit = (k: (typeof kitsOf)[number]) => isLikelyFit(part, k.id);
+const isLikelyKit = (k: (typeof kitsOf)[number]) => k.releases === 0 && k.fits.length > 0 && k.fits.every((f) => f.type === 'family');
 const kitsConfirmed = kitsOf.filter((k) => !isLikelyKit(k));
 const kitsLikely = kitsOf.filter(isLikelyKit);
 const replacedBy = db.replacedBy.get(part.id) ?? [];
@@ -298,7 +300,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     <table>
       <tr><th>Platform</th><th>How</th><th>Source</th></tr>
       {kitsLikely.map((k) => <tr><td><a href={url.platformPage(k.id)}>{k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : k.id}</a></td>
-        <td>{k.releases > 0 && `${[...k.roles].join(', ')} in ${k.releases} release${k.releases > 1 ? 's' : ''}; `}named by family only{k.fits.map((f) => { const n = shownNote(f.notes); return n && (isSourceNote(n) ? <> <SourceNote text={n} /></> : <span class="muted"> · {n}</span>); })}</td>
+        <td>named by family only{k.fits.map((f) => { const n = shownNote(f.notes); return n && (isSourceNote(n) ? <> <SourceNote text={n} /></> : <span class="muted"> · {n}</span>); })}</td>
         <td class="muted">{[...new Set(k.fits.map((f) => (f.source && db.doc.get(f.source)?.title) ?? f.source ?? ''))].filter(Boolean).join('; ')}</td></tr>)}
     </table></>}
   {sinks.length > 0 && <><h2>Heat sinks and fan mounts for a {motorCan} mm can <span class="muted">({sinks.length}, any brand)</span></h2>
