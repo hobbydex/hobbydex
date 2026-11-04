@@ -296,11 +296,11 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     </table></>}
   {kitsLikely.length > 0 && <>
     <h2 id="likely-fits">Likely fits <span class="muted">({kitsLikely.length})</span></h2>
-    <p class="muted">The part names only the car family of these platforms, not a car sold under it, so each match is less certain than the platforms above.</p>
+    <p class="muted">The part names only the car family, so each match is less certain than a fit the maker lists.</p>
     <table>
       <tr><th>Platform</th><th>How</th><th>Source</th></tr>
       {kitsLikely.map((k) => <tr><td><a href={url.platformPage(k.id)}>{k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : k.id}</a></td>
-        <td>named by family only{k.fits.map((f) => { const n = shownNote(f.notes); return n && (isSourceNote(n) ? <> <SourceNote text={n} /></> : <span class="muted"> · {n}</span>); })}</td>
+        <td>family name only</td>
         <td class="muted">{[...new Set(k.fits.map((f) => (f.source && db.doc.get(f.source)?.title) ?? f.source ?? ''))].filter(Boolean).join('; ')}</td></tr>)}
     </table></>}
   {sinks.length > 0 && <><h2>Heat sinks and fan mounts for a {motorCan} mm can <span class="muted">({sinks.length}, any brand)</span></h2>
