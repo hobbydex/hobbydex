@@ -1,0 +1,35 @@
+---
+import Base from '../layouts/Base.astro';
+const issue = 'https://github.com/hobbydex/hobbydex-rc/issues/new';
+const keyDirectory = 'https://hobbydex.com/.well-known/http-message-signatures-directory';
+const userAgent = 'hobbydex-crawler/0.1 (+https://hobbydex.com)';
+---
+<Base title="Hobbydex bot" description="What the Hobbydex crawler is, how it identifies itself and paces its requests, how it is verified, and how a site owner can block it or ask to be left out.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / Bot</div>
+  <h1>The Hobbydex crawler</h1>
+
+  <p>Hobbydex is an open parts database for RC cars. Its crawler fetches public pages and manuals from the makers and shops that publish them, so that each record can be checked against the source it was read from. It does not log in, does not buy, does not fill in forms and does not fetch anything a site has asked it to leave alone.</p>
+
+  <h2>How it identifies itself</h2>
+  <p>Every request carries this User-Agent:</p>
+  <p><code>{userAgent}</code></p>
+  <p>Requests to sites that ask for it are also signed with Web Bot Auth (HTTP Message Signatures, RFC 9421). The public key that verifies the signature is published at <a href={keyDirectory}>{keyDirectory}</a>. A signed request names <code>hobbydex.com</code> as its signature agent, so the site can check that it comes from this project and not from someone copying the name.</p>
+
+  <h2>How it behaves</h2>
+  <ul>
+    <li><b>robots.txt first.</b> Every site's robots.txt is read before its pages are requested, and its rules are kept. A path a site disallows is not fetched.</li>
+    <li><b>Slow and sequential.</b> One site gets one request at a time, with a pause of 15 to 30 seconds between requests by default, and longer for some sites. Servers are never hit in parallel.</li>
+    <li><b>Retry-After is obeyed.</b> When a site answers 429 or 503 with a Retry-After header, the crawler waits exactly that long, no longer. A 429 without one pauses the site for a day.</li>
+    <li><b>Cached.</b> Each page is fetched once and kept, so repeat visits do not load the site again.</li>
+    <li><b>Only public pages.</b> No account, no cart, no checkout, no search form and no page behind a login.</li>
+  </ul>
+
+  <h2>Block it or ask to be left out</h2>
+  <p>A site owner can keep the crawler out with robots.txt, for example:</p>
+  <pre><code>User-agent: hobbydex-crawler
+Disallow: /</code></pre>
+  <p>Or ask us directly: <a href={issue}>open an issue</a> on GitHub, naming the site and the paths to leave alone. We stop fetching that site once the request is received.</p>
+
+  <h2>What we keep</h2>
+  <p>The part numbers, names, sizes and fitment that a source states, with a link to the maker page that lists them. The data is open under CC0 1.0 (see the <a href="/faq/">FAQ</a>). Nothing from a site is published as a copy of its pages.</p>
+</Base>
