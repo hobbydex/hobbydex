@@ -67,7 +67,7 @@ import Icon from '../../components/Icon.astro';
       const ul = el('ul');
       for (const [name, href, role] of items) {
         const li = el('li');
-        li.append(link(href, name));
+        li.append(href ? link(href, name) : document.createTextNode(name));
         if (role) li.append(el('span', ` ${role}`, 'muted'));
         ul.append(li);
       }

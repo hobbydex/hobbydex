@@ -1,4 +1,4 @@
-name: Build and deploy to GitHub Pages
+name: Build and deploy
 
 on:
   push:
@@ -9,8 +9,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   # Runs outside every concurrency group, so GitHub never cancels it. A run whose
@@ -113,23 +111,56 @@ jobs:
           path: indexnow-plan.json
           if-no-files-found: ignore
           retention-days: 7
-      - uses: actions/upload-pages-artifact@v5
+      # one tar file: half a million small files are slow to upload one by one
+      - name: Pack the site
+        run: tar -cf site.tar -C dist .
+      - uses: actions/upload-artifact@v7
         with:
-          path: dist
-          # public/.well-known/ (the crawler's Web Bot Auth key directory) is a dot folder
-          include-hidden-files: true
-  deploy:
+          name: site
+          path: site.tar
+          compression-level: 0
+          retention-days: 3
+  # Own server (Hetzner + Caddy, see ops/server/): runs only when the DEPLOY_* secrets are set.
+  deploy-server:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Skip when the server is not configured
+        if: env.DEPLOY_HOST == '' || env.DEPLOY_SSH_KEY == ''
+        run: echo "DEPLOY_HOST / DEPLOY_SSH_KEY not set; skipping the server deploy"
+      - uses: actions/checkout@v7
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        with:
+          sparse-checkout: |
+            ops/server
+            tools/smoke.mjs
+      - uses: actions/download-artifact@v8
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        with:
+          name: site
+      - name: Upload the release and switch to it
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        run: |
+          mkdir -p dist ~/.ssh
+          tar -xf site.tar -C dist
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          SSH_OPTS="-i $HOME/.ssh/deploy_key" ops/server/deploy.sh dist
+      - uses: actions/setup-node@v7
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        with:
+          node-version: 22
+      - name: Smoke check
+        if: env.DEPLOY_HOST != '' && env.DEPLOY_SSH_KEY != ''
+        run: node tools/smoke.mjs --dist dist --base https://hobbydex.com
   # tells IndexNow search engines which pages changed; never fails the deploy
   indexnow:
-    needs: deploy
+    needs: deploy-server
     runs-on: ubuntu-latest
     continue-on-error: true
     permissions:

@@ -2,7 +2,7 @@
 
 The Hobbydex website: a static site generated from the open hobby parts
 datasets (currently [hobbydex-rc](https://github.com/hobbydex/hobbydex-rc)).
-Built with Astro, searched with Pagefind, deployed to GitHub Pages at
+Built with Astro, searched with Pagefind, served from its own server at
 https://hobbydex.com.
 
 ## Develop
@@ -22,7 +22,7 @@ npm run build      # dist/, including the Pagefind index
 ## Deploy
 
 `.github/workflows/deploy.yml` checks out the data repo, validates and exports
-it, builds the site and publishes it to GitHub Pages on every push to `main`,
+it, builds the site and publishes it to the server on every push to `main`,
 on demand, and once a day to pick up new data.
 
 After each deploy, the pages whose own content (head data and `<main>`, not

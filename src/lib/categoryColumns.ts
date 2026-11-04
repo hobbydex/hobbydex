@@ -2,6 +2,7 @@
 // (data/categories/<slug>.toml): each value comes from the part or its linked spec.
 import { db, type Part, type Spec, type KeyField } from './data';
 import { radioUnitLabel } from './radio';
+import { rawValue } from './columnValue';
 import { chargerWatts, chargerInput, chemistries } from './chargers';
 
 // pick: a filter dropdown for the column (undefined: one when it has 2 to 60 values); multi: a cell holds a list joined by ', ' (scales); plug: a connector name, linked to its spec
@@ -31,8 +32,8 @@ export function format(v: unknown, f: KeyField, p?: Part): string | number | und
 
 // a column is numeric when every value the data has for it is a number (sorting, alignment)
 function isNumeric(slug: string, f: KeyField) {
-  const vals = f.from === 'spec' ? db.specs.filter((s) => s.category === cat.get(slug)?.spec_type).map((s) => s[f.field])
-    : db.parts.filter((p) => p.category === slug).map((p) => (p as unknown as Record<string, unknown>)[f.field]);
+  const vals = [...db.specs.filter((s) => s.category === cat.get(slug)?.spec_type).map((s) => (s as unknown as Record<string, unknown>)[f.field]),
+    ...db.parts.filter((p) => p.category === slug).map((p) => rawValue(f, p))];
   const present = vals.filter((v) => v !== undefined && v !== null && v !== '');
   return present.length > 0 && present.every((v) => typeof v === 'number');
 }
@@ -42,7 +43,7 @@ export const columns: Record<string, Column[]> = Object.fromEntries([...cat.entr
     label: f.unit ? `${f.label} ${f.unit}` : f.label,
     num: f.format !== 'cells' && f.format !== 'range' && !f.format?.match(/^(input|chemistries|plugs)$/) && isNumeric(slug, f),
     field: f,
-    get: (p: Part, s?: Spec) => format(f.from === 'spec' ? s?.[f.field] : (p as unknown as Record<string, unknown>)[f.field], f, p),
+    get: (p: Part, s?: Spec) => format(rawValue(f, p, s), f, p),
     multi: f.multi, plug: f.plug, pick: f.pick,
   }))]));
 

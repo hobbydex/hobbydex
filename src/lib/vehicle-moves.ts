@@ -3,6 +3,7 @@
 // a depicts.model is renamed or folded, after the data PR is merged; an entry whose slug is a live page is ignored.
 export const vehicleMoves: Record<string, Record<string, string>> = {
   'chevrolet': {
+    'c-10-tough-color': 'c10',
     'c10-fleetside-pickup': 'c10',
     'c10-pickup': 'c10',
     'c10-pickup-truck': 'c10',
@@ -14,10 +15,14 @@ export const vehicleMoves: Record<string, Record<string, string>> = {
     'k5-blazer-fcx10': 'k5-blazer',
     'k5-blazer-fcx24': 'k5-blazer',
     'k5-blazer-fcx24s': 'k5-blazer',
+    'malibu-tough-color': 'malibu',
+    'nova-tough-color': 'nova',
+    'silverado-truck': 'silverado',
   },
   'dodge': {
     'challenger-non-deco': 'challenger',
     'challenger-srt-hellcatt': 'challenger-srt-hellcat',
+    'ram-truck': 'ram',
     'stratus-190mm-race': 'stratus',
   },
   'ford': {
@@ -25,7 +30,10 @@ export const vehicleMoves: Record<string, Record<string, string>> = {
     'bronco-u4-fsc18': 'bronco-u4',
     'f-100-fcx18ii': 'f-100',
     'f-100-pick-up-truck': 'f-100',
+    'f-100-tough-color': 'f-100',
+    'f-100-truck': 'f-100',
     'f-150-pick-up': 'f-150',
+    'f-150-raptor-tough-color': 'f-150-raptor',
     'f-150-truck': 'f-150',
     'f100': 'f-100',
     'fiestas2000': 'fiesta-s2000',
@@ -36,6 +44,7 @@ export const vehicleMoves: Record<string, Record<string, string>> = {
   },
   'hummer': {
     'ev-fcx18': 'ev',
+    'h1-pickup': 'h1',
   },
   'jeep': {
     'wrangler-jlu-crc': 'wrangler-jlu',
@@ -75,6 +84,9 @@ export const vehicleMoves: Record<string, Record<string, string>> = {
     '911-gt3-rs-gt-silbermetallic': '911-gt3-rs',
     '962c-coupe-nondecoration': '962c-coupe',
   },
+  'ram': {
+    '1500-truck': '1500',
+  },
   'subaru': {
     'impreza-kx1clear': 'impreza-kx1',
     'impreza-wrc2008': 'impreza-wrc-08',
@@ -85,5 +97,6 @@ export const vehicleMoves: Record<string, Record<string, string>> = {
     'lc80-fcx10pro-v2': 'land-cruiser-80',
     'lc80-fcx18': 'land-cruiser-80',
     'lc80-fcx18s-v2': 'land-cruiser-80',
+    'tundra-truck': 'tundra',
   },
 };
