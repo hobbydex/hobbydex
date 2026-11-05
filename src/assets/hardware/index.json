@@ -2694,5 +2694,20 @@
   "washer/9.5x16x0.3": "washer-9.5x16x0.3.svg",
   "washer/9.5x16x0.5": "washer-9.5x16x0.5.svg",
   "washer/9.6x12x0.25": "washer-9.6x12x0.25.svg",
-  "washer/9x10x0.2": "washer-9x10x0.2.svg"
+  "washer/9x10x0.2": "washer-9x10x0.2.svg",
+  "screw/m2.6x8-truss-phillips": "screw-m2.6x8-truss-phillips.svg",
+  "screw/m3x10-button-torx": "screw-m3x10-button-torx.svg",
+  "screw/m3x10-truss-phillips": "screw-m3x10-truss-phillips.svg",
+  "screw/m3x12-button-torx": "screw-m3x12-button-torx.svg",
+  "screw/m3x14-button-torx": "screw-m3x14-button-torx.svg",
+  "screw/m3x15-truss-phillips": "screw-m3x15-truss-phillips.svg",
+  "screw/m3x16-button-torx": "screw-m3x16-button-torx.svg",
+  "screw/m3x18-truss-phillips": "screw-m3x18-truss-phillips.svg",
+  "screw/m3x25-truss-phillips": "screw-m3x25-truss-phillips.svg",
+  "screw/m3x30-truss-phillips": "screw-m3x30-truss-phillips.svg",
+  "screw/m3x4-button-torx": "screw-m3x4-button-torx.svg",
+  "screw/m3x6-button-torx": "screw-m3x6-button-torx.svg",
+  "screw/m3x8-button-torx": "screw-m3x8-button-torx.svg",
+  "screw/m3x8-truss-phillips": "screw-m3x8-truss-phillips.svg",
+  "screw/m4x15-truss-phillips": "screw-m4x15-truss-phillips.svg"
 }
