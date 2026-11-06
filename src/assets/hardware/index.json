@@ -2672,5 +2672,6 @@
   "screw/m3x6-button-torx": "screw-m3x6-button-torx.svg",
   "screw/m3x8-button-torx": "screw-m3x8-button-torx.svg",
   "screw/m3x8-truss-phillips": "screw-m3x8-truss-phillips.svg",
-  "screw/m4x15-truss-phillips": "screw-m4x15-truss-phillips.svg"
+  "screw/m4x15-truss-phillips": "screw-m4x15-truss-phillips.svg",
+  "screw/m1.6x7-pan-jis": "screw-m1.6x7-pan-jis.svg"
 }
