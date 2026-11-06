@@ -2672,5 +2672,13 @@
   "screw/m3x6-button-torx": "screw-m3x6-button-torx.svg",
   "screw/m3x8-button-torx": "screw-m3x8-button-torx.svg",
   "screw/m3x8-truss-phillips": "screw-m3x8-truss-phillips.svg",
-  "screw/m4x15-truss-phillips": "screw-m4x15-truss-phillips.svg"
+  "screw/m4x15-truss-phillips": "screw-m4x15-truss-phillips.svg",
+  "screw/m1.6x7-pan-jis": "screw-m1.6x7-pan-jis.svg",
+  "screw/m2.6x7-countersunk-jis": "screw-m2.6x7-countersunk-jis.svg",
+  "screw/m2x6-truss-jis": "screw-m2x6-truss-jis.svg",
+  "screw/m2x6-truss-jis-tapping": "screw-m2x6-truss-jis-tapping.svg",
+  "screw/m2x6-truss-jis-tapping-flat": "screw-m2x6-truss-jis-tapping-flat.svg",
+  "screw/m3x18-countersunk-hex-tapping": "screw-m3x18-countersunk-hex-tapping.svg",
+  "screw/m3x18-countersunk-hex-tapping-flat": "screw-m3x18-countersunk-hex-tapping-flat.svg",
+  "screw/m3x37-button-hex": "screw-m3x37-button-hex.svg"
 }
