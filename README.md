@@ -25,6 +25,8 @@ npm run build      # dist/, including the Pagefind index
 it, builds the site and publishes it to the server on every push to `main`,
 on demand, and once a day to pick up new data.
 
+The server's Caddyfile (and its access log) is applied by root running `ops/server/setup.sh <deploy-public-key>` on the server; Caddy rolls `/var/log/caddy/access.log` itself (50 MiB, 14 files, 14 days), so there is no logrotate job. `ops/server/bot-report.py` summarises it per day for Googlebot, Bingbot and other bots.
+
 After each deploy, the pages whose own content (head data and `<main>`, not
 the shared header, footer or asset names) changed since they were last
 submitted go to IndexNow (`tools/indexnow.mjs`, key in

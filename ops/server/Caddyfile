@@ -17,6 +17,25 @@ www.hobbydex.com {
 hobbydex.com {
 	import tls.d/*
 
+	# Access log, one JSON object per request (what crawlers request and get back: bot-report.py reads it).
+	# Client IPs stay in (reverse DNS verifies Googlebot); cookies and authorization headers are dropped.
+	# Rolled at 50 MiB; 14 rolled files kept, none older than 14 days (bot-report.py reads them plain or gzipped).
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 50MiB
+			roll_keep 14
+			roll_keep_for 336h
+		}
+		format filter {
+			wrap json
+			fields {
+				request>headers>Cookie delete
+				request>headers>Authorization delete
+				request>headers>Proxy-Authorization delete
+			}
+		}
+	}
+
 	# BEGIN web-bot-auth directory (generated: python3 -I tools/web_bot_auth.py directory-headers)
 	@botdirectory path /.well-known/http-message-signatures-directory
 	header @botdirectory {

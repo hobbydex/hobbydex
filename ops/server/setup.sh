@@ -46,6 +46,8 @@ if ! command -v caddy >/dev/null; then
   apt-get update -q
   apt-get install -y -q caddy
 fi
+# the access log (Caddyfile `log`) is written by the caddy user; Caddy rolls it, no logrotate job
+install -d -m 755 -o caddy -g caddy /var/log/caddy
 install -d /etc/caddy/tls.d
 if [ "$PRE_DNS" = 1 ]; then echo 'tls internal' > /etc/caddy/tls.d/internal.conf; fi
 install -m 644 "$HERE/Caddyfile" /etc/caddy/Caddyfile
