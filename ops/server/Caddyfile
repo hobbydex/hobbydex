@@ -70,7 +70,7 @@ hobbydex.com {
 
 	# Old addresses answer a real 301: tools/redirects.mjs writes the map into each release (redirects.caddy), and
 	# the glob keeps Caddy starting before the first release that has it. The map is read at start and reload only:
-	# deploy.sh reloads Caddy when the map changed. The redirect pages stay in the build as the fallback.
+	# deploy.sh reloads Caddy (`caddy reload`, admin API on localhost) when the map changed. The redirect pages stay in the build as the fallback.
 	import /srv/hobbydex/current/redirects.caddy*
 
 	# Directory URLs ("/x/" -> "/x/index.html") are served

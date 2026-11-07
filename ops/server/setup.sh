@@ -66,10 +66,7 @@ runuser -u caddy -- caddy validate --config /etc/caddy/Caddyfile --adapter caddy
 usermod -aG caddy deploy
 systemctl enable caddy >/dev/null
 systemctl reload-or-restart caddy
-# the deploy user may reload Caddy after a release changed its redirect map (deploy.sh); this command and no other
-printf '%s\n' 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload caddy' > /etc/sudoers.d/hobbydex-caddy-reload
-chmod 440 /etc/sudoers.d/hobbydex-caddy-reload
-visudo -cf /etc/sudoers.d/hobbydex-caddy-reload >/dev/null
+# deploy.sh reloads Caddy through its admin API (localhost:2019) after a release changes the redirect map: no root needed
 
 # --- automatic security updates (reboots at 03:30 when one needs it; the daily deploy runs at 04:17 UTC)
 cat > /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'

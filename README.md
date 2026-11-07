@@ -27,18 +27,23 @@ on demand, and once a day to pick up new data.
 
 The server's Caddyfile (and its access log) is applied by root running `ops/server/setup.sh <deploy-public-key>` on the server; Caddy rolls `/var/log/caddy/access.log` itself (50 MiB, 14 files, 14 days), so there is no logrotate job. `ops/server/bot-report.py` summarises it per day for Googlebot, Bingbot and other bots.
 
-Root steps for a server that runs the previous Caddyfile (once, in this order; the access log is caddy-owned, so it must exist before anything validates):
+Root steps for a server that runs an earlier Caddyfile (run once, in this order; `/path/to/ops/server` is this directory on the server). The access log must be caddy-owned before anything validates, and validation runs as the caddy user so it cannot create a root-owned log:
 ```
+cd /
 install -d -m 755 -o caddy -g caddy /var/log/caddy
+[ -e /var/log/caddy/access.log ] && chown caddy:caddy /var/log/caddy/access.log
+runuser -u caddy -- touch /var/log/caddy/access.log && chmod 640 /var/log/caddy/access.log
+install -d -m 755 -o deploy -g deploy /srv/hobbydex/bot-sig
+install -d -m 755 /usr/local/lib/hobbydex
+install -m 755 /path/to/ops/server/bot-sig-tick.py /usr/local/lib/hobbydex/bot-sig-tick.py
+install -m 644 /path/to/ops/server/hobbydex-botsig.service /path/to/ops/server/hobbydex-botsig.timer /etc/systemd/system/
+systemctl daemon-reload && systemctl enable --now hobbydex-botsig.timer
 install -m 644 /path/to/ops/server/Caddyfile /etc/caddy/Caddyfile
-usermod -aG caddy deploy
-chown caddy:caddy /var/log/caddy/access.log && chmod 640 /var/log/caddy/access.log   # a file created before this change keeps its mode; Caddy applies 0640 to new and rolled files
-printf '%s\n' 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload caddy' > /etc/sudoers.d/hobbydex-caddy-reload
-chmod 440 /etc/sudoers.d/hobbydex-caddy-reload && visudo -cf /etc/sudoers.d/hobbydex-caddy-reload
-systemctl reload caddy
 runuser -u caddy -- caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+usermod -aG caddy deploy
+systemctl reload caddy
 ```
-The sudoers line lets `deploy.sh` reload Caddy when a release changes its redirect map (`redirects.caddy`); nothing else is granted. `setup.sh` does the same steps for a fresh server.
+`deploy.sh` reloads Caddy after a release changes its redirect map (`redirects.caddy`) with `caddy reload`, which talks to Caddy's admin API on localhost:2019. The deploy user needs no root and no sudo rule for this; the admin API is not reachable from outside the server. `setup.sh` does the same steps for a fresh server.
 
 After each deploy, the pages whose own content (head data and `<main>`, not
 the shared header, footer or asset names) changed since they were last
