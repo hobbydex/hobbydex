@@ -27,6 +27,19 @@ on demand, and once a day to pick up new data.
 
 The server's Caddyfile (and its access log) is applied by root running `ops/server/setup.sh <deploy-public-key>` on the server; Caddy rolls `/var/log/caddy/access.log` itself (50 MiB, 14 files, 14 days), so there is no logrotate job. `ops/server/bot-report.py` summarises it per day for Googlebot, Bingbot and other bots.
 
+Root steps for a server that runs the previous Caddyfile (once, in this order; the access log is caddy-owned, so it must exist before anything validates):
+```
+install -d -m 755 -o caddy -g caddy /var/log/caddy
+install -m 644 /path/to/ops/server/Caddyfile /etc/caddy/Caddyfile
+usermod -aG caddy deploy
+chown caddy:caddy /var/log/caddy/access.log && chmod 640 /var/log/caddy/access.log   # a file created before this change keeps its mode; Caddy applies 0640 to new and rolled files
+printf '%s\n' 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload caddy' > /etc/sudoers.d/hobbydex-caddy-reload
+chmod 440 /etc/sudoers.d/hobbydex-caddy-reload && visudo -cf /etc/sudoers.d/hobbydex-caddy-reload
+systemctl reload caddy
+runuser -u caddy -- caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+```
+The sudoers line lets `deploy.sh` reload Caddy when a release changes its redirect map (`redirects.caddy`); nothing else is granted. `setup.sh` does the same steps for a fresh server.
+
 After each deploy, the pages whose own content (head data and `<main>`, not
 the shared header, footer or asset names) changed since they were last
 submitted go to IndexNow (`tools/indexnow.mjs`, key in

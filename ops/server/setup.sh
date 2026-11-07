@@ -51,9 +51,16 @@ install -d -m 755 -o caddy -g caddy /var/log/caddy
 install -d /etc/caddy/tls.d
 if [ "$PRE_DNS" = 1 ]; then echo 'tls internal' > /etc/caddy/tls.d/internal.conf; fi
 install -m 644 "$HERE/Caddyfile" /etc/caddy/Caddyfile
-caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+# validate as the caddy user: as root it would create access.log owned by root and the reload would fail
+runuser -u caddy -- caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+# the deploy user reads the access log through the caddy group (bot-report.py, no sudo)
+usermod -aG caddy deploy
 systemctl enable caddy >/dev/null
 systemctl reload-or-restart caddy
+# the deploy user may reload Caddy after a release changed its redirect map (deploy.sh); this command and no other
+printf '%s\n' 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload caddy' > /etc/sudoers.d/hobbydex-caddy-reload
+chmod 440 /etc/sudoers.d/hobbydex-caddy-reload
+visudo -cf /etc/sudoers.d/hobbydex-caddy-reload >/dev/null
 
 # --- automatic security updates (reboots at 03:30 when one needs it; the daily deploy runs at 04:17 UTC)
 cat > /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'

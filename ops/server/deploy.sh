@@ -92,7 +92,11 @@ REMOTE
 echo "server CPU for the upload and check: $(( $(cpu) - CPU0 )) jiffies (1/100 s)"
 T0="$(date +%s)"
 $SSH "$USER_@$HOST" "set -e; cd $BASE
+  PREV=\$(basename \"\$(readlink current)\" 2>/dev/null || true)
   ln -sfn releases/$ID current.new && mv -T current.new current
+  # Caddy reads the redirect map (redirects.caddy) at start and at reload only: reload when it changed. The deploy
+  # user may run exactly this command as root (sudoers rule from setup.sh); without it the map waits for the next reload.
+  if ! cmp -s releases/$ID/redirects.caddy releases/\$PREV/redirects.caddy; then sudo -n /usr/bin/systemctl reload caddy || echo 'warning: Caddy was not reloaded; the new redirect map takes effect at the next reload' >&2; fi
   # Old releases: rename out of the way (instant), then delete in the background at idle priority, so this
   # job ends right after the switch. A release holds ~575k directory entries; deleting takes about a minute.
   ls -1d releases/* | sort -r | tail -n +$((KEEP + 2)) | while read -r r; do mv -T \"\$r\" \"releases/.trash-\${r#releases/}\"; rm -f \"releases/.manifest-\${r#releases/}\"; done
