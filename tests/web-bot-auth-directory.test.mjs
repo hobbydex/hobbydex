@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, createPublicKey, verify } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 // The crawler's Web Bot Auth key directory: a JWKS of public Ed25519 keys, each kid its RFC 7638 thumbprint
 // (the keyid the crawler signs with). The crawler checks its own keyid against the live copy of this file.
@@ -24,31 +28,29 @@ test('the RFC 9421 test key gives the thumbprint the drafts list', () => {
     'poqkLGiymh_W0uP6PZFw-dvez3QJT5SolqXBCW38r0U');
 });
 
-// ops/server/Caddyfile serves the directory path with its media type and a response signature (tag
-// http-message-signatures-directory, covering "@authority";req). The signature must verify with a listed key and
-// must not have expired: Cloudflare stops verifying after `expires`.
-test('the Caddyfile signature of the key directory verifies with a listed key and has not expired', () => {
+// ops/server/Caddyfile serves the directory path with its media type, no caching, and a response signature (tag
+// http-message-signatures-directory, covering "@authority";req) read per request from the files that
+// ops/server/bot-sig-tick.py writes every minute from the list the crawler's PC presigns (one per minute).
+test('the Caddyfile reads the directory signature from the per-minute files, uncached', () => {
   const caddy = readFileSync(new URL('../ops/server/Caddyfile', import.meta.url), 'utf8');
-  const field = (name) => {
-    const m = caddy.match(new RegExp(`^\\t+${name} \`(sig1[^\`]*)\``, 'm'));
-    assert.ok(m, `Caddyfile has no ${name} for the directory`);
-    return m[1];
+  const block = caddy.slice(caddy.indexOf('# BEGIN web-bot-auth directory'), caddy.indexOf('# END web-bot-auth directory'));
+  assert.match(block, /Content-Type application\/http-message-signatures-directory\+json/);
+  assert.match(block, /Cache-Control no-store/);
+  assert.match(block, /Signature-Input "\{file\.\/srv\/hobbydex\/bot-sig\/signature-input\}"/);
+  assert.match(block, /Signature "\{file\.\/srv\/hobbydex\/bot-sig\/signature\}"/);
+  assert.match(caddy, /@mutable not path [^\n]*\/\.well-known\/http-message-signatures-directory/);
+});
+
+test('bot-sig-tick.py writes the newest presigned signature whose minute has come', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'botsig-'));
+  writeFileSync(join(dir, 'signatures.tsv'), ['1000\tin-a\tsig-a', '1060\tin-b\tsig-b', '1120\tin-c\tsig-c', ''].join('\n'));
+  const tick = (now) => {
+    const r = spawnSync('python3', ['-I', fileURLToPath(new URL('../ops/server/bot-sig-tick.py', import.meta.url))],
+      { env: { ...process.env, BOT_SIG_DIR: dir, BOT_SIG_NOW: String(now) }, encoding: 'utf8' });
+    return [r.status, readFileSync(join(dir, 'signature-input'), 'utf8'), readFileSync(join(dir, 'signature'), 'utf8')];
   };
-  assert.match(caddy, /Content-Type application\/http-message-signatures-directory\+json/);
-  const input = field('Signature-Input');
-  const sig = field('Signature');
-  const params = input.slice(input.indexOf('=') + 1);
-  assert.match(params, /^\("@authority";req\)/);
-  assert.match(params, /tag="http-message-signatures-directory"/);
-  const keyid = params.match(/keyid="([^"]+)"/)[1];
-  const expires = Number(params.match(/expires=(\d+)/)[1]);
-  const created = Number(params.match(/created=(\d+)/)[1]);
-  assert.ok(expires - created <= 90 * 86400, 'the signature lives at most 90 days');
-  assert.ok(expires > Date.now() / 1000 + 7 * 86400, 'renew the directory signature: it expires within 7 days');
-  const k = dir.keys.find((x) => x.kid === keyid);
-  assert.ok(k, 'the signing keyid is listed in the directory');
-  const publicKey = createPublicKey({ key: k, format: 'jwk' });
-  const base = Buffer.from(`"@authority";req: hobbydex.com\n"@signature-params": ${params}`, 'ascii');
-  const raw = Buffer.from(sig.slice(sig.indexOf(':') + 1, -1), 'base64');
-  assert.ok(verify(null, base, publicKey, raw), 'the directory signature does not verify');
+  assert.deepEqual(tick(1060), [0, 'in-b', 'sig-b']);
+  assert.deepEqual(tick(1119), [0, 'in-b', 'sig-b']);
+  assert.deepEqual(tick(5000), [0, 'in-c', 'sig-c']);
+  rmSync(dir, { recursive: true });
 });

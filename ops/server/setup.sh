@@ -39,6 +39,15 @@ if [ ! -e /srv/hobbydex/current ]; then
   chown -h deploy:deploy /srv/hobbydex/current
 fi
 
+# --- Web Bot Auth directory signature: the crawler's PC uploads presigned signatures (one per minute) to
+#     /srv/hobbydex/bot-sig; a minute timer writes the current one, which Caddy reads per request
+install -d -m 755 -o deploy -g deploy /srv/hobbydex/bot-sig
+install -d -m 755 /usr/local/lib/hobbydex
+install -m 755 "$HERE/bot-sig-tick.py" /usr/local/lib/hobbydex/bot-sig-tick.py
+install -m 644 "$HERE/hobbydex-botsig.service" "$HERE/hobbydex-botsig.timer" /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now hobbydex-botsig.timer
+
 # --- Caddy from its official apt repository
 if ! command -v caddy >/dev/null; then
   curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --batch --yes --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg

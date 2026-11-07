@@ -1,0 +1,10 @@
+# Every minute, on the minute: the presigned signatures are one per minute (created = the minute).
+[Unit]
+Description=Hobbydex: refresh the Web Bot Auth directory signature every minute
+
+[Timer]
+OnCalendar=*:*:00
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
