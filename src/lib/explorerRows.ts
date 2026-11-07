@@ -1,5 +1,8 @@
 // Shared by the server (first page of rows, option lists) and the browser (filtering the whole category):
 // no data import, so the page script stays small. See components/CategoryExplorer.astro.
+// A column label in running text: lower-cased, but a unit keeps its capitals ("any hardness (Shore A)").
+export const lowerLabel = (label: string) => label.toLowerCase().replace(/\bshore a\b/g, 'Shore A');
+
 export type Facet = {
   key: string; label: string; unknown: string;
   filter: boolean;   // a drop-down for it
@@ -19,7 +22,7 @@ export function rowHtml(r: Row, facets: Facet[]): string {
 
 export function optionsHtml(f: Facet, counts: number[], unknownCount: number, selected: string): string {
   const opt = (p: string, label: string, n: number) => `<option value="${esc(p)}"${p === selected ? ' selected' : ''}>${esc(label)} (${n})</option>`;
-  let html = `<option value="">any ${esc(f.label.toLowerCase())}</option>`, group: string | undefined, open = false;
+  let html = `<option value="">any ${esc(lowerLabel(f.label))}</option>`, group: string | undefined, open = false;
   f.values.forEach(([p, label, g], i) => {
     if (!counts[i] && p !== selected) return;
     if (g !== group) { if (open) html += '</optgroup>'; open = !!g; if (g) html += `<optgroup label="${esc(g)}">`; group = g; }
