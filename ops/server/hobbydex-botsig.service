@@ -1,0 +1,10 @@
+# Writes the current key-directory signature for Caddy from the presigned list (ops/server/bot-sig-tick.py).
+# Started every minute by hobbydex-botsig.timer; installed by setup.sh.
+[Unit]
+Description=Hobbydex: current Web Bot Auth directory signature
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+ExecStart=/usr/bin/python3 -I /usr/local/lib/hobbydex/bot-sig-tick.py
