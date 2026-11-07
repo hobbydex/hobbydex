@@ -59,7 +59,8 @@ const show = { number: releases.some((r) => r.number), edition: releases.some((r
 // the compare link takes the two newest dated releases (undated ones sort last)
 const dated = releases.filter((r) => r.released || yearOf(r));
 const pair = (dated.length >= 2 ? dated : releases).slice(-2);
-const { allFits, bearingSets, screwSets, fits } = optionFits(kit);
+const { allFits, bearingSets, screwSets, fits, likely } = optionFits(kit);
+const likelyCount = new Set(likely.map((x) => x.part.id)).size;
 // the newest option parts with a real date (latestParts.ts), current ones only, one per part
 const groups = byCat(fits, (x) => x.part.category);
 const split = fits.length > SPLIT_ABOVE;   // a big platform lists only its categories here; each has its own page
@@ -194,10 +195,11 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
   <SeenNote rows={releases} />
   <DoubtNote on={releases.some((r) => !!yearDoubt(r))} /></>;
   })()}
-  {(fits.length > 0 || bearingSets.length > 0 || screwSets.length > 0) && <p class="partsummary" data-pagefind-ignore>
+  {(fits.length > 0 || bearingSets.length > 0 || screwSets.length > 0 || likely.length > 0) && <p class="partsummary" data-pagefind-ignore>
     <a href="#option-parts"><strong>{count(partTotal, 'option part')}</strong></a> listed as fitting
     {groups.length > 1 && <>: {groups.map(({ g, rows }, i) => <>{i > 0 && ' · '}<a href={split ? partsUrl(platUrl, g) : `#cat-${g || 'other'}`}>{g ? catName(g) : 'Other'}</a> ({rows.length})</>)}</>}
-    {(bearingSets.length > 0 || screwSets.length > 0) && <span class="muted"> · plus {count(bearingSets.length + screwSets.length, 'bearing and screw set')} from other makers</span>}</p>}
+    {(bearingSets.length > 0 || screwSets.length > 0) && <span class="muted"> · plus {count(bearingSets.length + screwSets.length, 'bearing and screw set')} from other makers</span>}
+    {likelyCount > 0 && <span class="muted"> · <a href="#likely-fits">{likelyCount} likely</a> (named by family only)</span>}</p>}
   <Videos videos={videos} />
   <FanLinks links={kit.links} />
   {notesText && !isSourceNote(notesText) && <p class="muted">{notesText}</p>}
@@ -256,6 +258,11 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
       <FitTable rows={rows} {numn} />
     </details>)}
     {split && <ul class="catlinks">{groups.map(({ g, rows }) => <li><a href={partsUrl(platUrl, g)}>{g && <Icon name={g} />} {g ? catName(g) : 'Other'}</a> <span class="muted">({rows.length})</span></li>)}</ul>}
+  </section>}
+  {likely.length > 0 && <section id="likely-fits" data-pagefind-ignore>
+    <h2>Likely fits <span class="muted">({likelyCount})</span></h2>
+    <p class="muted">These parts name only the {kit.name} family, not a car sold under it, so the match is less certain than the parts listed above.</p>
+    <FitTable rows={likely} numn={Math.max(5, ...likely.map((x) => partNo(x.part).length))} />
   </section>}
   {relatedFits.map(({ o, link, rows }) => <details class="kitsets relatedfits" data-pagefind-ignore>
     <summary>Listed for the related {brandName(o.brand)} {o.name} <span class="muted">({rows.length})</span></summary>
