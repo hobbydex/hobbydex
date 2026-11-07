@@ -40,8 +40,9 @@ hobbydex.com {
 	@botdirectory path /.well-known/http-message-signatures-directory
 	header @botdirectory {
 		Content-Type application/http-message-signatures-directory+json
-		Signature-Input `sig1=("@authority";req);created=1793822980;expires=1799006980;keyid="WsEm09fJOh9aKQpR9MLuIPWiT_TCsbNk79kruzYbhmA";alg="ed25519";tag="http-message-signatures-directory"`
-		Signature `sig1=:yRcezdSZuNA6pMEl+U8eAC6eFpdi3n1KJDw8wB7Wg+ovfFxvicIdyypFrf8zQ6b9Ls/wSPEdsjQkHiY+qpqyDQ==:`
+		Cache-Control no-store
+		Signature-Input "{file./srv/hobbydex/bot-sig/signature-input}"
+		Signature "{file./srv/hobbydex/bot-sig/signature}"
 	}
 	# END web-bot-auth directory
 
@@ -62,7 +63,7 @@ hobbydex.com {
 	header @immutable Cache-Control "public, max-age=31536000, immutable"
 
 	# Everything else (HTML, sitemaps, data/rc.json, the unhashed scripts) changes with each deploy.
-	@mutable not path /_astro/* /pagefind/index/* /pagefind/fragment/*
+	@mutable not path /_astro/* /pagefind/index/* /pagefind/fragment/* /.well-known/http-message-signatures-directory
 	header @mutable Cache-Control "public, max-age=300, must-revalidate"
 
 	# The site has no server-side redirects: Astro writes redirect stubs as HTML pages.
