@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+const issue = 'https://github.com/hobbydex/hobbydex-rc/issues/new';
+---
+<Base title="About and privacy" description="Who runs Hobbydex, how to reach us, and what the site and its server record about visitors.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / About</div>
+  <h1>About Hobbydex</h1>
+
+  <h2>Who runs it</h2>
+  <p>Hobbydex (hobbydex.com and its crawler, see <a href="/bot/">the bot page</a>) is run by <b>Somatik BV</b>, a company registered in Belgium, enterprise number BE 0839.459.576.</p>
+  <p>It is an independent, non-commercial project: no ads, no sales, no paid tiers, and not tied to any maker or shop. The data is open under CC0 1.0 and the code under the MIT licence (see the <a href="/faq/">FAQ</a>).</p>
+
+  <h2>Contact</h2>
+  <ul>
+    <li>Corrections, missing parts and reports: <a href={issue}>open an issue</a> on GitHub.</li>
+    <li>Anything else: <a href="mailto:info@somatik.be">info@somatik.be</a>.</li>
+  </ul>
+
+  <h2>Privacy</h2>
+  <ul>
+    <li><b>No cookies, no analytics, no trackers.</b> The site loads no third-party scripts.</li>
+    <li><b>Two settings stay in your browser.</b> The colour theme and the chosen web-search engine are kept in your browser's local storage and are never sent to us.</li>
+    <li><b>Server access log.</b> Like any web server, ours records each request: the time, the address asked for, the answer, your IP address and your browser's User-Agent. Cookies and authorisation headers are not recorded. The log is used only to keep the site running and to see how search engines crawl it; it is not shared and is deleted after at most 14 days.</li>
+    <li><b>Hosting.</b> The site runs on a server rented from Hetzner Online GmbH in Germany.</li>
+    <li>Questions about this, or a request about your data: <a href="mailto:info@somatik.be">info@somatik.be</a>.</li>
+  </ul>
+</Base>
