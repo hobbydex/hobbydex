@@ -36,7 +36,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
 <Base title={`${make} RC cars`} description={`${make} RC replicas: ${releases.length} ${releases.length === 1 ? 'release' : 'releases'}${bodies.length ? ` and ${bodies.length} body shells` : ''}, by model.${info ? ` ${info.notes}` : ''}`} kind="make" words={[make, info?.notes, ...models, ...makeVehicles.map((v) => v.model)].filter(Boolean).join(' ')}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/makes/">Car makes</a> / {make}</div>
   <h1>{make} <span class="muted">({releases.length} {releases.length === 1 ? 'release' : 'releases'})</span></h1>
-  {info && <dl class="facts"><dt>Country</dt><dd>{countryName(info.country)}</dd></dl>}
+  {info && <dl class="facts"><dt>Country</dt><dd>{countryName(info.country)}</dd>{info.vehiclesdb && <><dt>Real-car data</dt><dd><a href={info.vehiclesdb} rel="nofollow noopener" target="_blank">VehiclesDB</a></dd></>}</dl>}
   {info && <p>{info.notes}</p>}
   <p class="muted">{make} is a trademark of its owner; no logos are shown.</p>
   {makeVehicles.length > 0 && <p class="toc" data-pagefind-ignore>{makeVehicles.map((v, i) => <>{i > 0 && ' · '}<a href={v.href}>{v.model}</a> <span class="muted">({v.releases.length + v.bodies.length})</span></>)}</p>}
