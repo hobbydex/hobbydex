@@ -87,7 +87,7 @@ const sourceDateOf = (file: string) => {
     return out ? new Date(out).toISOString().slice(0, 10) : undefined;
   } catch { return undefined; }
 };
-const staticSources: Record<string, string> = { '/faq/': 'src/pages/faq.astro', '/rc/compare/': 'src/pages/rc/compare.astro', '/rc/scan/': 'src/pages/rc/scan.astro', '/search/': 'src/pages/search.astro' };
+const staticSources: Record<string, string> = { '/about/': 'src/pages/about.astro', '/faq/': 'src/pages/faq.astro', '/rc/compare/': 'src/pages/rc/compare.astro', '/rc/scan/': 'src/pages/rc/scan.astro', '/search/': 'src/pages/search.astro' };
 
 /** lastmod (YYYY-MM-DD) of the page at `pathname` ("/rc/parts/xray/303122/"), or undefined when it has no data-backed date. */
 export function lastmodFor(pathname: string): string | undefined {

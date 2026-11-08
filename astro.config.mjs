@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import { lastmodFor } from './src/lib/lastmod.ts';
+import { inSitemap } from './src/lib/sitemapPages.mjs';
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const SITE = 'https://hobbydex.com';
@@ -26,7 +27,7 @@ function sitemap() {
       'astro:build:done': ({ dir, pages }) => {
         // redirect pages at former ids are left out: search engines should only see the current page
         const isRedirect = (p) => { try { return readFileSync(new URL(`${p.pathname}index.html`, dir), 'utf8').startsWith('<!doctype html><title>Redirecting to'); } catch { return false; } };
-        const urls = pages.filter((p) => !isRedirect(p)).map((p) => `${SITE}/${p.pathname}`).filter((u) => !u.includes('/404')).sort()
+        const urls = pages.filter((p) => !isRedirect(p)).map((p) => `${SITE}/${p.pathname}`).filter((u) => inSitemap(u.slice(SITE.length))).sort()
           .map((loc) => ({ loc, lastmod: lastmodFor(loc.slice(SITE.length)) }));
         const chunks = [];
         for (let i = 0; i < urls.length; i += 40000) chunks.push(urls.slice(i, i + 40000));
