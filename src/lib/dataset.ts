@@ -7,6 +7,7 @@ export const datasetName = 'Hobbydex RC parts database';
 export const dataReleasesUrl = 'https://github.com/hobbydex/hobbydex-rc/releases';
 export const datasetDoi = '10.5281/zenodo.24051506';
 export const datasetDoiUrl = `https://doi.org/${datasetDoi}`;
+export const datasetKaggleUrl = 'https://www.kaggle.com/datasets/francisdebrabandere/hobbydex-rc-parts-database';
 
 export function datasetJsonLd(dateModified: string = new Date().toISOString().slice(0, 10)) {
   return {
@@ -15,7 +16,7 @@ export function datasetJsonLd(dateModified: string = new Date().toISOString().sl
     name: datasetName,
     description: 'RC cars, kits, releases, parts, fitment and manuals, read from the makers\' own manuals, parts lists and product pages, with the source of each record.',
     url: 'https://hobbydex.com/data/',
-    sameAs: ['https://github.com/hobbydex/hobbydex-rc', datasetDoiUrl],
+    sameAs: ['https://github.com/hobbydex/hobbydex-rc', datasetDoiUrl, datasetKaggleUrl],
     identifier: datasetDoiUrl,
     license: dataLicense.url,
     isAccessibleForFree: true,
