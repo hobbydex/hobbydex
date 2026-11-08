@@ -16,7 +16,7 @@ import Discontinued from '../../../../components/Discontinued.astro';
 import DateText from '../../../../components/DateText.astro';
 import DateDoubt from '../../../../components/DateDoubt.astro';
 import DoubtNote from '../../../../components/DoubtNote.astro';
-import { seenNote, sourceHref, db, key, url, retiredMoves, brandName, announcedSourceLabel, byPartNo, partLabel, partRest, partNo, yearOf, isoText, statusOf, isComing, releasedOf, dateDoubt, brandGone, docPage, dateSource, requiredName, conversionsForRelease, fitsForRelease, seriesMates, type Part } from '../../../../lib/data';
+import { seenNote, sourceHref, db, key, isLikelyFit, url, retiredMoves, brandName, announcedSourceLabel, byPartNo, partLabel, partRest, partNo, yearOf, isoText, statusOf, isComing, releasedOf, dateDoubt, brandGone, docPage, dateSource, requiredName, conversionsForRelease, fitsForRelease, seriesMates, type Part } from '../../../../lib/data';
 import { catName } from '../../../../lib/categories';
 import Icon from '../../../../components/Icon.astro';
 import FactSource from '../../../../components/FactSource.astro';
@@ -207,7 +207,7 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
       <h3>Bearing kits for this car</h3>
       {bearingKits.length > 0 && <table>
         <tr><th>Kit</th><th class="num">Bearings</th><th>Against the box</th></tr>
-        {bearingKits.map((b) => <tr><td><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> {b.p.number && <span class="muted">{b.p.name}</span>}<Discontinued item={b.p} /></td><td class="num">{b.total || ''}</td>
+        {bearingKits.map((b) => <tr><td><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> {b.p.number && <span class="muted">{b.p.name}</span>}<Discontinued item={b.p} />{isLikelyFit(b.p, kit.id) && <> <span class="badge">Likely fit</span></>}</td><td class="num">{b.total || ''}</td>
           <td>{b.missing.length === 0 && b.short.length === 0 ? (bearings.counted ? 'every size, enough of each' : 'every size') : <span class="muted">{b.missing.length > 0 && `misses ${b.missing.map((l) => l.name).join(', ')}`}{b.missing.length > 0 && b.short.length > 0 && '; '}{b.short.length > 0 && `too few ${b.short.map((l) => l.name).join(', ')}`}</span>}</td></tr>)}
       </table>}
       <OtherCarSets items={otherBearing} kitName={kit.name} /></>}
@@ -216,11 +216,11 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     <h2>Bearing kits for this car <span class="muted">({bearingKits.length})</span></h2>
     {bearingKits.length > 0 && <>
       <p class="muted">The bearings in the box are not in our data for this release, so the kits are not checked against it.</p>
-      <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> <span class="muted">{b.p.number && b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span><Discontinued item={b.p} /></li>)}</ul></>}
+      <ul>{bearingKits.map((b) => <li><a href={url.part(b.p.id)}>{brandName(b.p.brand)} {partLabel(b.p)}</a> <span class="muted">{b.p.number && b.p.name}{b.total ? ` · ${b.total} bearings` : ''}</span><Discontinued item={b.p} />{isLikelyFit(b.p, kit.id) && <> <span class="badge">Likely fit</span></>}</li>)}</ul></>}
     <OtherCarSets items={otherBearing} kitName={kit.name} /></section>}
   {(screwFits.here.length > 0 || otherScrew.length > 0) && <section data-pagefind-ignore>
     <h2>Screw kits for this car <span class="muted">({screwFits.here.length})</span></h2>
-    {screwFits.here.length > 0 && <ul>{screwFits.here.map((p) => <li><a href={url.part(p.id)}>{brandName(p.brand)} {partLabel(p)}</a> {p.number && <span class="muted">{p.name}</span>}<Discontinued item={p} /></li>)}</ul>}
+    {screwFits.here.length > 0 && <ul>{screwFits.here.map((p) => <li><a href={url.part(p.id)}>{brandName(p.brand)} {partLabel(p)}</a> {p.number && <span class="muted">{p.name}</span>}<Discontinued item={p} />{isLikelyFit(p, kit.id) && <> <span class="badge">Likely fit</span></>}</li>)}</ul>}
     <OtherCarSets items={otherScrew} kitName={kit.name} /></section>}
   {hasQty && <p class="muted">Quantities are per car, read from the build manual's steps; Pack is how many pieces one part number buys.</p>}
   {!hasSplit && rows.length > 0 && <p class="muted">The manufacturer's parts list for this release does not say which parts come in the box and which are options; it is one flat list. That split needs the build manual, which has not been imported yet.</p>}
