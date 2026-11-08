@@ -5,6 +5,7 @@ import { db, url, brandName, byPartNo, partLabel, partRest, type Part } from '..
 import Discontinued from './Discontinued.astro';
 import HideDiscontinued from './HideDiscontinued.astro';
 import Icon from './Icon.astro';
+import { lowerLabel } from '../lib/explorerRows';
 import { columns, specOf, type Column } from '../lib/categoryColumns';
 import { plugLinks } from '../lib/plugs';
 import { paintChip } from '../lib/paintSwatch';
@@ -34,7 +35,7 @@ const ranges = cols.map((c, i) => ({ c, i })).filter(({ c }) => c.field.filter =
   <p class="websearch">
     <span class="sfield"><Icon name="search" /><input type="search" class="q search-box" placeholder="Filter by number or name" aria-label="Filter" /></span>
     {showBrand && brands.length > 1 && <select class="brand" aria-label="Brand"><option value="">every brand</option>{brands.map((b) => <option value={b}>{brandName(b)}</option>)}</select>}
-    {picks.map(({ c, i, choices }) => <select class="pick" data-col={i} data-multi={c.multi ? '' : undefined} data-key={c.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} aria-label={c.label}><option value="">any {c.label.toLowerCase()}</option>{choices.map((v) => <option>{v}</option>)}</select>)}
+    {picks.map(({ c, i, choices }) => <select class="pick" data-col={i} data-multi={c.multi ? '' : undefined} data-key={c.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} aria-label={c.label}><option value="">any {lowerLabel(c.label)}</option>{choices.map((v) => <option>{v}</option>)}</select>)}
     {ranges.map(({ c, i }) => <span class="rangef" data-col={i} data-key={c.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}>{c.label} <input type="number" class="rmin" min="0" inputmode="numeric" placeholder="from" aria-label={`${c.label} from`} /> <input type="number" class="rmax" min="0" inputmode="numeric" placeholder="to" aria-label={`${c.label} to`} /></span>)}
     {cols.length > 0 && <label><input type="checkbox" class="known" /> only with specs</label>}
     {hasDisc && <HideDiscontinued />}
