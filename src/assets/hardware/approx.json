@@ -157,13 +157,11 @@
   "screw/m2.6x30-button-hex",
   "screw/m2.6x35-socket-cap-hex",
   "screw/m2.6x4-countersunk-hex",
-  "screw/m2.6x4-truss-jis",
   "screw/m2.6x40-socket-cap-hex",
   "screw/m2.6x5-button-hex-tapping",
   "screw/m2.6x5-button-hex-tapping-flat",
   "screw/m2.6x5-pan-jis",
   "screw/m2.6x5-socket-cap-hex",
-  "screw/m2.6x5-truss-jis",
   "screw/m2.6x6-button-hex",
   "screw/m2.6x6-button-hex-tapping",
   "screw/m2.6x6-button-hex-tapping-flat",
@@ -349,7 +347,6 @@
   "screw/m3x32-pan-hex",
   "screw/m3x35-button-phillips",
   "screw/m3x38-pan-hex",
-  "screw/m3x5-truss-jis",
   "screw/m3x6-button-jis",
   "screw/m3x6-button-phillips",
   "screw/m3x6-button-phillips-tapping",
@@ -406,5 +403,8 @@
   "screw/m4x8-button-phillips",
   "screw/m4x8-pan-hex",
   "screw/m4x8-truss-jis",
-  "screw/m5x8-pan-hex"
+  "screw/m5x8-pan-hex",
+  "screw/m2.6x4-truss-jis",
+  "screw/m2.6x5-truss-jis",
+  "screw/m3x5-truss-jis"
 ]
