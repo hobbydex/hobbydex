@@ -12,6 +12,8 @@ for (const p of db.parts) {
 }
 export const categories = [...byCategory.keys()].sort((a, b) => (categoryLabel[a] ?? a).localeCompare(categoryLabel[b] ?? b));
 export const countOf = (c: string) => [...(byCategory.get(c)?.values() ?? [])].reduce((n, ps) => n + ps.length, 0);
+// A category above this many parts is not one plain table: it gets the filter table (components/CategoryExplorer.astro).
+export const BIG = 3000;
 // parts with no category, by brand: listed under /rc/categories/uncategorised/<brand>/ (uncategorised is no category id)
 export const uncatSlug = 'uncategorised';
 export const uncategorised = new Map<string, Part[]>();

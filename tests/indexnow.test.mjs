@@ -50,6 +50,28 @@ test('the daily cap spans deploys and the rest stays pending, newest changes fir
   assert.equal(r3.manifest.sent, 4);
 });
 
+test('never-submitted pages go before changed ones, biggest first, even when the changes are newer', () => {
+  const prev = settled({ '/rc/old/': 'o' });
+  prev.pages['/rc/small/'] = [null, '', D1];
+  prev.pages['/rc/big/'] = [null, '', D1];
+  // '/rc/unseen/' is in the build but not in the manifest at all
+  const cur = { '/rc/old/': 'O', '/rc/small/': 's', '/rc/big/': 'b', '/rc/unseen/': 'u' };
+  const sizes = { '/rc/small/': 100, '/rc/big/': 900, '/rc/unseen/': 500, '/rc/old/': 9999 };
+  const r = plan(prev, cur, { now: D2, dailyCap: 3, sizes });
+  assert.deepEqual(r.submit, ['/rc/big/', '/rc/unseen/', '/rc/small/']);
+  assert.equal(r.backlog, 3);
+  assert.equal(r.changed, 4);
+  // the changed page follows once the never-submitted set is drained (the rest of the day's cap)
+  const next = plan(r.manifest, cur, { now: D2 + 1000, dailyCap: 4, sizes });
+  assert.deepEqual(next.submit, ['/rc/old/']);
+  assert.equal(next.backlog, 0);
+});
+
+test('without sizes, never-submitted pages keep path order', () => {
+  const r = plan(settled({ '/rc/z/': 'z' }), { '/rc/z/': 'z', '/rc/b/': 'b', '/rc/a/': 'a' }, { now: D2, dailyCap: 1 });
+  assert.deepEqual(r.submit, ['/rc/a/']);
+});
+
 test('pages over the cap keep their old hash so they come back, and nothing repeats', () => {
   const prev = settled({ '/a/': '1', '/b/': '1' });
   const cur = { '/a/': '2', '/b/': '2' };

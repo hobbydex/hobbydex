@@ -37,6 +37,12 @@ jobs:
         run: npm run build
         env:
           HOBBYDEX_DATA: data/hobbydex-rc.json
+      # fails on any internal link whose target page does not exist
+      - name: Internal link check
+        run: node tools/check-links.mjs --max 0
+      # every redirect page has its 301 entry in redirects.caddy, and every target is a live page
+      - name: Redirect map check
+        run: node tools/redirects.mjs --check
       - name: Search tests (ranking rules and the built index)
         run: npm test
       - name: Type check

@@ -16,7 +16,7 @@ function index() {
     for (const f of part.fits ?? []) kits.set(f.kit, '');
     const platforms = [...kits.keys()].map((id) => {
       const kit = db.kit.get(id);
-      return [kit ? `${brandName(kit.brand)} ${kit.name}` : id, url.platform(id)] as [string, string];
+      return [kit ? `${brandName(kit.brand)} ${kit.name}` : id, url.platformPage(id) ?? ''] as [string, string];
     }).sort((a, b) => a[0].localeCompare(b[0]));
     const releases = uses.map((u) => [`${brandName(u.release.brand)} ${u.release.name}`, url.release(u.release.id), u.role === 'kit' ? 'in the box' : u.role] as [string, string, string])
       .sort((a, b) => a[0].localeCompare(b[0]));
