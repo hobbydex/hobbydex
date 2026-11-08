@@ -39,7 +39,7 @@ test('the Dataset JSON-LD has the required fields and parses as JSON', () => {
   assert.equal(ld.name, 'Hobbydex RC parts database');
   assert.ok(ld.description.length > 0);
   assert.equal(ld.url, 'https://hobbydex.com/data/');
-  assert.deepEqual(ld.sameAs, ['https://github.com/hobbydex/hobbydex-rc', 'https://doi.org/10.5281/zenodo.24051506']);
+  assert.deepEqual(ld.sameAs, ['https://github.com/hobbydex/hobbydex-rc', 'https://doi.org/10.5281/zenodo.24051506', 'https://www.kaggle.com/datasets/francisdebrabandere/hobbydex-rc-parts-database']);
   assert.equal(ld.identifier, 'https://doi.org/10.5281/zenodo.24051506');
   assert.equal(ld.license, 'https://creativecommons.org/licenses/by/4.0/');
   assert.equal(ld.isAccessibleForFree, true);
