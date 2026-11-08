@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { operator } from '../lib/operator';
+import { dataLicense } from '../lib/license';
 import { db } from '../lib/data';
 const issue = 'https://github.com/hobbydex/hobbydex-rc/issues/new';
 ---
@@ -27,7 +28,7 @@ const issue = 'https://github.com/hobbydex/hobbydex-rc/issues/new';
   <p><a href={issue}>Open an issue</a> on GitHub, or use the "report an error" link at the bottom of any platform, release, part or spec page, which fills in the page for you. We read every report and fix the data from the source.</p>
 
   <h2>May I use the data?</h2>
-  <p>Yes. The dataset is public on <a href="https://github.com/hobbydex/hobbydex-rc">GitHub</a> and downloadable as one file, <a href="/data/rc.json">rc.json</a>. The data is open source under CC0 1.0, so it may be used without conditions; the site's code is under the MIT licence. A link back to hobbydex.com helps the project and lets corrections find their way home.</p>
+  <p>Yes. The dataset is public on <a href="https://github.com/hobbydex/hobbydex-rc">GitHub</a> and downloadable as one file, <a href="/data/rc.json">rc.json</a>. The data is licensed under <a href={dataLicense.url}>{dataLicense.name}</a>: you may use, share and adapt it, including commercially, as long as you credit it, for example <code>{dataLicense.credit}</code>. Data released before {dataLicense.previous.until} was published under {dataLicense.previous.name} and remains so. The site's code is under the {dataLicense.codeLicense} licence. The <a href="/data/">Hobbydex data</a> page has the downloads and the credit line.</p>
 
   <h2>What are platforms, releases and parts?</h2>
   <p>A <b>platform</b> is a model or chassis, such as the Tamiya TT-02 or the Traxxas Slash. A <b>release</b> is one boxed product with its item number: the first kit, a re-release, a ready-to-run version, a colour or an edition. A <b>part</b> is one item with the maker's part number. A part <b>fits</b> a platform when the maker's parts list or manual says so; options and upgrades are listed apart from the parts in the box.</p>

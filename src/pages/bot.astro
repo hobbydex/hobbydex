@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { operator } from '../lib/operator';
+import { dataLicense } from '../lib/license';
 const issue = 'https://github.com/hobbydex/hobbydex-rc/issues/new';
 const keyDirectory = 'https://hobbydex.com/.well-known/http-message-signatures-directory';
 const userAgent = 'hobbydex-crawler/0.1 (+https://hobbydex.com)';
@@ -35,5 +36,5 @@ Disallow: /</code></pre>
   <p>The crawler and hobbydex.com are run by {operator.name}, {operator.country}. Company details and contact: <a href="/about/">About and privacy</a>.</p>
 
   <h2>What we keep</h2>
-  <p>The part numbers, names, sizes and fitment that a source states, with a link to the maker page that lists them. The data is open under CC0 1.0 (see the <a href="/faq/">FAQ</a>). Nothing from a site is published as a copy of its pages.</p>
+  <p>The part numbers, names, sizes and fitment that a source states, with a link to the maker page that lists them. The data is open under {dataLicense.name} (see the <a href="/faq/">FAQ</a>). Nothing from a site is published as a copy of its pages.</p>
 </Base>
