@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { operator } from '../lib/operator';
+import { dataLicense } from '../lib/license';
 const issue = 'https://github.com/hobbydex/hobbydex-rc/issues/new';
 ---
 <Base title="About and privacy" description="Who runs Hobbydex, how to reach us, and what the site and its server record about visitors.">
@@ -9,7 +10,7 @@ const issue = 'https://github.com/hobbydex/hobbydex-rc/issues/new';
 
   <h2>Who runs it</h2>
   <p>Hobbydex (hobbydex.com and its crawler, see <a href="/bot/">the bot page</a>) is run by <b>{operator.name}</b>, a company registered in {operator.country}, enterprise number {operator.enterpriseNumber}.</p>
-  <p>It is an independent, non-commercial project: no ads, no sales, no paid tiers, and not tied to any maker or shop. The data is open under CC0 1.0 and the code under the MIT licence (see the <a href="/faq/">FAQ</a>).</p>
+  <p>It is an independent, non-commercial project: no ads, no sales, no paid tiers, and not tied to any maker or shop. The data is open under {dataLicense.name} and the code under the {dataLicense.codeLicense} licence (see the <a href="/faq/">FAQ</a>).</p>
 
   <h2>Contact</h2>
   <ul>

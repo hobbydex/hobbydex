@@ -74,4 +74,7 @@ The data itself is read from manufacturers' manuals and parts lists with the too
 ## License
 
 Code is under the [MIT License](LICENSE). The data shown on the site comes
-from the dataset repositories and is CC0.
+from the dataset repository, [hobbydex-rc](https://github.com/hobbydex/hobbydex-rc),
+and is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Credit: `Data: Hobbydex (https://hobbydex.com), CC BY 4.0`. Data released before
+2026-11-08 was published under CC0 1.0 and remains so.

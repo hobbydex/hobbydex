@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/Base.astro';
+import { db } from '../../lib/data';
+import { dataLicense } from '../../lib/license';
+import { datasetJsonLd, dataReleasesUrl } from '../../lib/dataset';
+import { operator } from '../../lib/operator';
+const github = 'https://github.com/hobbydex/hobbydex-rc';
+const jsonld = datasetJsonLd();
+---
+<Base title="Hobbydex data" description={`The Hobbydex RC parts database: ${db.releases.length} releases and ${db.parts.length} parts, licensed ${dataLicense.name}. Download it as one JSON file.`} jsonld={jsonld}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / Data</div>
+  <h1>Hobbydex data</h1>
+
+  <h2>What is in it</h2>
+  <p>An open parts database for RC cars: {db.brands.length} brands, {db.kits.length} platforms, {db.releases.length} releases and {db.parts.length} parts, with {db.documents.length} manuals, parts lists and product pages used as sources and {db.specs.length} generic hardware specs (screws, bearings, pinions...) that connect them. Every fact carries its source: part numbers, names, sizes and fitment as a maker states them. No prices, no stock, no shop.</p>
+
+  <h2>Download</h2>
+  <ul>
+    <li><a href={dataReleasesUrl}>Releases on GitHub</a>: the whole dataset as a versioned JSON file. The first release is v2026.11.0.</li>
+    <li><a href={github}>{github.replace('https://', '')}</a>: the source files, one TOML file per record, and the schema.</li>
+  </ul>
+
+  <h2>Licence</h2>
+  <p>The data is licensed under <a href={dataLicense.url}>{dataLicense.name}</a>: you may use, share and adapt it, including commercially, as long as you credit it. The site's code is under the {dataLicense.codeLicense} licence.</p>
+  <pre><code>{dataLicense.notice}</code></pre>
+
+  <h2>How to credit</h2>
+  <p>Use this wording, with a link to this page where you can:</p>
+  <pre><code>{dataLicense.credit}</code></pre>
+
+  <h2>Who publishes it</h2>
+  <p>{operator.name}, {operator.country}, which runs Hobbydex as an independent project. The data is maintained by the project itself and is not crowdsourced; corrections and reports go through <a href="https://github.com/hobbydex/hobbydex-rc/issues/new">GitHub issues</a>. More in the <a href="/faq/">FAQ</a> and <a href="/about/">About and privacy</a>.</p>
+</Base>
