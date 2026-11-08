@@ -7,16 +7,16 @@ import { operator } from '../../lib/operator';
 const github = 'https://github.com/hobbydex/hobbydex-rc';
 const jsonld = datasetJsonLd();
 ---
-<Base title="Hobbydex data" description={`The Hobbydex RC parts database: ${db.releases.length} releases and ${db.parts.length} parts, licensed ${dataLicense.name}. Download it as one JSON file.`} jsonld={jsonld}>
+<Base title="Hobbydex data" description={`The Hobbydex RC parts database: ${db.releases.length.toLocaleString('en-US')} releases and ${db.parts.length.toLocaleString('en-US')} parts, licensed ${dataLicense.name}. Download it as one JSON file.`} jsonld={jsonld}>
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / Data</div>
   <h1>Hobbydex data</h1>
 
   <h2>What is in it</h2>
-  <p>An open parts database for RC cars: {db.brands.length} brands, {db.kits.length} platforms, {db.releases.length} releases and {db.parts.length} parts, with {db.documents.length} manuals, parts lists and product pages used as sources and {db.specs.length} generic hardware specs (screws, bearings, pinions...) that connect them. Every fact carries its source: part numbers, names, sizes and fitment as a maker states them. No prices, no stock, no shop.</p>
+  <p>An open parts database for RC cars: {db.brands.length.toLocaleString('en-US')} brands, {db.kits.length.toLocaleString('en-US')} platforms, {db.releases.length.toLocaleString('en-US')} releases and {db.parts.length.toLocaleString('en-US')} parts, with {db.documents.length.toLocaleString('en-US')} manuals, parts lists and product pages used as sources and {db.specs.length.toLocaleString('en-US')} generic hardware specs (screws, bearings, pinions...) that connect them. Every fact carries its source: part numbers, names, sizes and fitment as a maker states them. No prices, no stock, no shop.</p>
 
   <h2>Download</h2>
   <ul>
-    <li><a href={dataReleasesUrl}>Releases on GitHub</a>: the whole dataset as a versioned JSON file. The first release is v2026.11.0.</li>
+    <li><a href={dataReleasesUrl}>Releases on GitHub</a>: the whole dataset each month, as JSON, CSV per record type and SQLite, with a list of what changed.</li>
     <li><a href={github}>{github.replace('https://', '')}</a>: the source files, one TOML file per record, and the schema.</li>
   </ul>
 
