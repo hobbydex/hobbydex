@@ -4,3 +4,10 @@ Allow: /
 Disallow: /*?
 
 Sitemap: https://hobbydex.com/sitemap-index.xml
+
+# SEO link indexes: they crawl the whole site and send no visitors.
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /

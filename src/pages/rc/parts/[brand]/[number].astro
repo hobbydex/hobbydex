@@ -311,10 +311,10 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
   <h2>Used in</h2>
   {uses.length === 0 ? <p class="muted">No release lists this part yet.</p> :
   <>
-  <table>
+  <div class="tablescroll"><table class="stacked">
     <tr><th class="num">Year</th><th>Release</th><th>Role</th></tr>
-    {uses.map((u) => <tr><td class="num"><DateText r={u.release} year /><DateDoubt reason={yearDoubt(u.release)} /></td><td><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a><Discontinued item={u.release} /></td><td><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
-  </table>
+    {uses.map((u) => <tr><td class="num" data-label="Year"><DateText r={u.release} year /><DateDoubt reason={yearDoubt(u.release)} /></td><td class="name"><a href={url.release(u.release.id)}>{brandName(u.release.brand)} {u.release.name}</a><Discontinued item={u.release} /></td><td data-label="Role"><span class={`role ${u.role}`}>{u.role === 'kit' ? 'in the box' : u.role}</span></td></tr>)}
+  </table></div>
   <DoubtNote on={uses.some((u) => !!yearDoubt(u.release))} />
   <SeenNote rows={uses.map((u) => u.release)} />
   <p class="muted">Compatibility according to the manufacturer's parts lists; see each release for the source document.</p></>}
