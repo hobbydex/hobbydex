@@ -25,11 +25,10 @@ test('the licence is named only in src/lib/license.ts (src/ and public/)', () =>
   assert.deepEqual(offenders, [], 'hard-coded licence text: read it from src/lib/license.ts');
 });
 
-test('the licence module names CC BY 4.0, the credit line and the previous CC0 date', () => {
+test('the licence module names CC BY 4.0, the notice and the credit line', () => {
   assert.equal(dataLicense.url, 'https://creativecommons.org/licenses/by/4.0/');
   assert.equal(dataLicense.credit, 'Data: Hobbydex (https://hobbydex.com), CC BY 4.0');
-  assert.equal(dataLicense.previous.name, 'CC0 1.0');
-  assert.match(dataLicense.previous.until, /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(dataLicense.notice, 'Hobbydex data (c) Somatik BV, licensed CC BY 4.0, https://creativecommons.org/licenses/by/4.0/');
   assert.equal(dataLicense.codeLicense, 'MIT');
 });
 
@@ -51,7 +50,7 @@ test('the Dataset JSON-LD has the required fields and parses as JSON', () => {
   const [download] = ld.distribution;
   assert.equal(download['@type'], 'DataDownload');
   assert.equal(download.encodingFormat, 'application/json');
-  assert.equal(download.contentUrl, 'https://hobbydex.com/data/rc.json');
+  assert.equal(download.contentUrl, 'https://github.com/hobbydex/hobbydex-rc/releases');
 });
 
 test('dateModified defaults to the build date', () => {

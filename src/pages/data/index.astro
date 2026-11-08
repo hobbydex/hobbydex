@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import { db } from '../../lib/data';
 import { dataLicense } from '../../lib/license';
-import { datasetJsonLd } from '../../lib/dataset';
+import { datasetJsonLd, dataReleasesUrl } from '../../lib/dataset';
 import { operator } from '../../lib/operator';
 const github = 'https://github.com/hobbydex/hobbydex-rc';
 const jsonld = datasetJsonLd();
@@ -16,12 +16,13 @@ const jsonld = datasetJsonLd();
 
   <h2>Download</h2>
   <ul>
-    <li><a href="/data/rc.json">rc.json</a>: the whole dataset as one JSON file, rebuilt daily.</li>
+    <li><a href={dataReleasesUrl}>Releases on GitHub</a>: the whole dataset as a versioned JSON file. The first release is v2026.11.0.</li>
     <li><a href={github}>{github.replace('https://', '')}</a>: the source files, one TOML file per record, and the schema.</li>
   </ul>
 
   <h2>Licence</h2>
-  <p>The data is licensed under <a href={dataLicense.url}>{dataLicense.name}</a>: you may use, share and adapt it, including commercially, as long as you credit it. Data released before {dataLicense.previous.until} was published under {dataLicense.previous.name} and remains so. The site's code is under the {dataLicense.codeLicense} licence.</p>
+  <p>The data is licensed under <a href={dataLicense.url}>{dataLicense.name}</a>: you may use, share and adapt it, including commercially, as long as you credit it. The site's code is under the {dataLicense.codeLicense} licence.</p>
+  <pre><code>{dataLicense.notice}</code></pre>
 
   <h2>How to credit</h2>
   <p>Use this wording, with a link to this page where you can:</p>

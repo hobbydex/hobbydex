@@ -3,6 +3,8 @@ import { dataLicense } from './license.ts';
 import { operator } from './operator.ts';
 
 export const datasetName = 'Hobbydex RC parts database';
+// The dataset's downloads: the GitHub releases of hobbydex-rc (the first is v2026.11.0).
+export const dataReleasesUrl = 'https://github.com/hobbydex/hobbydex-rc/releases';
 
 export function datasetJsonLd(dateModified: string = new Date().toISOString().slice(0, 10)) {
   return {
@@ -18,8 +20,9 @@ export function datasetJsonLd(dateModified: string = new Date().toISOString().sl
     keywords: ['RC cars', 'radio-controlled cars', 'RC parts', 'kits', 'releases', 'fitment', 'part numbers', 'manuals', 'parts lists'],
     dateModified,
     distribution: [
-      // The release CI will add its GitHub release assets here as further DataDownload entries once it publishes them.
-      { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: 'https://hobbydex.com/data/rc.json' },
+      // The release CI adds one DataDownload per release asset (the JSON export) here once it publishes them;
+      // until then the entry points at the releases page.
+      { '@type': 'DataDownload', encodingFormat: 'application/json', contentUrl: dataReleasesUrl },
     ],
   };
 }

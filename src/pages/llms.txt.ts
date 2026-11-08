@@ -4,13 +4,13 @@ import { dataLicense } from '../lib/license';
 // The site's llms.txt, served at /llms.txt; the data licence comes from lib/license.ts.
 export const GET: APIRoute = () => new Response(`# Hobbydex
 
-> Open, cross-brand database of radio-controlled (RC) car parts: part numbers, names, which platforms and releases contain them, fitment, and generic specs (screws, bearings, oils, pinions, batteries, servos) that let you find equivalent parts across brands. Facts only, each with its source document; no prices, stock or images of our own (the makers' official videos are linked, their thumbnails load from YouTube). Data is licensed ${dataLicense.name} (credit: ${dataLicense.credit}); data released before ${dataLicense.previous.until} is ${dataLicense.previous.name}.
+> Open, cross-brand database of radio-controlled (RC) car parts: part numbers, names, which platforms and releases contain them, fitment, and generic specs (screws, bearings, oils, pinions, batteries, servos) that let you find equivalent parts across brands. Facts only, each with its source document; no prices, stock or images of our own (the makers' official videos are linked, their thumbnails load from YouTube). Data is licensed ${dataLicense.name} (credit: ${dataLicense.credit}).
 
 Prefer the JSON export over crawling the HTML: it holds everything the site shows.
 
 ## Data
 
-- [Full export (JSON)](https://hobbydex.com/data/rc.json): brands, kits (the platforms), releases, parts, documents, specs; rebuilt daily. Top-level keys: schema_version, dataset, generated, brands, kits, releases, parts, documents, specs, shops. Ids look like \`part/<brand>/<number>\`.
+- [Dataset releases (JSON)](https://github.com/hobbydex/hobbydex-rc/releases): brands, kits (the platforms), releases, parts, documents, specs; one versioned file per release. Top-level keys: schema_version, dataset, generated, brands, kits, releases, parts, documents, specs, shops. Ids look like \`part/<brand>/<number>\`.
 - [Source data and schema](https://github.com/hobbydex/hobbydex-rc): one TOML file per entity; field reference in docs/schema.md. The data is maintained by the project, not crowdsourced: report an error, a missing brand or a better source as an issue (https://github.com/hobbydex/hobbydex-rc/issues/new); pull requests against the data are not taken.
 
 ## URL scheme

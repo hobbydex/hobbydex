@@ -26,6 +26,7 @@ header.site .logo img { border-radius: 5px; }
 header.site nav a { color: var(--fg); margin-right: 1rem; font-size: 0.9rem; }
 header.site nav a:hover { color: var(--accent); text-decoration: none; }
 main { max-width: 64rem; margin: 0 auto; padding: 1.5rem 1.25rem; }
+main pre { white-space: pre-wrap; overflow-wrap: anywhere; } /* long credit lines and robots rules wrap on phones */
 footer.site { max-width: 64rem; margin: 2rem auto; padding: 1rem 1.25rem; color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border-muted); }
 h1 { font-size: 1.5rem; font-weight: 600; margin: 0.25rem 0 0.75rem; }
 h2 { font-size: 1rem; font-weight: 600; margin: 1.75rem 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border-muted); }
