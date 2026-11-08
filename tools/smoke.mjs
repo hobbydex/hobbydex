@@ -32,6 +32,12 @@ const walk = (d) => {
   }
 };
 walk(dist);
+// old addresses answer 301 from the server's redirect map (dist/redirects.caddy): they are not pages to sample
+const moved = new Set();
+try {
+  for (const m of readFileSync(join(dist, 'redirects.caddy'), 'utf8').matchAll(/^\t"([^"]+)" "[^"]+"$/gm)) moved.add(m[1]);
+} catch {}
+for (let i = pages.length - 1; i >= 0; i--) if (moved.has(pages[i])) pages.splice(i, 1);
 pages.sort();
 const urls = new Set(['/', '/robots.txt', '/sitemap-index.xml', '/data/rc.json', '/pagefind/pagefind.js']);
 const asset = readdirSync(join(dist, '_astro')).find((f) => f.endsWith('.css'));
