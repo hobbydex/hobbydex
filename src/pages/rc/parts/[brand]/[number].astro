@@ -1,4 +1,5 @@
 ---
+import { rebrandLabel, rebrandSource } from '../../../../lib/rebrand';
 import Standards from '../../../../components/Standards.astro';
 import { shownNote, isSourceNote, splitAtDocWord, readFromDoc } from '../../../../lib/notes';
 import SourceNote from '../../../../components/SourceNote.astro';
@@ -70,8 +71,11 @@ const replacedBy = db.replacedBy.get(part.id) ?? [];
 const replaces = part.supersedes ? db.part.get(part.supersedes) : undefined;
 const upgradeFor = [...new Set((part.fits ?? []).map((f) => f.replaces).filter((x): x is string => !!x))].map((id) => db.part.get(id)).filter((x): x is NonNullable<typeof x> => !!x);
 const upgrades = db.upgradesFor.get(part.id) ?? [];
-const rebrandOf = (part.rebrand_of ?? []).map((r) => db.part.get(r.part)).filter((x): x is NonNullable<typeof x> => !!x);
-const soldAs = db.rebrandsOf.get(part.id) ?? [];
+const rebrandRows = (part.rebrand_of ?? []).map((r) => ({ p: db.part.get(r.part), link: r })).filter((x): x is { p: NonNullable<typeof x.p>; link: typeof x.link } => !!x.p);
+const rebrandOfRows = (likely: boolean) => rebrandRows.filter((x) => (x.link.certainty === 'likely') === likely);
+const soldAsRows = (db.rebrandsOf.get(part.id) ?? []).map((p) => ({ p, link: (p.rebrand_of ?? []).find((x) => x.part === part.id)! }));
+const soldAsOf = (likely: boolean) => soldAsRows.filter((x) => (x.link.certainty === 'likely') === likely);
+const srcOf = (l: { source?: string }) => rebrandSource(l.source, (id) => db.doc.get(id));
 // part-to-part links from names, both ways: "requires TKR5150" here, "Required by" there
 const FWD: Record<string, string> = { requires: 'Requires', fits: 'Fits', 'use-with': 'Use with', for: 'Made for', replaces: 'Replaces', 'same-colour': 'Same colour', 'same-part': 'Same part, other number' };
 const BACK: Record<string, string> = { requires: 'Required by', fits: 'Fitted with', 'use-with': 'Used with', for: 'Accessories', replaces: 'Replaced by', 'same-colour': 'Same colour', 'same-part': 'Same part, other number' };
@@ -167,9 +171,9 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {dealerLinks.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerLinks.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{hostLabel(l.url)}</a></>)}</dd></>}
     {part.released && <><dt>Released</dt><dd><DateText r={part} /><DateDoubt reason={dateDoubt(part)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{partLabel(replaces)}</a> {replaces.number && replaces.name}<Discontinued item={replaces} /></dd></>}
-    {rebrandOf.length > 0 && <><dt>Rebrand of</dt><dd>{rebrandOf.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
+    {[false, true].map((likely) => rebrandOfRows(likely).length > 0 && <><dt>{rebrandLabel(false, likely)}</dt><dd>{rebrandOfRows(likely).map(({ p: r, link }, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} />{srcOf(link) && <span class="muted"> (source: {srcOf(link)!.href ? <a href={srcOf(link)!.href} rel="nofollow noopener" target="_blank">{srcOf(link)!.title}</a> : srcOf(link)!.title})</span>}</>)}</dd></>)}
     {relGroups.map((g) => <><dt>{g.label}</dt><dd>{g.parts.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>)}
-    {soldAs.length > 0 && <><dt>Also sold as</dt><dd>{soldAs.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
+    {[false, true].map((likely) => soldAsOf(likely).length > 0 && <><dt>{rebrandLabel(true, likely)}</dt><dd>{soldAsOf(likely).map(({ p: r, link }, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{brandName(r.brand)} {partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} />{srcOf(link) && <span class="muted"> (source: {srcOf(link)!.href ? <a href={srcOf(link)!.href} rel="nofollow noopener" target="_blank">{srcOf(link)!.title}</a> : srcOf(link)!.title})</span>}</>)}</dd></>)}
     {upgradeFor.length > 0 && <><dt>Upgrade for</dt><dd>{upgradeFor.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
     {replacedBy.length > 0 && <><dt>Replaced by</dt><dd>{replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a> {r.number && r.name}<Discontinued item={r} /></>)}</dd></>}
     {part.pack_qty && <><dt>Pack</dt><dd>{part.pack_qty} pcs{(part.pack_qty_basis === 'photo' || part.pack_qty_basis === 'photos') && <span class="muted"> (counted on the maker's photo{part.pack_qty_basis === 'photos' ? 's' : ''})</span>}</dd></>}
