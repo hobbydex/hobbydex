@@ -18,6 +18,13 @@ const { items, drawn, total, seal, color, finish, material } = Astro.props;
 const partial = drawn !== undefined && total !== undefined && drawn < total ? `${drawn} of ${total} items drawn` : undefined;
 const COLS = 5, CAP = 20, BAR = 10, MARGIN = 0.5, MAX_PX_PER_MM = 12;
 const SEAL_FILL = 'var(--seal-rubber, #8a8f98)'; // a rubber seal (2RS/RS) face; a metal shield keeps the part's fill
+// the light-mode tone pairs [fill, ink] of the CSS variables below, repeated as var() fallbacks so the drawing stays right
+// when the stylesheet is missing (a failed or late CSS request): steel and the like read on light and dark pages alike
+const TONES: Record<string, [string, string]> = {
+  steel: ['#c9ccd1', '#3b3f46'], darkzinc: ['#807e72', '#26241f'], black: ['#2b2e33', '#f2f2f5'], titanium: ['#a39e96', '#3a3733'],
+  aluminium: ['#dfe2e6', '#4a4f57'], brass: ['#c8a24a', '#5a4312'], copper: ['#b8683d', '#5a2b14'], plastic: ['#f2efe6', '#5c5850'],
+};
+const toneVar = (t: string, ink = false) => `var(--hb-${t}${ink ? '-ink' : ''}${TONES[t] ? `, ${TONES[t][ink ? 1 : 0]}` : ''})`;
 
 const num = (v: unknown) => (typeof v === 'number' ? String(v) : String(v ?? ''));
 const shortName = (id: string) => {
@@ -51,8 +58,8 @@ const steelByDefault = items.length > 0 && items.every((i) => /^spec\/(eclip|cir
 // an O-ring is black rubber unless the part says otherwise
 const rubberByDefault = items.length > 0 && items.every((i) => i.spec.startsWith('spec/o-ring/'));
 const tone = shade ? undefined : metalTone(finish, material) ?? (steelByDefault ? 'steel' : rubberByDefault ? 'black' : undefined);
-const fill = shade ?? (tone ? `var(--hb-${tone})` : 'var(--bg, #fff)');
-const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : tone ? `var(--hb-${tone}-ink)` : 'currentColor';
+const fill = shade ?? (tone ? toneVar(tone) : 'var(--bg, #fff)');
+const ink = shade ? (luminance(shade) < 0.3 ? '#f2f2f5' : '#1a1a1f') : tone ? toneVar(tone, true) : 'currentColor';
 
 // the groups, largest drawing first; a spec listed twice is one group
 const groups = [...new Map(items.filter((i) => hardwareFile(i.spec, i.point)).map((i) => [hardwareFile(i.spec, i.point)!, i])).values()]
