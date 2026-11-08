@@ -50,3 +50,18 @@ test('the built site: every redirect page has its entry', { skip: !existsSync('d
   assert.equal(r.status, 0, r.stderr || r.stdout);
   assert.match(readFileSync('dist/redirects.caddy', 'utf8'), /^redir @hobbydex_moved/m);
 });
+
+test('an old address with a space keeps only its redirect page and is left out of the map', () => {
+  const dist = mkdtempSync(join(tmpdir(), 'redirects-'));
+  try {
+    page(join(dist, 'rc/releases/redcat/EVEREST-BURNT-ORANGE'), '<!doctype html><title>Release</title>');
+    page(join(dist, 'rc/releases/redcat/EVEREST-BURNT ORANGE'), stub('/rc/releases/redcat/EVEREST-BURNT ORANGE/', '/rc/releases/redcat/EVEREST-BURNT-ORANGE/'));
+    assert.equal(run(['--dist', dist]).status, 0);
+    const map = readFileSync(join(dist, 'redirects.caddy'), 'utf8');
+    assert.doesNotMatch(map, /BURNT ORANGE/);
+    assert.match(map, /1 with an unsafe character keep only their redirect page/);
+    assert.equal(run(['--dist', dist, '--check']).status, 0);
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+  }
+});
