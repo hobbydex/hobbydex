@@ -6,7 +6,7 @@
   "description": "Hobbydex website: static site built from the open hobby parts datasets",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && pagefind --site dist",
+    "build": "astro build && pagefind --site dist && node tools/redirects.mjs",
     "preview": "astro preview",
     "check": "astro check",
     "test": "node --test tests/*.test.mjs"
