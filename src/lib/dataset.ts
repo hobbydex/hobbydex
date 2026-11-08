@@ -3,8 +3,10 @@ import { dataLicense } from './license.ts';
 import { operator } from './operator.ts';
 
 export const datasetName = 'Hobbydex RC parts database';
-// The dataset's downloads: the GitHub releases of hobbydex-rc (the first is v2026.11.0).
+// The dataset's downloads: the GitHub releases of hobbydex-rc, each archived on Zenodo under one concept DOI.
 export const dataReleasesUrl = 'https://github.com/hobbydex/hobbydex-rc/releases';
+export const datasetDoi = '10.5281/zenodo.24051506';
+export const datasetDoiUrl = `https://doi.org/${datasetDoi}`;
 
 export function datasetJsonLd(dateModified: string = new Date().toISOString().slice(0, 10)) {
   return {
@@ -13,7 +15,8 @@ export function datasetJsonLd(dateModified: string = new Date().toISOString().sl
     name: datasetName,
     description: 'RC cars, kits, releases, parts, fitment and manuals, read from the makers\' own manuals, parts lists and product pages, with the source of each record.',
     url: 'https://hobbydex.com/data/',
-    sameAs: 'https://github.com/hobbydex/hobbydex-rc',
+    sameAs: ['https://github.com/hobbydex/hobbydex-rc', datasetDoiUrl],
+    identifier: datasetDoiUrl,
     license: dataLicense.url,
     isAccessibleForFree: true,
     creator: { '@type': 'Organization', name: operator.name, url: 'https://hobbydex.com/about/' },
