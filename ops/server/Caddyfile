@@ -20,12 +20,12 @@ hobbydex.com {
 	# Access log, one JSON object per request (what crawlers request and get back: bot-report.py reads it).
 	# Client IPs stay in (reverse DNS verifies Googlebot); cookies and authorization headers are dropped.
 	# Owner caddy, group caddy, mode 0640: the deploy user is in the caddy group (setup.sh) and reads it without sudo.
-	# Rolled at 50 MiB; 14 rolled files kept, none older than 14 days (bot-report.py reads them plain or gzipped).
+	# Rolled at 100 MiB (about 3 a day); up to 60 rolled files kept, none older than 14 days (bot-report.py reads them plain or gzipped).
 	log {
 		output file /var/log/caddy/access.log {
 			mode 0640
-			roll_size 50MiB
-			roll_keep 14
+			roll_size 100MiB
+			roll_keep 60
 			roll_keep_for 336h
 		}
 		format filter {
