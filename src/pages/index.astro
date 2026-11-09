@@ -41,11 +41,9 @@ const latest = dateRows(out, dateKey, () => 0)
 // newer announcements; a release known only by its year is left out (it has no place in a dated list)
 const coming = dateRows(db.releases.filter((r) => isComing(r) && (releasedOf(r) ?? '').length >= 7), (r) => releasedOf(r)!, () => 0);
 // one table, newest date first: upcoming releases above the latest ones, in date order throughout
-// a month without a day: an upcoming release sorts at the end of its month (it can come any day up to then), one that
-// is out below the dated releases of that month (the month is only known as a bound, "on sale by")
-const upcoming = new Set(coming);
-const sortKey = (x: (typeof coming)[number]) => (x.key.length === 7 ? x.key + (upcoming.has(x) ? '-32' : '-00') : x.key);
-const newest = [...coming, ...latest].sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
+// a month without a day counts as the start of its month, so it sorts below that month's dated releases
+const sortKey = (k: string) => (k.length === 7 ? k + '-00' : k);
+const newest = [...coming, ...latest].sort((a, b) => sortKey(b.key).localeCompare(sortKey(a.key)));
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 // the hero's car: the site's own buggy icon (public/icons.svg#buggy, 48x24, front to the left, wheels on
 // y=23.2), split into body and wing (its first two subpaths) and the two wheels, so the suspension can work
