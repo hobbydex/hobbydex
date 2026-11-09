@@ -173,8 +173,6 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
   </dl>
     <span class="typeicon" title={kitTypeOne[kit.category ?? 'car'] ?? kit.category}>{kit.art ? <ReleaseArt id={kit.id} category={kit.category} kitArt={kit.art} size="5rem" /> : <Icon name={kitTypeIcon(kit.category)} label={kitTypeOne[kit.category ?? 'car'] ?? kit.category} size="5rem" />}</span>
   </div>
-  <h2 id="releases">Releases</h2>
-  {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
   {(() => {
     // one table: current releases first, then the discontinued ones; unchecking "Show discontinued" hides those rows,
     // unless every release is discontinued: then there is no toggle and the rows always show
@@ -182,9 +180,12 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
     // a colourway group (the same car in several colours, lib/colourways.ts) is one row, at its first release's place
     const groups = colourwayGroups(rows);
     const once = [...new Set(rows.map((r) => groups.find((g) => g.includes(r))!))];
+    // no release of this platform: no Releases section (not an empty one)
+    if (rows.length === 0) return null;
     return <>
-      {rows.length === 0 && <p class="muted">No releases of this platform in our data yet.</p>}
-      {rows.length > 0 && current.length === 0 && <p class="muted">Every release is discontinued.</p>}
+      <h2 id="releases">Releases</h2>
+      {current.length > 0 && discontinued.length > 0 && <HideDiscontinued />}
+      {current.length === 0 && <p class="muted">Every release is discontinued.</p>}
       {rows.length > 0 && <table class="releases">
         <tr><th class="num">Year</th><th>Release</th>{show.number && <th class="num">Item no.</th>}{show.build && <th>Build</th>}{show.edition && <th>Edition</th>}{show.surface && <th>Surface</th>}{show.status && <th>Status</th>}</tr>
         {once.map((g) => { const head = rows.find((x) => g.includes(x))!; const multi = g.length > 1; const labels = colourLabels(g);
