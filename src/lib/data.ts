@@ -2,6 +2,7 @@
 // The site reads only this JSON (schema_version 0); it never touches TOML.
 import { readFileSync } from 'node:fs';
 import { balanceSpecId, plugSpecIds } from './plugs';
+import { outlineFromReleases } from './kitArt';
 
 export type Brand = { id: string; modified?: string; name: string; legal_name?: string; country?: string; website?: string; youtube?: string[]; kind?: string; status: string; launched?: string; launched_source?: string; launched_doubt?: string; ended?: string; ended_source?: string; ended_doubt?: string; item_numbers?: boolean; notes?: string; owner?: string; owner_source?: string; owner_since?: number };
 // A company that owns brands (hobbydex-rc docs/schema.md "company"); brand: the brand that carries its own range, when it has one.
@@ -33,6 +34,12 @@ export type Retired = { id: string; reason: string; replaced_by?: string };
 
 const path = process.env.HOBBYDEX_DATA ?? 'data/hobbydex-rc.json';
 const raw: Dataset = JSON.parse(readFileSync(path, 'utf8'));
+// a platform with no outline of its own shows a traced release's, when its releases are one car (lib/kitArt.ts)
+{
+  const releasesOf = new Map<string, Release[]>();
+  for (const r of raw.releases) releasesOf.set(r.kit, [...(releasesOf.get(r.kit) ?? []), r]);
+  for (const k of raw.kits) k.art ??= outlineFromReleases(k.name, releasesOf.get(k.id) ?? []);
+}
 if (raw.schema_version !== 0) throw new Error(`unsupported export schema_version ${raw.schema_version}`);
 
 const byId = <T extends { id: string }>(xs: T[]) => new Map(xs.map((x) => [x.id, x]));
