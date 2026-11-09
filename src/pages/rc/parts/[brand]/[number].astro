@@ -41,10 +41,10 @@ import { plugLinks, balanceSpecId } from '../../../../lib/plugs';
 import { chemistries, chargerWatts, MAINS } from '../../../../lib/chargers';
 import { protocolSpecs } from '../../../../lib/protocols';
 export function getStaticPaths() {
-  // a former id (renamed or corrected) or another number the part is sold under (numbers) keeps working:
+  // a former id (renamed or corrected), another number the part is sold under (numbers) or a number the maker renumbered it from (former_numbers) keeps working:
   // its page redirects to the current one; a number listed twice is one route
   const taken = new Set(db.parts.map((p) => p.id));
-  const moved = db.parts.flatMap((x) => [...(x.former_ids ?? []), ...(x.numbers ?? []).map((n) => `part/${key(x.brand)[0]}/${n}`)]
+  const moved = db.parts.flatMap((x) => [...(x.former_ids ?? []), ...[...(x.numbers ?? []), ...(x.former_numbers ?? [])].map((n) => `part/${key(x.brand)[0]}/${n}`)]
     .map((f) => ({ f, to: x.id }))).filter(({ f }) => !taken.has(f) && taken.add(f))
     .map(({ f, to }) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(to) } }));
   const gone = retiredMoves('part', taken).map((m) => ({ params: { brand: key(m.id)[0], number: key(m.id)[1] }, props: { redirect: m.to } }));
@@ -144,7 +144,7 @@ const dealerLinks = (part.links ?? []).filter((l) => l.kind === 'dealer');
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
 // the search index (Base's hidden block): the part's numbers, names, brand, category, generic spec, and the platforms and releases it fits
-const indexWords = [brand?.name, part.number, ...(part.numbers ?? []), part.gtin, part.gtin && gtin13(part.gtin), ...(part.former_ids ?? []).map((f) => key(f)[1]), part.name, ...(part.former_names ?? []),
+const indexWords = [brand?.name, part.number, ...(part.numbers ?? []), ...(part.former_numbers ?? []), part.gtin, part.gtin && gtin13(part.gtin), ...(part.former_ids ?? []).map((f) => key(f)[1]), part.name, ...(part.former_names ?? []),
   part.category && catName(part.category), ...new Set((part.equivalent_to ?? []).map((e) => db.spec.get(e.spec)?.name)),
   ...kitsOf.map((k) => (k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : '')), ...uses.map((u) => `${brandName(u.release.brand)} ${u.release.name}`)].filter(Boolean).join(' ');
 // the meta description: the category, the spec clauses the record states, the platforms it fits and the releases it is in
@@ -169,7 +169,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
   <dl class="facts">
     <dt>Brand</dt><dd><a href={url.brand(part.brand)}>{brandName(part.brand)}</a></dd>
     {part.depicts && <><dt>Real vehicle</dt><dd><RealVehicle depicts={part.depicts!} /></dd></>}
-    {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <> <span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}</dd></>}
+    {part.number && <><dt>Part number</dt><dd>{part.number}{(part.numbers ?? []).length > 0 && <><span class="muted">, also sold as</span> {(part.numbers ?? []).map((n, i) => <>{i > 0 && ','} {n} <CopyButton text={n} label={`Copy ${n}`} class="btn" /></>)}</>}{(part.former_numbers ?? []).length > 0 && <><span class="muted">, formerly</span> {part.former_numbers!.map((n, i) => <>{i > 0 && ','} {n}</>)}</>}</dd></>}
     {sourceIds.length > 0 && <><dt>Source</dt><dd>{sourceIds.slice(0, SOURCE_SHOWN).map((id, i) => <>{i > 0 && ' · '}<SourceDoc id={id} released={part.released} /></>)}{sourceIds.length > SOURCE_SHOWN && <details><summary class="muted">{sourceIds.length - SOURCE_SHOWN} more</summary><ul>{sourceIds.slice(SOURCE_SHOWN).map((id) => <li><SourceDoc id={id} released={part.released} /></li>)}</ul></details>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span>{part.sources?.category && <FactSource field="category" url={part.sources.category} />}</dd></>}
     {partArchive.length > 0 && <><dt>Product page</dt><dd>{partArchive.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">archived page</a></>)} <span class="muted">(no longer online)</span></dd></>}
