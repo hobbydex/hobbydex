@@ -14,6 +14,12 @@ www.hobbydex.com {
 	redir https://hobbydex.com{uri} permanent
 }
 
+# The .org names redirect to the .com site, on http and https. Their DNS records must point here.
+hobbydex.org, www.hobbydex.org {
+	import tls.d/*
+	redir https://hobbydex.com{uri} permanent
+}
+
 hobbydex.com {
 	import tls.d/*
 
