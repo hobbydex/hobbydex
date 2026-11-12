@@ -8,13 +8,21 @@ import { db, key, url, brandName, partNo, type Kit } from '../../../../../../lib
 import { optionFits, byCat, SPLIT_ABOVE } from '../../../../../../lib/kitFits';
 import { catName } from '../../../../../../lib/categories';
 import '../../../../../../styles/catgroup.css';
+import { platformCategoryMoves } from '../../../../../../lib/emptied-moves';
 export function getStaticPaths() {
-  return db.kits.flatMap((kit) => {
+  const pages = db.kits.flatMap((kit) => {
     const { fits } = optionFits(kit);
     if (fits.length <= SPLIT_ABOVE) return [];
     return byCat(fits, (x) => x.part.category).map(({ g, rows }) => ({ params: { brand: key(kit.id)[0], slug: key(kit.id)[1], cat: g || 'other' }, props: { kit, g, rows, numn: Math.max(5, ...fits.map((x) => partNo(x.part).length)) } }));
   });
+  // an emptied platform x category page answers 301 to the platform page
+  const live = new Set(pages.map((x) => x.params.brand + '/' + x.params.slug + '/' + x.params.cat));
+  const moved = Object.entries(platformCategoryMoves).filter(([from]) => !live.has(from))
+    .map(([from, to]) => { const [brand, slug, cat] = from.split('/'); return { params: { brand, slug, cat }, props: { redirect: to } }; });
+  return [...pages, ...moved];
 }
+const { redirect } = Astro.props as { redirect?: string };
+if (redirect) return Astro.redirect(redirect, 301);
 const { kit, g, rows, numn } = Astro.props as { kit: Kit; g: string; rows: ReturnType<typeof optionFits>['fits']; numn: number };
 const name = `${brandName(kit.brand)} ${kit.name}`;
 const cat = g ? catName(g) : 'Other';

@@ -5,11 +5,18 @@ import Discontinued from '../../../../components/Discontinued.astro';
 import { db, brandName, byPartNo, key, url } from '../../../../lib/data';
 import { uncategorised } from '../../../../lib/categoryIndex';
 import { describe, count } from '../../../../lib/descriptions';
+import { categoryBrandMoves } from '../../../../lib/emptied-moves';
 // a brand's parts that have no category yet (a bare number, no name the rules can sort by)
 export function getStaticPaths() {
-  return [...uncategorised.keys()].map((b) => ({ params: { brand: key(b)[0] }, props: { brandId: b } }));
+  const pages = [...uncategorised.keys()].map((b) => ({ params: { brand: key(b)[0] }, props: { brandId: b } }));
+  // an emptied uncategorised page answers 301 to the brand page, which is where its parts are now
+  const live = new Set(pages.map((x) => x.params.brand));
+  const moved = Object.entries(categoryBrandMoves).filter(([from]) => from.startsWith('uncategorised/') && !live.has(from.split('/')[1]))
+    .map(([from, to]) => ({ params: { brand: from.split('/')[1] }, props: { redirect: to } }));
+  return [...pages, ...moved];
 }
-const { brandId } = Astro.props;
+const { brandId, redirect } = Astro.props as { brandId?: string; redirect?: string };
+if (redirect) return Astro.redirect(redirect, 301);
 const parts = [...uncategorised.get(brandId)!].sort(byPartNo);
 const metaDescription = describe(`${brandName(brandId)} parts not yet categorised`, [count(parts.length, 'part')]);
 ---
