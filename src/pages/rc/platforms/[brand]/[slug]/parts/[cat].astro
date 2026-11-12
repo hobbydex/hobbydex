@@ -18,7 +18,7 @@ export function getStaticPaths() {
   // an emptied platform x category page answers 301 to the platform page
   const live = new Set(pages.map((x) => x.params.brand + '/' + x.params.slug + '/' + x.params.cat));
   const moved = Object.entries(platformCategoryMoves).filter(([from]) => !live.has(from))
-    .map(([from, to]) => { const [brand, slug, cat] = from.split('/'); return { params: { brand, slug, cat }, props: { redirect: to } }; });
+    .map(([from, to]) => { const [brand, slug, cat] = from.split('/') as [string, string, string]; return { params: { brand, slug, cat }, props: { redirect: to } }; });
   return [...pages, ...moved];
 }
 const { redirect } = Astro.props as { redirect?: string };

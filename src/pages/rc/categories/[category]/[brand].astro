@@ -15,13 +15,13 @@ export function getStaticPaths() {
   // an emptied category x brand page (its parts moved or were reclassified) answers 301 to the page that replaces it
   const live = new Set(pages.map((x) => `${x.params.category}/${x.params.brand}`));
   const moved = Object.entries(categoryBrandMoves).filter(([from]) => !live.has(from) && !from.startsWith('uncategorised/'))
-    .map(([from, to]) => { const [category, brand] = from.split('/'); return { params: { category, brand }, props: { redirect: to } }; });
+    .map(([from, to]) => { const [category, brand] = from.split('/') as [string, string]; return { params: { category, brand }, props: { redirect: to } }; });
   return [...pages, ...moved];
 }
-const { category } = Astro.params;
+const { category } = Astro.params as { category: string };
 const { redirect } = Astro.props as { redirect?: string };
 if (redirect) return Astro.redirect(redirect, 301);
-const { brandId } = Astro.props;
+const { brandId } = Astro.props as { brandId: string };
 const parts = [...byCategory.get(category)!.get(brandId)!].sort(byPartNo);
 const platforms = new Set(parts.flatMap((p) => (p.fits ?? []).map((f) => f.kit))).size;
 const metaDescription = describe(`${brandName(brandId)} ${catName(category).toLowerCase()}`, [count(parts.length, 'part'), platforms > 0 && `${count(platforms, 'platform')} fitted`].filter((x): x is string => !!x));
