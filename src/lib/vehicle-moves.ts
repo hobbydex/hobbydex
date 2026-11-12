@@ -26,6 +26,7 @@ export const vehicleMoves: Record<string, Record<string, string>> = {
     'stratus-190mm-race': 'stratus',
   },
   'ford': {
+    'baja-bronco': 'bronco',
     'bronco-fcx18ii': 'bronco',
     'bronco-u4-fsc18': 'bronco-u4',
     'f-100-fcx18ii': 'f-100',
@@ -63,6 +64,7 @@ export const vehicleMoves: Record<string, Record<string, string>> = {
     'rx-7-fd3s-190mm': 'rx-7-fd3s',
   },
   'mercedes-benz': {
+    '190-e-2-5-16-evo-ii-team-zakspeed': '190-e-2-5-16-evo-ii',
     '190e-2-5-16-evolution-ii': '190-e-2-5-16-evo-ii',
     'actros-3363': 'actros-3363-gigaspace',
     'actros-arocs-gigaspace': 'actros-ii-arocs-gigaspace',
@@ -81,6 +83,7 @@ export const vehicleMoves: Record<string, Record<string, string>> = {
     'gt-r-r35-pro-mod-tough-color': 'gt-r-r35-pro-mod',
   },
   'porsche': {
+    '911-gt3-rsr-falken': '911-gt3-rsr',
     '911-gt3-rs-gt-silbermetallic': '911-gt3-rs',
     '962c-coupe-nondecoration': '962c-coupe',
   },
@@ -88,15 +91,20 @@ export const vehicleMoves: Record<string, Record<string, string>> = {
     '1500-truck': '1500',
   },
   'subaru': {
+    'impreza-mexico': 'impreza',
     'impreza-kx1clear': 'impreza-kx1',
     'impreza-wrc2008': 'impreza-wrc-08',
   },
   'toyota': {
+    'kanagawa-x-oreda-racing-gr-supra': 'gr-supra',
     'fj45-pickup': 'fj45-pick-up',
     'land-cruiser-80-fcx10': 'land-cruiser-80',
     'lc80-fcx10pro-v2': 'land-cruiser-80',
     'lc80-fcx18': 'land-cruiser-80',
     'lc80-fcx18s-v2': 'land-cruiser-80',
     'tundra-truck': 'tundra',
+  },
+  'bmw': {
+    'e30-driftworks': 'e30',
   },
 };
