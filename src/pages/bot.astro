@@ -4,7 +4,8 @@ import { operator } from '../lib/operator';
 import { dataLicense } from '../lib/license';
 const issue = 'https://github.com/hobbydex/hobbydex-rc/issues/new';
 const keyDirectory = 'https://hobbydex.com/.well-known/http-message-signatures-directory';
-const userAgent = 'hobbydex-crawler/0.1 (+https://hobbydex.com)';
+const userAgent = 'hobbydex-bot/0.1 (+https://hobbydex.com/bot/)';
+const robotsToken = 'hobbydex-bot';
 ---
 <Base title="Hobbydex bot" description="What the Hobbydex crawler is, how it identifies itself and paces its requests, how it is verified, and how a site owner can block it or ask to be left out.">
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / Bot</div>
@@ -15,6 +16,7 @@ const userAgent = 'hobbydex-crawler/0.1 (+https://hobbydex.com)';
   <h2>How it identifies itself</h2>
   <p>Every request carries this User-Agent:</p>
   <p><code>{userAgent}</code></p>
+  <p>The bot was called hobbydex-crawler until 2026-11-12. The former name is still honoured in robots.txt (see below).</p>
   <p>Requests to sites that ask for it are also signed with Web Bot Auth (HTTP Message Signatures, RFC 9421). The public key that verifies the signature is published at <a href={keyDirectory}>{keyDirectory}</a>. A signed request names <code>hobbydex.com</code> as its signature agent, so the site can check that it comes from this project and not from someone copying the name.</p>
 
   <h2>How it behaves</h2>
@@ -27,9 +29,10 @@ const userAgent = 'hobbydex-crawler/0.1 (+https://hobbydex.com)';
   </ul>
 
   <h2>Block it or ask to be left out</h2>
-  <p>A site owner can keep the crawler out with robots.txt, for example:</p>
-  <pre><code>User-agent: hobbydex-crawler
+  <p>A site owner can keep the bot out with robots.txt. Its token is <code>{robotsToken}</code>, the name part of the User-Agent, for example:</p>
+  <pre><code>User-agent: {robotsToken}
 Disallow: /</code></pre>
+  <p>A group that names the former token <code>hobbydex-crawler</code> is also read as ours, unless the file has a group for <code>hobbydex-bot</code>. Matching is exact, as RFC 9309 says: a name that only contains the token does not count.</p>
   <p>Or ask us directly: <a href={issue}>open an issue</a> on GitHub, naming the site and the paths to leave alone. We stop fetching that site once the request is received.</p>
 
   <h2>Who runs it</h2>
