@@ -44,6 +44,12 @@ hobbydex.com {
 		}
 	}
 
+	# A scraping fleet on Tencent Cloud (ACEVILLE PTE. LTD., Singapore; whois 2026-11-13) renders every page in a
+	# headless browser under a plain Chrome User-Agent, from tens of thousands of addresses (about 330,000 requests on
+	# 2026-11-11, against 441 from Googlebot). It never reads robots.txt, so it is answered 403 at the edge.
+	@scraper remote_ip 43.172.0.0/15 161.120.0.0/16
+	respond @scraper 403
+
 	# BEGIN web-bot-auth directory (generated: python3 -I tools/web_bot_auth.py directory-headers)
 	@botdirectory path /.well-known/http-message-signatures-directory
 	header @botdirectory {
