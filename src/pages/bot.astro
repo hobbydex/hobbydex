@@ -16,7 +16,7 @@ const robotsToken = 'hobbydex-bot';
   <h2>How it identifies itself</h2>
   <p>Every request carries this User-Agent:</p>
   <p><code>{userAgent}</code></p>
-  <p>The bot was called hobbydex-crawler until 2026-11-12. Some sites' firewalls refuse any User-Agent with the word "crawler" in it, so the name changed to hobbydex-bot. The former name is still honoured in robots.txt (see below).</p>
+  <p>The bot was called hobbydex-crawler until 2026-11-12. The former name is still honoured in robots.txt (see below).</p>
   <p>Requests to sites that ask for it are also signed with Web Bot Auth (HTTP Message Signatures, RFC 9421). The public key that verifies the signature is published at <a href={keyDirectory}>{keyDirectory}</a>. A signed request names <code>hobbydex.com</code> as its signature agent, so the site can check that it comes from this project and not from someone copying the name.</p>
 
   <h2>How it behaves</h2>
