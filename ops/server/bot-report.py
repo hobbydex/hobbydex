@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Per-day crawler report from the Caddy JSON access log (the `log` block of hobbydex.com in ops/server/Caddyfile).
 
-  ssh deploy@HOST 'sudo cat /var/log/caddy/access.log*' | ops/server/bot-report.py [--verify-google]
+  ssh deploy@HOST 'sudo cat /var/log/caddy/access*.log*' | ops/server/bot-report.py [--verify-google]
   ops/server/bot-report.py [--verify-google] [--top 20] FILE...    # plain or gzip files, read in order
 
 Bots are told apart by User-Agent: Googlebot, Bingbot, and other bots (any other UA with bot, crawl, spider,
@@ -16,7 +16,10 @@ and "not verified". The lookups are slow: expect a few seconds per new IP on a c
 --summary prints one JSON document for the days from --since (UTC, YYYY-MM-DD; default all days in the files) instead:
 per UTC day the unique visitor addresses and page views (bots and static files left out), the named crawlers, the
 status codes and the 403s, and per network (/16 for IPv4, /32 for IPv6) the request count, the share sent with a
-browser User-Agent, whether robots.txt was read and the status codes. The files default to /var/log/caddy/access.log*.
+browser User-Agent, whether robots.txt was read and the status codes. The files default to /var/log/caddy/access*.log*
+(the current file and the rolled ones, named access-<time>.log, plain or gzip). Days are cut by each request's own
+time, never by file. A day is marked partial when it is today or when the logs begin after its first second (the
+oldest rolled file was already deleted), so its counts are low.
 The PC runs it over ssh as the deploy user (tools/site_traffic.py): ssh deploy@HOST 'python3 -I - --summary --since D' < bot-report.py
 
 Standard library only. The input may mix plain and gzip members, as `sudo cat access.log*` does when rolled
@@ -128,7 +131,7 @@ def bot_group(ua):
 
 # --- daily summary (--summary) -------------------------------------------------------------------------------
 
-LOG_GLOB = "/var/log/caddy/access.log*"
+LOG_GLOB = "/var/log/caddy/access*.log*"
 NET_MIN_REQUESTS = 50       # networks with fewer requests in a day are counted together as "other networks"
 STATIC_RE = re.compile(r"\.(?:css|js|mjs|map|json|xml|txt|webmanifest|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|eot|pdf|mp4|webm)$", re.IGNORECASE)
 STATIC_PREFIXES = ("/_astro/", "/pagefind/")
@@ -154,7 +157,7 @@ def crawler_name(ua):
 
 
 def request_of(line):
-    """(day, status, method, path, user_agent, client_ip) of one JSON log line; raises on a line that is not a request."""
+    """(day, status, method, path, user_agent, client_ip, ts) of one JSON log line; raises on a line that is not a request."""
     rec = json.loads(line)
     req = rec.get("request") or {}
     headers = req.get("headers") or {}
@@ -163,8 +166,14 @@ def request_of(line):
         ua = " ".join(ua)
     path = (req.get("uri") or "/").split("?", 1)[0] or "/"
     ip = req.get("client_ip") or req.get("remote_ip") or ""
-    day = datetime.fromtimestamp(float(rec["ts"]), timezone.utc).strftime("%Y-%m-%d")
-    return day, int(rec["status"]), req.get("method") or "", path, ua, ip
+    ts = float(rec["ts"])
+    day = datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%d")
+    return day, int(rec["status"]), req.get("method") or "", path, ua, ip, ts
+
+
+def day_start(day):
+    """The first second of a UTC day (YYYY-MM-DD) as a timestamp."""
+    return datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp()
 
 
 def network_of(ip):
@@ -207,16 +216,19 @@ def summarise(sources, since="", today=""):
     """The per-day summary as a dict (see the module docstring). Lines of days before `since` are skipped."""
     days = collections.defaultdict(_Day)
     lines = bad_lines = 0
+    first_ts = None  # the oldest request in all the files, before the since filter
     for src in sources:
         for raw in log_lines(src):
             if not raw.strip():
                 continue
             lines += 1
             try:
-                day, status, method, path, ua, ip = request_of(raw)
+                day, status, method, path, ua, ip, ts = request_of(raw)
             except (ValueError, KeyError, TypeError):
                 bad_lines += 1
                 continue
+            if first_ts is None or ts < first_ts:
+                first_ts = ts
             if since and day < since:
                 continue
             net = network_of(ip)
@@ -269,7 +281,7 @@ def summarise(sources, since="", today=""):
         ]
         out_days.append({
             "day": day,
-            "partial": day == today,
+            "partial": day == today or day_start(day) < first_ts,
             "requests": d.requests,
             "bot_requests": d.bot_requests,
             "page_views": d.page_views,
@@ -287,6 +299,7 @@ def summarise(sources, since="", today=""):
         "lines": lines,
         "unreadable_lines": bad_lines,
         "since": since or None,
+        "first_line": datetime.fromtimestamp(first_ts, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") if first_ts else None,
         "days": out_days,
         # the peak memory of this run, kilobytes (the job records it)
         "peak_rss_kb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
