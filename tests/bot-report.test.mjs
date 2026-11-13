@@ -61,7 +61,8 @@ test('--summary gives one entry per UTC day with the bot split and the since fil
   assert.equal(all.days[1].crawlers.Bingbot, 1);
   assert.equal(all.days[1].crawlers.CCBot, 1);
   assert.equal(all.days[1].blocked_403, 1);
-  assert.equal(all.days.every((d) => d.partial === false), true);
+  // the fixture's log starts at 10:01 UTC on the first day, so that day is partial; the next one is whole
+  assert.deepEqual(all.days.map((d) => d.partial), [true, false]);
 
   const later = summary(['--since', '2026-11-05', fixture.pathname]);
   assert.deepEqual(later.days.map((d) => d.day), ['2026-11-05']);
@@ -96,5 +97,49 @@ test('--summary: a human browser request counts as a page view and a visitor, a 
   assert.equal(day.other_networks.count, 2);
 });
 
-// --summary reads the log files named on the command line (or /var/log/caddy/access.log*), never standard input,
-// which carries the script itself when the PC runs it over ssh.
+// Rolled files: tests/fixtures/bot-report/rolled holds a plain file and a gzipped one, each with requests from two UTC
+// days, as Caddy rolls them (access-<time>.log, .log.gz). The days come from each request's own time.
+const rolled = new URL('./fixtures/bot-report/rolled/', import.meta.url).pathname;
+const plainRoll = `${rolled}access-2026-11-04T12-00-00.000.log`;
+const gzRoll = `${rolled}access-2026-11-05T12-00-00.000.log.gz`;
+
+test('--summary over a plain and a gzipped rolled file groups each request by its own UTC day', () => {
+  const out = summary([plainRoll, gzRoll]);
+  assert.equal(out.lines, 5);
+  assert.equal(out.first_line, '2026-11-04T12:00:00Z');
+  assert.deepEqual(out.days.map((d) => d.day), ['2026-11-04', '2026-11-05', '2026-11-06']);
+  assert.deepEqual(out.days.map((d) => d.requests), [2, 2, 1]);
+  assert.deepEqual(out.days.map((d) => d.crawlers), [{ Googlebot: 2 }, { Bingbot: 1 }, { ClaudeBot: 1 }]);
+  assert.deepEqual(out.days.map((d) => d.page_views), [0, 1, 0]);
+  assert.equal(out.days[2].blocked_403, 1);
+  // the log begins after midnight on the first day, so that day is partial; no day is today
+  assert.deepEqual(out.days.map((d) => d.partial), [true, false, false]);
+});
+
+test('the default log glob reads the current and the rolled files, plain or gzipped', () => {
+  // the module's LOG_GLOB is pointed at the fixture folder; the summary must equal the one for the named files
+  const py = `
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location('bot_report', sys.argv[1])
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+m.LOG_GLOB = sys.argv[2]
+m.main(['--summary'])`;
+  const r = spawnSync('python3', ['-I', '-c', py, script, `${rolled}access*.log*`], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(JSON.parse(r.stdout).days, summary([plainRoll, gzRoll]).days);
+});
+
+test('a day is partial only when it is today or the logs start after its first second', () => {
+  const py = `
+import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location('bot_report', sys.argv[1])
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+files = [open(f, 'rb') for f in sys.argv[2:4]]
+print(json.dumps(m.summarise(files, '', '2026-11-06')))`;
+  const r = spawnSync('python3', ['-I', '-c', py, script, plainRoll, gzRoll], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.deepEqual(out.days.map((d) => d.partial), [true, false, true]);
+  const since = summary(['--since', '2026-11-05', plainRoll, gzRoll]);
+  assert.deepEqual(since.days.map((d) => d.day), ['2026-11-05', '2026-11-06']);
+});
