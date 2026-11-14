@@ -19,7 +19,7 @@ const undated = all.length - dated.length;
   <p class="muted">{recent.length} videos from the last {DAYS} days ({cutoff} to today), newest first. {all.length.toLocaleString('en')} makers' videos are in Hobbydex in all{undated > 0 ? `; ${undated} with no date are left out` : ''}. Each links to its release pages.</p>
   {months.map((m) => <section>
     <h2 id={m}>{isoText(m)} <span class="muted">({recent.filter((d) => d.date!.startsWith(m)).length})</span></h2>
-    <Videos videos={recent.filter((d) => d.date!.startsWith(m))} limit={Infinity} heading={false} brand releases />
+    <Videos videos={recent.filter((d) => d.date!.startsWith(m))} limit={Infinity} heading={false} brand releases feed />
   </section>)}
   {recent.length === 0 && <p class="muted">No videos in this window.</p>}
 </Base>
