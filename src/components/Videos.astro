@@ -6,25 +6,30 @@
 // (the recent-videos page uses both).
 import type { Doc } from '../lib/data';
 import { isoText, db, url, brandName } from '../lib/data';
+import type { Release } from '../lib/data';
+import { releasePool } from '../lib/releasePool';
+import { videoReleaseLinks } from '../lib/videoReleases';
 interface Props { videos: Doc[]; limit?: number; heading?: string | false; id?: string; brand?: boolean; releases?: boolean }
 const { limit = 6, heading = 'Videos', id = 'videos', brand = false, releases = false } = Astro.props;
 // newest first, undated last (a list may join a kit's videos and its releases')
 const videos = [...Astro.props.videos].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || a.title.localeCompare(b.title));
 const vid = (d: Doc) => new URL(d.url!).searchParams.get('v') ?? '';
 const first = videos.slice(0, limit), rest = videos.slice(limit);
+// the release links under a thumbnail: colour variants collapse to one link, the first two show and the rest sit behind "+N more"
+const linksOf = (d: Doc) => videoReleaseLinks((d.releases ?? []).map((r) => db.release.get(r)).filter((r): r is Release => !!r), releasePool(), (id) => url.release(id));
 const length = (s?: number) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '');
 ---
 {videos.length > 0 && <>
   {heading !== false && <h2 id={id}>{heading} <span class="muted">({videos.length})</span></h2>}
   {[first, rest].filter((list) => list.length > 0).map((list, i) => {
-    const ul = <ul class="videos">{list.map((d) => <li>
+    const ul = <ul class="videos">{list.map((d) => { const links = releases ? linksOf(d) : []; return <li>
     <div class="media">
       <a class="thumb" href={d.url} rel="nofollow noopener" target="_blank" tabindex="-1" aria-hidden="true"><img src={`https://i.ytimg.com/vi/${vid(d)}/mqdefault.jpg`} width="128" height="72" loading="lazy" decoding="async" referrerpolicy="no-referrer" alt={d.title} />{d.duration_s && <span class="len">{length(d.duration_s)}</span>}</a>
-      {releases && (d.releases ?? []).some((r) => db.release.get(r)) && <span class="rels">{(d.releases ?? []).filter((r) => db.release.get(r)).map((r) => <a href={url.release(r)}>{db.release.get(r)!.name}</a>)}</span>}
+      {links.length > 0 && <span class="rels">{links.slice(0, 2).map((l) => <a href={l.href}>{l.label}</a>)}{links.length > 2 && <details class="morerels"><summary>+{links.length - 2} more</summary>{links.slice(2).map((l) => <a href={l.href}>{l.label}</a>)}</details>}</span>}
     </div>
     <span class="text"><a href={d.url} rel="nofollow noopener" target="_blank">{d.title}</a>
-      <span class="muted">{[brand && d.brand ? brandName(d.brand) : undefined, d.channel ?? 'YouTube', d.date && isoText(d.date)].filter(Boolean).join(' · ')}</span></span>
-  </li>)}</ul>;
+      <span class="muted">{(() => { const name = brand && d.brand ? brandName(d.brand) : undefined; const channel = d.channel ?? 'YouTube'; return [name, name && channel.toLowerCase() === name.toLowerCase() ? undefined : channel, d.date && isoText(d.date)].filter(Boolean).join(' · '); })()}</span></span>
+  </li>; })}</ul>;
     return i === 0 ? ul : <details class="allvideos"><summary>Show all {videos.length} videos</summary>{ul}</details>;
   })}
 </>}
@@ -40,7 +45,11 @@ const length = (s?: number) => (s ? `${Math.floor(s / 60)}:${String(s % 60).padS
   .text .muted { font-size: 0.8rem; }
   .media { flex: none; width: 128px; min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; }
   /* the release links sit under the thumbnail, as wide as it, and wrap inside it */
-  .rels { display: flex; flex-wrap: wrap; gap: 0.1rem 0.5rem; font-size: 0.75rem; line-height: 1.3; overflow-wrap: anywhere; }
+  .rels { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; font-size: 0.75rem; line-height: 1.3; overflow-wrap: anywhere; min-width: 0; }
+  .rels a { max-width: 100%; }
+  .morerels { font-size: 0.75rem; }
+  .morerels > summary { cursor: pointer; color: var(--muted); }
+  .morerels > a { display: block; }
   @media (max-width: 40rem) { .videos { grid-template-columns: 1fr; } .media { width: 112px; } .thumb img { width: 112px; height: 63px; } }
   .allvideos > summary { cursor: pointer; margin: 0 0 0.5rem; }
 </style>
