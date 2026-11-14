@@ -1,21 +1,9 @@
 import { defineConfig } from 'astro/config';
 import { lastmodFor } from './src/lib/lastmod.ts';
 import { inSitemap } from './src/lib/sitemapPages.mjs';
-import { closeSync, copyFileSync, mkdirSync, openSync, readFileSync, readSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 const SITE = 'https://hobbydex.com';
-// The start of an Astro redirect page (tools/redirects.mjs reads the same); a stub is recognised by these bytes alone.
-const STUB = '<!doctype html><title>Redirecting to';
-// Whether the built page at `file` is a redirect stub: reads its first bytes, never the whole page (there are 300 000+).
-const isStub = (file) => {
-  let fd;
-  try { fd = openSync(file, 'r'); } catch (e) { if (e.code === 'ENOENT') return false; throw e; }   // a page Astro did not write
-  try {
-    const head = Buffer.alloc(STUB.length);
-    const n = readSync(fd, head, 0, head.length, 0);
-    return head.toString('latin1', 0, n) === STUB;
-  } finally { closeSync(fd); }
-};
 
 // Publishes the dataset export the site was built from at /data/rc.json.
 function dataExport() {
@@ -30,21 +18,6 @@ function dataExport() {
   };
 }
 
-// Writes .astro/redirect-stubs.json: every redirect stub of the build, with the page it points at. The sitemap leaves
-// the stubs out and tools/redirects.mjs (--stubs) reads the same list instead of walking the build again.
-function writeRedirectStubs(dir, stubs) {
-  const map = {};
-  for (const p of stubs) {
-    const html = readFileSync(new URL(`${p.pathname}index.html`, dir), 'utf8');
-    const m = html.match(/<meta http-equiv="refresh" content="0;url=([^"]+)">/);
-    if (!m) throw new Error(`redirect page without a meta refresh: /${p.pathname}`);
-    map[`/${p.pathname}`] = m[1];
-  }
-  const file = new URL('../.astro/redirect-stubs.json', dir);
-  mkdirSync(new URL('./', file), { recursive: true });
-  writeFileSync(file, JSON.stringify(map));
-}
-
 // Writes sitemap-index.xml and sitemap-<n>.xml (at most 40 000 URLs each) listing every built page, each with the
 // <lastmod> of the last change to its own data (src/lib/lastmod.ts); pages with no known date get none.
 function sitemap() {
@@ -53,10 +26,8 @@ function sitemap() {
     hooks: {
       'astro:build:done': ({ dir, pages }) => {
         // redirect pages at former ids are left out: search engines should only see the current page
-        const stubs = pages.filter((p) => isStub(new URL(`${p.pathname}index.html`, dir)));
-        writeRedirectStubs(dir, stubs);
-        const stubSet = new Set(stubs.map((p) => p.pathname));
-        const urls = pages.filter((p) => !stubSet.has(p.pathname)).map((p) => `${SITE}/${p.pathname}`).filter((u) => inSitemap(u.slice(SITE.length))).sort()
+        const isRedirect = (p) => { try { return readFileSync(new URL(`${p.pathname}index.html`, dir), 'utf8').startsWith('<!doctype html><title>Redirecting to'); } catch { return false; } };
+        const urls = pages.filter((p) => !isRedirect(p)).map((p) => `${SITE}/${p.pathname}`).filter((u) => inSitemap(u.slice(SITE.length))).sort()
           .map((loc) => ({ loc, lastmod: lastmodFor(loc.slice(SITE.length)) }));
         const chunks = [];
         for (let i = 0; i < urls.length; i += 40000) chunks.push(urls.slice(i, i + 40000));

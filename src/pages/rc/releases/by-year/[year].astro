@@ -26,7 +26,7 @@ import SeenNote from '../../../../components/SeenNote.astro';
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / <a href="/rc/releases/by-year/">by year</a> / {year}</div>
   <h1>Releases of {year} <span class="muted">({rs.length})</span></h1>
   <p class="muted" data-pagefind-ignore>{newer && <a href={`/rc/releases/by-year/${newer}/`}>{newer}</a>}{newer && older && ' · '}{older && <a href={`/rc/releases/by-year/${older}/`}>{older}</a>}</p>
-  <table class="releases" data-pagefind-ignore>
+  <table class="releases">
     <tr><th class="num">Released</th><th>Release</th><th>Brand</th><th class="num">Item no.</th><th>Build</th></tr>
     {rows.map(({ group: g, head: r }) => { const k = db.kit.get(r.kit); const labels = colourLabels(g); return <tr>
       <td class="num"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td>

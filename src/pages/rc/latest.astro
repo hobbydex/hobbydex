@@ -21,7 +21,7 @@ const { rows, counts } = latestRows(100, 150);
   <div class="search-filters latest-tabs" role="group" aria-label="Show" data-pagefind-ignore>
     {TABS.map((t, i) => <button data-tab={t.id} aria-pressed={i === 0 ? "true" : "false"} title={'hint' in t ? t.hint : undefined}>{t.label} <span class="muted">{counts[t.id].toLocaleString('en')}</span></button>)}
   </div>
-  <table class="releases" id="latest" data-pagefind-ignore>
+  <table class="releases" id="latest">
     <thead><tr><th class="num">Date</th><th>Brand</th><th>Item</th><th>Kind</th></tr></thead>
     <tbody>
     {rows.map(({ r, group: g, tab, what, inAll }) => <tr data-tab={tab} data-all={inAll ? '1' : '0'}>

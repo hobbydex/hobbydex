@@ -245,7 +245,8 @@ export const partNo = (p: Part) => p.number ?? '';
 export const partLabel = (p: Part) => p.number ?? p.name;
 /** What follows partLabel: the name without its number in front ("SB-2290SG SB-2290SG Standard ..."), empty when partLabel is the name. */
 export const partRest = (p: Part) => (!p.number ? '' : p.name.startsWith(p.number) ? p.name.slice(p.number.length).trim() : p.name);
-export { byPartNo } from './partSort';
+/** Natural order by part number (PS-2 before PS-10), parts without a number by name after them. */
+export const byPartNo = (a: Part, b: Part) => (a.number ? 0 : 1) - (b.number ? 0 : 1) || partNo(a).localeCompare(partNo(b), undefined, { numeric: true }) || a.name.localeCompare(b.name);
 
 /** 'brand/xray' -> ['xray']; 'part/xray/303122' -> ['xray', '303122'] */
 export const key = (id: string) => id.split('/').slice(1);
