@@ -56,7 +56,6 @@ jobs:
         shell: bash
         run: |
           profile/timed.sh "$MODE-parse" -- node --expose-gc profile/parse.mjs data/hobbydex-rc.json > "$PROF_OUT/$MODE-parse.json" || true
-          if [ "$MODE" = timing ]; then cp "$PROF_OUT/$MODE-parse.json" "$PROF_OUT/timing-parse.json"; fi
       - name: Astro build (phase log, optional profiler)
         shell: bash
         env:
