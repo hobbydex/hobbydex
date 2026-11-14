@@ -8,12 +8,15 @@ import Base from '../layouts/Base.astro';
 import { readFileSync } from 'node:fs';
 import { db, url, brandName, dateKey, dateDoubt, isComing, releasedOf, releasesByMake, bodiesByMake } from '../lib/data';
 import DateText from '../components/DateText.astro';
+import Videos from '../components/Videos.astro';
 import DateDoubt from '../components/DateDoubt.astro';
 import DoubtNote from '../components/DoubtNote.astro';
 import ScanButton from '../components/ScanButton.astro';
 import ColourSwitch from '../components/ColourSwitch.astro';
 import { dateRows, colourLabels, groupName, releaseColour } from '../lib/colourways';
 
+// the three newest dated makers' videos (the videos page has the rest)
+const latestVideos = db.documents.filter((d) => d.kind === 'video' && d.date).sort((a, b) => b.date!.localeCompare(a.date!) || a.title.localeCompare(b.title)).slice(0, 3);
 const top = <T,>(m: Map<T, number>, n: number) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
 const byCat = new Map<string, number>();
 for (const p of db.parts) if (p.category) byCat.set(p.category, (byCat.get(p.category) ?? 0) + 1);
@@ -36,13 +39,14 @@ const brands = top(byBrand, 12);
 const seenKit = new Set<string>();
 const out = db.releases.filter((r) => r.status !== 'discontinued' && !isComing(r));
 const latest = dateRows(out, dateKey, () => 0)
-  .filter((x) => !seenKit.has(x.head.kit) && seenKit.add(x.head.kit)).slice(0, 10);
-// announced and not out yet, never labelled Released; all of them, so a later date is never pushed off the list by
-// newer announcements; a release known only by its year is left out (it has no place in a dated list)
-const coming = dateRows(db.releases.filter((r) => isComing(r) && (releasedOf(r) ?? '').length >= 7), (r) => releasedOf(r)!, () => 0);
-// one table, newest date first: upcoming releases above the latest ones, in date order throughout
+  .filter((x) => !seenKit.has(x.head.kit) && seenKit.add(x.head.kit)).slice(0, 5);
 // a month without a day counts as the start of its month, so it sorts below that month's dated releases
 const sortKey = (k: string) => (k.length === 7 ? k + '-00' : k);
+// announced and not out yet, never labelled Released: the five due soonest (the releases page has the rest); a
+// release known only by its year is left out (it has no place in a dated list)
+const coming = dateRows(db.releases.filter((r) => isComing(r) && (releasedOf(r) ?? '').length >= 7), (r) => releasedOf(r)!, () => 0)
+  .sort((a, b) => sortKey(a.key).localeCompare(sortKey(b.key))).slice(0, 5);
+// one table, newest date first: upcoming releases above the latest ones, in date order throughout
 const newest = [...coming, ...latest].sort((a, b) => sortKey(b.key).localeCompare(sortKey(a.key)));
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 // the hero's car: the site's own buggy icon (public/icons.svg#buggy, 48x24, front to the left, wheels on
@@ -190,8 +194,13 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
   </table>
   <p><a href="/rc/releases/">Show more</a> <span class="muted">· every release, newest first</span></p>
   <p><a href="/rc/latest/">Latest of everything</a> <span class="muted">· new cars, bodies, servos, radios, ESCs, motors, batteries and other parts</span></p>
-  <p><a href="/videos/">Latest videos</a> <span class="muted">· the makers' newest YouTube videos, with the releases they show</span></p>
   <DoubtNote on={newest.some((x) => x.group.some((r) => !!dateDoubt(r)))} />
+
+  {latestVideos.length > 0 && <>
+    <h2>Latest videos</h2>
+    <Videos videos={latestVideos} limit={3} heading={false} brand releases feed />
+    <p><a href="/videos/">Show more</a> <span class="muted">· the makers' newest YouTube videos, with the releases they show</span></p>
+  </>}
 
   <div class="home-grid">
     <section>
