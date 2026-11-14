@@ -63,7 +63,7 @@ jobs:
       - name: Astro build
         run: $OUT/phase.sh astro -- node_modules/.bin/astro build
       - name: Pagefind
-        run: $OUT/phase.sh pagefind -- npx pagefind --site dist
+        run: $OUT/phase.sh pagefind -- sh -c 'npx pagefind --site dist > "$OUT/pagefind.log" 2>&1'
       - name: Redirect map
         run: |
           STUBS=""; [ -f .astro/redirect-stubs.json ] && STUBS="--stubs .astro/redirect-stubs.json"
@@ -75,6 +75,13 @@ jobs:
         run: |
           STUBS=""; [ -f .astro/redirect-stubs.json ] && STUBS="--stubs .astro/redirect-stubs.json"
           $OUT/phase.sh redirect-check -- node tools/redirects.mjs --check $STUBS
+      # the stub list and the walk must give the same map: the map is checksummed here and compared across runs
+      - name: Redirect map by walking the build
+        run: |
+          cp dist/redirects.caddy "$OUT/redirects.from-list.caddy"
+          $OUT/phase.sh redirects-walk -- node tools/redirects.mjs --dist dist
+          cmp "$OUT/redirects.from-list.caddy" dist/redirects.caddy && echo "walk and stub list agree"
+          cp "$OUT/redirects.from-list.caddy" dist/redirects.caddy
       - name: Search tests
         run: $OUT/phase.sh tests -- npm test
       - name: Type check
@@ -84,7 +91,10 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          { echo "## Build phases ($(git rev-parse --short HEAD))"; cat "$OUT/table.md"; echo; echo "site.tar: $(stat -c %s site.tar 2>/dev/null) bytes"; } | tee -a "$GITHUB_STEP_SUMMARY"
+          { echo "## Build phases ($(git rev-parse --short HEAD))"; cat "$OUT/table.md"; echo; echo "site.tar: $(stat -c %s site.tar 2>/dev/null) bytes"
+            echo "redirects.caddy sha256: $(sha256sum dist/redirects.caddy 2>/dev/null | cut -c1-16)"
+            echo "sitemap URLs: $(grep -oh '<loc>[^<]*' dist/sitemap-*.xml 2>/dev/null | wc -l), sha256 $(grep -oh '<loc>[^<]*' dist/sitemap-*.xml 2>/dev/null | sort | sha256sum | cut -c1-16)"
+            echo "pagefind pages: $(grep -o 'Indexed [0-9]* pages' "$OUT/pagefind.log" 2>/dev/null)"; } | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
