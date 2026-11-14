@@ -84,7 +84,10 @@ cat <(sed 's/^/L /' ../.$ID.new) <(sed 's/^/P /' "$PM") <(sed 's/^/M /' ../.$ID.
     else if (p[f] != h) { if (bad++ < 5) print "linked file differs from the live release: " f > "/dev/stderr" } }
   END { close(check); if (bad) { print bad " stale linked files: not switching" > "/dev/stderr"; exit 1 } }'
 [ -f ../.$ID.check ] || : > ../.$ID.check
-sha256sum --check --quiet --strict ../.$ID.check >&2 || { echo 'manifest check FAILED: not switching' >&2; exit 1; }
+# no file travelled (the build equals the live release): nothing to hash; sha256sum refuses an empty list
+if [ -s ../.$ID.check ]; then
+  sha256sum --check --quiet --strict ../.$ID.check >&2 || { echo 'manifest check FAILED: not switching' >&2; exit 1; }
+fi
 echo "manifest check ok: $FILES files, $(wc -l < ../.$ID.check) hashed, the rest verified against the live release's manifest"
 mv ../.$ID.sha256 ../.manifest-$ID
 rm -f ../.$ID.have ../.$ID.new ../.$ID.check
