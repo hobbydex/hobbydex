@@ -1,43 +1,51 @@
 // Build-time redirect map: every redirect page of the build (the stubs Astro writes for a redirect, "Redirecting to"
 // with a meta refresh) becomes a real 301 in Caddy. Writes <dist>/redirects.caddy, a Caddy `map` plus `redir` that
 // the Caddyfile imports from the live release (ops/server/Caddyfile). The stub pages stay in the build as a fallback.
-// Usage: node tools/redirects.mjs [--dist dist] [--check]
+// Usage: node tools/redirects.mjs [--dist dist] [--stubs .astro/redirect-stubs.json] [--check]
+//   --stubs: the stub list the build wrote (astro.config.mjs, the sitemap hook); without it the stubs are found by
+//            walking the dist, which reads the first bytes of every page (about a minute on a full build).
 //   --check: no write; exit 1 unless the written map covers every stub, and every target is a live (non-stub) page.
 import { readdirSync, readFileSync, writeFileSync, openSync, readSync, closeSync, existsSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
 const dist = resolve(arg('--dist', 'dist'));
+const stubFile = arg('--stubs', '');
 const check = process.argv.includes('--check');
 const out = join(dist, 'redirects.caddy');
 const STUB = '<!doctype html><title>Redirecting to';   // the start of an Astro redirect page (see astro.config.mjs)
 
-// the path of every index.html, and the first bytes of each to spot a stub without reading whole pages
-const pages = [];
-const walk = (d) => {
-  for (const e of readdirSync(d, { withFileTypes: true })) {
-    const p = join(d, e.name);
-    if (e.isDirectory()) walk(p);
-    else if (e.name === 'index.html') pages.push(p);
+// site path of every stub ("/rc/kits/x/") -> target
+const stubs = new Map();
+if (stubFile) {
+  for (const [from, to] of Object.entries(JSON.parse(readFileSync(stubFile, 'utf8')))) stubs.set(from, to);
+} else {
+  // the path of every index.html, and the first bytes of each to spot a stub without reading whole pages
+  const pages = [];
+  const walk = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name === 'index.html') pages.push(p);
+    }
+  };
+  walk(dist);
+  const head = (p) => {
+    const fd = openSync(p, 'r');
+    try { const b = Buffer.alloc(STUB.length); readSync(fd, b, 0, b.length, 0); return b.toString('latin1'); } finally { closeSync(fd); }
+  };
+  for (const p of pages) {
+    const dir = relative(dist, dirname(p)).split(sep).join('/');   // no trailing slash from relative(): add it
+    const path = dir ? `/${dir}/` : '/';
+    if (head(p) !== STUB) continue;
+    const html = readFileSync(p, 'utf8');
+    const m = html.match(/<meta http-equiv="refresh" content="0;url=([^"]+)">/);
+    if (!m) throw new Error(`redirect page without a meta refresh: ${path}`);
+    stubs.set(path, m[1]);
   }
-};
-walk(dist);
-const head = (p) => {
-  const fd = openSync(p, 'r');
-  try { const b = Buffer.alloc(STUB.length); readSync(fd, b, 0, b.length, 0); return b.toString('latin1'); } finally { closeSync(fd); }
-};
-
-const stubs = new Map();   // site path of the stub ("/rc/kits/x/") -> target
-const live = new Set();    // site paths of the live pages
-for (const p of pages) {
-  const dir = relative(dist, dirname(p)).split(sep).join('/');   // no trailing slash from relative(): add it
-  const path = dir ? `/${dir}/` : '/';
-  if (head(p) !== STUB) { live.add(path); continue; }
-  const html = readFileSync(p, 'utf8');
-  const m = html.match(/<meta http-equiv="refresh" content="0;url=([^"]+)">/);
-  if (!m) throw new Error(`redirect page without a meta refresh: ${path}`);
-  stubs.set(path, m[1]);
 }
+// a live page is a built page that is not a stub: its index.html is there, and it is not in the stub list
+const isLive = (path) => path.endsWith('/') && !stubs.has(path) && existsSync(join(dist, path, 'index.html'));
 
 const errors = [];
 // paths are slugs; a character that needs escaping in a Caddyfile word is an error, not something to escape
@@ -48,7 +56,7 @@ const quoted = (s) => {
 // target resolution: the target must be a live page (a stub that points at a stub would be a chain)
 for (const [from, to] of stubs) {
   if (!/^\/[^\s?#]*$/.test(to)) errors.push(`${from}: odd target ${to}`);
-  if (!live.has(to)) errors.push(`${from}: target ${to} is not a live page${stubs.has(to) ? ' (it is a redirect itself)' : ''}`);
+  if (!isLive(to)) errors.push(`${from}: target ${to} is not a live page${stubs.has(to) ? ' (it is a redirect itself)' : ''}`);
 }
 
 // both spellings: "/x/" (the stub) and "/x" (without the slash, which file_server would otherwise send to "/x/" first)

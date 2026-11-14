@@ -31,6 +31,31 @@ test('every redirect page gets a 301 entry, with and without the trailing slash'
   }
 });
 
+test('the stub list from the build gives the same map as walking the dist', () => {
+  const dist = mkdtempSync(join(tmpdir(), 'redirects-'));
+  try {
+    page(join(dist, 'rc/platforms/3racing/advance-m5-pro'), '<!doctype html><title>Platform</title>');
+    page(join(dist, 'rc/kits/3racing/advance-m5-pro'), stub('/rc/kits/3racing/advance-m5-pro/', '/rc/platforms/3racing/advance-m5-pro/'));
+    assert.equal(run(['--dist', dist]).status, 0);
+    const walked = readFileSync(join(dist, 'redirects.caddy'), 'utf8');
+    const list = join(dist, 'stub-list.json');
+    writeFileSync(list, JSON.stringify({ '/rc/kits/3racing/advance-m5-pro/': '/rc/platforms/3racing/advance-m5-pro/' }));
+    try {
+      assert.equal(run(['--dist', dist, '--stubs', list]).status, 0);
+      assert.equal(readFileSync(join(dist, 'redirects.caddy'), 'utf8'), walked);
+      assert.equal(run(['--dist', dist, '--stubs', list, '--check']).status, 0);
+      writeFileSync(list, JSON.stringify({ '/rc/kits/3racing/advance-m5-pro/': '/rc/platforms/3racing/missing/' }));
+      const r = run(['--dist', dist, '--stubs', list]);
+      assert.equal(r.status, 1);
+      assert.match(r.stderr, /target \/rc\/platforms\/3racing\/missing\/ is not a live page/);
+    } finally {
+      rmSync(list, { force: true });
+    }
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+  }
+});
+
 test('a redirect whose target is itself a redirect page fails (no chains)', () => {
   const dist = mkdtempSync(join(tmpdir(), 'redirects-'));
   try {
