@@ -143,10 +143,10 @@ const partArchive = archiveLinks(part.links);
 const dealerLinks = (part.links ?? []).filter((l) => l.kind === 'dealer');
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
-// the search index (Base's hidden block): the part's numbers, names, brand, category and generic spec. Not the platforms
-// it fits or the releases it is in: each platform and release page is indexed itself, and lists its parts.
+// the search index (Base's hidden block): the part's numbers, names, brand, category, generic spec and the platforms it fits
 const indexWords = [brand?.name, part.number, ...(part.numbers ?? []), ...(part.former_numbers ?? []), part.gtin, part.gtin && gtin13(part.gtin), ...(part.former_ids ?? []).map((f) => key(f)[1]), part.name, ...(part.former_names ?? []),
-  part.category && catName(part.category), ...new Set((part.equivalent_to ?? []).map((e) => db.spec.get(e.spec)?.name))].filter(Boolean).join(' ');
+  part.category && catName(part.category), ...new Set((part.equivalent_to ?? []).map((e) => db.spec.get(e.spec)?.name)),
+  ...kitsOf.map((k) => (k.kit ? `${brandName(k.kit.brand)} ${k.kit.name}` : ''))].filter(Boolean).join(' ');   // not the releases that use it: each release page is indexed itself
 // the meta description: the category, the spec clauses the record states, the platforms it fits and the releases it is in
 const lcfirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 const bearingIncludes = (part.includes ?? []).filter((i) => i.spec?.startsWith('spec/bearing/'));
