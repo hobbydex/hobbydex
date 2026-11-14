@@ -15,5 +15,5 @@ const name = brandName(brand);
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/videos/">Latest videos</a> / {name}</div>
   <h1>{name} videos</h1>
   <p class="muted">{videos.length} videos from the maker, newest first. <a href={url.brand(brand)}>{name}</a> has its platforms and parts.</p>
-  <Videos videos={videos} limit={Infinity} heading={false} releases />
+  <Videos videos={videos} limit={Infinity} heading={false} releases feed />
 </Base>
