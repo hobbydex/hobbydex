@@ -2,8 +2,9 @@
 import Base from '../../../layouts/Base.astro';
 import { db, key, url, type Spec, type Standard } from '../../../lib/data';
 import { specColumns, specLabel, specSort } from '../../../lib/specs';
+import { skipUnchanged } from '../../../lib/incremental';
 export function getStaticPaths() {
-  return db.standards.map((s) => ({ params: { slug: key(s.id)[0] }, props: { std: s } }));
+  return skipUnchanged('/rc/standards/[slug]/', db.standards.map((s) => ({ params: { slug: key(s.id)[0] }, props: { std: s } })), (e) => e.props.std.id);
 }
 const { std } = Astro.props as { std: Standard };
 const by = std.replaced_by ? db.standard.get(std.replaced_by) : undefined;

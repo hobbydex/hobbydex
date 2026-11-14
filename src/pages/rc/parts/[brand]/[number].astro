@@ -40,6 +40,7 @@ import FactRows from '../../../../components/FactRows.astro';
 import { plugLinks, balanceSpecId } from '../../../../lib/plugs';
 import { chemistries, chargerWatts, MAINS } from '../../../../lib/chargers';
 import { protocolSpecs } from '../../../../lib/protocols';
+import { skipUnchanged } from '../../../../lib/incremental';
 export function getStaticPaths() {
   // a former id (renamed or corrected), another number the part is sold under (numbers) or a number the maker renumbered it from (former_numbers) keeps working:
   // its page redirects to the current one; a number listed twice is one route
@@ -48,7 +49,7 @@ export function getStaticPaths() {
     .map((f) => ({ f, to: x.id }))).filter(({ f }) => !taken.has(f) && taken.add(f))
     .map(({ f, to }) => ({ params: { brand: key(f)[0], number: key(f)[1] }, props: { redirect: url.part(to) } }));
   const gone = retiredMoves('part', taken).map((m) => ({ params: { brand: key(m.id)[0], number: key(m.id)[1] }, props: { redirect: m.to } }));
-  return [...db.parts.map((p) => ({ params: { brand: key(p.id)[0], number: key(p.id)[1] }, props: { part: p } })), ...moved, ...gone];
+  return [...skipUnchanged('/rc/parts/[brand]/[number]/', db.parts.map((p) => ({ params: { brand: key(p.id)[0], number: key(p.id)[1] }, props: { part: p } })), (e) => e.props.part.id), ...moved, ...gone];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const part = Astro.props.part!;   // set on every page that is not a redirect

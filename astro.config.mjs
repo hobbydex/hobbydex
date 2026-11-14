@@ -2,6 +2,8 @@ import { defineConfig } from 'astro/config';
 import { lastmodFor } from './src/lib/lastmod.ts';
 import { inSitemap } from './src/lib/sitemapPages.mjs';
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { restoreSkipped } from './tools/incremental.mjs';
 
 const SITE = 'https://hobbydex.com';
 
@@ -25,9 +27,12 @@ function sitemap() {
     name: 'hobbydex-sitemap',
     hooks: {
       'astro:build:done': ({ dir, pages }) => {
+        // an incremental build copies the unchanged pages it skipped from the previous dist first, so the merged dist is listed whole
+        const restored = restoreSkipped({ dir: fileURLToPath(dir) });
+        const all = [...new Set([...pages.map((p) => p.pathname), ...restored])];
         // redirect pages at former ids are left out: search engines should only see the current page
-        const isRedirect = (p) => { try { return readFileSync(new URL(`${p.pathname}index.html`, dir), 'utf8').startsWith('<!doctype html><title>Redirecting to'); } catch { return false; } };
-        const urls = pages.filter((p) => !isRedirect(p)).map((p) => `${SITE}/${p.pathname}`).filter((u) => inSitemap(u.slice(SITE.length))).sort()
+        const isRedirect = (p) => { try { return readFileSync(new URL(`${p}index.html`, dir), 'utf8').startsWith('<!doctype html><title>Redirecting to'); } catch { return false; } };
+        const urls = all.filter((p) => !isRedirect(p)).map((p) => `${SITE}/${p}`).filter((u) => inSitemap(u.slice(SITE.length))).sort()
           .map((loc) => ({ loc, lastmod: lastmodFor(loc.slice(SITE.length)) }));
         const chunks = [];
         for (let i = 0; i < urls.length; i += 40000) chunks.push(urls.slice(i, i + 40000));

@@ -91,9 +91,32 @@ jobs:
           check-latest: true
           cache: npm
       - run: npm ci
+      # Incremental build (tools/incremental.mjs): the previous deploy's dist and manifest come from the cache. A miss, or
+      # any change to the code, builds every page; otherwise only the pages whose record closure changed are built.
+      - name: Restore the previous build
+        id: prev
+        continue-on-error: true   # a failed restore is shown as a failed step; the build then builds every page
+        uses: actions/cache/restore@v6
+        with:
+          path: site-state
+          key: site-state-${{ github.run_id }}
+          restore-keys: site-state-
+      - name: Fingerprint the export and choose the build
+        run: |
+          node tools/incremental.mjs fingerprint --data data/hobbydex-rc.json --out manifest.json
+          if [ -f site-state/manifest.json ] && [ -d site-state/dist ]; then
+            {
+              echo "HOBBYDEX_INCREMENTAL=1"
+              echo "HOBBYDEX_PREV_MANIFEST=$PWD/site-state/manifest.json"
+              echo "HOBBYDEX_PREV_DIST=$PWD/site-state/dist"
+            } >> "$GITHUB_ENV"
+          else
+            echo "::notice::no previous build in the cache: every page is built"
+          fi
       - run: npm run build
         env:
           HOBBYDEX_DATA: data/hobbydex-rc.json
+          HOBBYDEX_MANIFEST: manifest.json
       # the same checks as CI: nothing is published while they fail, whatever started the deploy
       - name: Search tests (ranking rules and the built index)
         run: npm test
@@ -120,6 +143,19 @@ jobs:
           path: site.tar
           compression-level: 0
           retention-days: 3
+      # the merged dist and this manifest are the next run's previous build; a failed save only means a full next build
+      - name: Keep this build for the next run
+        run: |
+          rm -rf site-state
+          mkdir site-state
+          cp manifest.json site-state/manifest.json
+          mv dist site-state/dist
+      - name: Save the build for the next run
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: site-state
+          key: site-state-${{ github.run_id }}
   # Own server (Hetzner + Caddy, see ops/server/): runs only when the DEPLOY_* secrets are set.
   deploy-server:
     needs: build

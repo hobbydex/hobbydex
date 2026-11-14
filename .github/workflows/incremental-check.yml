@@ -1,0 +1,123 @@
+name: Incremental build check
+
+# Proves the incremental build equals a full build. Data A is the export; data B is A with one small change.
+# Full build of A (the "previous deploy"), incremental build of B from A's dist, full build of B, then a file
+# diff of the incremental and the full dist. Any difference fails the job; the timings and the diff are the summary.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "tools/**"
+      - "tests/**"
+      - "astro.config.mjs"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - ".github/workflows/incremental-check.yml"
+      - ".github/workflows/deploy.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the sitemap's lastmod of static pages is their source file's last commit
+      - name: Check out the RC dataset
+        uses: actions/checkout@v7
+        with:
+          repository: hobbydex/hobbydex-rc
+          path: data-repo
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Validate and export the dataset (data A)
+        working-directory: data-repo
+        run: |
+          python3 -I tools/validate.py
+          python3 -I tools/export.py ../data/hobbydex-rc.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          check-latest: true
+          cache: npm
+      - run: npm ci
+      - name: Unit tests for the incremental build
+        run: node --test tests/incremental.test.mjs
+      - name: Data B (data A with one small change)
+        run: node tools/incremental.mjs mutate --data data/hobbydex-rc.json --out data/hobbydex-rc-b.json
+      - name: Full build of A (the previous deploy)
+        run: |
+          test -x /usr/bin/time
+          node tools/incremental.mjs fingerprint --data data/hobbydex-rc.json --out manifest-a.json
+          /usr/bin/time -v -o timing-full-a.txt npm run build
+          mv dist dist-a
+        env:
+          HOBBYDEX_DATA: data/hobbydex-rc.json
+      - name: Fingerprint B
+        run: node tools/incremental.mjs fingerprint --data data/hobbydex-rc-b.json --out manifest-b.json
+      - name: Incremental build of B from A
+        run: |
+          /usr/bin/time -v -o timing-incremental-b.txt npm run build
+          mv dist dist-inc
+          cp .incremental/skipped.jsonl skipped-b.jsonl
+        env:
+          HOBBYDEX_DATA: data/hobbydex-rc-b.json
+          HOBBYDEX_MANIFEST: manifest-b.json
+          HOBBYDEX_INCREMENTAL: "1"
+          HOBBYDEX_PREV_MANIFEST: manifest-a.json
+          HOBBYDEX_PREV_DIST: dist-a
+      - name: Full build of B
+        run: |
+          /usr/bin/time -v -o timing-full-b.txt npm run build
+          mv dist dist-full
+        env:
+          HOBBYDEX_DATA: data/hobbydex-rc-b.json
+      - name: Diff the incremental and the full dist
+        id: diff
+        run: node tools/incremental.mjs compare --a dist-inc --b dist-full --out compare.json
+      - name: Summary
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs");
+            const cp = require("child_process");
+            const wall = (f) => { try { return fs.readFileSync(f, "utf8").match(/Elapsed \(wall clock\) time.*: (\S+)/)[1]; } catch { return "n/a"; } };
+            const rss = (f) => { try { return (Number(fs.readFileSync(f, "utf8").match(/Maximum resident set size \(kbytes\): (\d+)/)[1]) / 1048576).toFixed(2) + " GiB"; } catch { return "n/a"; } };
+            const pages = (d) => { try { return cp.execFileSync("find", [d, "-name", "index.html"]).toString().trim().split("\n").length; } catch { return "n/a"; } };
+            const size = (d) => { try { return cp.execFileSync("du", ["-sh", d]).toString().split("\t")[0]; } catch { return "n/a"; } };
+            const rows = [
+              ["build", "wall clock", "peak RSS", "dist size", "index.html files"],
+              ["full A", wall("timing-full-a.txt"), rss("timing-full-a.txt"), size("dist-a"), pages("dist-a")],
+              ["incremental B from A", wall("timing-incremental-b.txt"), rss("timing-incremental-b.txt"), size("dist-inc"), pages("dist-inc")],
+              ["full B", wall("timing-full-b.txt"), rss("timing-full-b.txt"), size("dist-full"), pages("dist-full")],
+            ];
+            const table = [rows[0], rows[0].map(() => "---"), ...rows.slice(1)].map((r) => `| ${r.join(" | ")} |`).join("\n");
+            const skipped = fs.existsSync("skipped-b.jsonl") ? fs.readFileSync("skipped-b.jsonl", "utf8").split("\n").filter(Boolean).length : 0;
+            let out = `## Incremental build check\n\n${table}\n\nPages skipped by the incremental build: ${skipped}\n\n`;
+            if (fs.existsSync("compare.json")) {
+              const c = JSON.parse(fs.readFileSync("compare.json", "utf8"));
+              out += `Diff of the incremental and the full dist: only in incremental ${c.onlyA}, only in full ${c.onlyB}, changed ${c.changed} ${JSON.stringify(c.changedByTopDir)}; pagefind files differing (not compared, pagefind is not byte-stable): ${c.ignored}\n`;
+            } else out += "Diff: not produced\n";
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, out);
+          '
+      - name: Upload the diff and the timings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: incremental-check
+          path: |
+            compare.json
+            timing-*.txt
+            skipped-b.jsonl
+            manifest-a.json
+            manifest-b.json
+          if-no-files-found: ignore
+          retention-days: 14

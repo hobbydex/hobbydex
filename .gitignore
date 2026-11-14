@@ -3,3 +3,7 @@ dist/
 .astro/
 data/*.json
 .DS_Store
+
+# incremental build state (tools/incremental.mjs)
+.incremental/
+site-state/

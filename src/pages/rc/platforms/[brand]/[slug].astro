@@ -32,12 +32,13 @@ import { driveLabel } from '../../../../lib/drive';
 import { gearing, type Gearing } from '../../../../lib/gearing';
 import { describe, count } from '../../../../lib/descriptions';
 import { newestDatedParts, realPartDate } from '../../../../lib/latestParts';
+import { skipUnchanged } from '../../../../lib/incremental';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.kits.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], slug: key(f)[1] }, props: { redirect: url.platform(x.id) } })));
   const taken = new Set([...db.kits.map((k) => k.id), ...db.kits.flatMap((x) => x.former_ids ?? [])]);
   const gone = retiredMoves('kit', taken).map((m) => ({ params: { brand: key(m.id)[0], slug: key(m.id)[1] }, props: { redirect: m.to } }));
-  return [...db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } })), ...moved, ...gone];
+  return [...skipUnchanged('/rc/platforms/[brand]/[slug]/', db.kits.map((k) => ({ params: { brand: key(k.id)[0], slug: key(k.id)[1] }, props: { kit: k } })), (e) => e.props.kit.id), ...moved, ...gone];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const kit = Astro.props.kit!;   // set on every page that is not a redirect

@@ -12,8 +12,9 @@ import { kitTypeIcon, kitTypeOne, kitTypeLabel, kitTypeOrder } from '../../../li
 import { byCategory, categories, uncategorised, uncatSlug } from '../../../lib/categoryIndex';
 import { driveLabel } from '../../../lib/drive';
 import Videos from '../../../components/Videos.astro';
+import { skipUnchanged } from '../../../lib/incremental';
 export function getStaticPaths() {
-  return db.brands.map((b) => ({ params: { brand: key(b.id)[0] }, props: { brand: b } }));
+  return skipUnchanged('/rc/brands/[brand]/', db.brands.map((b) => ({ params: { brand: key(b.id)[0] }, props: { brand: b } })), (e) => e.props.brand.id);
 }
 const { brand } = Astro.props;
 const kits = db.kitsByBrand.get(brand.id) ?? [];
