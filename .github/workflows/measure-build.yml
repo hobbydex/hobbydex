@@ -75,6 +75,42 @@ jobs:
         run: |
           STUBS=""; [ -f .astro/redirect-stubs.json ] && STUBS="--stubs .astro/redirect-stubs.json"
           $OUT/phase.sh redirect-check -- node tools/redirects.mjs --check $STUBS
+      # the search results for a fixed set of queries, from the built index: compared between the two runs
+      - name: Search results
+        run: |
+          cat > "$OUT/search-results.mjs" <<'JS'
+          import { createServer } from 'node:http';
+          import { readFile, writeFile } from 'node:fs/promises';
+          import { join, extname, resolve } from 'node:path';
+          import { pathToFileURL } from 'node:url';
+          const DIST = resolve('dist');
+          const MIME = { '.js': 'text/javascript', '.json': 'application/json', '.css': 'text/css' };
+          const server = createServer(async (req, res) => {
+            try { const body = await readFile(join(DIST, decodeURIComponent(new URL(req.url, 'http://x').pathname)));
+              res.writeHead(200, { 'content-type': MIME[extname(req.url)] || 'application/octet-stream' }); res.end(body);
+            } catch { res.writeHead(404); res.end(); }
+          });
+          server.keepAliveTimeout = 120000; server.headersTimeout = 125000;
+          await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
+          const pf = await import(pathToFileURL(join(DIST, 'pagefind', 'pagefind.js')).href);
+          await pf.options({ basePath: `http://127.0.0.1:${server.address().port}/pagefind/`, ranking: { termSimilarity: 9, termFrequency: 0.2, termSaturation: 1.2, pageLength: 0.5 } });
+          await pf.init();
+          const { rankedSearch } = await import(pathToFileURL(resolve('public/search-rank.js')).href);
+          const platforms = JSON.parse(await readFile(join(DIST, 'search-platforms.json'), 'utf8'));
+          const queries = ['TT-02', 'lancia delta', 'bearing', '5x10x4', 'm3 button', 'servo', 'motor', 'screw', 'wheel', 'esc', 'chassis',
+            'shock', 'tire', 'gear', 'drift', 'buggy', 'comic', 'Tamiya', 'Kyosho', 'Traxxas', 'Losi', 'ARRMA', 'Team Associated', 'body',
+            'TT-02 bearing', 'TT-02 gear', 'lancia delta bearing', 'tamiya tt-02 screw', 'mercedes', 'ferrari', 'porsche 911'];
+          const out = {};
+          for (const q of queries) {
+            const total = (await pf.search(q)).results.length;
+            const r = await rankedSearch(pf, q, platforms);
+            out[q] = { total, top: r.datas.slice(0, 20).map((d) => `${d.meta.type}|${d.meta.title}`) };
+          }
+          await writeFile(join(process.env.OUT, 'search-results.json'), JSON.stringify(out, null, 1) + '\n');
+          server.close();
+          console.log(`queries: ${queries.length}`);
+          JS
+          node "$OUT/search-results.mjs"
       # the stub list and the walk must give the same map: the map is checksummed here and compared across runs
       - name: Redirect map by walking the build
         run: |
