@@ -1,0 +1,25 @@
+---
+import Base from '../../layouts/Base.astro';
+import Videos from '../../components/Videos.astro';
+import { db, isoText } from '../../lib/data';
+// The newest makers' videos (documents of kind video, from the makers' YouTube channels), newest first, grouped by
+// month. The window is the last 90 days of the build; undated videos are left out (the count says how many).
+const DAYS = 90;
+const today = new Date();
+const cutoff = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - DAYS)).toISOString().slice(0, 10);
+const all = db.documents.filter((d) => d.kind === 'video');
+const dated = all.filter((d) => d.date);
+const recent = dated.filter((d) => d.date! >= cutoff).sort((a, b) => b.date!.localeCompare(a.date!) || a.title.localeCompare(b.title));
+const months = [...new Map(recent.map((d) => [d.date!.slice(0, 7), 1])).keys()];
+const undated = all.length - dated.length;
+---
+<Base title="Latest videos" description="The newest makers' YouTube videos for RC cars and parts in Hobbydex, newest first, with the releases each one shows.">
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Latest videos</div>
+  <h1>Latest videos</h1>
+  <p class="muted">{recent.length} videos from the last {DAYS} days ({cutoff} to today), newest first. {all.length.toLocaleString('en')} makers' videos are in Hobbydex in all{undated > 0 ? `; ${undated} with no date are left out` : ''}. Each links to its release pages.</p>
+  {months.map((m) => <section>
+    <h2 id={m}>{isoText(m)} <span class="muted">({recent.filter((d) => d.date!.startsWith(m)).length})</span></h2>
+    <Videos videos={recent.filter((d) => d.date!.startsWith(m))} limit={Infinity} heading={false} brand releases />
+  </section>)}
+  {recent.length === 0 && <p class="muted">No videos in this window.</p>}
+</Base>
