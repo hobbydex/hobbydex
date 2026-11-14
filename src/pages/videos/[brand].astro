@@ -1,0 +1,19 @@
+---
+import Base from '../../layouts/Base.astro';
+import Videos from '../../components/Videos.astro';
+import { db, key, brandName, url } from '../../lib/data';
+// Every maker video of one brand (documents of kind video), newest first; brands with no video get no page.
+export function getStaticPaths() {
+  const byBrand = new Map<string, typeof db.documents>();
+  for (const d of db.documents) if (d.kind === 'video' && d.brand) byBrand.set(d.brand, [...(byBrand.get(d.brand) ?? []), d]);
+  return [...byBrand].map(([b, videos]) => ({ params: { brand: key(b)[0] }, props: { brand: b, videos } }));
+}
+const { brand, videos } = Astro.props;
+const name = brandName(brand);
+---
+<Base title={`${name} videos`} description={`The YouTube videos of ${name} in Hobbydex, newest first, with the releases each one shows.`}>
+  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/videos/">Latest videos</a> / {name}</div>
+  <h1>{name} videos</h1>
+  <p class="muted">{videos.length} videos from the maker, newest first. <a href={url.brand(brand)}>{name}</a> has its platforms and parts.</p>
+  <Videos videos={videos} limit={Infinity} heading={false} releases />
+</Base>

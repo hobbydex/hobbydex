@@ -11,6 +11,7 @@ import ReleaseArt from '../../../components/ReleaseArt.astro';
 import { kitTypeIcon, kitTypeOne, kitTypeLabel, kitTypeOrder } from '../../../lib/kitTypes';
 import { byCategory, categories, uncategorised, uncatSlug } from '../../../lib/categoryIndex';
 import { driveLabel } from '../../../lib/drive';
+import Videos from '../../../components/Videos.astro';
 export function getStaticPaths() {
   return db.brands.map((b) => ({ params: { brand: key(b.id)[0] }, props: { brand: b } }));
 }
@@ -20,6 +21,8 @@ const kits = db.kitsByBrand.get(brand.id) ?? [];
 const chassisless = db.releases.filter((r) => r.brand === brand.id && db.kit.get(r.kit)?.placeholder)
   .sort((a, b) => (a.number ?? a.name).localeCompare(b.number ?? b.name, undefined, { numeric: true }) || a.name.localeCompare(b.name, undefined, { numeric: true }));
 const parts = db.partsByBrand.get(brand.id) ?? [];
+// the brand's three newest maker videos (the full list is on /videos/<brand>/)
+const brandVideos = db.documents.filter((d) => d.kind === 'video' && d.brand === brand.id).sort((a, b) => (b.date ?? '').localeCompare(a.date ?? '') || a.title.localeCompare(b.title));
 // many kits: one table per kit type, with the years the kit's releases span
 const MANY = 12;
 const kitRows = kits.map((k) => {
@@ -65,6 +68,11 @@ const uncat = uncategorised.get(brand.id) ?? [];
   </dl>
   <DoubtNote on={dateDoubtful} />
   {brand.notes && <p class="muted">{brand.notes}</p>}
+  {brandVideos.length > 0 && <>
+    <h2 id="videos">Latest videos <span class="muted">({brandVideos.length})</span></h2>
+    <Videos videos={brandVideos.slice(0, 3)} limit={3} heading={false} releases />
+    <p><a href={`/videos/${key(brand.id)[0]}/`}>All {brandVideos.length} videos</a></p>
+  </>}
   {kits.length > MANY && <><h2 id="platforms">Platforms <span class="muted">({kits.length})</span></h2>
   <div class="kitfilter" data-pagefind-ignore>
     <div class="sfield"><Icon name="search" /><input type="search" class="search-box" placeholder={`Filter ${brand.name} platforms by name, scale or drive`} aria-label="Filter platforms" autocomplete="off" /></div>
