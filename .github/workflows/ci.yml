@@ -42,7 +42,7 @@ jobs:
         run: node tools/check-links.mjs --max 0
       # every redirect page has its 301 entry in redirects.caddy, and every target is a live page
       - name: Redirect map check
-        run: node tools/redirects.mjs --check
+        run: node tools/redirects.mjs --check --stubs .astro/redirect-stubs.json
       - name: Search tests (ranking rules and the built index)
         run: npm test
       - name: Type check

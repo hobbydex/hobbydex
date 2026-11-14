@@ -33,7 +33,7 @@ const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scale
   <DriveFilter drives={kits.map((k) => k.drive)} />
   {scales.map((sc) => { const ks = kits.filter((k) => (k.scale ?? '') === sc); return <section class="drivegroup">
     <h2 id={`scale-${sc ? sc.replace('/', '-') : 'unknown'}`}>{sc || 'Scale unknown'} <span class="muted">({ks.length})</span></h2>
-    <table class="releases">
+    <table class="releases" data-pagefind-ignore>
       <tr><th>Platform</th><th>Brand</th><th>Drive</th><th>Power</th><th class="num">Releases</th></tr>
       {ks.map((k) => <tr data-drive={k.drive ?? ''}>
         <td class="name">{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1.3em" class="inrow" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="1.3em" />} <a href={url.platform(k.id)}>{k.name}</a></td>

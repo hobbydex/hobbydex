@@ -50,13 +50,13 @@ import SeenNote from '../../../components/SeenNote.astro';
   </form>
   <div id="release-results" hidden data-src="/rc/releases/list.json" data-seen-notes={JSON.stringify(SEEN_NOTES)}>
     <p class="muted" id="release-count" aria-live="polite"></p>
-    <table class="releases">
+    <table class="releases" data-pagefind-ignore>
       <thead><tr><th data-sort="date"><button type="button" class="sortbtn">Released</button></th><th data-sort="brand"><button type="button" class="sortbtn">Brand</button></th><th data-sort="name"><button type="button" class="sortbtn">Release</button></th><th>Type</th><th>Scale</th><th>Build</th></tr></thead>
       <tbody></tbody>
     </table>
     <p><button type="button" id="release-more" hidden>Show more</button></p>
   </div>
-  <table class="releases" id="release-newest">
+  <table class="releases" id="release-newest" data-pagefind-ignore>
     <tr><th class="num">Released</th><th>Brand</th><th>Release</th><th class="num">Item no.</th><th>Build</th><th class="num">Parts</th></tr>
     {newest.map(({ group: g, head: r }) => { const labels = colourLabels(g); return <tr>
       <td class="num" data-label="Released"><DateText r={r} /><DateDoubt reason={dateDoubt(r)} /></td><td data-label="Brand"><a href={url.brand(r.brand)}>{brandName(r.brand)}</a></td><td class="name" data-label="Release"><a href={url.release(r.id)}>{g.length > 1 ? groupName(g) : r.name}</a><Discontinued item={r} />{g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}</td>

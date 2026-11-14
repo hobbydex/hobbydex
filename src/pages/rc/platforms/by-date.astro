@@ -20,7 +20,7 @@ const PAGE = 50;
   <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/platforms/">Platforms</a> / by date</div>
   <h1>Platforms by date</h1>
   <p class="muted">{rows.length} platforms, newest first by the date of their latest release (the day or month where a source gives it, else the year); platforms whose release years are unknown are left out. <a href="/rc/platforms/">Platforms by type</a></p>
-  <table id="kits">
+  <table id="kits" data-pagefind-ignore>
     <tr><th class="num">Released</th><th>Platform</th><th>Type</th><th>Scale</th><th>Newest release</th><th class="num">Releases</th></tr>
     {rows.map(({ k, newest, first, count }, i) => <tr hidden={i >= PAGE}>
       <td class="num"><DateText r={newest!} /><DateDoubt reason={dateDoubt(newest!)} /></td><td><a href={url.platform(k.id)}><span class="muted" title={kitTypeOne[k.category ?? 'car']}>{k.art ? <ReleaseArt id={k.id} category={k.category} kitArt={k.art} size="1em" /> : <Icon name={kitTypeIcon(k.category)} label={kitTypeOne[k.category ?? 'car'] ?? k.category} size="1em" />}</span> {brandName(k.brand)} {k.name}</a></td><td><a href={`/rc/platforms/types/${k.category || 'car'}/`}>{kitTypeOne[k.category ?? 'car'] ?? k.category}</a></td><td>{k.scale ?? ''}</td>

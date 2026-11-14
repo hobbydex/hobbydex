@@ -1,0 +1,93 @@
+# TEMPORARY build measurement (runs on pushes to measure-* branches; removed before merge). Same commands as the Build job,
+# each phase under GNU time -v: wall time, CPU and peak RSS per phase in the job summary and in an artifact.
+name: Measure build (temporary)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['measure-*']
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      OUT: ${{ github.workspace }}/measure-out
+      HOBBYDEX_DATA: data/hobbydex-rc.json
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check out the RC dataset
+        uses: actions/checkout@v7
+        with:
+          repository: hobbydex/hobbydex-rc
+          path: data-repo
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          check-latest: true
+          cache: npm
+      - name: Tools
+        run: |
+          sudo apt-get install -y time >/dev/null
+          mkdir -p "$OUT"
+          echo "nproc=$(nproc)"; free -m | head -2; node -v; /usr/bin/time --version | head -1
+          git log -1 --format='%H %s'
+      - name: Phase helper
+        run: |
+          cat > "$OUT/phase.sh" <<'SH'
+          #!/usr/bin/env bash
+          # phase.sh NAME -- command...: runs the command under GNU time and records it
+          name="$1"; shift; [ "$1" = "--" ] && shift
+          /usr/bin/time -v -o "$OUT/$name.time" "$@"; rc=$?
+          wall=$(awk -F': ' '/Elapsed \(wall/{print $2}' "$OUT/$name.time")
+          rss=$(awk -F': ' '/Maximum resident/{print $2}' "$OUT/$name.time")
+          cpu=$(awk -F': ' '/User time/{u=$2} /System time/{s=$2} END{printf "%.1f", u+s}' "$OUT/$name.time")
+          echo "| $name | $wall | $cpu | $((rss / 1024)) | exit $rc |" >> "$OUT/table.md"
+          exit $rc
+          SH
+          chmod +x "$OUT/phase.sh"
+          printf '| phase | wall | cpu s | peak RSS MB | exit |\n|---|---|---:|---:|---|\n' > "$OUT/table.md"
+      - name: Export the dataset
+        working-directory: data-repo
+        run: $OUT/phase.sh export -- python3 -I tools/export.py ../data/hobbydex-rc.json
+      - run: npm ci
+      - name: Astro build
+        run: $OUT/phase.sh astro -- node_modules/.bin/astro build
+      - name: Pagefind
+        run: $OUT/phase.sh pagefind -- npx pagefind --site dist
+      - name: Redirect map
+        run: |
+          STUBS=""; [ -f .astro/redirect-stubs.json ] && STUBS="--stubs .astro/redirect-stubs.json"
+          echo "redirect args: ${STUBS:-(walk)}"
+          $OUT/phase.sh redirects -- node tools/redirects.mjs $STUBS
+      - name: Internal link check
+        run: $OUT/phase.sh checklinks -- node tools/check-links.mjs --max 0
+      - name: Redirect map check
+        run: |
+          STUBS=""; [ -f .astro/redirect-stubs.json ] && STUBS="--stubs .astro/redirect-stubs.json"
+          $OUT/phase.sh redirect-check -- node tools/redirects.mjs --check $STUBS
+      - name: Search tests
+        run: $OUT/phase.sh tests -- npm test
+      - name: Type check
+        run: $OUT/phase.sh typecheck -- npm run check
+      - name: Pack the site
+        run: $OUT/phase.sh tar -- tar -cf site.tar -C dist .
+      - name: Summary
+        if: always()
+        run: |
+          { echo "## Build phases ($(git rev-parse --short HEAD))"; cat "$OUT/table.md"; echo; echo "site.tar: $(stat -c %s site.tar 2>/dev/null) bytes"; } | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: measure-${{ github.sha }}
+          path: measure-out
+          retention-days: 7
