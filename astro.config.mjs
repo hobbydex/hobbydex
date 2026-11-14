@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import { lastmodFor } from './src/lib/lastmod.ts';
 import { inSitemap } from './src/lib/sitemapPages.mjs';
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { phases } from './profile/phases.mjs';
 
 const SITE = 'https://hobbydex.com';
 
@@ -45,7 +46,12 @@ export default defineConfig({
   site: SITE,
   trailingSlash: 'always',
   build: { format: 'directory' },
-  integrations: [sitemap(), dataExport()],
+  integrations: [
+    phases('a', ['astro:config:setup', 'astro:build:start', 'astro:build:setup', 'astro:build:ssr', 'astro:build:generated', 'astro:build:done']),
+    sitemap(),
+    dataExport(),
+    phases('b', ['astro:build:done']),
+  ],
   // SIZE: component scripts are always separate cached files, never inlined into every page (see Base.astro)
   vite: { build: { assetsInlineLimit: 0 } },
 });

@@ -1,0 +1,95 @@
+# TEMPORARY build profiling (draft PR only, never merged to main).
+name: Build profile (temporary)
+
+on:
+  push:
+    branches: [build-profile]
+
+permissions:
+  contents: read
+
+env:
+  PROF_OUT: ${{ github.workspace }}/profile/out
+  HOBBYDEX_DATA: data/hobbydex-rc.json
+
+jobs:
+  profile:
+    strategy:
+      fail-fast: false
+      matrix:
+        # timing: no profiler attached (clean wall and RSS); profiled: CPU and heap profiles on the same build
+        mode: [timing, profiled]
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check out the RC dataset
+        uses: actions/checkout@v7
+        with:
+          repository: hobbydex/hobbydex-rc
+          path: data-repo
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          check-latest: true
+          cache: npm
+      - name: Runner and tools
+        shell: bash
+        run: |
+          sudo apt-get install -y time >/dev/null
+          echo "nproc=$(nproc)"; free -m | head -2; df -h / | tail -1
+          grep -m1 "model name" /proc/cpuinfo; node -v; python3 -V; /usr/bin/time --version | head -1
+      - run: npm ci
+      - name: Export the dataset
+        shell: bash
+        working-directory: data-repo
+        run: $GITHUB_WORKSPACE/profile/timed.sh "$MODE-export" -- python3 -I tools/export.py ../data/hobbydex-rc.json
+      - name: JSON parse of the export
+        shell: bash
+        run: |
+          profile/timed.sh "$MODE-parse" -- node --expose-gc profile/parse.mjs data/hobbydex-rc.json > "$PROF_OUT/$MODE-parse.json" || true
+          if [ "$MODE" = timing ]; then cp "$PROF_OUT/$MODE-parse.json" "$PROF_OUT/timing-parse.json"; fi
+      - name: Astro build (phase log, optional profiler)
+        shell: bash
+        env:
+          PROFILE_OUT: ${{ github.workspace }}/profile/out/${{ matrix.mode }}-phases.jsonl
+        run: |
+          if [ "$MODE" = profiled ]; then
+            export NODE_OPTIONS="--cpu-prof --cpu-prof-dir=$PROF_OUT/cpu --cpu-prof-interval=1000 --heap-prof --heap-prof-dir=$PROF_OUT/heap --heap-prof-interval=4194304"
+          fi
+          set -o pipefail
+          profile/timed.sh "$MODE-astro" -- node_modules/.bin/astro build 2>&1 | profile/stamp.sh > "$PROF_OUT/$MODE-astro.log"
+      - name: Pagefind
+        shell: bash
+        run: profile/timed.sh "$MODE-pagefind" -- npx pagefind --site dist
+      - name: Redirect map
+        shell: bash
+        run: profile/timed.sh "$MODE-redirects" -- node tools/redirects.mjs --dist dist || true
+      - name: Internal link check (CI step)
+        shell: bash
+        run: profile/timed.sh "$MODE-checklinks" -- node tools/check-links.mjs --max 0 || true
+      - name: Pack the site (deploy step)
+        shell: bash
+        run: |
+          profile/timed.sh "$MODE-tar" -- tar -cf site.tar -C dist .
+          profile/inventory.sh
+      - name: Profile summary
+        if: always()
+        shell: bash
+        run: |
+          node profile/analyze.mjs "$PROF_OUT" > "$PROF_OUT/summary-$MODE.md" || true
+          cat "$PROF_OUT/summary-$MODE.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: profile-${{ matrix.mode }}
+          path: profile/out
+          retention-days: 7
