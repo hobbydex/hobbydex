@@ -143,3 +143,33 @@ print(json.dumps(m.summarise(files, '', '2026-11-06')))`;
   const since = summary(['--since', '2026-11-05', plainRoll, gzRoll]);
   assert.deepEqual(since.days.map((d) => d.day), ['2026-11-05', '2026-11-06']);
 });
+
+test('--summary counts requests, crawlers, 404s and 5xx per UTC hour and lists the paths behind them', () => {
+  // 1793786400 is 2026-11-04 10:00:00 UTC
+  const line = (ts, uri, ua, ip, status = 200) => JSON.stringify({
+    ts, status, request: { method: 'GET', uri, client_ip: ip, remote_ip: ip, headers: { 'User-Agent': [ua] } },
+  });
+  const chrome = 'Mozilla/5.0 (X11; Linux x86_64) Chrome/130.0 Safari/537.36';
+  const rows = [
+    line(1793786400, '/rc/parts', chrome, '203.0.113.5'),
+    line(1793786401, '/rc/old', chrome, '203.0.113.5', 404),
+    line(1793786402, '/rc/old', chrome, '203.0.113.5', 404),
+    line(1793790000, '/rc/new', chrome, '203.0.113.5', 404),
+    line(1793790001, '/rc/parts', 'Mozilla/5.0 (compatible; Googlebot/2.1)', '66.249.66.1', 502),
+  ];
+  for (let i = 0; i < 50; i += 1) rows.push(line(1793793600 + i, '/rc/parts', chrome, '198.51.100.9'));
+  const dir = mkdtempSync(join(tmpdir(), 'bot-report-'));
+  const file = join(dir, 'access.log');
+  writeFileSync(file, rows.join('\n') + '\n');
+  const day = summary([file]).days[0];
+  assert.equal(day.hourly.requests.length, 24);
+  assert.deepEqual(day.hourly.requests.slice(10, 13), [3, 2, 50]);
+  assert.deepEqual(day.hourly.crawlers.slice(10, 13), [0, 1, 0]);
+  assert.deepEqual(day.hourly.status_404.slice(10, 13), [2, 1, 0]);
+  assert.deepEqual(day.hourly.status_5xx.slice(10, 13), [0, 1, 0]);
+  assert.deepEqual(day.top_404, [['/rc/old', 2], ['/rc/new', 1]]);
+  assert.deepEqual(day.top_5xx, [['/rc/parts', 1]]);
+  const net = day.networks.find((n) => n.prefix === '198.51.0.0/16');
+  assert.equal(net.hourly[12], 50);
+  assert.equal(net.hourly.reduce((a, b) => a + b, 0), 50);
+});

@@ -16,7 +16,9 @@ and "not verified". The lookups are slow: expect a few seconds per new IP on a c
 --summary prints one JSON document for the days from --since (UTC, YYYY-MM-DD; default all days in the files) instead:
 per UTC day the unique visitor addresses and page views (bots and static files left out), the named crawlers, the
 status codes and the 403s, and per network (/16 for IPv4, /32 for IPv6) the request count, the share sent with a
-browser User-Agent, whether robots.txt was read and the status codes. The files default to /var/log/caddy/access*.log*
+browser User-Agent, whether robots.txt was read, the status codes and the requests per UTC hour. Each day also has
+"hourly" (24 counts per UTC hour of all requests, named-crawler requests, 404s and 5xx answers) and "top_404" and
+"top_5xx" (the paths answered most often with a 404 or a 5xx, [path, count], at most TOP_BAD_PATHS). The files default to /var/log/caddy/access*.log*
 (the current file and the rolled ones, named access-<time>.log, plain or gzip). Days are cut by each request's own
 time, never by file. A day is marked partial when it is today or when the logs begin after its first second (the
 oldest rolled file was already deleted), so its counts are low.
@@ -132,6 +134,9 @@ def bot_group(ua):
 # --- daily summary (--summary) -------------------------------------------------------------------------------
 
 LOG_GLOB = "/var/log/caddy/access*.log*"
+TOP_BAD_PATHS = 10         # paths listed per day under top_404 and top_5xx
+BAD_PATHS_KEPT = 5000       # distinct 404/5xx paths held per day; past it the paths seen once are dropped (a probe
+                            # sweep must not grow the memory)
 NET_MIN_REQUESTS = 50       # networks with fewer requests in a day are counted together as "other networks"
 STATIC_RE = re.compile(r"\.(?:css|js|mjs|map|json|xml|txt|webmanifest|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|eot|pdf|mp4|webm)$", re.IGNORECASE)
 STATIC_PREFIXES = ("/_astro/", "/pagefind/")
@@ -191,7 +196,7 @@ def is_static(path):
 
 
 class _Net:
-    __slots__ = ("requests", "browser", "ips", "status", "robots")
+    __slots__ = ("requests", "browser", "ips", "status", "robots", "hours")
 
     def __init__(self):
         self.requests = 0
@@ -199,6 +204,7 @@ class _Net:
         self.ips = set()
         self.status = collections.Counter()
         self.robots = False
+        self.hours = [0] * 24
 
 
 class _Day:
@@ -210,6 +216,16 @@ class _Day:
         self.crawlers = collections.Counter()
         self.status = collections.Counter()
         self.nets = collections.defaultdict(_Net)
+        self.hours = {k: [0] * 24 for k in ("requests", "crawlers", "status_404", "status_5xx")}
+        self.bad = {"404": collections.Counter(), "5xx": collections.Counter()}
+
+
+def _count_bad(paths, path):
+    """Count one 404 or 5xx path; past BAD_PATHS_KEPT distinct paths the ones seen once are dropped."""
+    paths[path] += 1
+    if len(paths) > BAD_PATHS_KEPT:
+        for p in [p for p, n in paths.items() if n == 1]:
+            del paths[p]
 
 
 def summarise(sources, since="", today=""):
@@ -236,12 +252,21 @@ def summarise(sources, since="", today=""):
                 bad_lines += 1
                 continue
             d = days[day]
+            hour = int(ts // 3600) % 24
             crawler = crawler_name(ua)
             browser = crawler is None and ua.startswith("Mozilla/")
             d.requests += 1
             d.status[str(status)] += 1
+            d.hours["requests"][hour] += 1
+            if status == 404:
+                d.hours["status_404"][hour] += 1
+                _count_bad(d.bad["404"], path)
+            elif 500 <= status < 600:
+                d.hours["status_5xx"][hour] += 1
+                _count_bad(d.bad["5xx"], path)
             n = d.nets[net]
             n.requests += 1
+            n.hours[hour] += 1
             n.status[str(status)] += 1
             n.ips.add(ip)
             if browser:
@@ -251,6 +276,7 @@ def summarise(sources, since="", today=""):
             if crawler is not None:
                 d.bot_requests += 1
                 d.crawlers[crawler] += 1
+                d.hours["crawlers"][hour] += 1
                 continue
             if is_static(path) or path == "/robots.txt":
                 continue
@@ -276,6 +302,7 @@ def summarise(sources, since="", today=""):
                 "robots_read": n.robots,
                 "status": dict(n.status),
                 "blocked_403": n.status.get("403", 0),
+                "hourly": n.hours,
             }
             for prefix, n in shown
         ]
@@ -290,6 +317,9 @@ def summarise(sources, since="", today=""):
             "status": dict(d.status),
             "blocked_403": d.status.get("403", 0),
             "networks": networks,
+            "hourly": d.hours,
+            "top_404": [[p, c] for p, c in sorted(d.bad["404"].items(), key=lambda kv: (-kv[1], kv[0]))[:TOP_BAD_PATHS]],
+            "top_5xx": [[p, c] for p, c in sorted(d.bad["5xx"].items(), key=lambda kv: (-kv[1], kv[0]))[:TOP_BAD_PATHS]],
             "other_networks": {
                 "count": len(rest),
                 "requests": sum(n.requests for n in rest),
