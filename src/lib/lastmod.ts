@@ -1,17 +1,17 @@
 // The sitemap's <lastmod>: the last time a page's own data changed, never the build date.
 //
 // Every record of the export carries `modified` (hobbydex-rc tools/export.py: the date of the last commit that
-// touched its file). A page's lastmod is the newest `modified` of the records the page shows; pages that list
+// touched its file) and, where that commit changed only bookkeeping, `content_modified`; lib/shownDate.ts picks the
+// content date. A page's lastmod is the newest content date of the records the page shows; pages that list
 // many records take the newest of what they list. Pages whose content is not data (faq) use the last commit of
 // their source file; pages nothing is known about get no lastmod at all (a wrong one makes Google ignore them).
 import { execFileSync } from 'node:child_process';
 import { db, makeSlug, vehicles, listYear, type Doc } from './data';
 import { releaseType } from './releaseTypes';
+import { shownDate as at, type Dated } from './shownDate';
 
-type Dated = { modified?: string };
-const modifiedOf = (x: { modified?: unknown }) => (typeof x.modified === 'string' ? x.modified : undefined);
 const newest = (...xs: (string | undefined)[]) => xs.reduce<string | undefined>((a, b) => (b && (!a || b > a) ? b : a), undefined);
-const maxOf = (xs: Iterable<Dated | undefined>) => { let m: string | undefined; for (const x of xs) if (x?.modified && (!m || x.modified > m)) m = x.modified; return m; };
+const maxOf = (xs: Iterable<Dated | undefined>) => { let m: string | undefined; for (const x of xs) { const d = at(x); if (d && (!m || d > m)) m = d; } return m; };
 const add = (m: Map<string, string>, k: string, v: string | undefined) => { if (v && (!m.has(k) || v > m.get(k)!)) m.set(k, v); };
 
 // documents by what they are about (a release, a kit, a part)
@@ -29,20 +29,20 @@ const recordLastmod = {
   part(id: string) {
     const p = db.part.get(id);
     if (!p) return undefined;
-    return newest(p.modified, maxOf(ofIds(specsOfPart(p), (s) => db.spec.get(s))), maxOf(ofIds([p.source, ...(p.documents ?? [])], (d) => db.doc.get(d))),
+    return newest(at(p), maxOf(ofIds(specsOfPart(p), (s) => db.spec.get(s))), maxOf(ofIds([p.source, ...(p.documents ?? [])], (d) => db.doc.get(d))),
       maxOf(docsByPart.get(id) ?? []), maxOf(ofIds((p.includes ?? []).map((i) => i.part), (x) => db.part.get(x))));
   },
   release(id: string) {
     const r = db.release.get(id);
     if (!r) return undefined;
-    return newest(r.modified, db.kit.get(r.kit)?.modified, maxOf(ofIds((r.contains ?? []).map((c) => c.part), (x) => db.part.get(x))),
+    return newest(at(r), at(db.kit.get(r.kit)), maxOf(ofIds((r.contains ?? []).map((c) => c.part), (x) => db.part.get(x))),
       maxOf(ofIds((r.needs ?? []).map((n) => n.part), (x) => db.part.get(x))),
       maxOf(ofIds(r.documents ?? [], (d) => db.doc.get(d))), maxOf(docsByRelease.get(id) ?? []));
   },
   kit(id: string) {
     const k = db.kit.get(id);
     if (!k) return undefined;
-    return newest(k.modified, maxOf(db.releasesByKit.get(id) ?? []), maxOf(docsByKit.get(id) ?? []));
+    return newest(at(k), maxOf(db.releasesByKit.get(id) ?? []), maxOf(docsByKit.get(id) ?? []));
   },
 };
 
@@ -50,24 +50,24 @@ const recordLastmod = {
 const byBrand = new Map<string, string>(), byCategory = new Map<string, string>(), byCategoryBrand = new Map<string, string>();
 const releasesByBrand = new Map<string, string>(), byYear = new Map<string, string>(), byType = new Map<string, string>(), byTypeBrand = new Map<string, string>();
 const kitsByType = new Map<string, string>(), bySpecCategory = new Map<string, string>(), bySpec = new Map<string, string>(), byMake = new Map<string, string>();
-for (const b of db.brands) add(byBrand, b.id, b.modified);
-for (const k of db.kits) { add(byBrand, k.brand, k.modified); add(kitsByType, k.category || 'car', k.modified); }
+for (const b of db.brands) add(byBrand, b.id, at(b));
+for (const k of db.kits) { add(byBrand, k.brand, at(k)); add(kitsByType, k.category || 'car', at(k)); }
 for (const r of db.releases) {
-  add(byBrand, r.brand, r.modified); add(releasesByBrand, r.brand, r.modified);
-  const y = listYear(r); if (y !== undefined) add(byYear, String(y), r.modified);
-  const t = releaseType(r); add(byType, t, r.modified); add(byTypeBrand, `${t}|${r.brand}`, r.modified);
-  if (r.category) add(kitsByType, r.category, r.modified);
-  if (r.depicts?.make) add(byMake, makeSlug(r.depicts.make), r.modified);
+  add(byBrand, r.brand, at(r)); add(releasesByBrand, r.brand, at(r));
+  const y = listYear(r); if (y !== undefined) add(byYear, String(y), at(r));
+  const t = releaseType(r); add(byType, t, at(r)); add(byTypeBrand, `${t}|${r.brand}`, at(r));
+  if (r.category) add(kitsByType, r.category, at(r));
+  if (r.depicts?.make) add(byMake, makeSlug(r.depicts.make), at(r));
 }
 for (const p of db.parts) {
-  add(byBrand, p.brand, p.modified);
+  add(byBrand, p.brand, at(p));
   const cat = p.category ?? 'uncategorised';   // the page of the parts no rule has categorised yet
-  add(byCategory, cat, p.modified); add(byCategoryBrand, `${cat}|${p.brand}`, p.modified);
-  for (const s of specsOfPart(p)) if (s) add(bySpec, s, p.modified);
-  if (p.depicts?.make && p.category === 'body') add(byMake, makeSlug(p.depicts.make), p.modified);
+  add(byCategory, cat, at(p)); add(byCategoryBrand, `${cat}|${p.brand}`, at(p));
+  for (const s of specsOfPart(p)) if (s) add(bySpec, s, at(p));
+  if (p.depicts?.make && p.category === 'body') add(byMake, makeSlug(p.depicts.make), at(p));
 }
-for (const s of db.specs) { add(bySpecCategory, s.category, modifiedOf(s)); add(bySpec, s.id, modifiedOf(s)); }
-for (const d of db.documents) if (d.brand) add(byBrand, d.brand.includes('/') ? d.brand : `brand/${d.brand}`, d.modified);
+for (const s of db.specs) { add(bySpecCategory, s.category, at(s)); add(bySpec, s.id, at(s)); }
+for (const d of db.documents) if (d.brand) add(byBrand, d.brand.includes('/') ? d.brand : `brand/${d.brand}`, at(d));
 
 // pages that list (nearly) everything take the newest record of the whole dataset
 let everything: string | undefined;
@@ -123,12 +123,12 @@ export function lastmodFor(pathname: string): string | undefined {
     case 'standards': {
       if (!a) return newest(maxOf(db.standards), maxOf(db.specs as Dated[]));
       const std = db.standard.get(`standard/${a}`);
-      return std && newest(modifiedOf(std), maxOf(db.specs.filter((s) => s.standards?.includes(std.code)) as Dated[]));
+      return std && newest(at(std), maxOf(db.specs.filter((s) => s.standards?.includes(std.code)) as Dated[]));
     }
     case 'makes': {
       if (!a) return newest(maxOf(db.makes ?? []), ...byMake.values());
       const make = (db.makes ?? []).find((m) => makeSlug(m.name) === a);
-      if (!b) return newest(make?.modified, byMake.get(a));
+      if (!b) return newest(at(make), byMake.get(a));
       const v = vehicles.find((x) => x.make && makeSlug(x.make) === a && x.slug === b);
       return v && newest(maxOf(v.releases), maxOf(v.bodies));
     }
