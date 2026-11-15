@@ -5,8 +5,7 @@ import { db, listYear } from '../../../../lib/data';
 const counts = [...db.releases.reduce((m, r) => { const y = listYear(r); return y ? m.set(y, (m.get(y) ?? 0) + 1) : m; }, new Map<number, number>())].sort((a, b) => b[0] - a[0]);
 const dated = counts.reduce((s, [, n]) => s + n, 0);
 ---
-<Base title="Releases by year" description="Every dated RC release in Hobbydex, newest year first.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / by year</div>
+<Base title="Releases by year" description="Every dated RC release in Hobbydex, newest year first." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Releases', href: '/rc/releases/' }, { name: 'by year' }]}>
   <h1>Releases by year</h1>
   <p class="muted">{dated} of {db.releases.length} releases have a release year or a first sighting; the others are on their <a href="/rc/releases/">brand's release list</a>.</p>
   <table>

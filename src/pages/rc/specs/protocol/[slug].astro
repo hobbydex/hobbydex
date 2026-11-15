@@ -25,8 +25,7 @@ const fields = [...base, modes];
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const sections: [keyof typeof groups, string][] = [['transmitter', 'Transmitters and sets'], ['receiver', 'Receivers'], ['other', 'Other radio parts']];
 ---
-<Base title={title} description={`${title} radio protocol: ${plural(groups.transmitter.length, 'transmitter or set', 'transmitters and sets')} and ${plural(groups.receiver.length, 'receiver', 'receivers')} that use it, and the protocols it also runs.`} kind="spec" sub="protocol" words="protocol">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">Specs</a> / <a href="/rc/specs/protocol/">Radio protocols</a> / {title}</div>
+<Base title={title} description={`${title} radio protocol: ${plural(groups.transmitter.length, 'transmitter or set', 'transmitters and sets')} and ${plural(groups.receiver.length, 'receiver', 'receivers')} that use it, and the protocols it also runs.`} kind="spec" sub="protocol" words="protocol" crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Specs', href: '/rc/specs/' }, { name: 'Radio protocols', href: '/rc/specs/protocol/' }, { name: title }]}>
   <h1>{title}</h1>
   <dl class="facts">
     <dt>Category</dt><dd><a href="/rc/specs/protocol/">Radio protocol</a></dd>

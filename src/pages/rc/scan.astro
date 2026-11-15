@@ -2,8 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Icon from '../../components/Icon.astro';
 ---
-<Base title="Scan a barcode" description="Find a part or release by its barcode or its printed part number, with a scanner or your phone camera, and see which cars it fits. The code is looked up in your browser; nothing you scan is sent to a server.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Scan</div>
+<Base title="Scan a barcode" description="Find a part or release by its barcode or its printed part number, with a scanner or your phone camera, and see which cars it fits. The code is looked up in your browser; nothing you scan is sent to a server." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Scan' }]}>
   <h1>Scan a barcode</h1>
   <p data-pagefind-ignore>A bag with no car name? Scan its barcode, or type the part number printed on it. Hobbydex shows the parts with that code or number, which cars they fit and which releases contain them.</p>
 

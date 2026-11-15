@@ -48,8 +48,7 @@ const dateDoubtful = !!((brand.status === 'active' && launchedText && brand.laun
 const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length ?? 0] as const).filter(([, n]) => n > 0);
 const uncat = uncategorised.get(brand.id) ?? [];
 ---
-<Base title={brand.name} description={`${brand.name}: platforms and parts in Hobbydex.`} kind="brand" words={brand.notes}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / {brand.name}</div>
+<Base title={brand.name} description={`${brand.name}: platforms and parts in Hobbydex.`} kind="brand" words={brand.notes} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: brand.name }]}>
   <h1>{brand.name}</h1>
   <dl class="facts">
     {brand.legal_name && <><dt>Legal name</dt><dd>{brand.legal_name}</dd></>}

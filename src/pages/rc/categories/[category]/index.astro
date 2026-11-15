@@ -25,8 +25,7 @@ const table = !!columns[category] && parts.length <= BIG;
 const byCount = [...brands].sort((a, b) => b[1].length - a[1].length);
 const info = db.categories.find((c) => c.id === `category/${category}`);
 ---
-<Base title={catName(category)} description={`${catName(category)}: ${countOf(category)} RC parts from ${brands.length} brands${table || (big && columns[category]) ? ', with their key specs' : ''}.`} kind="category" words={[catName(category), info?.summary].filter(Boolean).join(' ')}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/categories/">Categories</a> / {catName(category)}</div>
+<Base title={catName(category)} description={`${catName(category)}: ${countOf(category)} RC parts from ${brands.length} brands${table || (big && columns[category]) ? ', with their key specs' : ''}.`} kind="category" words={[catName(category), info?.summary].filter(Boolean).join(' ')} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Categories', href: '/rc/categories/' }, { name: catName(category) }]}>
   <h1><Icon name={category} size="1.4em" /> {catName(category)}</h1>
   {info?.description && <p>{info.description}</p>}
   {category === 'motor' && <details class="muted"><summary>What kV and turns mean</summary>{MOTOR_SPEED_NOTE.map((t) => <p>{t}</p>)}</details>}

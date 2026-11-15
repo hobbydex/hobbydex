@@ -22,8 +22,7 @@ const hasDisc = releases.some((r) => r.status === 'discontinued');
 const kitName = (id: string) => (db.kit.get(id)?.placeholder ? 'Chassis not yet known' : db.kit.get(id)?.name ?? '');
 import SeenNote from '../../../../components/SeenNote.astro';
 ---
-<Base title={`${brandName(brand)} releases`} description={`Every ${brandName(brand)} kit and RTR release in Hobbydex, newest first.`}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / {brandName(brand)}</div>
+<Base title={`${brandName(brand)} releases`} description={`Every ${brandName(brand)} kit and RTR release in Hobbydex, newest first.`} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Releases', href: '/rc/releases/' }, { name: brandName(brand) }]}>
   <h1>{brandName(brand)} releases</h1>
   <p class="muted">{releases.length} releases, newest first; click a heading to sort. The brand's platforms and parts are on <a href={url.brand(brand)}>its brand page</a>.</p>
   {hasDisc && <HideDiscontinued />}

@@ -23,8 +23,7 @@ const onOther = db.releases.filter((r) => r.category === type && (db.kit.get(r.k
 const allReleases = releasesByType.get(type)?.length ?? 0;
 const scales = [...new Set(kits.map((k) => k.scale ?? ''))].sort((a, b) => scaleKey(a || undefined) - scaleKey(b || undefined));
 ---
-<Base title={label} description={`${label}: ${kits.length} RC platforms in Hobbydex, by scale and brand.`}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/platforms/">Platforms</a> / {label}</div>
+<Base title={label} description={`${label}: ${kits.length} RC platforms in Hobbydex, by scale and brand.`} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Platforms', href: '/rc/platforms/' }, { name: label }]}>
   <h1><Icon name={kitTypeIcon(type)} size="1.4em" /> {label} <span class="muted">({kits.length + onOther.length})</span></h1>
   {kitTypeAbout[type] && <p class="about">{kitTypeAbout[type]}</p>}
   <p><a href={`/rc/releases/types/${type}/`}>All {allReleases} {kitTypeOne[type] ?? type} releases</a></p>

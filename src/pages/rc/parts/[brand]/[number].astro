@@ -158,8 +158,7 @@ const metaDescription = describe(`${brand?.name} ${numName}`,
 const indexFilters = [part.category && `category:${catName(part.category)}`, part.status === 'discontinued' && 'status:discontinued',
   part.depicts?.make && `make:${part.depicts.make}`].filter((x): x is string => !!x);
 ---
-<Base title={numName} description={metaDescription} kind="part" sub={brand?.name} words={indexWords} filters={indexFilters} icon={iconName}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(part.brand)}>{brandName(part.brand)}</a>{brandGone(part.brand) && <span class="muted"> (brand defunct)</span>} / {partLabel(part)}</div>
+<Base title={numName} description={metaDescription} kind="part" sub={brand?.name} words={indexWords} filters={indexFilters} icon={iconName} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: brandName(part.brand), href: url.brand(part.brand), note: brandGone(part.brand) ? '(brand defunct)' : undefined }, { name: partLabel(part) }]}>
   <h1><span>{part.number && part.name !== part.number && <>{part.number} <span class="muted">·</span> </>}{part.name}</span><Discontinued item={part} />{part.status === 'discontinued' && replacedBy.length > 0 && <span class="muted replaced"> replaced by {replacedBy.map((r, i) => <>{i > 0 && ', '}<a href={url.part(r.id)}>{partLabel(r)}</a></>)}</span>}</h1>
   {onColours && <ColourSwitch items={colourSwitchItems(part, range)} />}
   {part.sources?.name && <p><FactSource field="name" url={part.sources.name} dot={false} /></p>}

@@ -20,8 +20,7 @@ for (const r of db.releases) {
 }
 const cats = [...new Set([...byCat.keys(), ...onOther.keys()])].sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
 ---
-<Base title="Platforms by type" description="Every RC platform in Hobbydex, grouped by type and scale.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Platforms</div>
+<Base title="Platforms by type" description="Every RC platform in Hobbydex, grouped by type and scale." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Platforms' }]}>
   <h1>Platforms by type</h1>
   <p class="muted">{db.kits.length} platforms · <a href="/rc/platforms/by-date/">by date</a></p>
   <ul class="typegrid">{cats.map((c) => <li><a href={`/rc/platforms/types/${c}/`}><Icon name={kitTypeIcon(c)} size="2rem" /><b>{label[c] ?? c}</b><span class="muted">{byCat.get(c)?.length ?? `${onOther.get(c)!.length} releases`}</span></a></li>)}</ul>

@@ -7,8 +7,7 @@ import { operator } from '../../lib/operator';
 const github = 'https://github.com/hobbydex/hobbydex-rc';
 const jsonld = datasetJsonLd();
 ---
-<Base title="Hobbydex data" description={`The Hobbydex RC parts database: ${db.releases.length.toLocaleString('en-US')} releases and ${db.parts.length.toLocaleString('en-US')} parts, licensed ${dataLicense.name}. Download each monthly release from GitHub or Zenodo.`} jsonld={jsonld}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / Data</div>
+<Base title="Hobbydex data" description={`The Hobbydex RC parts database: ${db.releases.length.toLocaleString('en-US')} releases and ${db.parts.length.toLocaleString('en-US')} parts, licensed ${dataLicense.name}. Download each monthly release from GitHub or Zenodo.`} jsonld={jsonld} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'Data' }]}>
   <h1>Hobbydex data</h1>
 
   <h2>What is in it</h2>

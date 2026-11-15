@@ -10,8 +10,7 @@ const stdCodes = [...new Set(db.specs.flatMap((s) => s.standards ?? []))];
 const list = (xs: string[]) => xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs.join('');
 const stdText = list(stdCats.map((c) => (specLabel[c] ?? c).toLowerCase()));
 ---
-<Base title="Generic specs" description="Brand-independent specifications (screws, bearings, silicone oils) and the branded parts that match them.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Specs</div>
+<Base title="Generic specs" description="Brand-independent specifications (screws, bearings, silicone oils) and the branded parts that match them." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Specs' }]}>
   <h1>Generic specs</h1>
   <p>A spec is the brand-independent version of a part: an M3x10 countersunk hex screw, a 5x10x4 bearing, a 350 cSt silicone oil. Branded parts link to the spec they are equivalent to, so you can find the same part from another brand, or every kit that uses it.</p>
   <table>

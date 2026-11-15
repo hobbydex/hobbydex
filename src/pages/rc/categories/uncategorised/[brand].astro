@@ -20,8 +20,7 @@ if (redirect) return Astro.redirect(redirect, 301);
 const parts = [...uncategorised.get(brandId)!].sort(byPartNo);
 const metaDescription = describe(`${brandName(brandId)} parts not yet categorised`, [count(parts.length, 'part')]);
 ---
-<Base title={`${brandName(brandId)} not yet categorised`} description={metaDescription} kind="category" words={`${brandName(brandId)} uncategorised parts`}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/categories/">Categories</a> / <a href={`/rc/brands/${key(brandId)[0]}/`}>{brandName(brandId)}</a> / Not yet categorised</div>
+<Base title={`${brandName(brandId)} not yet categorised`} description={metaDescription} kind="category" words={`${brandName(brandId)} uncategorised parts`} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Categories', href: '/rc/categories/' }, { name: brandName(brandId), href: `/rc/brands/${key(brandId)[0]}/` }, { name: 'Not yet categorised' }]}>
   <h1>{brandName(brandId)} <span class="muted">·</span> Not yet categorised</h1>
   <p class="muted">{count(parts.length, 'part')} from {brandName(brandId)} with no category yet. <a href={`/rc/brands/${key(brandId)[0]}/#parts`}>Back to {brandName(brandId)} parts</a>.</p>
   <table>

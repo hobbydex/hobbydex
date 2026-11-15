@@ -14,8 +14,7 @@ import { TABS, latestRows } from '../../lib/latest';
 // date at all never show; parts are only the bodies and generic electronics (lib/latestParts.ts); a date that is only a seen_by bound shows the eye icon.
 const { rows, counts } = latestRows(100, 150);
 ---
-<Base title="Latest" description="The newest cars, bodies, and generic electronics and batteries in Hobbydex, newest first. Only items with a known date are listed.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Latest</div>
+<Base title="Latest" description="The newest cars, bodies, and generic electronics and batteries in Hobbydex, newest first. Only items with a known date are listed." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Latest' }]}>
   <h1>Latest</h1>
   <p class="muted">Everything with a known date, newest first: cars, bodies, and electronics and batteries that are not spares for one brand's cars. A clock marks a release that is announced but not out yet (its date is the expected one); an eye marks a date that is only the first day we saw the release, not its release date. Items no source dates are left out.</p>
   <div class="search-filters latest-tabs" role="group" aria-label="Show" data-pagefind-ignore>

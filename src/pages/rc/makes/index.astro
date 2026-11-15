@@ -8,8 +8,7 @@ const makes = [...new Set([...releasesByMake.keys(), ...bodiesByMake.keys()])].s
     brands: [...new Set(rs.map((r) => r.brand))].sort((a, b) => brandName(a).localeCompare(brandName(b))) };
 });
 ---
-<Base title="Car makes" description="Real car and truck makes replicated by RC cars: every Porsche, Ford or Toyota across RC brands.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Makes</div>
+<Base title="Car makes" description="Real car and truck makes replicated by RC cars: every Porsche, Ford or Toyota across RC brands." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Makes' }]}>
   <h1>Car makes <span class="muted">({makes.length})</span></h1>
   <p class="about">The real cars and trucks that RC releases replicate, by make. A make page lists every release of that make and the body shells sold for it. Names only: the makes' logos and trademarks belong to their owners.</p>
   <table class="sortable releases">
