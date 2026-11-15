@@ -19,6 +19,12 @@ npm run build      # dist/, including the Pagefind index
 
 `HOBBYDEX_DATA` overrides the export path (default `data/hobbydex-rc.json`).
 
+`npm run build` gives Astro a 2.5 GB heap (`--max-old-space-size=2560`): the
+full dataset needs about 1.7 GB live, and a lower limit makes V8 collect
+garbage before the process grows past its 4 GB budget. A build that stops with
+"JavaScript heap out of memory" holds more than it should; find what, rather
+than raising the limit.
+
 ## Deploy
 
 `.github/workflows/deploy.yml` checks out the data repo, validates and exports
