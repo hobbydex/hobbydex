@@ -3,17 +3,24 @@
 // else its equivalent_to spec (its pack of one spec, from pack_qty). When some includes rows have no drawing, the bag
 // draws the others and says how many rows it draws. A self-tapping screw shows the spec's "-flat" drawing
 // (the flat point, as the technical drawing) unless the part says point "cone".
+import { readFileSync } from 'node:fs';
 import index from '../assets/hardware/index.json';
 import approx from '../assets/hardware/approx.json';
 import { db, type Includes, type Part } from './data';
 
 const files = index as Record<string, string>;
-// the drawings' text, bundled at build time
-const svgs = import.meta.glob('../assets/hardware/*.svg', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+// the drawings' text, read from src/assets/hardware/ when a page first draws one (as pages/index.astro reads
+// public/icons.svg), not bundled: 2 700 drawings would make one 20+ MB module that the build holds in memory
+const svgs = new Map<string, string | undefined>();
 
 /** The SVG text of a drawing file (from index.json), or undefined. */
 export function hardwareSvg(file: string): string | undefined {
-  return svgs[`../assets/hardware/${file}`];
+  if (!svgs.has(file)) {
+    let text: string | undefined;
+    try { text = readFileSync(`src/assets/hardware/${file}`, 'utf8'); } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e; }
+    svgs.set(file, text);
+  }
+  return svgs.get(file);
 }
 
 const approxKeys = new Set(approx as string[]);

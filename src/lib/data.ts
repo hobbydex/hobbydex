@@ -34,6 +34,29 @@ export type Retired = { id: string; reason: string; replaced_by?: string };
 
 const path = process.env.HOBBYDEX_DATA ?? 'data/hobbydex-rc.json';
 const raw: Dataset = JSON.parse(readFileSync(path, 'utf8'));
+// Equal strings share one copy: of the export's 8 million string values (ids, roles, sources, dates) only about
+// 1.7 million are distinct, and JSON.parse gives each value its own string. One walk after parsing (a reviver would
+// hold the whole tree twice while it runs) leaves a few hundred MB less heap for the rest of the build.
+{
+  const seen = new Map<string, string>();
+  const walk = (x: unknown): void => {
+    if (Array.isArray(x)) {
+      for (let i = 0; i < x.length; i++) {
+        const v = x[i];
+        if (typeof v === 'string') { const s = seen.get(v); if (s === undefined) seen.set(v, v); else x[i] = s; }
+        else if (v && typeof v === 'object') walk(v);
+      }
+    } else if (x && typeof x === 'object') {
+      const o = x as Record<string, unknown>;
+      for (const k in o) {
+        const v = o[k];
+        if (typeof v === 'string') { const s = seen.get(v); if (s === undefined) seen.set(v, v); else o[k] = s; }
+        else if (v && typeof v === 'object') walk(v);
+      }
+    }
+  };
+  walk(raw);
+}
 // a platform with no outline of its own shows a traced release's, when its releases are one car (lib/kitArt.ts)
 {
   const releasesOf = new Map<string, Release[]>();
