@@ -19,8 +19,7 @@ const byBrand = [...db.releases.reduce((m, r) => m.set(r.brand, (m.get(r.brand) 
   .sort((a, b) => b[1] - a[1] || brandName(a[0]).localeCompare(brandName(b[0])));
 import SeenNote from '../../../components/SeenNote.astro';
 ---
-<Base title="Releases" description="RC kit and RTR releases in Hobbydex: filter every release by brand, type, scale, build, power system and year, or see the newest, and every brand's releases on its own page.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Releases</div>
+<Base title="Releases" description="RC kit and RTR releases in Hobbydex: filter every release by brand, type, scale, build, power system and year, or see the newest, and every brand's releases on its own page." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Releases' }]}>
   <h1>Releases</h1>
   <p class="muted">{db.releases.length} releases from {byBrand.length} brands. A table you can filter by brand, type, scale, build, power system and year, then every brand's release list.</p>
   <p><a href="/rc/types/">Browse by type</a></p>

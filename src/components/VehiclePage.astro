@@ -23,8 +23,7 @@ const hasDisc = [...releases, ...bodies].some((x) => x.status === 'discontinued'
 const title = make ? `${make} ${model}` : model;
 const brands = new Set(releases.map((r) => r.brand)).size;
 ---
-<Base title={title} description={`${title}: ${releases.length} ${releases.length === 1 ? 'release' : 'releases'}${bodies.length ? ` and ${bodies.length} body ${bodies.length === 1 ? 'shell' : 'shells'}` : ''} from ${brands} RC ${brands === 1 ? 'brand' : 'brands'}.`}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / {make ? <><a href="/rc/makes/">Car makes</a> / <a href={url.make(make)}>{make}</a> / {model}</> : model}</div>
+<Base title={title} description={`${title}: ${releases.length} ${releases.length === 1 ? 'release' : 'releases'}${bodies.length ? ` and ${bodies.length} body ${bodies.length === 1 ? 'shell' : 'shells'}` : ''} from ${brands} RC ${brands === 1 ? 'brand' : 'brands'}.`} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, ...(make ? [{ name: 'Car makes', href: '/rc/makes/' }, { name: make, href: url.make(make) }] : []), { name: model }]}>
   <h1>{title} <span class="muted">({releases.length + bodies.length})</span></h1>
   {years.length === 1 && years[0] > 0 && <dl class="facts"><dt>Vehicle year</dt><dd>{years[0]}</dd></dl>}
   {hasDisc && <HideDiscontinued />}

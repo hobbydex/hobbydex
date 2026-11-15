@@ -147,8 +147,7 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
 const knownFromParts = releases.length === 0 ? partCount : 0;
 const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.notes;
 ---
-<Base title={`${brandName(kit.brand)} ${kit.name} ${kitTypeOne[kit.category ?? 'car'] ?? kit.category} platform`} description={metaDescription} kind="platform" sub={brandName(kit.brand)} words={indexWords} filters={indexFilters}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href={url.brand(kit.brand)}>{brandName(kit.brand)}</a> / {kit.name}</div>
+<Base title={`${brandName(kit.brand)} ${kit.name} ${kitTypeOne[kit.category ?? 'car'] ?? kit.category} platform`} description={metaDescription} kind="platform" sub={brandName(kit.brand)} words={indexWords} filters={indexFilters} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: brandName(kit.brand), href: url.brand(kit.brand) }, { name: kit.name }]}>
   <p class="pagetype">Platform</p>
   <h1>{brandName(kit.brand)} {kit.name}</h1>
   {knownFromParts > 0 && <p class="pagenote"><span class="badge">Known from parts only</span> <span class="muted">named by {knownFromParts} <a href="#option-parts">{knownFromParts === 1 ? 'part' : 'parts'}</a>; no release of it in our data yet</span></p>}

@@ -22,8 +22,7 @@ const years = [...new Set(db.releases.flatMap((r) => listYear(r) ?? []))].sort((
 const i = years.indexOf(year), newer = years[i - 1], older = years[i + 1];
 import SeenNote from '../../../../components/SeenNote.astro';
 ---
-<Base title={`RC releases of ${year}`} description={`${rs.length} RC kit and RTR releases from ${year} in Hobbydex, newest first.`}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / <a href="/rc/releases/by-year/">by year</a> / {year}</div>
+<Base title={`RC releases of ${year}`} description={`${rs.length} RC kit and RTR releases from ${year} in Hobbydex, newest first.`} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Releases', href: '/rc/releases/' }, { name: 'by year', href: '/rc/releases/by-year/' }, { name: String(year) }]}>
   <h1>Releases of {year} <span class="muted">({rs.length})</span></h1>
   <p class="muted" data-pagefind-ignore>{newer && <a href={`/rc/releases/by-year/${newer}/`}>{newer}</a>}{newer && older && ' · '}{older && <a href={`/rc/releases/by-year/${older}/`}>{older}</a>}</p>
   <table class="releases">

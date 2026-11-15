@@ -24,8 +24,7 @@ const rows = db.brands.map((b) => {
 const years = [...count(db.releases.filter((r) => listYear(r)), (r) => String(listYear(r))).entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
 const maxYear = Math.max(1, ...years.map(([, n]) => n));
 ---
-<Base title="Statistics" description="How much of each brand is in Hobbydex: parts, platforms and releases per brand, and how complete they are.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / Statistics</div>
+<Base title="Statistics" description="How much of each brand is in Hobbydex: parts, platforms and releases per brand, and how complete they are." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'Statistics' }]}>
   <h1>Statistics</h1>
   <p class="muted">{db.brands.length} brands, {db.kits.length} platforms, {db.releases.length} releases and {db.parts.length} parts in the export of {db.generated}. For quality gaps see the <a href="/audit/">data audit</a>.</p>
   <div class="home-grid">

@@ -16,8 +16,7 @@ const rows = db.kits.map((k) => {
 }).filter((x) => x.newest).sort((a, b) => dateKey(b.newest!).localeCompare(dateKey(a.newest!)) || a.k.name.localeCompare(b.k.name));
 const PAGE = 50;
 ---
-<Base title="Platforms by date" description="Every RC platform in Hobbydex, newest first, by the year of its latest release.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/platforms/">Platforms</a> / by date</div>
+<Base title="Platforms by date" description="Every RC platform in Hobbydex, newest first, by the year of its latest release." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Platforms', href: '/rc/platforms/' }, { name: 'by date' }]}>
   <h1>Platforms by date</h1>
   <p class="muted">{rows.length} platforms, newest first by the date of their latest release (the day or month where a source gives it, else the year); platforms whose release years are unknown are left out. <a href="/rc/platforms/">Platforms by type</a></p>
   <table id="kits">

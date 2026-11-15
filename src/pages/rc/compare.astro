@@ -5,8 +5,7 @@ import { categoryLabel } from '../../lib/categories';
 // one marker column per release (the header stays in view while scrolling). Releases are picked by typing.
 const SLOTS = ['a', 'b', 'c', 'd'];
 ---
-<Base title="Compare releases" description="Compare the parts of two to four RC releases side by side: what each has in the box, as an option, or not at all.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Compare</div>
+<Base title="Compare releases" description="Compare the parts of two to four RC releases side by side: what each has in the box, as an option, or not at all." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Compare' }]}>
   <h1>Compare releases</h1>
   <p class="muted">Pick two to four releases, of the same platform or of different platforms and brands: type part of the brand, name, item number or platform. A part shared between releases is the same part number in each.</p>
   <form id="cmp" class="cmpform" data-pagefind-ignore onsubmit="return false" data-cats={JSON.stringify(categoryLabel)}>

@@ -13,8 +13,7 @@ const show = specColumns[category!] ?? [];
 const cell = (s: Record<string, unknown>, k: string, unset = '') => typeof s[k] === 'boolean' ? (s[k] ? 'yes' : 'no') : s[k] === undefined ? unset : String(s[k]);
 const washerNames: [string, string][] = [['under 1 mm', 'shim'], ['1 mm to under 3 mm', 'washer'], ['3 mm and up', 'spacer']];
 ---
-<Base title={`${title}: generic specs`} description={`Every generic ${category} spec in Hobbydex and how many branded parts match it.`}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">specs</a> / {category}</div>
+<Base title={`${title}: generic specs`} description={`Every generic ${category} spec in Hobbydex and how many branded parts match it.`} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'specs', href: '/rc/specs/' }, { name: category }]}>
   <h1>{title}</h1>
   {specIntro[category!] && <p>{specIntro[category!]}</p>}
   {specGuide[category!] && <dl class="specguide">{specGuide[category!].map(([t, d]) => <><dt>{t}</dt><dd>{d}</dd></>)}</dl>}

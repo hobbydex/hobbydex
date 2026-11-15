@@ -42,8 +42,7 @@ const brandRows = db.brands.map((b) => {
     cat: pct(ps.filter((p) => p.category).length, ps.length), spec: pct(ps.filter((p) => (p.equivalent_to ?? []).length).length, ps.length) };
 }).filter((r) => r.n).sort((a, b) => a.named + a.cat - (b.named + b.cat) || b.n - a.n);
 ---
-<Base title="Data audit" description="Where Hobbydex's data is thinnest: unnamed parts, missing categories and specs, releases without contents.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / Data audit</div>
+<Base title="Data audit" description="Where Hobbydex's data is thinnest: unnamed parts, missing categories and specs, releases without contents." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'Data audit' }]}>
   <h1>Data audit</h1>
   <p class="muted">Where the data is thinnest, computed from the export of {db.generated}. Know a better source, or spot an error? <a href="https://github.com/hobbydex/hobbydex-rc/issues/new">Open an issue</a>.</p>
   <h2>Overall</h2>

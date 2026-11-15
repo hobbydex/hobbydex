@@ -2,9 +2,10 @@
 import { pageUpdated } from '../lib/lastmod';
 import { dataLicense } from '../lib/license';
 import { dataReleasesUrl } from '../lib/dataset';
+import { breadcrumbJsonLd, jsonLdText, type Crumb } from '../lib/breadcrumbs';
 import '../styles/global.css';
-interface Props { title: string; description?: string; jsonld?: unknown; kind?: string; sub?: string; words?: string; filters?: string[]; icon?: string }
-const { title, description, jsonld, kind, sub, words, filters, icon } = Astro.props;
+interface Props { title: string; description?: string; jsonld?: unknown; kind?: string; sub?: string; words?: string; filters?: string[]; icon?: string; crumbs?: Crumb[] }
+const { title, description, jsonld, kind, sub, words, filters, icon, crumbs } = Astro.props;
 ---
 <!doctype html>
 <html lang="en" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
@@ -23,6 +24,8 @@ const { title, description, jsonld, kind, sub, words, filters, icon } = Astro.pr
       try { const t = localStorage.getItem('hobbydex-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.colorMode = t; } catch (e) {}
     </script>
     {jsonld && <script type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
+    {/* the visible trail at the top of <main> and this BreadcrumbList come from the same `crumbs` (lib/breadcrumbs) */}
+    {crumbs && <script type="application/ld+json" set:html={jsonLdText(breadcrumbJsonLd(crumbs, Astro.site!))} />}
   </head>
   <body>
     <header class="site" data-pagefind-ignore>
@@ -39,6 +42,7 @@ const { title, description, jsonld, kind, sub, words, filters, icon } = Astro.pr
       <script src="/doubt.js" defer></script>
     </header>
     <main>
+      {crumbs && <div class="crumbs" data-pagefind-ignore>{crumbs.map((c, i) => <>{i > 0 && ' / '}{c.href ? <a href={c.href}>{c.name}</a> : c.name}{c.note && <span class="muted"> {c.note}</span>}</>)}</div>}
       <slot />
     </main>
     {/* SEARCH: a typed page (kind set) is indexed only through the hidden block below, which holds its title, type,

@@ -19,8 +19,7 @@ const groups = [...new Set(specs.map((s) => s.category))].map((category) => {
   return { category, rows, cols: cols.map(([k, label, unset]) => ({ k, label, unset, num: rows.every((s) => typeof s[k] === 'number' || !has(s, k)) })) };
 });
 ---
-<Base title={`${std.code}: ${std.title}`} description={`${std.code}, ${std.title}: the generic specs in Hobbydex that follow it and the branded parts that match.`}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">Specs</a> / <a href="/rc/standards/">Standards</a> / {std.code}</div>
+<Base title={`${std.code}: ${std.title}`} description={`${std.code}, ${std.title}: the generic specs in Hobbydex that follow it and the branded parts that match.`} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Specs', href: '/rc/specs/' }, { name: 'Standards', href: '/rc/standards/' }, { name: std.code }]}>
   <h1 data-pagefind-meta="title" data-pagefind-weight="10">{std.code}: {std.title}</h1>
   {std.notes && <p>{std.notes}</p>}
   <dl class="facts">

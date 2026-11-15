@@ -3,8 +3,7 @@ import Base from '../../layouts/Base.astro';
 import HideDiscontinued from '../../components/HideDiscontinued.astro';
 import { db, url } from '../../lib/data';
 ---
-<Base title="RC cars" description="RC car brands, platforms and parts in Hobbydex.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / RC cars</div>
+<Base title="RC cars" description="RC car brands, platforms and parts in Hobbydex." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars' }]}>
   <h1>RC cars</h1>
   <h2>Browse</h2>
   <ul class="browse">

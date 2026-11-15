@@ -5,8 +5,7 @@ const count = (code: string) => db.specs.filter((s) => s.standards?.includes(cod
 const current = db.standards.filter((s) => !s.replaced_by).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
 const withdrawn = db.standards.filter((s) => s.replaced_by).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
 ---
-<Base title="Standards" description="The ISO and DIN standards that the generic screw specs follow, with the sizes listed for each.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/specs/">Specs</a> / Standards</div>
+<Base title="Standards" description="The ISO and DIN standards that the generic screw specs follow, with the sizes listed for each." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Specs', href: '/rc/specs/' }, { name: 'Standards' }]}>
   <h1>Standards</h1>
   <p>The published standards the generic specs follow. A part that matches a spec follows its standard for the dimensions that matter (thread, length, head); the standard itself is sold by its publisher, the linked page gives its title, scope and current edition.</p>
   <table>

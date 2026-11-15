@@ -13,8 +13,7 @@ const recent = dated.filter((d) => d.date! >= cutoff).sort((a, b) => b.date!.loc
 const months = [...new Map(recent.map((d) => [d.date!.slice(0, 7), 1])).keys()];
 const undated = all.length - dated.length;
 ---
-<Base title="Latest videos" description="The newest makers' YouTube videos for RC cars and parts in Hobbydex, newest first, with the releases each one shows.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Latest videos</div>
+<Base title="Latest videos" description="The newest makers' YouTube videos for RC cars and parts in Hobbydex, newest first, with the releases each one shows." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Latest videos' }]}>
   <h1>Latest videos</h1>
   <p class="muted">{recent.length} videos from the last {DAYS} days ({cutoff} to today), newest first. {all.length.toLocaleString('en')} makers' videos are in Hobbydex in all{undated > 0 ? `; ${undated} with no date are left out` : ''}. Each links to its release pages.</p>
   {months.map((m) => <section>

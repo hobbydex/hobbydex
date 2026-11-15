@@ -4,8 +4,7 @@ import PartTable from '../../../components/PartTable.astro';
 import { db } from '../../../lib/data';
 const parts = db.parts.filter((p) => p.category === 'servo');
 ---
-<Base title="Compare servos" description="RC car servos side by side: size class, spline, torque, speed, voltage, weight and throw, from the makers' specifications.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Servos</div>
+<Base title="Compare servos" description="RC car servos side by side: size class, spline, torque, speed, voltage, weight and throw, from the makers' specifications." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Servos' }]}>
   <h1>Compare servos</h1>
   <p class="muted">Figures are the maker's, at the voltage given. Click a heading to sort, tick servos to see them side by side. Size class and spline come from the <a href="/rc/specs/servo/">servo specs</a>; check the case and mounting holes before swapping. <a href="/rc/categories/motor/">Compare motors</a></p>
   <PartTable category="servo" parts={parts} />

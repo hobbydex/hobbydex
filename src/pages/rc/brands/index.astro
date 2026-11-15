@@ -5,8 +5,7 @@ import { db, url, countryName } from '../../../lib/data';
 const brands = [...db.brands].sort((a, b) => a.name.localeCompare(b.name));
 const releaseCount = (id: string) => db.releases.filter((r) => r.brand === id).length;   // placeholder kits hold releases too
 ---
-<Base title="Brands" description="Every brand in Hobbydex with its platforms, releases and parts.">
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / Brands</div>
+<Base title="Brands" description="Every brand in Hobbydex with its platforms, releases and parts." crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Brands' }]}>
   <h1>Brands</h1>
   {brands.some((b) => b.status === 'gone') && <HideDiscontinued />}
   <table class="sortable">

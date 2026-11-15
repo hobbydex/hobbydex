@@ -20,8 +20,7 @@ const byBrand = [...rs.reduce((m, r) => m.set(r.brand, [...(m.get(r.brand) ?? []
 const platforms = db.kits.filter((k) => (k.category || 'car') === type).length;
 const shown = split ? [] : rs;
 ---
-<Base title={`${label} releases`} description={`${rs.length} ${kitTypeOne[type] ?? type} releases in Hobbydex, by brand.`}>
-  <div class="crumbs" data-pagefind-ignore><a href="/">Hobbydex</a> / <a href="/rc/">RC cars</a> / <a href="/rc/releases/">Releases</a> / {label}</div>
+<Base title={`${label} releases`} description={`${rs.length} ${kitTypeOne[type] ?? type} releases in Hobbydex, by brand.`} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: 'Releases', href: '/rc/releases/' }, { name: label }]}>
   <h1><Icon name={kitTypeIcon(type)} size="1.4em" /> {label} <span class="muted">({rs.length})</span></h1>
   {kitTypeAbout[type] && <p class="about">{kitTypeAbout[type]}</p>}
   <p class="muted" data-pagefind-ignore>{platforms > 0 ? <a href={`/rc/platforms/types/${type}/`}>{platforms} {platforms === 1 ? 'platform' : 'platforms'} of this type</a> : "No platforms of this type of its own: these releases sit on another type's chassis."}</p>
