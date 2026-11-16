@@ -31,7 +31,7 @@ than raising the limit.
 it, builds the site and publishes it to the server on every push to `main`,
 on demand, and once a day to pick up new data.
 
-The server's Caddyfile (and its access log) is applied by root running `ops/server/setup.sh <deploy-public-key>` on the server; Caddy rolls `/var/log/caddy/access.log` itself (50 MiB, 14 files, 14 days), so there is no logrotate job. `ops/server/bot-report.py` summarises it per day for Googlebot, Bingbot and other bots.
+The server's Caddyfile (and its access log) is applied by root running `ops/server/setup.sh <deploy-public-key>` on the server; Caddy rolls `/var/log/caddy/access.log` itself (100 MiB, up to 150 files, 35 days), so there is no logrotate job. `ops/server/bot-report.py` summarises it per day for Googlebot, Bingbot and other bots.
 
 Root steps for a server that runs an earlier Caddyfile (run once, in this order; `/path/to/ops/server` is this directory on the server). The access log must be caddy-owned before anything validates, and validation runs as the caddy user so it cannot create a root-owned log:
 ```
