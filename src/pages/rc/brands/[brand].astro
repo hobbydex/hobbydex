@@ -45,6 +45,9 @@ const launchedText = brand.launched ? dateText({ released: brand.launched }) : u
 const endedText = brand.ended ? dateText({ released: brand.ended }) : undefined;
 // the footnote only when a marked date is on the page (launched shows for an active brand, and for a gone one with an end)
 const dateDoubtful = !!((brand.status === 'active' && launchedText && brand.launched_doubt) || (brand.status === 'gone' && endedText && ((launchedText && brand.launched_doubt) || brand.ended_doubt)));
+// a website whose domain is no longer the maker's links its archived copy only; the domain shows as text
+const siteHost = brand.website ? new URL(brand.website).hostname.replace(/^www\./, '') : '';
+const websiteState = brand.website_note?.replace(/, archived copy$/, '');
 const cats = categories.map((c) => [c, byCategory.get(c)!.get(brand.id)?.length ?? 0] as const).filter(([, n]) => n > 0);
 const uncat = uncategorised.get(brand.id) ?? [];
 ---
@@ -55,7 +58,9 @@ const uncat = uncategorised.get(brand.id) ?? [];
     {owner && <><dt>Owned by</dt><dd>{owner.brand && owner.brand !== brand.id ? <a href={url.brand(owner.brand)}>{owner.name}</a> : owner.name}{owner.country && <span class="muted"> ({countryName(owner.country)})</span>}{brand.owner_since && <span class="muted">, since {brand.owner_since}</span>} {ownerHref && <a class="muted" href={ownerHref} rel="nofollow" title={ownerDoc?.title}>source</a>}</dd></>}
     {sisters.length > 0 && <><dt>Sister brands</dt><dd>{sisters.map((b, i) => <>{i > 0 && ', '}<a href={url.brand(b.id)}>{b.name}</a></>)}</dd></>}
     {brand.country && <><dt>Country</dt><dd>{countryName(brand.country)}</dd></>}
-    {brand.website && <><dt>Website</dt><dd><a href={brand.website} rel="nofollow">{brand.website}</a></dd></>}
+    {brand.website && <><dt>Website</dt><dd>{brand.website_archive
+      ? <><a href={brand.website_archive} rel="nofollow">archived site</a> <span class="muted">({siteHost}{websiteState && <>: {websiteState}</>})</span></>
+      : <a href={brand.website} rel="nofollow">{brand.website}</a>}</dd></>}
     {brand.wikipedia && <><dt>Wikipedia</dt><dd><a href={wikiUrl(brand.wikipedia)} rel="noopener" target="_blank">Wikipedia</a></dd></>}
     {brand.youtube?.length ? <><dt>YouTube</dt><dd>{brand.youtube.map((u, i) => <>{i > 0 && ', '}<a href={u} rel="nofollow noopener">@{u.split('@')[1]}</a></>)}</dd></> : null}
     <dt>Status</dt><dd>
