@@ -29,7 +29,8 @@ import { colourSiblings } from '../../../../lib/colourSiblings';
 import { colourwayOf, colourLabels, releaseColour } from '../../../../lib/colourways';
 import ColourSwitch from '../../../../components/ColourSwitch.astro';
 import { gearing } from '../../../../lib/gearing';
-import { fileRows, pageLabel, hostLabel, makerOwnLinks, archiveLinks } from '../../../../lib/docFacts';
+import { fileRows, pageLabel, hostLabel, makerOwnLinks, archiveLinks, docKindLabel } from '../../../../lib/docFacts';
+import SourceDoc from '../../../../components/SourceDoc.astro';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.releases.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], key: key(f)[1] }, props: { redirect: url.release(x.id) } })));
@@ -71,7 +72,8 @@ const webLink = (d: { page?: string; url?: string; kind?: string }) => docPage(d
 const dated = dateSource(release);
 const coming = isComing(release);
 // the maker's page for this release: its own links (not fan sites), else its product_page documents (the maker page
-// that lists it), English first
+// that lists it), English first. Its own links are the Source line under the search box, so the Product page row
+// shows only the product_page documents of a release without them.
 const ownLinks = makerOwnLinks(release.links);
 const productPages = docs.filter((d) => d.kind === 'product_page' && webLink(d)).map((d) => ({ site: pageLabel(webLink(d)!), url: webLink(d)! }))
   .sort((a, b) => Number(b.site === 'English') - Number(a.site === 'English'));
@@ -79,7 +81,6 @@ const makerLinks = ownLinks.length > 0 ? ownLinks : productPages;
 const releaseArchive = makerLinks.length > 0 ? [] : archiveLinks(release.links);
 // a shop's product page, when the maker has none: its own row, never under Product page
 const dealerLinks = (release.links ?? []).filter((l) => l.kind === 'dealer');
-const mainDocs = docs.filter((d) => d.kind !== 'setup_sheet');
 const files = fileRows(docs);
 // what the buyer must get separately: a part (its page) or a generic item (a plain label)
 const ITEM_LABEL: Record<string, string> = { radio: 'Radio', receiver: 'Receiver', servo: 'Servo', esc: 'ESC', motor: 'Motor', engine: 'Engine', battery: 'Battery', charger: 'Charger', pinion: 'Pinion', tyres: 'Tyres', wheels: 'Wheels', body: 'Body', paint: 'Paint', glue: 'Glue', fuel: 'Fuel', 'glow-starter': 'Glow starter', tools: 'Tools' };
@@ -133,6 +134,9 @@ const conversions = conversionsForRelease(release);
 // platform, not this release, and sit apart under their own heading
 const videos = db.videosByRelease.get(release.id) ?? [];
 const otherVideos = (db.videosByKit.get(kit.id) ?? []).filter((d) => !d.releases?.length);
+// the documents under Sources: all but the setup sheets (their own section) and the videos the Videos block shows
+const shownVideos = new Set([...videos, ...otherVideos].map((d) => d.id));
+const mainDocs = docs.filter((d) => d.kind !== 'setup_sheet' && !shownVideos.has(d.id));
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
 // the search index (Base's hidden block): brand, name, item number, platform, type, scale, year, depicted make and model, series
@@ -162,7 +166,7 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
     {releaseArchive.length > 0 && <><dt>Product page</dt><dd>{releaseArchive.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">archived page</a></>)} <span class="muted">(no longer online)</span></dd></>}
-    {makerLinks.length > 0 && <><dt>Product page</dt><dd>{makerLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : hostLabel(l.url)}</a></>)}</dd></>}
+    {ownLinks.length === 0 && makerLinks.length > 0 && <><dt>Product page</dt><dd>{makerLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : hostLabel(l.url)}</a></>)}</dd></>}
     {dealerLinks.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerLinks.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{hostLabel(l.url)}</a></>)}</dd></>}
     {files.map(([label, ds]) => <><dt>{label}</dt><dd>{ds.map((d, i) => <>{i > 0 && ' · '}<a href={d.page} rel="nofollow">{ds.length > 1 ? d.title.replace(/^.*?: /, '') : hostLabel(d.page!)}</a></>)}</dd></>)}
     <dt>Build</dt><dd>{buildLabel(release.kind, release.power)}{release.sources?.kind && <FactSource field="kind" url={release.sources.kind} />}{powerSource && <span class="muted"> · power from {powerSource.href ? <a href={powerSource.href} title={powerSource.title}>{powerSource.text}</a> : powerSource.text}</span>}</dd>
@@ -282,10 +286,10 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     {sheets.length > 0 && <><h2>Setup sheets <span class="muted">({sheets.length})</span></h2><details class="sheets"><summary class="muted">{sheets.length === 1 ? "the sheet" : "all sheets"}</summary><ul>{sheets.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details></>}
   {mainDocs.length > 0 && <><h2>Sources</h2>
     {mainDocs.length <= 4 || new Set(mainDocs.map((d) => d.url)).size === mainDocs.length
-      ? <ul>{mainDocs.map((d) => <li>{webLink(d) ? <a href={webLink(d)} rel="nofollow">{d.title}</a> : d.title}{!webLink(d) && d.url && <span class="muted"> · {new URL(d.url).hostname}</span>}{d.version && <span class="muted"> · {d.version}</span>}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul>
+      ? <ul>{mainDocs.map((d) => <li><SourceDoc id={d.id} released={release.released} /></li>)}</ul>
       : <ul>{[...new Set(mainDocs.map((d) => d.page ?? d.url ?? ''))].map((u) => { const ds = mainDocs.filter((d) => (d.page ?? d.url ?? '') === u); const pg = webLink(ds[0]); return <li>
           {pg ? <a href={pg} rel="nofollow">{new URL(pg).hostname}{new URL(pg).pathname.length > 1 ? new URL(pg).pathname : ''}</a> : u ? new URL(u).hostname : 'Documents'} <span class="muted">· {ds.length} documents</span>
-          <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
+          <details><summary class="muted">list</summary><ul>{ds.map((d) => <li>{docKindLabel(d.kind)}: {d.title}{d.date && <span class="muted"> · {d.date}</span>}</li>)}</ul></details>
         </li>; })}</ul>}
     </>}
   <style>

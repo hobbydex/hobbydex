@@ -13,6 +13,11 @@ const onePerPage = (ds: Doc[]) => {
 export const fileRows = (docs: Doc[], kinds: Record<string, string> = FILE_KINDS) => Object.entries(kinds).map(([k, label]) => [label, onePerPage(docs.filter((d) => d.kind === k && d.page))] as const)
   .filter(([, ds]) => ds.length > 0);
 
+// a source document's kind, the label in front of it in the Sources lists ("Product page: tamiya.com")
+const DOC_KINDS: Record<string, string> = { product_page: 'Product page', video: 'Video', manual: 'Manual', part_list: 'Parts list', exploded_view: 'Exploded view',
+  supplement: 'Supplement', catalog: 'Catalogue', news: 'News', setup_sheet: 'Setup sheet', owner_report: 'Owner report' };
+export const docKindLabel = (kind: string) => DOC_KINDS[kind] ?? 'Document';
+
 // a maker page's host without "www.": the label of a single link
 export const hostLabel = (u: string) => new URL(u).hostname.replace(/^www\./, '');
 
