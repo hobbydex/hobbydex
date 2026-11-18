@@ -209,7 +209,6 @@ a.caticon { color: var(--muted); } a.caticon:hover { color: var(--accent); }
   .home-search button .label { display: none; }
 }
 .tablescroll { overflow-x: auto; }
-.hbars.years li { grid-template-columns: 3rem 1fr 3rem; }
 /* phones: a kit's releases (and a kit type's kits) stack one per block (name first, then the numbers with their labels) instead of a six-column table;
    the same goes for the servo tables (class stacked), whose header row is hidden and whose cells carry data-label */
 @media (max-width: 600px) {

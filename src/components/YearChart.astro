@@ -1,0 +1,83 @@
+---
+// A vertical bar chart of counts per year, drawn as inline SVG at build time. Years with no count between the first
+// and the last show as gaps. A year at or after the build year is still running and is drawn lighter, "so far".
+// Without JavaScript each bar carries a <title> (the browser's own tooltip) and the numbers are in the table below
+// the chart; public/year-chart.js adds a tooltip on hover, tap and keyboard focus (arrow keys move between years).
+interface Props { data: [number, number][]; unit: string; label: string }
+const { data, unit, label } = Astro.props;
+const thisYear = new Date().getUTCFullYear();
+const byYear = new Map(data);
+const first = Math.min(...data.map(([y]) => y)), last = Math.max(...data.map(([y]) => y));
+const years = Array.from({ length: last - first + 1 }, (_, i) => first + i);
+const maxN = Math.max(1, ...data.map(([, n]) => n));
+// y ticks at 1, 2 or 5 times a power of ten, about four of them
+const step = (() => { const raw = maxN / 4, p = 10 ** Math.floor(Math.log10(raw)); return [1, 2, 5, 10].map((m) => m * p).find((s) => s >= raw)!; })();
+const top = Math.ceil(maxN / step) * step;
+const ticks = Array.from({ length: top / step + 1 }, (_, i) => i * step);
+// year labels every 1, 5 or 10 years, plus the last year when it is not too close to the previous label
+const every = years.length > 25 ? 10 : years.length > 10 ? 5 : 1;
+const labelled = new Set(years.filter((y) => y % every === 0));
+const prev = Math.max(...[...labelled].filter((y) => y < last), -Infinity);
+if (last - prev >= every / 2) labelled.add(last);
+const H = 180, T = 8, BASE = H - 22;            // svg height, plot top, baseline (x labels below it)
+const yOf = (n: number) => BASE - ((BASE - T) * n) / top;
+const slot = 100 / years.length;
+const pct = (x: number) => `${+x.toFixed(4)}%`;
+const fmt = (n: number) => n.toLocaleString('en-US');
+const partial = (y: number) => y >= thisYear;
+const tip = (y: number, n: number) => `${y}: ${fmt(n)} ${unit}${partial(y) ? ' so far' : ''}`;
+const peak = data.reduce((a, b) => (b[1] > a[1] ? b : a));
+const clip = `yc-clip-${unit.replace(/\W/g, '')}`;
+const summary = `${label}, ${first} to ${last}: the most in ${peak[0]} (${fmt(peak[1])})${partial(last) ? `; ${last} so far ${fmt(byYear.get(last) ?? 0)}` : ''}. The numbers are in the table below.`;
+---
+<figure class="ychart" data-unit={unit}>
+  <div class="ychart-plot">
+    <svg class="ychart-axis" width="40" height={H} aria-hidden="true">
+      {ticks.map((t) => <text x="34" y={yOf(t)} dy="0.32em" text-anchor="end">{fmt(t)}</text>)}
+    </svg>
+    <svg class="ychart-bars" width="100%" height={H} role="img" aria-label={summary} tabindex="0">
+      <defs><clipPath id={clip} clipPathUnits="userSpaceOnUse"><rect x="0" y="0" width="100%" height={BASE} /></clipPath></defs>
+      {ticks.map((t) => <line class={t ? 'grid' : 'base'} x1="0" x2="100%" y1={yOf(t)} y2={yOf(t)} />)}
+      <g clip-path={`url(#${clip})`}>
+        {years.map((y, i) => { const n = byYear.get(y) ?? 0; return n > 0 &&
+          <rect class:list={['bar', { partial: partial(y) }]} data-y={y} x={pct(i * slot + slot * 0.1)} width={pct(slot * 0.8)} y={yOf(n)} height={BASE - yOf(n) + 4} rx="2" />; })}
+      </g>
+      {years.map((y, i) => labelled.has(y) && <text class="xl" x={pct(i * slot + slot / 2)} y={H - 6} text-anchor="middle">{y}</text>)}
+      {years.map((y, i) => { const n = byYear.get(y) ?? 0; return <rect class="hit" x={pct(i * slot)} width={pct(slot)} y="0" height={BASE} data-y={y} data-n={n} data-partial={partial(y) ? '' : undefined}><title>{tip(y, n)}</title></rect>; })}
+    </svg>
+    <div class="ychart-tip" hidden aria-hidden="true"></div>
+  </div>
+  <figcaption class="muted">{partial(last) && <><span class="key" aria-hidden="true"></span> {last} so far, the year is still running · </>}<details class="morefmt"><summary>Show as a table</summary>
+    <div class="tablescroll"><table class="ychart-table">
+      <thead><tr><th>Year</th><th class="num">{unit[0].toUpperCase() + unit.slice(1)}</th></tr></thead>
+      <tbody>{data.map(([y, n]) => <tr><td>{y}{partial(y) && <span class="muted"> (so far)</span>}</td><td class="num">{fmt(n)}</td></tr>)}</tbody>
+    </table></div>
+  </details></figcaption>
+</figure>
+<script src="/year-chart.js" defer is:inline></script>
+<style>
+  .ychart { margin: 0.5rem 0 0; }
+  .ychart-plot { position: relative; display: flex; }
+  .ychart svg { display: block; overflow: visible; font-size: 11px; font-variant-numeric: tabular-nums; }
+  .ychart-axis { flex: none; fill: var(--muted); }
+  .ychart-bars { flex: 1; min-width: 0; }
+  .ychart-bars:focus { outline: none; }
+  .ychart-bars:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  .ychart .grid { stroke: var(--border-muted); stroke-width: 1; }
+  .ychart .base { stroke: var(--border); stroke-width: 1; }
+  .ychart .bar { fill: var(--accent); opacity: 0.85; }
+  .ychart .bar.partial { opacity: 1; fill-opacity: 0.4; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 2; }
+  .ychart .xl { fill: var(--muted); }
+  .ychart .hit { fill: transparent; cursor: default; }
+  .ychart .bar.on { opacity: 1; stroke: var(--fg); stroke-width: 1; }
+  .ychart .bar.partial.on { fill-opacity: 0.6; }
+  .ychart-tip { position: absolute; top: 0; z-index: 2; pointer-events: none; white-space: nowrap; transform: translateX(-50%);
+    background: var(--bg); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 0.2rem 0.5rem;
+    font-size: 0.8rem; box-shadow: 0 4px 12px rgb(0 0 0 / 0.12); font-variant-numeric: tabular-nums; }
+  .ychart-tip b { color: var(--fg); font-weight: 600; }
+  .ychart figcaption { font-size: 0.8rem; margin-top: 0.25rem; }
+  .ychart .key { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px; background: var(--accent); opacity: 0.45; vertical-align: -0.05rem; }
+  .ychart details { display: inline; }
+  .ychart details[open] { display: block; margin-top: 0.5rem; }
+  .ychart-table { max-width: 20rem; margin-top: 0.5rem; }
+</style>
