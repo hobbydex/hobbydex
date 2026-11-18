@@ -1,0 +1,21 @@
+---
+// The size and weight rows of a kit or release facts list (lib/dimensions.ts): wheelbase and track first, then size,
+// ground clearance and weight. The first row from each source page carries a small "dimensions from <host>" note;
+// a figure converted from inches or pounds shows the maker's printed value after it.
+import { db } from '../lib/data';
+import { dimensionRows, type Figures } from '../lib/dimensions';
+import FactSource from './FactSource.astro';
+interface Props { figures: Figures }
+const { figures } = Astro.props;
+const rows = dimensionRows(figures);
+// a source is a page URL or a document id (its maker page)
+const href = (s: string) => (s.startsWith('doc/') ? (db.doc.get(s)?.page ?? db.doc.get(s)?.url) : s);
+const seen = new Set<string>();
+const noted = rows.map((r) => {
+  const src = figures[r.keys[0]]!.source;
+  if (seen.has(src)) return undefined;
+  seen.add(src);
+  return href(src);
+});
+---
+{rows.map((r, i) => <><dt>{r.label}</dt><dd>{r.text}{r.stated && <span class="muted" title="as the maker prints it"> ({r.stated})</span>}{noted[i] && <FactSource field="dimensions" url={noted[i]!} />}</dd></>)}

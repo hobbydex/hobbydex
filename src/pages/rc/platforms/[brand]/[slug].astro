@@ -32,6 +32,9 @@ import { driveLabel } from '../../../../lib/drive';
 import { gearing, type Gearing } from '../../../../lib/gearing';
 import { describe, count } from '../../../../lib/descriptions';
 import { newestDatedParts, realPartDate } from '../../../../lib/latestParts';
+import { figuresOf } from '../../../../lib/dimensions';
+import DimensionRows from '../../../../components/DimensionRows.astro';
+import FittingBodies from '../../../../components/FittingBodies.astro';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.kits.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], slug: key(f)[1] }, props: { redirect: url.platform(x.id) } })));
@@ -146,6 +149,8 @@ const indexFilters = kit.drive ? [`drive:${driveLabel(kit.drive)}`] : [];
 // a platform with no release, named only by parts that fit it: the label gives the count of those parts (the parts list below)
 const knownFromParts = releases.length === 0 ? partCount : 0;
 const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.notes;
+// the platform's size and weight (hobbydex-rc docs/schema.md "Dimensions"); the releases' own figures are on their pages
+const figures = figuresOf(kit.dimensions);
 ---
 <Base title={`${brandName(kit.brand)} ${kit.name} ${kitTypeOne[kit.category ?? 'car'] ?? kit.category} platform`} description={metaDescription} kind="platform" sub={brandName(kit.brand)} words={indexWords} filters={indexFilters} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: brandName(kit.brand), href: url.brand(kit.brand) }, { name: kit.name }]}>
   <p class="pagetype">Platform</p>
@@ -161,6 +166,7 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
     {kit.scale && <><dt>Scale</dt><dd>{kit.scale}{kit.sources?.scale && <FactSource field="scale" url={kit.sources.scale} />}</dd></>}
     {kit.drive && <><dt>Drive</dt><dd>{driveLabel(kit.drive)}</dd></>}
     {kit.power && <><dt>Power</dt><dd>{kit.power}</dd></>}
+    <DimensionRows figures={figures} />
     {replacesKit && <><dt>Replaces</dt><dd><a href={url.platform(replacesKit.id)}>{brandName(replacesKit.brand)} {replacesKit.name}</a></dd></>}
     {replacedByKits.length > 0 && <><dt>Replaced by</dt><dd>{replacedByKits.map((o, i) => <>{i > 0 && <br />}<a href={url.platform(o.id)}>{brandName(o.brand)} {o.name}</a></>)}</dd></>}
     {dealerUrls.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerUrls.length <= 3
@@ -201,6 +207,7 @@ const notesText = knownFromParts > 0 ? withoutKnownFromParts(kit.notes) : kit.no
     {groups.length > 1 && <>: {groups.map(({ g, rows }, i) => <>{i > 0 && ' · '}<a href={split ? partsUrl(platUrl, g) : `#cat-${g || 'other'}`}>{g ? catName(g) : 'Other'}</a> ({rows.length})</>)}</>}
     {(bearingSets.length > 0 || screwSets.length > 0) && <span class="muted"> · plus {count(bearingSets.length + screwSets.length, 'bearing and screw set')} from other makers</span>}
     {likelyCount > 0 && <span class="muted"> · <a href="#likely-fits">{likelyCount} likely</a> (named by family only)</span>}</p>}
+  <FittingBodies figures={figures} scale={kit.scale} listed={listedHere} />
   <Videos videos={videos} />
   <FanLinks links={kit.links} />
   {notesText && !isSourceNote(notesText) && <p class="muted">{notesText}</p>}

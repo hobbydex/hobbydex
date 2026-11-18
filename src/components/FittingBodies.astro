@@ -1,0 +1,27 @@
+---
+// "Bodies that fit this wheelbase" (lib/dimensions.ts bodiesFitting): the body shells whose stated wheelbase matches the
+// car's, at the car's scale; where both state a width or a track, those agree too, else the row says "wheelbase only".
+// Bodies the page already lists as fitting (their fits rows) are counted, not listed again.
+import { db, url, brandName, partLabel, bodiesWithWheelbase } from '../lib/data';
+import { bodiesFitting, carSize, lengthText, type Figures } from '../lib/dimensions';
+import Discontinued from './Discontinued.astro';
+interface Props { figures: Figures; scale?: string; listed?: Set<string>; limit?: number }
+const { figures, scale, listed = new Set<string>(), limit = 24 } = Astro.props;
+const all = bodiesFitting(bodiesWithWheelbase, carSize(figures, scale), (b) => brandName(b.brand));
+const rows = all.filter((x) => !listed.has(x.body.id));
+const already = all.length - rows.length;
+const shown = rows.slice(0, limit);
+const full = rows.filter((x) => x.fit !== 'wheelbase').length;
+const size = (b: (typeof rows)[number]['body']) => [b.wheelbase_mm !== undefined && `wheelbase ${lengthText(b.wheelbase_mm)}`,
+  b.width_mm !== undefined && `width ${lengthText(b.width_mm)}`,
+  (b.track_mm ?? b.track_front_mm) !== undefined && `track ${lengthText((b.track_mm ?? b.track_front_mm)!)}`].filter(Boolean).join(', ');
+---
+{rows.length > 0 && <section id="fitting-bodies" data-pagefind-ignore>
+  <h2>Bodies that fit this wheelbase <span class="muted">({rows.length})</span></h2>
+  <p class="muted">Body shells whose maker states this wheelbase{scale && ` at ${scale}`}{full > 0 && '; where the body and the car both state a width or track, those match too'}. "Wheelbase only": the width or track could not be checked. A match of stated sizes, not a fit the maker lists: check the body posts and the wheel arches.{already > 0 && ` ${already} more already listed as fitting.`}</p>
+  <table class="stacked">
+    <tr><th>Body</th><th class="w-brand">Brand</th><th>Size</th><th>Match</th></tr>
+    {shown.map(({ body, fit }) => <tr data-discontinued={body.status === 'discontinued' ? '' : undefined}><td class="name"><a href={url.part(body.id)}>{partLabel(body)}</a> {body.number && <span class="muted">{body.name}</span>}<Discontinued item={body} /></td><td data-label="Brand">{brandName(body.brand)}</td><td data-label="Size" class="muted">{size(body)}</td><td data-label="Match">{fit === 'wheelbase' ? <span class="muted">wheelbase only</span> : fit}</td></tr>)}
+  </table>
+  {rows.length > shown.length && <p class="muted">{rows.length - shown.length} more bodies with this wheelbase.</p>}
+</section>}
