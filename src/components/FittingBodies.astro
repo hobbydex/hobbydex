@@ -2,7 +2,7 @@
 // "Bodies that fit this wheelbase" (lib/dimensions.ts bodiesFitting): the body shells whose stated wheelbase matches the
 // car's, at the car's scale; where both state a width or a track, those agree too, else the row says "wheelbase only".
 // Bodies the page already lists as fitting (their fits rows) are counted, not listed again.
-import { db, url, brandName, partLabel, bodiesWithWheelbase } from '../lib/data';
+import { url, brandName, partLabel, bodiesWithWheelbase } from '../lib/data';
 import { bodiesFitting, carSize, lengthText, type Figures } from '../lib/dimensions';
 import Discontinued from './Discontinued.astro';
 interface Props { figures: Figures; scale?: string; listed?: Set<string>; limit?: number }
