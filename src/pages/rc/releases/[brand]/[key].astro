@@ -30,6 +30,9 @@ import { colourwayOf, colourLabels, releaseColour } from '../../../../lib/colour
 import ColourSwitch from '../../../../components/ColourSwitch.astro';
 import { gearing } from '../../../../lib/gearing';
 import { fileRows, pageLabel, hostLabel, makerOwnLinks, archiveLinks } from '../../../../lib/docFacts';
+import { figuresOf } from '../../../../lib/dimensions';
+import Dimensions from '../../../../components/Dimensions.astro';
+import FittingBodies from '../../../../components/FittingBodies.astro';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
   const moved = db.releases.flatMap((x) => (x.former_ids ?? []).map((f) => ({ params: { brand: key(f)[0], key: key(f)[1] }, props: { redirect: url.release(x.id) } })));
@@ -138,6 +141,10 @@ import RealVehicle from '../../../../components/RealVehicle.astro';
 // the search index (Base's hidden block): brand, name, item number, platform, type, scale, year, depicted make and model, series
 const indexWords = [brandName(release.brand), release.number, release.gtin, release.gtin && gtin13(release.gtin), release.name, kit.placeholder ? '' : kit.name, shownCat && (kitTypeOne[shownCat] ?? shownCat),
   release.scale ?? kit.scale, yearOf(release) || '', release.depicts?.make, release.depicts?.model, release.series].filter(Boolean).join(' ');
+// the car's size and weight: the release's own figures, else its platform's, per measure
+const figures = figuresOf(release.dimensions, kit.dimensions);
+// bodies listed as fitting this release's platform are on the platform page; here they are counted, not listed again
+const fitBodies = new Set((db.fitsByKit.get(kit.id) ?? []).filter((x) => x.part.category === 'body').map((x) => x.part.id));
 const indexFilters = [release.status === 'discontinued' && 'status:discontinued', release.depicts?.make && `make:${release.depicts.make}`].filter((x): x is string => !!x);
 ---
 <Base title={`${brandName(release.brand)} ${release.name}`} description={`${brandName(release.brand)} ${release.name}${release.year ? ` (${release.year})` : ''}: parts list and options.`} kind="release" sub={release.year ? `${brandName(release.brand)} · ${release.year}` : brandName(release.brand)} words={indexWords} filters={indexFilters} crumbs={[{ name: 'Hobbydex', href: '/' }, { name: 'RC cars', href: '/rc/' }, { name: brandName(release.brand), href: url.brand(release.brand), note: brandGone(release.brand) ? '(brand defunct)' : undefined }, kit.placeholder ? { name: 'Chassis not yet known' } : { name: kit.name, href: url.platform(kit.id) }, { name: release.name }]}>
@@ -174,6 +181,8 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
   </dl>
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={releaseColour(release)} art={release.art} size="12rem" class="hero" /></span>
   </div>
+  <Dimensions figures={figures} platform={kit.dimensions?.source} />
+  <FittingBodies figures={figures} scale={release.scale ?? kit.scale} listed={fitBodies} />
   <Videos videos={videos} />
   {otherVideos.length > 0 && <details class="platformvideos">
     <summary>Videos for the {kit.name} platform <span class="muted">({otherVideos.length})</span></summary>
