@@ -10,8 +10,9 @@ import { db } from './data';
 // labels from the category definitions in the data, with the built-in list as fallback
 for (const c of db.categories) categoryLabel[c.id.split('/')[1]] = c.name;
 export const catName = (c?: string) => (c ? categoryLabel[c] ?? c : '');
-// Categories without an icon of their own draw the icon of the part they stand for: a hardware bag the screw, merchandise the printed decal.
-const iconOf: Record<string, string> = { 'hardware-set': 'screw', merchandise: 'decal' };
+// Categories without an icon of their own draw the icon of the part they stand for: a hardware bag the screw, merchandise a t-shirt
+// (the sprite also has a cap).
+const iconOf: Record<string, string> = { 'hardware-set': 'screw', merchandise: 't-shirt' };
 export const categoryIcon = (c: string) => iconOf[c] ?? c;
 // The icon that stands in for a part's picture: its category icon, or for a ball with a bore (no threaded shank)
 // the through-hole ball or the ball nut; threaded studs and set-screw balls keep the ball stud.

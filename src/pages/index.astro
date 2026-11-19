@@ -6,7 +6,7 @@ import { kitTypeOne } from '../lib/kitTypes';
 import { releasesByType } from '../lib/releaseTypes';
 import Base from '../layouts/Base.astro';
 import { readFileSync } from 'node:fs';
-import { db, url, brandName, dateKey, dateDoubt, isComing, releasedOf, releasesByMake, bodiesByMake } from '../lib/data';
+import { db, url, brandName, dateKey, dateDoubt, isComing, releasedOf, releasesByMake, bodiesByMake, productVideo } from '../lib/data';
 import DateText from '../components/DateText.astro';
 import Videos from '../components/Videos.astro';
 import DateDoubt from '../components/DateDoubt.astro';
@@ -15,8 +15,8 @@ import ScanButton from '../components/ScanButton.astro';
 import ColourSwitch from '../components/ColourSwitch.astro';
 import { dateRows, colourLabels, groupName, releaseColour } from '../lib/colourways';
 
-// the three newest dated makers' videos (the videos page has the rest)
-const latestVideos = db.documents.filter((d) => d.kind === 'video' && d.date).sort((a, b) => b.date!.localeCompare(a.date!) || a.title.localeCompare(b.title)).slice(0, 3);
+// the three newest dated makers' videos of a product (the videos page has the rest; brand videos are on the brand pages)
+const latestVideos = db.documents.filter((d) => d.kind === 'video' && d.date && productVideo(d)).sort((a, b) => b.date!.localeCompare(a.date!) || a.title.localeCompare(b.title)).slice(0, 3);
 const top = <T,>(m: Map<T, number>, n: number) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
 const byCat = new Map<string, number>();
 for (const p of db.parts) if (p.category) byCat.set(p.category, (byCat.get(p.category) ?? 0) + 1);
@@ -110,73 +110,87 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
       </g></g>
     </svg>
   </section>
-  <script is:inline>
-    // reduced motion: the hero car stands where its drive would end
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { const e = document.querySelector('.hero-edge'); e && e.setCurrentTime && (e.pauseAnimations(), e.setCurrentTime(7)); }
+  <script>
+    // reduced motion: the hero car stands where its drive would end. Bundled modules (hashed /_astro/ files) run
+    // after the page is parsed, in page order: the car is still at its start then.
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const e = document.querySelector<SVGSVGElement>('.hero-edge');
+      if (e?.setCurrentTime) { e.pauseAnimations(); e.setCurrentTime(7); }
+    }
   </script>
-  <script is:inline>
+  <script>
     // suggestions as you type: the best few results of the /search/ ranking under the box. Arrow keys pick one,
     // Enter opens it; Enter without a pick (or the button) opens the full search page, as before.
-    (() => {
-      const q = document.getElementById('home-q'), pop = document.getElementById('home-pop'), list = document.getElementById('home-ac');
-      const status = document.getElementById('home-ac-status'), all = document.getElementById('home-ac-all');
-      const SHOW = 8, MIN = 3, labels = { part: 'part', spec: 'spec', release: 'release', platform: 'platform', brand: 'brand', make: 'make' };
-      const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-      let ready, active = -1, seq = 0, timer;
-      // the index loads on the first focus, so it is usually in by the time the first word is typed
-      const load = () => ready ??= (async () => {
-        const [{ rankedSearch }, platforms, pagefind] = await Promise.all([import('/search-rank.js'),
-          fetch('/search-platforms.json').then((r) => r.json()).catch(() => []), import('/pagefind/pagefind.js')]);
-        await pagefind.options({ ranking: { termSimilarity: 9, termFrequency: 0.2, termSaturation: 1.2, pageLength: 0.5 } });
-        await pagefind.init();
-        return (text, stale) => rankedSearch(pagefind, text, platforms, stale);
-      })();
-      const open = (on) => { pop.hidden = !on; q.setAttribute('aria-expanded', String(on && list.children.length > 0)); if (!on) pick(-1); };
-      const pick = (i) => {
-        const items = list.children; active = i;
-        for (let k = 0; k < items.length; k++) items[k].setAttribute('aria-selected', String(k === i));
-        if (i >= 0) { q.setAttribute('aria-activedescendant', items[i].id); items[i].scrollIntoView({ block: 'nearest' }); } else q.removeAttribute('aria-activedescendant');
-      };
-      // each run has its number; a run whose number is no longer the newest stops and draws nothing, so a slow
-      // search for "to" never holds up the one for "toyota" (two letters match most of the index)
-      async function suggest() {
-        const my = ++seq, stale = () => my !== seq;
-        try { await run(stale); } catch (e) { if (!stale()) { status.textContent = 'Search failed to load: ' + (e && e.message ? e.message : e); list.innerHTML = ''; } }
-      }
-      async function run(stale) {
-        const text = q.value.trim();
-        all.href = '/search/' + (text ? '?q=' + encodeURIComponent(text) : ''); all.textContent = text ? `All results for "${text}"` : 'All results';
-        if (text.length < MIN) { list.innerHTML = ''; open(false); return; }
-        open(true);
-        status.textContent = ready ? 'Searching...' : 'Loading the search index...';
-        const search = await load();
-        if (stale()) return;
-        status.textContent = 'Searching...';
-        const r = await search(text, stale);
-        if (!r || stale()) return;
-        const words = text.toLowerCase().split(/\s+/).filter((w) => w.length > 1).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-        const re = words.length ? new RegExp('(' + words.join('|') + ')', 'ig') : null;
-        list.innerHTML = r.datas.slice(0, SHOW).map((d, i) => { const t = d.meta.type || '';
-          return `<li role="option" id="home-ac-${i}" aria-selected="false"><a href="${esc(d.url)}" tabindex="-1"><span class="badge">${esc(labels[t] || t)}</span>`
-            + `<span class="t">${re ? esc(d.meta.title || d.url).replace(re, '<mark>$1</mark>') : esc(d.meta.title || d.url)}</span>`
-            + (d.filters && d.filters.status && d.filters.status.includes('discontinued') ? ' <span class="disc" title="Discontinued"><svg class="icon" aria-hidden="true"><use href="/icons.svg#discontinued"/></svg><span class="sr-only"> discontinued</span></span>' : '')
-            + (d.meta.sub ? `<span class="sub">${esc(d.meta.sub)}</span>` : '') + '</a></li>'; }).join('');
-        status.textContent = r.hits.length ? `${r.hits.length} result${r.hits.length === 1 ? '' : 's'}` : 'No results';
-        active = -1; open(document.activeElement === q);
-      }
-      q.addEventListener('focus', () => { load().catch(() => {}); if (q.value.trim() && list.children.length) open(true); });
-      q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(suggest, 150); });
-      q.addEventListener('keydown', (e) => {
-        const n = list.children.length;
-        if (e.key === 'ArrowDown' && n) { e.preventDefault(); if (pop.hidden) open(true); pick((active + 1) % n); }
-        else if (e.key === 'ArrowUp' && n) { e.preventDefault(); pick(active <= 0 ? n - 1 : active - 1); }
-        else if (e.key === 'Escape' && !pop.hidden) { e.preventDefault(); open(false); }
-        else if (e.key === 'Enter' && active >= 0 && !pop.hidden) { e.preventDefault(); location.href = list.children[active].querySelector('a').href; }
-      });
-      // a click in the list lands before the box loses focus
-      pop.addEventListener('mousedown', (e) => e.preventDefault());
-      q.addEventListener('blur', () => open(false));
+    // The ranking (public/search-rank.js, shared with the search page and tests/search.test.mjs) and the Pagefind
+    // index are loaded at run time from their own URLs, not bundled.
+    type Data = { url: string; meta: Record<string, string | undefined>; filters?: Record<string, string[] | undefined> };
+    type Ranked = { hits: unknown[]; datas: Data[] };
+    const RANK = '/search-rank.js', PAGEFIND = '/pagefind/pagefind.js';
+    const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+    const q = byId<HTMLInputElement>('home-q'), pop = byId<HTMLDivElement>('home-pop'), list = byId<HTMLUListElement>('home-ac');
+    const status = byId<HTMLDivElement>('home-ac-status'), all = byId<HTMLAnchorElement>('home-ac-all');
+    const SHOW = 8, MIN = 3;
+    const labels: Record<string, string> = { part: 'part', spec: 'spec', release: 'release', platform: 'platform', brand: 'brand', make: 'make' };
+    const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+    type Search = (text: string, stale: () => boolean) => Promise<Ranked | undefined>;
+    let ready: Promise<Search> | undefined;
+    let active = -1, seq = 0, timer: ReturnType<typeof setTimeout> | undefined;
+    // the index loads on the first focus, so it is usually in by the time the first word is typed
+    const load = (): Promise<Search> => ready ??= (async () => {
+      const [{ rankedSearch }, platforms, pagefind] = await Promise.all([import(/* @vite-ignore */ RANK),
+        fetch('/search-platforms.json').then((r) => r.json()).catch(() => []), import(/* @vite-ignore */ PAGEFIND)]);
+      await pagefind.options({ ranking: { termSimilarity: 9, termFrequency: 0.2, termSaturation: 1.2, pageLength: 0.5 } });
+      await pagefind.init();
+      return (text: string, stale: () => boolean) => rankedSearch(pagefind, text, platforms, stale);
     })();
+    const items = () => list.children as HTMLCollectionOf<HTMLLIElement>;
+    const pick = (i: number) => {
+      const li = items(); active = i;
+      for (let k = 0; k < li.length; k++) li[k].setAttribute('aria-selected', String(k === i));
+      if (i >= 0) { q.setAttribute('aria-activedescendant', li[i].id); li[i].scrollIntoView({ block: 'nearest' }); } else q.removeAttribute('aria-activedescendant');
+    };
+    const open = (on: boolean) => { pop.hidden = !on; q.setAttribute('aria-expanded', String(on && list.children.length > 0)); if (!on) pick(-1); };
+    // each run has its number; a run whose number is no longer the newest stops and draws nothing, so a slow
+    // search for "to" never holds up the one for "toyota" (two letters match most of the index)
+    async function suggest() {
+      const my = ++seq, stale = () => my !== seq;
+      try { await run(stale); } catch (e) { if (!stale()) { status.textContent = 'Search failed to load: ' + (e instanceof Error ? e.message : String(e)); list.innerHTML = ''; } }
+    }
+    async function run(stale: () => boolean) {
+      const text = q.value.trim();
+      all.href = '/search/' + (text ? '?q=' + encodeURIComponent(text) : ''); all.textContent = text ? `All results for "${text}"` : 'All results';
+      if (text.length < MIN) { list.innerHTML = ''; open(false); return; }
+      open(true);
+      status.textContent = ready ? 'Searching...' : 'Loading the search index...';
+      const search = await load();
+      if (stale()) return;
+      status.textContent = 'Searching...';
+      const r = await search(text, stale);
+      if (!r || stale()) return;
+      const words = text.toLowerCase().split(/\s+/).filter((w) => w.length > 1).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      const re = words.length ? new RegExp('(' + words.join('|') + ')', 'ig') : null;
+      list.innerHTML = r.datas.slice(0, SHOW).map((d: Data, i: number) => { const t = d.meta.type || '';
+        return `<li role="option" id="home-ac-${i}" aria-selected="false"><a href="${esc(d.url)}" tabindex="-1"><span class="badge">${esc(labels[t] || t)}</span>`
+          + `<span class="t">${re ? esc(d.meta.title || d.url).replace(re, '<mark>$1</mark>') : esc(d.meta.title || d.url)}</span>`
+          + (d.filters?.status?.includes('discontinued') ? ' <span class="disc" title="Discontinued"><svg class="icon" aria-hidden="true"><use href="/icons.svg#discontinued"/></svg><span class="sr-only"> discontinued</span></span>' : '')
+          + (d.meta.sub ? `<span class="sub">${esc(d.meta.sub)}</span>` : '') + '</a></li>'; }).join('');
+      status.textContent = r.hits.length ? `${r.hits.length} result${r.hits.length === 1 ? '' : 's'}` : 'No results';
+      active = -1; open(document.activeElement === q);
+    }
+    q.addEventListener('focus', () => { load().catch(() => {}); if (q.value.trim() && list.children.length) open(true); });
+    q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(suggest, 150); });
+    q.addEventListener('keydown', (e) => {
+      const n = list.children.length;
+      if (e.key === 'ArrowDown' && n) { e.preventDefault(); if (pop.hidden) open(true); pick((active + 1) % n); }
+      else if (e.key === 'ArrowUp' && n) { e.preventDefault(); pick(active <= 0 ? n - 1 : active - 1); }
+      else if (e.key === 'Escape' && !pop.hidden) { e.preventDefault(); open(false); }
+      else if (e.key === 'Enter' && active >= 0 && !pop.hidden) { e.preventDefault(); location.href = items()[active].querySelector('a')!.href; }
+    });
+    // a click in the list lands before the box loses focus
+    pop.addEventListener('mousedown', (e) => e.preventDefault());
+    q.addEventListener('blur', () => open(false));
+    // a word typed before this module ran (it runs once the page is parsed) still gets its suggestions
+    if (document.activeElement === q) { load().catch(() => {}); if (q.value.trim()) suggest(); }
   </script>
   <div class="stats">
     <a class="stat" href="/rc/brands/"><b>{db.brands.length}</b> brands</a>
