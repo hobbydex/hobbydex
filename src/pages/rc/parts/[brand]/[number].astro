@@ -40,7 +40,7 @@ import FactRows from '../../../../components/FactRows.astro';
 import { plugLinks, balanceSpecId } from '../../../../lib/plugs';
 import { chemistries, chargerWatts, MAINS } from '../../../../lib/chargers';
 import { protocolSpecs } from '../../../../lib/protocols';
-import { bodyFit, carSize, figuresOf, lengthText } from '../../../../lib/dimensions';
+import { bodyFit, carSize, figuresOf, fullFit, lengthText } from '../../../../lib/dimensions';
 export function getStaticPaths() {
   // a former id (renamed or corrected), another number the part is sold under (numbers) or a number the maker renumbered it from (former_numbers) keeps working:
   // its page redirects to the current one; a number listed twice is one route
@@ -142,14 +142,16 @@ const ocrParts = readFrom && (part as { name_source?: string }).name_source === 
 const partArchive = archiveLinks(part.links);
 // a shop's product page, when the maker has none: its own row, never under Product page
 const dealerLinks = (part.links ?? []).filter((l) => l.kind === 'dealer');
-// a body shell: the platforms whose stated wheelbase (and width or track, where both state one) match the body's
-// (lib/dimensions.ts bodyFit); those its fits rows name already are left out
+// a body shell: the platforms whose stated wheelbase and width or track match the body's (lib/dimensions.ts bodyFit),
+// then, collapsed, those that match on the wheelbase alone; those its fits rows name already are left out
 const fitKits = new Set((part.fits ?? []).map((f) => f.kit));
-const byWheelbase = part.category === 'body' && part.wheelbase_mm !== undefined
+const byWheelbase = part.category === 'body' && part.wheelbase_mm != null
   ? db.kits.filter((k) => k.dimensions && !fitKits.has(k.id)).map((k) => ({ k, fit: bodyFit(part, carSize(figuresOf(k.dimensions), k.scale)) }))
     .filter((x): x is { k: typeof x.k; fit: string } => x.fit !== null)
-    .sort((a, b) => (a.fit === 'wheelbase' ? 1 : 0) - (b.fit === 'wheelbase' ? 1 : 0) || brandName(a.k.brand).localeCompare(brandName(b.k.brand)) || a.k.name.localeCompare(b.k.name))
+    .sort((a, b) => brandName(a.k.brand).localeCompare(brandName(b.k.brand)) || a.k.name.localeCompare(b.k.name))
   : [];
+const platformsFull = byWheelbase.filter((x) => fullFit(x.fit));
+const platformsOther = byWheelbase.filter((x) => !fullFit(x.fit));
 const bodyCars = byWheelbase.length;
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
@@ -276,10 +278,16 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
   <DoubtNote on={!!dateDoubt(part)} />
   <FanLinks links={part.links} />
   {byWheelbase.length > 0 && <section id="fits-by-wheelbase" data-pagefind-ignore>
-    <h2>Platforms with this wheelbase <span class="muted">({byWheelbase.length})</span></h2>
-    <p class="muted">Platforms whose maker states the wheelbase this body is made for{part.scale && `, at ${part.scale}`}; where both state a width or track, those match too. Not a fit the maker lists: check the body posts and the wheel arches.</p>
-    <ul>{byWheelbase.slice(0, 24).map(({ k, fit }) => <li><a href={url.platform(k.id)}>{brandName(k.brand)} {k.name}</a> <span class="muted">({fit === 'wheelbase' ? 'wheelbase only' : fit})</span></li>)}</ul>
-    {byWheelbase.length > 24 && <p class="muted">{byWheelbase.length - 24} more platforms.</p>}
+    <h2>Platforms with this wheelbase <span class="muted">({platformsFull.length})</span></h2>
+    <p class="muted">{platformsFull.length > 0 ? <>Platforms whose maker states the wheelbase this body is made for and the same width or track{part.scale && `, at ${part.scale}`}.</> : <>No platform states this wheelbase together with a matching width or track.</>} Not a fit the maker lists: check the body posts and the wheel arches.</p>
+    {platformsFull.length > 0 && <ul>{platformsFull.slice(0, 24).map(({ k, fit }) => <li><a href={url.platform(k.id)}>{brandName(k.brand)} {k.name}</a> <span class="muted">({fit})</span></li>)}</ul>}
+    {platformsFull.length > 24 && <p class="muted">{platformsFull.length - 24} more platforms.</p>}
+    {platformsOther.length > 0 && <details>
+      <summary>Other platforms with the same wheelbase <span class="muted">({platformsOther.length})</span></summary>
+      <p class="muted">The wheelbase matches; the body or the platform states no width or track to check.</p>
+      <ul>{platformsOther.slice(0, 24).map(({ k }) => <li><a href={url.platform(k.id)}>{brandName(k.brand)} {k.name}</a></li>)}</ul>
+      {platformsOther.length > 24 && <p class="muted">{platformsOther.length - 24} more platforms.</p>}
+    </details>}
   </section>}
   {upgrades.length > 0 && <>
     <h2>Upgrades for this part <span class="muted">({upgrades.length})</span></h2>

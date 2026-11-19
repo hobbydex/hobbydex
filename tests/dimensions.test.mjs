@@ -1,7 +1,7 @@
 // A car's size and weight (src/lib/dimensions.ts): the figures a release shows, their text, and the bodies that fit.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { figuresOf, dimensionRows, lengthText, weightText, bodyFit, bodiesFitting, carSize } from '../src/lib/dimensions.ts';
+import { figuresOf, dimensionRows, lengthText, weightText, bodyFit, bodiesFitting, carSize, fullFit } from '../src/lib/dimensions.ts';
 
 const kit = { wheelbase_mm: [{ mm: 239, label: 'L' }, { mm: 225, label: 'M' }], track_front_mm: 148, track_rear_mm: 150, weight_g: 1200, source: 'https://maker.example/kit' };
 
@@ -40,12 +40,26 @@ test('a body fits on a matching wheelbase, and on a matching width or track wher
   assert.equal(bodyFit({ id: 'h', category: 'body', wheelbase_mm: 225 }, carSize(figuresOf(kit))), 'wheelbase');
 });
 
-test('bodies that fit: checked beyond the wheelbase first, then by brand and name', () => {
-  const car = carSize(figuresOf({ wheelbase_mm: 257, width_mm: 190, source: 's' }));
+test('bodies that fit: full matches (wheelbase and width or track) apart from wheelbase-only ones, each by brand and name', () => {
+  const car = carSize(figuresOf({ wheelbase_mm: 257, width_mm: 190, source: 's' }), '1/10');
   const bodies = [{ id: '1', brand: 'b', name: 'Z', category: 'body', wheelbase_mm: 257 },
     { id: '2', brand: 'a', name: 'Y', category: 'body', wheelbase_mm: 257 },
     { id: '3', brand: 'c', name: 'X', category: 'body', wheelbase_mm: 257, width_mm: 190 },
+    { id: '5', brand: 'a', name: 'V', category: 'body', wheelbase_mm: 257, width_mm: 190, scale: '1/10' },
+    { id: '6', brand: 'a', name: 'U', category: 'body', wheelbase_mm: 257, width_mm: 190, scale: '1/8' },
+    { id: '7', brand: 'a', name: 'T', category: 'body', wheelbase_mm: 257, width_mm: 205 },
     { id: '4', brand: 'a', name: 'W', category: 'body', wheelbase_mm: 300 }];
-  assert.deepEqual(bodiesFitting(bodies, car, (b) => b.brand).map((x) => x.body.id), ['3', '2', '1']);
-  assert.deepEqual(bodiesFitting(bodies, carSize({}), (b) => b.brand), []);
+  const fits = bodiesFitting(bodies, car, (b) => b.brand);
+  assert.deepEqual(fits.full.map((x) => x.body.id), ['5', '3']);
+  assert.deepEqual(fits.wheelbaseOnly.map((x) => x.body.id), ['2', '1']);
+  assert.deepEqual(bodiesFitting(bodies, carSize({}), (b) => b.brand), { full: [], wheelbaseOnly: [] });
+});
+
+test('a car that states only a wheelbase has no full matches', () => {
+  const car = carSize(figuresOf({ wheelbase_mm: 257, source: 's' }), '1/10');
+  const fits = bodiesFitting([{ id: '1', brand: 'a', name: 'A', category: 'body', wheelbase_mm: 257, width_mm: 195 }], car, (b) => b.brand);
+  assert.equal(fits.full.length, 0);
+  assert.equal(fits.wheelbaseOnly.length, 1);
+  assert.equal(fullFit('wheelbase'), false);
+  assert.equal(fullFit('wheelbase, track'), true);
 });

@@ -31,7 +31,7 @@ import ColourSwitch from '../../../../components/ColourSwitch.astro';
 import { gearing } from '../../../../lib/gearing';
 import { fileRows, pageLabel, hostLabel, makerOwnLinks, archiveLinks } from '../../../../lib/docFacts';
 import { figuresOf } from '../../../../lib/dimensions';
-import DimensionRows from '../../../../components/DimensionRows.astro';
+import Dimensions from '../../../../components/Dimensions.astro';
 import FittingBodies from '../../../../components/FittingBodies.astro';
 export function getStaticPaths() {
   // a former id (renamed or corrected) keeps working: its page redirects to the current one
@@ -166,7 +166,6 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
     {coming ? <><dt>{release.announced ? 'Announced' : 'Expected'}</dt><dd><Icon name="expected" label="Coming: not out yet" size="1em" /> {release.announced && <>{isoText(release.announced)}{releasedOf(release) && <>, expected {isoText(releasedOf(release)!)}</>}</>}{!release.announced && releasedOf(release) && isoText(releasedOf(release)!)}<DateDoubt reason={dateDoubt(release)} />{release.announced_source && <span class="muted"> · <a href={release.announced_source} rel="nofollow">{announcedSourceLabel(release.announced_source, brandName(release.brand))}</a></span>}</dd></>
     : release.released ? <><dt>Released</dt><dd><DateText r={release} /><DateDoubt reason={dateDoubt(release)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></> : release.year ? <><dt>Released</dt><dd><DateText r={release} year /><DateDoubt reason={dateDoubt(release)} /></dd></> : release.announced ? <><dt>Announced</dt><dd><Icon name="announced" label="Announced" size="1em" /> {isoText(release.announced)}{release.announced_source && <span class="muted"> · <a href={release.announced_source} rel="nofollow">{announcedSourceLabel(release.announced_source, brandName(release.brand))}</a></span>}</dd></> : release.seen_by ? <><dt>Seen by</dt><dd><Icon name="seenby" label="Seen by: on sale by this day, not the release date" size="1em" /> <span class="seen-date">{sourceHref(release.seen_by_source) ? <a href={sourceHref(release.seen_by_source)} rel="nofollow">{isoText(release.seen_by)}</a> : isoText(release.seen_by)}</span><span class="muted"> (on sale by this day, not the release date)</span></dd></> : <><dt>Year</dt><dd><DateText r={release} year /></dd></>}
     {release.edition && <><dt>Edition</dt><dd>{release.edition}</dd></>}
-    <DimensionRows figures={figures} />
     {(release.surface ?? kit.surface) && <><dt>Track surface</dt><dd>{(release.surface ?? kit.surface)!.join(', ')}</dd></>}
     {release.gtin && <><dt>{gtinLabel(release.gtin)}</dt><dd><Icon name="barcode" /> {release.gtin}</dd></>}
     {releaseArchive.length > 0 && <><dt>Product page</dt><dd>{releaseArchive.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">archived page</a></>)} <span class="muted">(no longer online)</span></dd></>}
@@ -182,6 +181,7 @@ const indexFilters = [release.status === 'discontinued' && 'status:discontinued'
   </dl>
     <span class="typeicon" title={kitTypeOne[release.category ?? kit.category ?? 'car'] ?? release.category ?? kit.category}><ReleaseArt id={release.id} category={release.category ?? kit.category} color={releaseColour(release)} art={release.art} size="12rem" class="hero" /></span>
   </div>
+  <Dimensions figures={figures} platform={kit.dimensions?.source} />
   <FittingBodies figures={figures} scale={release.scale ?? kit.scale} listed={fitBodies} />
   <Videos videos={videos} />
   {otherVideos.length > 0 && <details class="platformvideos">

@@ -116,11 +116,17 @@ export function bodyFit(body: BodyLike, car: CarSize): string | null {
   return by.join(', ');
 }
 
-// The bodies that fit, those checked beyond the wheelbase first, each group by brand then name (brandOf gives a
+// A full match: the wheelbase and a width or track both state agree (owner 2026-11-19); a fit of "wheelbase" alone is
+// listed apart, collapsed.
+export const fullFit = (fit: string) => fit !== 'wheelbase';
+
+// The bodies that fit, split into full matches and wheelbase-only ones, each by brand then name (brandOf gives a
 // body's brand name).
 export function bodiesFitting<B extends BodyLike & { name: string; brand: string }>(bodies: B[], car: CarSize, brandOf: (b: B) => string) {
-  if (!intervals(car.wheelbase).length) return [];
-  const rank = (fit: string) => (fit === 'wheelbase' ? 1 : 0);
-  return bodies.map((b) => ({ body: b, fit: bodyFit(b, car) })).filter((x): x is { body: B; fit: string } => x.fit !== null)
-    .sort((a, b) => rank(a.fit) - rank(b.fit) || brandOf(a.body).localeCompare(brandOf(b.body)) || a.body.name.localeCompare(b.body.name));
+  const out: { full: { body: B; fit: string }[]; wheelbaseOnly: { body: B; fit: string }[] } = { full: [], wheelbaseOnly: [] };
+  if (!intervals(car.wheelbase).length) return out;
+  const fits = bodies.map((b) => ({ body: b, fit: bodyFit(b, car) })).filter((x): x is { body: B; fit: string } => x.fit !== null)
+    .sort((a, b) => brandOf(a.body).localeCompare(brandOf(b.body)) || a.body.name.localeCompare(b.body.name));
+  for (const x of fits) (fullFit(x.fit) ? out.full : out.wheelbaseOnly).push(x);
+  return out;
 }
