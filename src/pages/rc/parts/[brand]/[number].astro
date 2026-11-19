@@ -91,6 +91,9 @@ const relRows = [...(part.related ?? []).map((r) => ({ label: FWD[r.relation] ??
   .filter((r, i, all) => all.findIndex((o) => o.label === r.label && o.p!.id === r.p!.id) === i);   // same-colour is recorded on both paints
 const relGroups = [...new Set(relRows.map((r) => r.label))].map((label) => ({ label, parts: relRows.filter((r) => r.label === label).map((r) => r.p!) }));
 const similar = part.category === 'servo' ? similarServos(part.id) : [];
+// the servo's torque and speed at each voltage its maker states, and the documents they come from
+const perfRows = part.category === 'servo' ? (part.performance ?? []) : [];
+const perfSources = [...new Set(perfRows.map((r) => (r.source && db.doc.get(r.source)?.title) ?? r.source).filter((x): x is string => !!x))];
 // the other versions of a range (winds, kV), lowest first
 const rating = (o: typeof part) => o.turns ?? (o.kv ? -o.kv : 0);
 const range = part.range ? (db.partsByRange.get(part.range) ?? []).filter((o) => o.id !== part.id).sort((a, b) => rating(b) - rating(a)) : [];
@@ -258,7 +261,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.nimh_cells && <><dt>NiMH</dt><dd>{part.nimh_cells[0] === part.nimh_cells[1] ? `${part.nimh_cells[0]} cells` : `${part.nimh_cells[0]}-${part.nimh_cells[1]} cells`}</dd></>}
     {part.programming && <><dt>Programming</dt><dd>{part.programming.map((p) => PROGRAMMING[p] ?? p).join(', ')}</dd></>}
     {part.resistance_mohm && <><dt>Resistance</dt><dd>{part.resistance_mohm} m&Omega;</dd></>}
-    {part.torque_kgcm && <><dt>Servo</dt><dd>{part.torque_kgcm} kg/cm{part.speed_s && `, ${part.speed_s} s/60°`}{part.voltage && ` at ${part.voltage} V`}{part.motor && `, ${part.motor}`}{part.gear_material && `, ${part.gear_material} gears`}</dd></>}
+    {(part.torque_kgcm || part.speed_s) && <><dt>Servo</dt><dd>{[part.torque_kgcm && `${part.torque_kgcm} kg·cm`, part.speed_s && `${part.speed_s} s/60°`].filter(Boolean).join(', ')}{part.voltage && ` at ${part.voltage} V`}{part.motor && `, ${part.motor}`}{part.gear_material && `, ${part.gear_material} gears`}{perfRows.length > 1 && <> · <a href="#performance">at each voltage</a></>}</dd></>}
     {(part.bearings || part.bearing_kind) && <><dt>Bearings</dt><dd>{`${part.bearings ?? ''}${part.bearing_kind ? ` ${part.bearing_kind}` : ''} bearings`.trim()}</dd></>}
     {part.dead_band_us && <><dt>Dead band</dt><dd>{part.dead_band_us} µs</dd></>}
     {part.frequency_hz && <><dt>PWM frequency</dt><dd>{Array.isArray(part.frequency_hz) ? `${part.frequency_hz[0]} to ${part.frequency_hz[1]} Hz` : `${part.frequency_hz} Hz`}</dd></>}
@@ -306,6 +309,16 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
         <td data-label="Spec">{sp ? <a href={url.spec(sp.id)}>{sp.name}</a> : ''}</td><td class="muted" data-label="Notes">{i.part ? (i.notes ?? '') : ''}</td><td class="muted" data-label="Source">{d?.title ?? i.source ?? ''}</td>
       </tr>; })}
     </table></div></>}
+  {perfRows.length > 0 && <section id="performance">
+    <h2>Torque and speed per voltage</h2>
+    <table class="perf">
+      <tr><th class="num">Voltage</th><th class="num">Torque</th><th class="num">Speed</th></tr>
+      {perfRows.map((r) => <tr><td class="num">{r.voltage} V</td>
+        <td class="num">{r.torque_kgcm !== undefined ? <>{r.torque_kgcm} kg·cm{r.torque_ozin !== undefined && <span class="muted"> ({r.torque_ozin} oz-in)</span>}</> : <span class="muted">not stated</span>}</td>
+        <td class="num">{r.speed_s !== undefined ? `${r.speed_s} s/60°` : <span class="muted">not stated</span>}</td></tr>)}
+    </table>
+    {perfSources.length > 0 && <p class="muted">As stated by {perfSources.join('; ')}. Torque is stall torque; speed is the time for 60 degrees with no load.</p>}
+  </section>}
   {part.equivalent_to && part.equivalent_to.length > 0 && <>
     <h2>Equivalent to</h2>
     <div class="tablescroll"><table>
