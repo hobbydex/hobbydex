@@ -1,8 +1,14 @@
 ---
-// one source document of a record: its title linked to the maker's page (never the file), else the title and its host
+// one source document of a record, labelled with its kind: "Product page: <site>", "Video: <title> (<channel>, <date>)",
+// "Manual: <title>". The link is the maker's page that lists the document (never the file); a video links the video
+// itself. A document with no page shows its title and the file's host.
 import { db, docPage } from '../lib/data';
+import { docKindLabel, hostLabel, pageLabel } from '../lib/docFacts';
 const { id, released } = Astro.props as { id: string; released?: string };
 const d = db.doc.get(id);
-const page = d ? docPage(d, released) : undefined;
+const page = d && (d.kind === 'video' ? d.url : docPage(d, released));
+// a product page is named by its site, and its language when the address gives one
+const text = d && page && d.kind === 'product_page' ? (pageLabel(page) === hostLabel(page) ? hostLabel(page) : `${hostLabel(page)} (${pageLabel(page)})`) : d?.title;
+const meta = d ? [!page && d.url && new URL(d.url).hostname, d.kind === 'video' && d.channel, d.version, d.date].filter(Boolean) : [];
 ---
-{page ? <a href={page} rel="nofollow">{d!.title}</a> : (d?.title ?? id)}{d && !page && d.url && <span class="muted"> ({new URL(d.url).hostname})</span>}
+{d ? <>{docKindLabel(d.kind)}: {page ? <a href={page} rel="nofollow">{text}</a> : text}{meta.length > 0 && <span class="muted"> ({meta.join(', ')})</span>}</> : id}

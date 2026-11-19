@@ -32,7 +32,7 @@ import HardwareBag from '../../../../components/HardwareBag.astro';
 import PartDimensions from '../../../../components/PartDimensions.astro';
 import { bagItems } from '../../../../lib/hardwareBag';
 import { radioUnitLabel, figureLabel } from '../../../../lib/radio';
-import { makerOwnLinks, archiveLinks, hostLabel } from '../../../../lib/docFacts';
+import { archiveLinks, hostLabel } from '../../../../lib/docFacts';
 import { describe, count } from '../../../../lib/descriptions';
 import { partSpecs } from '../../../../lib/partFacts';
 import { partSpecFacts } from '../../../../lib/specFacts';
@@ -129,10 +129,11 @@ const noLoad = (kv: number, cells?: number[]) => {
 // a motor: the clamp-on heat sinks and fan mounts for its can, any brand; a heat sink: the can it takes
 const motorCan = part.category === 'motor' ? canDiameter(part) : undefined;
 const sinks = motorCan ? (heatsinksByCan.get(motorCan) ?? []) : [];
-// the maker's own links (not fan sites)
-const partLinks = makerOwnLinks(part.links);
-// where the record comes from: its own source document and documents (a parts list, a manual, a store listing)
-const sourceIds = [...new Set([part.source, ...(part.documents ?? [])].filter((x): x is string => !!x))];
+// where the record comes from: its own source document and documents (a parts list, a manual, a store listing), less
+// the videos the Videos block shows; the maker's own links are the Source line under the search box
+const partVideos = db.videosByPart.get(part.id) ?? [];
+const shownVideos = new Set(partVideos.map((d) => d.id));
+const sourceIds = [...new Set([part.source, ...(part.documents ?? [])].filter((x): x is string => !!x && !shownVideos.has(x)))];
 const SOURCE_SHOWN = 4;
 // the document the part's name or note was read from, for the link in its OCR note
 const readFrom = readFromDoc([part.source, ...(part.documents ?? []), ...[...uses].sort((a, b) => (a.role === 'kit' ? 0 : 1) - (b.role === 'kit' ? 0 : 1)).map((u) => u.source)],
@@ -184,7 +185,6 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {sourceIds.length > 0 && <><dt>Source</dt><dd>{sourceIds.slice(0, SOURCE_SHOWN).map((id, i) => <>{i > 0 && ' · '}<SourceDoc id={id} released={part.released} /></>)}{sourceIds.length > SOURCE_SHOWN && <details><summary class="muted">{sourceIds.length - SOURCE_SHOWN} more</summary><ul>{sourceIds.slice(SOURCE_SHOWN).map((id) => <li><SourceDoc id={id} released={part.released} /></li>)}</ul></details>}</dd></>}
     {part.category && <><dt>Category</dt><dd><a href={`/rc/categories/${part.category}/`}>{catName(part.category)}</a> <span class="muted">· <a href={`/rc/categories/${part.category}/${key(part.brand)[0]}/`}>more from {brandName(part.brand)}</a></span>{part.sources?.category && <FactSource field="category" url={part.sources.category} />}</dd></>}
     {partArchive.length > 0 && <><dt>Product page</dt><dd>{partArchive.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">archived page</a></>)} <span class="muted">(no longer online)</span></dd></>}
-    {partLinks.length > 0 && <><dt>Product page</dt><dd>{partLinks.map((l, i, a) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{a.length > 1 ? l.site : 'manufacturer website'}</a></>)}</dd></>}
     {dealerLinks.length > 0 && <><dt class="muted">Dealer page</dt><dd>{dealerLinks.map((l, i) => <>{i > 0 && ' · '}<a href={l.url} rel="nofollow noopener" target="_blank">{hostLabel(l.url)}</a></>)}</dd></>}
     {part.released && <><dt>Released</dt><dd><DateText r={part} /><DateDoubt reason={dateDoubt(part)} />{dated && <span class="muted"> · listed in <a href={dated.href} rel="nofollow">{dated.doc.title.replace(/:.*$/, '')}</a></span>}</dd></>}
     {replaces && <><dt>Replaces</dt><dd><a href={url.part(replaces.id)}>{partLabel(replaces)}</a> {replaces.number && replaces.name}<Discontinued item={replaces} /></dd></>}
@@ -345,7 +345,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     <ul>{range.map((o) => <li>{o.category !== 'paint' && <Fragment set:html={colourDot(o.color)} />}<a href={url.part(o.id)}>{partLabel(o)}</a> {o.number && o.name}<Discontinued item={o} /><span class="muted">{o.turns && ` · ${o.turns}T`}{o.kv && ` · ${o.kv} kV`}</span></li>)}</ul></>}
   {similar.length > 0 && <><h2>Similar servos <span class="muted">· same size class{servoRow(part.id)?.spline && ' and spline'}, closest torque and speed · <a href="/rc/servos/">compare all servos</a></span></h2>
     <ul>{similar.map(({ part: o }) => <li><a href={url.part(o.id)}>{brandName(o.brand)} {partLabel(o)}</a> {shortName(o)}<Discontinued item={o} /><span class="muted">{o.torque_kgcm && ` · ${o.torque_kgcm} kg·cm`}{o.speed_s && ` · ${o.speed_s} s/60°`}{o.voltage && ` at ${o.voltage} V`}</span></li>)}</ul></>}
-  <Videos videos={db.videosByPart.get(part.id) ?? []} />
+  <Videos videos={partVideos} />
   {uses.length > 0 && <>
   <h2>Used in</h2>
   <div class="tablescroll"><table class="stacked">
