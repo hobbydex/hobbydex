@@ -1,0 +1,13 @@
+---
+// How a release's real vehicle was found, after its name (hobbydex-rc docs/schema.md "depicts"): a likely one by the
+// same model code as another release ("same model code as Tamiya Mercedes-Benz Arocs 3348") or by a model code the make
+// uses (with the make's model page), and a stated one from a page that names the make. Nothing when the release's own
+// name states it.
+import { db, url, brandName, type Depicts } from '../lib/data';
+interface Props { depicts: Depicts }
+const { depicts } = Astro.props;
+const via = depicts.basis === 'shared-code' && depicts.via ? db.release.get(depicts.via) : undefined;
+---
+{via && <span class="muted"> · same model code as <a href={url.release(via.id)}>{brandName(via.brand)} {via.name}</a></span>}
+{depicts.basis === 'model-code' && <span class="muted"> · from the model code{depicts.source && <>; <a href={depicts.source} rel="nofollow noopener" target="_blank">{depicts.make ?? 'maker'} model page</a></>}</span>}
+{depicts.basis === 'page' && depicts.source && <span class="muted"> · named on <a href={depicts.source} rel="nofollow noopener" target="_blank">this page</a></span>}
