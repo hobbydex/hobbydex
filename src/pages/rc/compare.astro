@@ -18,7 +18,7 @@ const SLOTS = ['a', 'b', 'c', 'd'];
   <p class="muted legend" data-pagefind-ignore><span class="mk k">●</span> in the box · <span class="mk o">○</span> option · <span class="mk l">·</span> listed · empty: not in that release. Rows shaded are not in every release.</p>
   <div id="out"><p class="muted">Loading releases...</p></div>
   <script>
-    type Rel = { id: string; label: string; number: string; kit: string; url: string; disc?: boolean; rows: [number, string][] };
+    type Rel = { id: string; label: string; number: string; kit: string; url: string; disc?: boolean; dims?: [string, string, string]; rows: [number, string][] };
     type Data = { parts: [string, string, string, string, number?][]; releases: Rel[] };
     const SLOTS = ['a', 'b', 'c', 'd'] as const;
     type Slot = typeof SLOTS[number];
@@ -126,7 +126,12 @@ const SLOTS = ['a', 'b', 'c', 'd'];
             + rs.map((i) => `<tr${inAll(i) ? '' : ' class="diff"'}>${partCells(i)}${maps.map((m) => { const role = m.get(i); return `<td class="mk ${role ?? ''}" title="${role ? ROLE[role] : 'not in this release'}">${role ? MARK[role] : ''}</td>`; }).join('')}</tr>`).join('')
             + '</tbody>';
         }).join('');
+        // the cars' wheelbase, track width and weight (a row only when one of them states it)
+        const DIMS = ['Wheelbase', 'Track width', 'Weight'];
+        const dimRows = DIMS.map((label, j) => sel.some(({ r }) => r.dims?.[j]) ? `<tr${new Set(sel.map(({ r }) => r.dims?.[j] ?? '')).size > 1 ? ' class="diff"' : ''}><th>${label}</th>${sel.map(({ r }) => `<td>${esc(r.dims?.[j] || '-')}</td>`).join('')}</tr>` : '').join('');
+        const dimTable = dimRows ? `<table class="cmpdims"><thead><tr><th></th>${sel.map(({ k, r }) => `<th title="${esc(r.label)}"><a href="${r.url}">${k.toUpperCase()}</a><span class="relname">${esc(r.label)}</span></th>`).join('')}</tr></thead><tbody>${dimRows}</tbody></table>` : '';
         $('out').innerHTML = (none.length ? `<p class="muted">We have no parts list for ${none.join(' or ')} yet, so the comparison is one-sided.</p>` : '')
+          + dimTable
           + `<p>${all.length} part numbers, ${shared} in every release, ${all.length - shared} not.</p>`
           + `<table class="cmpmatrix">${head}${body}</table>`;
       };
@@ -158,8 +163,12 @@ const SLOTS = ['a', 'b', 'c', 'd'];
   :global(.cmpmatrix td.mk.o) { color: var(--muted); }
   :global(.cmpmatrix tr.grp th) { position: static; text-align: left; background: var(--bg); padding-top: 0.9rem; font-size: 0.95rem; }
   :global(.cmpmatrix tr.diff td) { background: var(--surface); }
+  :global(.cmpdims) { table-layout: auto; width: auto; margin: 0.5rem 0 1rem; }
+  :global(.cmpdims th, .cmpdims td) { text-align: left; padding-right: 1rem; vertical-align: bottom; }
+  :global(.cmpdims .relname) { display: block; font-weight: 400; font-size: 0.72rem; line-height: 1.2; color: var(--muted); max-width: 9rem; white-space: normal; }
+  :global(.cmpdims tr.diff td) { background: var(--surface); }
   @media (max-width: 40rem) {
-    :global(.cmpmatrix .relname) { display: none; }
+    :global(.cmpmatrix .relname), :global(.cmpdims .relname) { display: none; }
     :global(.cmpmatrix .mkcol) { width: 2.2rem; }
     :global(.cmpmatrix th, .cmpmatrix td) { padding-left: 0.35rem; padding-right: 0.35rem; }
   }

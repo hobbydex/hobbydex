@@ -40,6 +40,7 @@ import FactRows from '../../../../components/FactRows.astro';
 import { plugLinks, balanceSpecId } from '../../../../lib/plugs';
 import { chemistries, chargerWatts, MAINS } from '../../../../lib/chargers';
 import { protocolSpecs } from '../../../../lib/protocols';
+import { bodyFit, carSize, figuresOf, fullFit, lengthText } from '../../../../lib/dimensions';
 export function getStaticPaths() {
   // a former id (renamed or corrected), another number the part is sold under (numbers) or a number the maker renumbered it from (former_numbers) keeps working:
   // its page redirects to the current one; a number listed twice is one route
@@ -142,6 +143,17 @@ const ocrParts = readFrom && (part as { name_source?: string }).name_source === 
 const partArchive = archiveLinks(part.links);
 // a shop's product page, when the maker has none: its own row, never under Product page
 const dealerLinks = (part.links ?? []).filter((l) => l.kind === 'dealer');
+// a body shell: the platforms whose stated wheelbase and width or track match the body's (lib/dimensions.ts bodyFit),
+// then, collapsed, those that match on the wheelbase alone; those its fits rows name already are left out
+const fitKits = new Set((part.fits ?? []).map((f) => f.kit));
+const byWheelbase = part.category === 'body' && part.wheelbase_mm != null
+  ? db.kits.filter((k) => k.dimensions && !fitKits.has(k.id)).map((k) => ({ k, fit: bodyFit(part, carSize(figuresOf(k.dimensions), k.scale)) }))
+    .filter((x): x is { k: typeof x.k; fit: string } => x.fit !== null)
+    .sort((a, b) => brandName(a.k.brand).localeCompare(brandName(b.k.brand)) || a.k.name.localeCompare(b.k.name))
+  : [];
+const platformsFull = byWheelbase.filter((x) => fullFit(x.fit));
+const platformsOther = byWheelbase.filter((x) => !fullFit(x.fit));
+const bodyCars = byWheelbase.length;
 import SeenNote from '../../../../components/SeenNote.astro';
 import RealVehicle from '../../../../components/RealVehicle.astro';
 // the search index (Base's hidden block): the part's numbers, names, brand, category, generic spec, and the platforms and releases it fits
@@ -192,7 +204,8 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.category === 'paint' && (part.paint_type || part.finish) && <><dt>Paint</dt><dd>{[part.paint_type, part.finish?.replace(/-/g, ' ')].filter(Boolean).join(', ')}</dd></>}
     {part.category === 'paint' && part.application && <><dt>Apply with</dt><dd>{[part.application].flat().map((a) => ({ 'spray-can': 'spray can', marker: 'paint pen' } as Record<string, string>)[a] ?? a).join(' or ')}</dd></>}
     {part.category === 'paint' && (swatch || part.color) && <><dt>Colour</dt><dd class="paintcolour">{chip && <span set:html={chip} />}{swatch && <span set:html={swatch} />}{part.color}{swatch && <span class="muted"> · approximate colour, sampled from {brandName(part.brand)}'s colour chart; screens show colours differently</span>}</dd></>}
-    {part.category === 'body' && part.wheelbase_mm && <><dt>Wheelbase</dt><dd>{part.wheelbase_mm} mm</dd></>}
+    {part.category === 'body' && part.wheelbase_mm !== undefined && <><dt>Wheelbase</dt><dd>{lengthText(part.wheelbase_mm)}{bodyCars > 0 && <span class="muted"> · <a href="#fits-by-wheelbase">{bodyCars} {bodyCars === 1 ? 'platform' : 'platforms'} with this wheelbase</a></span>}</dd></>}
+    {part.category === 'body' && (part.track_mm ?? part.track_front_mm ?? part.track_rear_mm) !== undefined && <><dt>Track width</dt><dd>{part.track_mm !== undefined ? lengthText(part.track_mm) : [part.track_front_mm, part.track_rear_mm].map((t) => (t === undefined ? '?' : lengthText(t).replace(/ mm$/, ''))).join(' / ') + ' mm (front / rear)'}</dd></>}
     {part.category === 'body' && part.width_mm && <><dt>Body width</dt><dd>{part.width_mm} mm{part.width_basis === 'name' && <span class="muted"> (width class stated in the name)</span>}</dd></>}
     {part.thickness_mm && (part.category === 'body' || part.category === 'wing' || part.category === 'body-accessory') && <><dt>Shell thickness</dt><dd>{part.thickness_mm} mm{part.thickness_basis && <span class="muted"> ({part.thickness_basis === 'name' ? "stated in the part's name" : part.thickness_basis === 'page' ? "from the maker's product page" : part.thickness_basis})</span>}</dd></>}
     {part.viscosity_wt && <><dt>Viscosity</dt><dd>{part.viscosity_wt} wt <span class="muted">(the brand's own scale)</span></dd></>}
@@ -264,6 +277,18 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
   {part.notes && <p class="muted partnotes">{noteParts ? <>{noteParts[0]}<a href={readFrom!.page} rel="nofollow">{noteParts[1]}</a>{noteParts[2]}</> : part.notes}</p>}
   <DoubtNote on={!!dateDoubt(part)} />
   <FanLinks links={part.links} />
+  {byWheelbase.length > 0 && <section id="fits-by-wheelbase" data-pagefind-ignore>
+    <h2>Platforms with this wheelbase <span class="muted">({platformsFull.length})</span></h2>
+    <p class="muted">{platformsFull.length > 0 ? <>Platforms whose maker states the wheelbase this body is made for and the same width or track{part.scale && `, at ${part.scale}`}.</> : <>No platform states this wheelbase together with a matching width or track.</>} Not a fit the maker lists: check the body posts and the wheel arches.</p>
+    {platformsFull.length > 0 && <ul>{platformsFull.slice(0, 24).map(({ k, fit }) => <li><a href={url.platform(k.id)}>{brandName(k.brand)} {k.name}</a> <span class="muted">({fit})</span></li>)}</ul>}
+    {platformsFull.length > 24 && <p class="muted">{platformsFull.length - 24} more platforms.</p>}
+    {platformsOther.length > 0 && <details>
+      <summary>Other platforms with the same wheelbase <span class="muted">({platformsOther.length})</span></summary>
+      <p class="muted">The wheelbase matches; the body or the platform states no width or track to check.</p>
+      <ul>{platformsOther.slice(0, 24).map(({ k }) => <li><a href={url.platform(k.id)}>{brandName(k.brand)} {k.name}</a></li>)}</ul>
+      {platformsOther.length > 24 && <p class="muted">{platformsOther.length - 24} more platforms.</p>}
+    </details>}
+  </section>}
   {upgrades.length > 0 && <>
     <h2>Upgrades for this part <span class="muted">({upgrades.length})</span></h2>
     <table>

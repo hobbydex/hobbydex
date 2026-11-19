@@ -1,0 +1,23 @@
+---
+// The "Dimensions" block of a kit or release page (lib/dimensions.ts): wheelbase and track first, then length x width
+// x height, ground clearance and weight, with a note naming the page each figure comes from. A figure converted from
+// inches or pounds shows the maker's printed value after it.
+import { db } from '../lib/data';
+import { hostLabel } from '../lib/docFacts';
+import { dimensionRows, type Figures } from '../lib/dimensions';
+// platform: the platform's dimensions source on a release page, so a figure taken from it says so
+interface Props { figures: Figures; platform?: string }
+const { figures, platform } = Astro.props;
+const rows = dimensionRows(figures);
+// a source is a page URL or a document id (its maker page)
+const href = (s: string) => (s.startsWith('doc/') ? (db.doc.get(s)?.page ?? db.doc.get(s)?.url) : s);
+const ids = [...new Set(rows.flatMap((r) => r.keys.map((k) => figures[k]!.source)))];
+const sources = ids.map((s) => ({ url: href(s), label: ids.length > 1 && s === platform ? ' (platform)' : '' })).filter((x): x is { url: string; label: string } => !!x.url);
+---
+{rows.length > 0 && <section id="dimensions">
+  <h2>Dimensions</h2>
+  <dl class="facts">
+    {rows.map((r) => <><dt>{r.label}</dt><dd>{r.text}{r.stated && <span class="muted" title="as the maker prints it"> ({r.stated})</span>}</dd></>)}
+  </dl>
+  {sources.length > 0 && <p class="muted">Dimensions from {sources.map((u, i) => <>{i > 0 && (i === sources.length - 1 ? ' and ' : ', ')}<a href={u.url} rel="nofollow">{hostLabel(u.url)}</a>{u.label}</>)}.</p>}
+</section>}
