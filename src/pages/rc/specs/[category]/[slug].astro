@@ -18,7 +18,12 @@ export function getStaticPaths() {
   // a retired spec with a successor (a split or merged spec) keeps its address as a redirect to it
   const moved = (db.retired ?? []).filter((r) => r.id.startsWith('spec/') && r.replaced_by?.startsWith('spec/'))
     .map((r) => ({ params: { category: key(r.id)[0], slug: key(r.id)[1] }, props: { redirect: url.spec(r.replaced_by!) } }));
-  return [...db.specs.filter((s) => s.category !== 'protocol').map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } })), ...moved];
+  // a former id (a merged spec: 6.35x9.5x3.2 is now 6.35x9.525x3.175) keeps working the same way
+  const pages = db.specs.filter((s) => s.category !== 'protocol');
+  const taken = new Set([...pages.map((s) => s.id), ...moved.map((m) => `spec/${m.params.category}/${m.params.slug}`)]);
+  const former = pages.flatMap((s) => ((s.former_ids as string[] | undefined) ?? []).filter((f) => !taken.has(f))
+    .map((f) => ({ params: { category: key(f)[0], slug: key(f)[1] }, props: { redirect: url.spec(s.id) } })));
+  return [...pages.map((s) => ({ params: { category: key(s.id)[0], slug: key(s.id)[1] }, props: { spec: s } })), ...moved, ...former];
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const spec = Astro.props.spec!;   // set on every page that is not a redirect
