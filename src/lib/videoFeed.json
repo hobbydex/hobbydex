@@ -1,0 +1,10 @@
+{
+  "about": "Brand videos (official videos linked to no release, kit or part) that stay off the home page's latest videos and the /videos/ feed: they show no RC car of the brand. Each pattern is a case-insensitive JavaScript regular expression on the video title; the first that matches names the reason. Videos of a release, kit or part always show. The importer already keeps aircraft, boats, static models and the brands' non-RC lines out of the data (hobbydex-tools tools/data/video_scope.toml); these are the brand videos that stay on the brand page but are no product news. tests/videoFeed.test.mjs holds examples.",
+  "exclude": [
+    { "reason": "race or event coverage", "pattern": "(?<![a-z])(race results?|race reports?|results|finals?|finale|championships?|nationals|grand prix|qualif\\w*|cup(?! ?(cars?|body|bodies|ball|joints?))|(gt|car|toy|trade|hobby|rc|model) shows?|expo|events?|exhibitions?|trade ?fairs?|meet-?ups?|vlogs?|recaps?|highlights?)(?![a-z])" },
+    { "reason": "giveaway or contest", "pattern": "(?<![a-z])(giveaways?|contests?|sweepstakes?|prizes?|purse|raffles?)(?![a-z])" },
+    { "reason": "live stream or podcast", "pattern": "(?<![a-z])(live ?streams?|streaming|podcasts?|q ?& ?a)(?![a-z])" },
+    { "reason": "merchandise", "pattern": "(?<![a-z])(merch\\w*|apparel|t-?shirts?|hoodies?|clothing)(?![a-z])" },
+    { "reason": "out of scope (aircraft, boats, slot cars, static models)", "pattern": "(?<![a-z])(boats?|aircraft|air ?planes?|planes?|helicopters?|drones?|quad-?copters?|slot ?cars?|die-?cast|static (models?|display))(?![a-z])" }
+  ]
+}

@@ -177,9 +177,6 @@ export function fitsForRelease(kitId: string, releaseId: string, keep: (p: Part)
   return { here: [...here.values()], other: [...other.values()] };
 }
 
-// a video of a product (a release, a whole kit, a part); a brand video names none (a build team, a workshop, a product
-// line) and shows on its brand's page only
-export const productVideo = (d: Doc) => !!(d.releases?.length || d.kits?.length || d.parts?.length);
 // the makers' own videos (documents of kind video) by what they show: a release, a whole kit, a part; newest first
 const videos = raw.documents.filter((d) => d.kind === 'video');
 const videosBy = (f: (d: Doc) => string[] | undefined) => {

@@ -6,7 +6,8 @@ import { kitTypeOne } from '../lib/kitTypes';
 import { releasesByType } from '../lib/releaseTypes';
 import Base from '../layouts/Base.astro';
 import { readFileSync } from 'node:fs';
-import { db, url, brandName, dateKey, dateDoubt, isComing, releasedOf, releasesByMake, bodiesByMake, productVideo } from '../lib/data';
+import { db, url, brandName, dateKey, dateDoubt, isComing, releasedOf, releasesByMake, bodiesByMake } from '../lib/data';
+import { feedVideo } from '../lib/videoFeed';
 import DateText from '../components/DateText.astro';
 import Videos from '../components/Videos.astro';
 import DateDoubt from '../components/DateDoubt.astro';
@@ -15,8 +16,8 @@ import ScanButton from '../components/ScanButton.astro';
 import ColourSwitch from '../components/ColourSwitch.astro';
 import { dateRows, colourLabels, groupName, releaseColour } from '../lib/colourways';
 
-// the three newest dated makers' videos of a product (the videos page has the rest; brand videos are on the brand pages)
-const latestVideos = db.documents.filter((d) => d.kind === 'video' && d.date && productVideo(d)).sort((a, b) => b.date!.localeCompare(a.date!) || a.title.localeCompare(b.title)).slice(0, 3);
+// the three newest dated makers' videos of a product or with RC content (feedVideo; the videos page has the rest)
+const latestVideos = db.documents.filter((d) => d.kind === 'video' && d.date && feedVideo(d)).sort((a, b) => b.date!.localeCompare(a.date!) || a.title.localeCompare(b.title)).slice(0, 3);
 const top = <T,>(m: Map<T, number>, n: number) => [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
 const byCat = new Map<string, number>();
 for (const p of db.parts) if (p.category) byCat.set(p.category, (byCat.get(p.category) ?? 0) + 1);
