@@ -6,6 +6,9 @@
 // platforms/[brand]/[slug]/parts/[cat].astro; tests/emptied-moves.test.mjs checks each target is a built page.
 export const categoryBrandMoves: Record<string, string> = {
   'pin-clip/lrp': '/rc/categories/pin/',
+  'pin-clip/axial': '/rc/categories/pin/axial/',
+  'pin-clip/rovan': '/rc/categories/pin/',
+  'ball-end/strc': '/rc/categories/suspension/strc/',
   'uncategorised/mjx': '/rc/brands/mjx/',
   'uncategorised/x-rider': '/rc/brands/x-rider/',
   'turnbuckle/blackzon': '/rc/categories/turnbuckle/',
