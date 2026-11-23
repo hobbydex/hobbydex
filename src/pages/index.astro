@@ -6,7 +6,8 @@ import { kitTypeOne } from '../lib/kitTypes';
 import { releasesByType } from '../lib/releaseTypes';
 import Base from '../layouts/Base.astro';
 import { readFileSync } from 'node:fs';
-import { db, url, brandName, dateKey, dateDoubt, isComing, releasedOf, releasesByMake, bodiesByMake } from '../lib/data';
+import { db, url, brandName, dateDoubt, releasesByMake, bodiesByMake } from '../lib/data';
+import { releaseRows, HOME_ROWS } from '../lib/releaseRows';
 import { feedVideo } from '../lib/videoFeed';
 import DateText from '../components/DateText.astro';
 import Videos from '../components/Videos.astro';
@@ -14,7 +15,7 @@ import DateDoubt from '../components/DateDoubt.astro';
 import DoubtNote from '../components/DoubtNote.astro';
 import ScanButton from '../components/ScanButton.astro';
 import ColourSwitch from '../components/ColourSwitch.astro';
-import { dateRows, colourLabels, groupName, releaseColour } from '../lib/colourways';
+import { colourLabels, groupName, releaseColour } from '../lib/colourways';
 
 // the three newest dated makers' videos of a product or with RC content (feedVideo; the videos page has the rest)
 const latestVideos = db.documents.filter((d) => d.kind === 'video' && d.date && feedVideo(d)).sort((a, b) => b.date!.localeCompare(a.date!) || a.title.localeCompare(b.title)).slice(0, 3);
@@ -35,25 +36,9 @@ const upgraded = top(upgrades, 12);
 const byBrand = new Map<string, number>();
 for (const r of db.releases) byBrand.set(r.brand, (byBrand.get(r.brand) ?? 0) + 1);
 const brands = top(byBrand, 12);
-// the newest rows: one per colourway group (the same car in several colours is one row, lib/colourways.ts), of the
-// releases that are not discontinued; one row per kit, so one platform cannot fill the list
-const seenKit = new Set<string>();
-const out = db.releases.filter((r) => r.status !== 'discontinued' && !isComing(r));
-const latest = dateRows(out, dateKey, () => 0)
-  .filter((x) => !seenKit.has(x.head.kit) && seenKit.add(x.head.kit)).slice(0, 5);
-// a month without a day counts as the start of its month, so it sorts below that month's dated releases
-const sortKey = (k: string) => (k.length === 7 ? k + '-00' : k);
-// announced and not out yet, never labelled Released: five rows (the releases page has the rest), taken in turn
-// from each month due, soonest first, so a busy month cannot hide the later ones; a release known only by its
-// year is left out (it has no place in a dated list)
-const comingRows = dateRows(db.releases.filter((r) => isComing(r) && (releasedOf(r) ?? '').length >= 7), (r) => releasedOf(r)!, () => 0)
-  .sort((a, b) => sortKey(a.key).localeCompare(sortKey(b.key)));
-const byMonth = [...Map.groupBy(comingRows, (x) => x.key.slice(0, 7)).values()];
-const coming: typeof comingRows = [];
-for (let i = 0; coming.length < 5 && byMonth.some((m) => i < m.length); i++)
-  for (const m of byMonth) if (i < m.length && coming.length < 5) coming.push(m[i]);
-// one table, newest date first: upcoming releases above the latest ones, in date order throughout
-const newest = [...coming, ...latest].sort((a, b) => sortKey(b.key).localeCompare(sortKey(a.key)));
+// New and upcoming: the first HOME_ROWS rows of the release list as /rc/releases/ shows it by default
+// (lib/releaseRows.ts), newest date first, nothing in between left out
+const newest = releaseRows().slice(0, HOME_ROWS);
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 // the hero's car: the site's own buggy icon (public/icons.svg#buggy, 48x24, front to the left, wheels on
 // y=23.2), split into body and wing (its first two subpaths) and the two wheels, so the suspension can work
@@ -212,7 +197,7 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
         {g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}
         {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td></tr>; })}
   </table>
-  <p><a href="/rc/releases/">Show more</a> <span class="muted">· every release, newest first</span></p>
+  <p><a href="/rc/releases/">See all releases</a> <span class="muted">· every release, newest first; this table is its top {HOME_ROWS}</span></p>
   <p><a href="/rc/latest/">Latest of everything</a> <span class="muted">· new cars, bodies, servos, radios, ESCs, motors, batteries and other parts</span></p>
   <DoubtNote on={newest.some((x) => x.group.some((r) => !!dateDoubt(r)))} />
 
