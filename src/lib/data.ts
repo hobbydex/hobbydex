@@ -5,7 +5,7 @@ import { balanceSpecId, plugSpecIds } from './plugs';
 import { outlineFromReleases } from './kitArt';
 import type { Dimensions, Length } from './dimensions';
 
-export type Brand = { id: string; modified?: string; name: string; legal_name?: string; country?: string; website?: string; website_archive?: string; website_note?: string; youtube?: string[]; wikidata?: string; wikipedia?: string; kind?: string; status: string; launched?: string; launched_source?: string; launched_doubt?: string; ended?: string; ended_source?: string; ended_doubt?: string; item_numbers?: boolean; notes?: string; owner?: string; owner_source?: string; owner_since?: number };
+export type Brand = { id: string; modified?: string; name: string; legal_name?: string; country?: string; website?: string; website_archive?: string; website_note?: string; youtube?: string[]; wikidata?: string; wikipedia?: string; kind?: string; status: string; launched?: string; launched_source?: string; launched_doubt?: string; ended?: string; ended_source?: string; ended_doubt?: string; item_numbers?: boolean; colour_suffix?: string; notes?: string; owner?: string; owner_source?: string; owner_since?: number };
 // A company that owns brands (hobbydex-rc docs/schema.md "company"); brand: the brand that carries its own range, when it has one.
 export type Make = { id: string; modified?: string; name: string; country: string; notes: string; wikidata?: string; wikipedia?: string; toml_path?: string };   // a real vehicle make (data/makes); name as the make spells itself
 export type Company = { id: string; modified?: string; name: string; legal_name?: string; country?: string; website?: string; status?: string; brand?: string; parent?: string; notes?: string };
@@ -18,7 +18,7 @@ export type Contains = { part: string; role: 'kit' | 'option' | 'listed'; source
 export type Need = { part?: string; item?: string; source: string; qty?: number; note?: string };
 export type Depicts = { make?: string; model: string; year?: number; licensed?: boolean; wikidata?: string; wikipedia?: string; match?: 'likely'; basis?: 'page' | 'shared-code' | 'model-code'; via?: string; source?: string };   // the real vehicle a release or body shell replicates; no make when several makers built it (a Sherman)
 export type ReleaseRebrand = { release: string; certainty?: 'likely'; source?: string; notes?: string };
-export type Release = { id: string; dimensions?: Dimensions; rebrand_of?: ReleaseRebrand[]; modified?: string; range?: string; livery?: string; sources?: Record<string, string>; depicts?: Depicts; toml_path?: string; announced_source?: string; series?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; scale?: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; kind: string; power?: string; power_source?: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; related?: { release: string; relation: string; source: string }[]; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
+export type Release = { id: string; variant_page?: string; colour_base?: string; dimensions?: Dimensions; rebrand_of?: ReleaseRebrand[]; modified?: string; range?: string; livery?: string; sources?: Record<string, string>; depicts?: Depicts; toml_path?: string; announced_source?: string; series?: string; requires?: string[]; gtin?: string; former_ids?: string[]; kit: string; scale?: string; brand: string; number?: string; name: string; color?: string; year?: number; year_doubt?: string; released?: string; released_doubt?: string; announced?: string; seen_by?: string; seen_by_source?: string; kind: string; power?: string; power_source?: string; status: string; edition?: string; surface?: string[]; model_year?: number; category?: string; art?: string; supersedes?: string; related?: { release: string; relation: string; source: string }[]; documents?: string[]; channels?: number; protocol?: string; torque_kgcm?: number; speed_s?: number; voltage?: number; gear_material?: string; motor?: string; contains?: Contains[]; needs?: Need[]; links?: Link[] };
 export type EquivalentTo = { spec: string; match: 'exact' | 'functional' | 'close'; basis?: 'maker' | 'dimensions'; source?: string; notes?: string };
 /** A servo's torque and speed at one voltage, as its maker states them (hobbydex-rc docs/schema.md "Servos"). */
 export type ServoPerformance = { voltage: number; torque_kgcm?: number; torque_ozin?: number; speed_s?: number; source?: string };
@@ -65,6 +65,26 @@ const raw: Dataset = JSON.parse(readFileSync(path, 'utf8'));
   const releasesOf = new Map<string, Release[]>();
   for (const r of raw.releases) releasesOf.set(r.kit, [...(releasesOf.get(r.kit) ?? []), r]);
   for (const k of raw.kits) k.art ??= outlineFromReleases(k.name, releasesOf.get(k.id) ?? []);
+}
+// colourway signals (lib/colourways.ts), set here because they need the documents and brands: variant_page is the
+// maker product page a release is sold on as one of several variants (a product_page document listing two or more
+// releases whose id or address names the release's base number: ARA4437T3 on .../ARA4437.html; a spares or
+// category page that lists several cars does not count), colour_base the item number without its brand's declared
+// colour code (data/brands colour_suffix)
+{
+  const flat = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const pages = new Map(raw.documents.filter((d) => d.kind === 'product_page' && (d.releases?.length ?? 0) > 1)
+    .map((d) => [d.id, flat(`${d.id} ${d.url ?? ''}`)]));
+  // the number without a short trailing variant code that starts with a letter (T3, -B, C): ARA4437T3 -> ara4437
+  const baseOf = (n: string) => flat(n).replace(/[a-z][a-z0-9]{0,2}$/, '');
+  const suffix = new Map(raw.brands.filter((b) => b.colour_suffix).map((b) => [b.id, new RegExp(`(?:${b.colour_suffix})$`, 'i')]));
+  for (const r of raw.releases) {
+    const base = r.number ? baseOf(r.number) : '';
+    const page = base.length >= 4 ? r.documents?.find((d) => pages.get(d)?.includes(base)) : undefined;
+    if (page) r.variant_page = page;
+    const re = suffix.get(r.brand);
+    if (re && r.number) r.colour_base = r.number.replace(re, '');
+  }
 }
 if (raw.schema_version !== 0) throw new Error(`unsupported export schema_version ${raw.schema_version}`);
 
