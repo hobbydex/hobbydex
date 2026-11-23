@@ -107,10 +107,10 @@ export function groupName(group: Release[]): string {
   }
   const labels = colourLabels(group);
   const plain = group.map((r, i) => withoutColour(r.name, labels[i]));
-  if (plain.every((n) => n === plain[0])) {
-    const i = labels.findIndex((l) => l === undefined);
-    return plain[i >= 0 ? i : 0];
-  }
+  const i = labels.findIndex((l) => l === undefined);
+  const own = plain[i >= 0 ? i : 0];
+  // names equal once colour words go (the strict rule): the plain member's name
+  if (group.every((r) => nameKey(r) === nameKey(group[0]))) return own;
   // variants that differ by more than colour (trims, a second battery): the words they all share at the start and the
   // end, the end left out when that would cut a bracket in two
   const ws = plain.map((n) => n.split(' '));
@@ -118,11 +118,14 @@ export function groupName(group: Release[]): string {
   while (ws.every((w) => w[a] !== undefined && w[a] === ws[0][a])) a++;
   let z = 0;
   while (ws.every((w) => w.length - z - 1 >= a && w[w.length - z - 1] === ws[0][ws[0].length - z - 1])) z++;
-  const tidy = (t: string) => t.replace(/[\s,;:/-]+$/, '').trim();
-  const head = tidy(ws[0].slice(0, a).join(' '));
-  const both = tidy([...ws[0].slice(0, a), ...ws[0].slice(ws[0].length - z)].join(' '));
   const balanced = (t: string) => (t.match(/\(/g) ?? []).length === (t.match(/\)/g) ?? []).length;
-  return (z > 0 && balanced(both) ? both : head) || plain[0];
+  // a cut that leaves a bracket open drops back to before the bracket
+  const tidy = (t: string) => (balanced(t) ? t : t.slice(0, t.lastIndexOf('('))).replace(/[\s,;:/-]+$/, '').trim();
+  const head = tidy(ws[0].slice(0, a).join(' '));
+  const joined = [...ws[0].slice(0, a), ...ws[0].slice(ws[0].length - z)].join(' ');
+  const shared = z > 0 && balanced(joined) ? tidy(joined) : head;
+  // too little in common (the same words in another order): the plain member's name
+  return shared.split(' ').length < Math.min(...ws.map((w) => w.length)) / 2 ? own : shared;
 }
 
 // a release name with the colour words of its label taken out ("FURAGO XD, Blue" -> "FURAGO XD")

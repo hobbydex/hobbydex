@@ -68,12 +68,19 @@ const raw: Dataset = JSON.parse(readFileSync(path, 'utf8'));
 }
 // colourway signals (lib/colourways.ts), set here because they need the documents and brands: variant_page is the
 // maker product page a release is sold on as one of several variants (a product_page document listing two or more
-// releases), colour_base the item number without its brand's declared colour code (data/brands colour_suffix)
+// releases whose id or address names the release's base number: ARA4437T3 on .../ARA4437.html; a spares or
+// category page that lists several cars does not count), colour_base the item number without its brand's declared
+// colour code (data/brands colour_suffix)
 {
-  const pages = new Set(raw.documents.filter((d) => d.kind === 'product_page' && (d.releases?.length ?? 0) > 1).map((d) => d.id));
+  const flat = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const pages = new Map(raw.documents.filter((d) => d.kind === 'product_page' && (d.releases?.length ?? 0) > 1)
+    .map((d) => [d.id, flat(`${d.id} ${d.url ?? ''}`)]));
+  // the number without a short trailing variant code that starts with a letter (T3, -B, C): ARA4437T3 -> ara4437
+  const baseOf = (n: string) => flat(n).replace(/[a-z][a-z0-9]{0,2}$/, '');
   const suffix = new Map(raw.brands.filter((b) => b.colour_suffix).map((b) => [b.id, new RegExp(`(?:${b.colour_suffix})$`, 'i')]));
   for (const r of raw.releases) {
-    const page = r.documents?.find((d) => pages.has(d));
+    const base = r.number ? baseOf(r.number) : '';
+    const page = base.length >= 4 ? r.documents?.find((d) => pages.get(d)?.includes(base)) : undefined;
     if (page) r.variant_page = page;
     const re = suffix.get(r.brand);
     if (re && r.number) r.colour_base = r.number.replace(re, '');
