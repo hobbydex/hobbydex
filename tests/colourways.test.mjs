@@ -118,3 +118,27 @@ test('releases with no kind (not stated by any source) group with each other lik
   const c = rel('c', 'X-1-K', 'Test Truck, Kit', { kind: 'kit', color: 'green' });
   assert.deepEqual(groups([a, b, c]), [['X-1-B', 'X-1-R'], ['X-1-K']]);
 });
+
+test('variants on one maker product page group though one name carries more than its colour', () => {
+  const page = { variant_page: 'doc/arrma/ara4437-product-page' };
+  const t1 = rel('t1', 'ARA4437T1', 'Quake 4S DSC 4X4 RTR Brushless Monster Truck, black/red', { color: 'black/red', ...page });
+  const t2 = rel('t2', 'ARA4437T2', 'Quake 4S DSC 4X4 RTR Brushless Monster Truck, white/blue', { color: 'white/blue', ...page });
+  const t3 = rel('t3', 'ARA4437T3', 'Quake 4S DSC 4X4 RTR Brushless Monster Truck (2 x 3S Battery), black/pearl', { color: 'black/pearl', ...page });
+  assert.deepEqual(groups([t1, t2, t3]), [['ARA4437T1', 'ARA4437T2', 'ARA4437T3']]);
+  assert.equal(groupName(colourwayGroups([t1, t2, t3])[0]), 'Quake 4S DSC 4X4 RTR Brushless Monster Truck');
+  // without the shared page (or a declared colour code) the strict name rule holds
+  const bare = [t1, t2, t3].map(({ variant_page, ...r }) => r);
+  assert.deepEqual(groups(bare), [['ARA4437T1', 'ARA4437T2'], ['ARA4437T3']]);
+});
+
+test('one base number under the brand colour code groups trims; versions, kinds and status still split', () => {
+  const r1 = rel('a', 'AXI-3273T1', 'SCX30 Jeep CJ-7 GenRight 4X4 RTR Brushed Rock Crawler (Battery & Charger Included), red', { color: 'red', colour_base: 'AXI-3273' });
+  const r2 = rel('b', 'AXI-3273T2', 'SCX30 Jeep CJ-7 Renegade 4X4 RTR Brushed Rock Crawler (Battery & Charger Included), green', { color: 'green', colour_base: 'AXI-3273' });
+  assert.deepEqual(groups([r1, r2]), [['AXI-3273T1', 'AXI-3273T2']]);
+  assert.equal(groupName([r1, r2]), 'SCX30 Jeep CJ-7 4X4 RTR Brushed Rock Crawler (Battery & Charger Included)');
+  const v2 = rel('c', 'ARA4302V2T1', 'Granite 3S, green', { color: 'green', colour_base: 'ARA4302V2' });
+  const v3 = rel('d', 'ARA4302V3T2', 'Granite 3S, blue', { color: 'blue', colour_base: 'ARA4302V3', variant_page: 'doc/p' });
+  const v3b = rel('e', 'ARA4302V2T2', 'Granite 3S, blue', { color: 'blue', colour_base: 'ARA4302V2', variant_page: 'doc/p', status: 'discontinued' });
+  const kit = rel('f', 'ARA4302V2T3', 'Granite 3S, red', { color: 'red', colour_base: 'ARA4302V2', kind: 'kit' });
+  assert.deepEqual(groups([v2, v3, v3b, kit]), [['ARA4302V2T1'], ['ARA4302V3T2'], ['ARA4302V2T2'], ['ARA4302V2T3']]);
+});

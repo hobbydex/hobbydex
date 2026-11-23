@@ -26,6 +26,7 @@ const PALETTE: Record<string, Shade> = {
   bronze: { c: '#a0703a', metal: true }, copper: { c: '#b8683d', metal: true }, titanium: { c: '#8c8f93', metal: true },
   'dark titanium': { c: '#5f6266', metal: true }, 'dark silver': { c: '#8d9196', metal: true }, 'dark copper': { c: '#8a4a2b', metal: true },
   'neo chrome': { c: '#b9c4cf', metal: true },
+  pearl: { c: '#ece6f2', metal: true },   // a pearl body as its own colour (ARRMA's Black/Pearl); "yellow pearl" stays a finish of yellow
   platinum: { c: '#d5d3cc', metal: true }, 'black chrome': { c: '#2d3034', metal: true }, 'black metal chrome': { c: '#2d3034', metal: true },
   // see-through
   clear: { c: 'rgba(255,255,255,0)', see: true }, smoke: { c: 'rgba(40,40,44,0.6)', see: true },

@@ -5,6 +5,9 @@
 // names are equal once colour words are removed, their colours differ (the colour field, else the colour word of the
 // name), they are the same version (no V2 vs V3 in the item number) and edition, and their years (when both known) are
 // at most a year apart. A release without an item number does not group.
+// The names may differ by more than colour where the maker itself sells the releases as variants of one product:
+// variants on one maker product page (`variant_page`, ARA4437T1, T2 and T3 on Horizon's ARA4437 page), or one base
+// item number under the brand's declared colour code (`colour_base`, data/brands colour_suffix). The other rules hold.
 // Strict on purpose: a different edition or version, RTR vs kit, 3S vs 6S, or discontinued vs current never groups.
 import type { Release } from './data.ts';
 import { colourName, nameKey } from './colourSiblings.ts';
@@ -41,10 +44,14 @@ export function colourwayGroups(pool: Release[]): Release[][] {
   for (const r of pool) {
     parent.set(r.id, r.id);
     if (!r.number) continue;
+    const base = `${r.brand}|${r.kit}|${r.kind ?? ''}|${r.status === 'discontinued'}`;
     const name = nameKey(r);
-    if (!name) continue;
-    const k = `${r.brand}|${r.kit}|${r.kind ?? ''}|${name}|${r.status === 'discontinued'}`;
-    buckets.set(k, [...(buckets.get(k) ?? []), r]);
+    const keys = [name && `name|${name}`, r.variant_page && `page|${r.variant_page}`, r.colour_base && `number|${r.colour_base}`];
+    for (const key of keys) {
+      if (!key) continue;
+      const k = `${base}|${key}`;
+      buckets.set(k, [...(buckets.get(k) ?? []), r]);
+    }
   }
   // releases sharing a range (data/releases `range`: versions of one car that differ in colour or livery, set by the
   // data's linker) are one group whatever their names and item numbers say
@@ -99,11 +106,29 @@ export function groupName(group: Release[]): string {
     if (n > 0) return group[0].name.slice(0, ws[0][n - 1].index! + ws[0][n - 1][0].length).replace(/[\s,;:/-]+$/, '').trim();
   }
   const labels = colourLabels(group);
-  const i = labels.findIndex((l) => l === undefined);
-  const k = i >= 0 ? i : 0;
-  const r = group[k];
-  const words = (labels[k] ?? '').split('/').map((w) => w.trim()).filter(Boolean);
-  let s = r.name;
+  const plain = group.map((r, i) => withoutColour(r.name, labels[i]));
+  if (plain.every((n) => n === plain[0])) {
+    const i = labels.findIndex((l) => l === undefined);
+    return plain[i >= 0 ? i : 0];
+  }
+  // variants that differ by more than colour (trims, a second battery): the words they all share at the start and the
+  // end, the end left out when that would cut a bracket in two
+  const ws = plain.map((n) => n.split(' '));
+  let a = 0;
+  while (ws.every((w) => w[a] !== undefined && w[a] === ws[0][a])) a++;
+  let z = 0;
+  while (ws.every((w) => w.length - z - 1 >= a && w[w.length - z - 1] === ws[0][ws[0].length - z - 1])) z++;
+  const tidy = (t: string) => t.replace(/[\s,;:/-]+$/, '').trim();
+  const head = tidy(ws[0].slice(0, a).join(' '));
+  const both = tidy([...ws[0].slice(0, a), ...ws[0].slice(ws[0].length - z)].join(' '));
+  const balanced = (t: string) => (t.match(/\(/g) ?? []).length === (t.match(/\)/g) ?? []).length;
+  return (z > 0 && balanced(both) ? both : head) || plain[0];
+}
+
+// a release name with the colour words of its label taken out ("FURAGO XD, Blue" -> "FURAGO XD")
+function withoutColour(name: string, label: string | undefined): string {
+  const words = (label ?? '').split('/').map((w) => w.trim()).filter(Boolean);
+  let s = name;
   for (const w of words) s = s.replace(new RegExp(`\\b${esc(w)}\\b`, 'gi'), ' ');
   return s.replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').replace(/(\s*[-,/]){2,}\s*/g, ' - ')
     .replace(/[\s,;:/-]+$/, '').replace(/\s+,/g, ',').trim();
