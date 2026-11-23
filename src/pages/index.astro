@@ -7,7 +7,7 @@ import { releasesByType } from '../lib/releaseTypes';
 import Base from '../layouts/Base.astro';
 import { readFileSync } from 'node:fs';
 import { db, url, brandName, dateDoubt, releasesByMake, bodiesByMake } from '../lib/data';
-import { recentRows, RECENT_DAYS } from '../lib/releaseRows';
+import { releaseRows, HOME_ROWS } from '../lib/releaseRows';
 import { feedVideo } from '../lib/videoFeed';
 import DateText from '../components/DateText.astro';
 import Videos from '../components/Videos.astro';
@@ -36,9 +36,9 @@ const upgraded = top(upgrades, 12);
 const byBrand = new Map<string, number>();
 for (const r of db.releases) byBrand.set(r.brand, (byBrand.get(r.brand) ?? 0) + 1);
 const brands = top(byBrand, 12);
-// New and upcoming: the top of the release list as /rc/releases/ shows it by default (lib/releaseRows.ts), every
-// upcoming release and the ones dated in the last RECENT_DAYS days, newest date first, nothing in between left out
-const newest = recentRows();
+// New and upcoming: the first HOME_ROWS rows of the release list as /rc/releases/ shows it by default
+// (lib/releaseRows.ts), newest date first, nothing in between left out
+const newest = releaseRows().slice(0, HOME_ROWS);
 const max = (xs: [unknown, number][]) => Math.max(...xs.map((x) => x[1]));
 // the hero's car: the site's own buggy icon (public/icons.svg#buggy, 48x24, front to the left, wheels on
 // y=23.2), split into body and wing (its first two subpaths) and the two wheels, so the suspension can work
@@ -197,7 +197,7 @@ const DIRT = [[-44, -8, 2.4], [-52, -16, 1.8], [-58, -5, 2.0], [-66, -22, 1.4], 
         {g.length > 1 && <ColourSwitch label="Colours of this release" size="inline" items={g.map((x, i) => ({ id: x.id, number: x.number, colour: labels[i], text: x.livery, current: false, href: url.release(x.id) }))} />}
         {k && (k.placeholder ? <span class="muted relplat">chassis not yet known</span> : <span class="muted relplat">platform <a href={url.platform(r.kit)}>{k.name}</a></span>)}</td></tr>; })}
   </table>
-  <p><a href="/rc/releases/">Show more</a> <span class="muted">· every release, newest first; this table is its top: what is coming and the last {RECENT_DAYS} days</span></p>
+  <p><a href="/rc/releases/">See all releases</a> <span class="muted">· every release, newest first; this table is its top {HOME_ROWS}</span></p>
   <p><a href="/rc/latest/">Latest of everything</a> <span class="muted">· new cars, bodies, servos, radios, ESCs, motors, batteries and other parts</span></p>
   <DoubtNote on={newest.some((x) => x.group.some((r) => !!dateDoubt(r)))} />
 
