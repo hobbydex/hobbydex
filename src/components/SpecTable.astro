@@ -1,0 +1,18 @@
+---
+// A part's spec table (src/lib/specFields.ts): one row per spec field of its category the part has, the value, and
+// the host of the page it comes from as a small link.
+import { url } from '../lib/data';
+import { hostLabel } from '../lib/docFacts';
+import type { SpecRow } from '../lib/specFields';
+interface Props { rows: SpecRow[] }
+const { rows } = Astro.props;
+---
+{rows.length > 0 && <>
+  <h2>Specifications</h2>
+  <table class="spectable">
+    {rows.map((r) => <tr>
+      <th scope="row">{r.label}</th>
+      <td>{r.cells.map((c, i) => <>{i > 0 && ', '}{c.part ? <a href={url.part(c.part)}>{c.text}</a> : c.spec ? <a href={url.spec(c.spec)}>{c.text}</a> : c.text}{c.note && <span class="muted"> ({c.note})</span>}</>)}{r.source && <span class="muted src"> · <a href={r.source} rel="nofollow">{hostLabel(r.source)}</a></span>}</td>
+    </tr>)}
+  </table>
+</>}

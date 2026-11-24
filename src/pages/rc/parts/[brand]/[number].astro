@@ -37,6 +37,8 @@ import { describe, count } from '../../../../lib/descriptions';
 import { partSpecs } from '../../../../lib/partFacts';
 import { partSpecFacts } from '../../../../lib/specFacts';
 import FactRows from '../../../../components/FactRows.astro';
+import SpecTable from '../../../../components/SpecTable.astro';
+import { specRows } from '../../../../lib/specFields';
 import { plugLinks, balanceSpecId } from '../../../../lib/plugs';
 import { chemistries, chargerWatts, MAINS } from '../../../../lib/chargers';
 import { protocolSpecs } from '../../../../lib/protocols';
@@ -53,6 +55,9 @@ export function getStaticPaths() {
 }
 if (Astro.props.redirect) return Astro.redirect(Astro.props.redirect, 301);
 const part = Astro.props.part!;   // set on every page that is not a redirect
+// the spec table of the part's category (spec_fields); its fields leave the facts list
+const specTable = specRows(part);
+const inSpec = new Set(specTable.map((r) => r.field));
 const brand = db.brand.get(part.brand);
 const uses = [...(db.usesByPart.get(part.id) ?? [])].sort((a, b) => byReleaseDate(a.release, b.release));
 // every kit this part belongs to: through a release's contents or the brand's fitment lists
@@ -222,8 +227,8 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {part.rpm_range && <><dt>Practical rpm</dt><dd>{part.rpm_range.map((r) => r.toLocaleString('en')).join(' - ')} rpm</dd></>}
     {part.capacity_mah && <><dt>Battery</dt><dd>{part.chemistry?.toUpperCase()} {part.cells}S {part.capacity_mah} mAh{part.c_rating && ` ${part.c_rating}C`}{part.case && `, ${part.case} case`}</dd></>}
     {part.radio_unit && <><dt>Radio</dt><dd>{radioUnitLabel[part.radio_unit] ?? part.radio_unit}</dd></>}
-    {part.dimensions_mm && <><dt>{figureLabel(part, 'size')}</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
-    {part.weight_g && <><dt>{figureLabel(part, 'weight')}</dt><dd>{part.weight_g} g</dd></>}
+    {part.dimensions_mm && !inSpec.has('dimensions_mm') && <><dt>{figureLabel(part, 'size')}</dt><dd>{part.dimensions_mm.join(' x ')} mm</dd></>}
+    {part.weight_g && !inSpec.has('weight_g') && <><dt>{figureLabel(part, 'weight')}</dt><dd>{part.weight_g} g</dd></>}
     {part.category === 'wire' && gauges(part).length > 0 && <><dt>Wire gauge</dt><dd>{gauges(part).map((n, i) => <>{i > 0 && ' and '}{gaugeLink(n) ? <a href={gaugeLink(n)}>{n} AWG</a> : `${n} AWG`}</>)}</dd></>}
     {part.category === 'wire' && part.insulation && <><dt>Insulation</dt><dd>{INSULATION[part.insulation] ?? part.insulation}</dd></>}
     {part.category === 'wire' && part.strands && <><dt>Strands</dt><dd>{part.strands}</dd></>}
@@ -265,8 +270,8 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     {(part.bearings || part.bearing_kind) && <><dt>Bearings</dt><dd>{`${part.bearings ?? ''}${part.bearing_kind ? ` ${part.bearing_kind}` : ''} bearings`.trim()}</dd></>}
     {part.dead_band_us && <><dt>Dead band</dt><dd>{part.dead_band_us} µs</dd></>}
     {part.frequency_hz && <><dt>PWM frequency</dt><dd>{Array.isArray(part.frequency_hz) ? `${part.frequency_hz[0]} to ${part.frequency_hz[1]} Hz` : `${part.frequency_hz} Hz`}</dd></>}
-    {part.channels && <><dt>Channels</dt><dd>{part.channels}</dd></>}
-    {(part.protocol || protocolSpecs(part).length > 0) && <><dt>Protocol</dt><dd>{protocolSpecs(part).length > 0 ? protocolSpecs(part).map((s, i) => <>{i > 0 && ', '}<a href={url.spec(s.id)}>{s.name}</a></>) : part.protocol}{protocolSpecs(part).length > 1 && <span class="muted"> (modes it lists)</span>}</dd></>}
+    {part.channels && !inSpec.has('channels') && <><dt>Channels</dt><dd>{part.channels}</dd></>}
+    {(part.protocol || protocolSpecs(part).length > 0) && !inSpec.has('protocol') && <><dt>Protocol</dt><dd>{protocolSpecs(part).length > 0 ? protocolSpecs(part).map((s, i) => <>{i > 0 && ', '}<a href={url.spec(s.id)}>{s.name}</a></>) : part.protocol}{protocolSpecs(part).length > 1 && <span class="muted"> (modes it lists)</span>}</dd></>}
     {part.applies_to && <><dt>Listed for</dt><dd>{part.applies_to}</dd></>}
     {specFact.facts.length > 0 && <><dt>Spec</dt><dd>{specFact.specs.map((s, i) => <>{i > 0 && ', '}<a href={url.spec(s.id)}>{s.name ?? s.id}</a></>)}</dd><FactRows rows={specFact.facts} /></>}
   </dl>
@@ -277,6 +282,7 @@ const indexFilters = [part.category && `category:${catName(part.category)}`, par
     : !drawing && part.category && <span class={tint ? 'typeicon tinted' : 'typeicon'} title={catName(part.category)} style={tint ? `--tint:${tint.fill}` : undefined} data-dark={tint?.dark ? '' : undefined}><Icon name={partIcon(part)!} size="8rem" /></span>}
   </div>
   {drawing && <PartDimensions drawing={drawing} drawStd={drawStd} part={part} />}
+  <SpecTable rows={specTable} />
   {part.notes && <p class="muted partnotes">{noteParts ? <>{noteParts[0]}<a href={readFrom!.page} rel="nofollow">{noteParts[1]}</a>{noteParts[2]}</> : part.notes}</p>}
   <DoubtNote on={!!dateDoubt(part)} />
   <FanLinks links={part.links} />
