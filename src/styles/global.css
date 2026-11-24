@@ -347,3 +347,9 @@ body { overflow-x: clip; }
 .dslot:empty { display: none; }
 td .dslot:empty { display: inline-block; }
 .dateline { white-space: nowrap; }
+/* a part's spec table (SpecTable.astro): label column as wide as its longest label, values wrap */
+table.spectable { max-width: 46rem; }
+table.spectable th { width: 1%; white-space: nowrap; background: none; font-size: 0.875rem; font-weight: 400; }
+table.spectable td { overflow-wrap: anywhere; }
+table.spectable .src { font-size: 0.8rem; white-space: nowrap; }
+@media (max-width: 30rem) { table.spectable th { white-space: normal; width: 38%; } }
