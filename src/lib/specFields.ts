@@ -4,7 +4,7 @@
 import { db, type Part, type SpecField } from './data';
 import { protocolSpecs } from './protocols';
 
-export type SpecCell = { text: string; part?: string; spec?: string };
+export type SpecCell = { text: string; part?: string; spec?: string; note?: string };
 export type SpecRow = { field: string; label: string; cells: SpecCell[]; source?: string };
 
 const cat = new Map(db.categories.map((c) => [c.id.split('/')[1], c]));
@@ -55,9 +55,11 @@ export function specRows(p: Part): SpecRow[] {
       case 'numbers': cells = [{ text: withUnit((v as number[]).map(num).join(', '), f.unit) }]; break;
       case 'dims': cells = [{ text: withUnit((v as number[]).join(' x '), f.unit) }]; break;
       case 'enums': cells = [{ text: (v as string[]).map((x) => x.replace(/-/g, ' ')).join(', ') }]; break;
-      case 'parts': cells = (v as string[]).map((x) => {
-        const q = x.startsWith('part/') ? db.part.get(x) : undefined;
-        return q ? { text: q.number ?? q.name, part: q.id } : { text: x };
+      case 'parts': cells = (v as (string | { part?: string; name?: string; note?: string })[]).map((x) => {
+        // a row { part } or { name } with the maker's note (older data: a bare id or code)
+        const row = typeof x === 'string' ? (x.startsWith('part/') ? { part: x } : { name: x }) : x;
+        const q = row.part ? db.part.get(row.part) : undefined;
+        return q ? { text: q.number ?? q.name, part: q.id, note: row.note } : { text: row.name ?? row.part ?? '', note: row.note };
       }); break;
       case 'string':
         // the protocol links its protocol specs where the part names them (docs/schema.md "Protocol specs")

@@ -15,9 +15,11 @@ export const catName = (c?: string) => (c ? categoryLabel[c] ?? c : '');
 const iconOf: Record<string, string> = { 'hardware-set': 'screw', merchandise: 't-shirt' };
 export const categoryIcon = (c: string) => iconOf[c] ?? c;
 // The icon that stands in for a part's picture: its category icon, or for a ball with a bore (no threaded shank)
-// the through-hole ball or the ball nut; threaded studs and set-screw balls keep the ball stud.
-export const partIcon = (p: { category?: string; ball_type?: string }) =>
-  p.category === 'ball-end' && (p.ball_type === 'through-hole' || p.ball_type === 'nut') ? `ball-end-${p.ball_type}` : p.category && categoryIcon(p.category);
+// the through-hole ball or the ball nut (threaded studs and set-screw balls keep the ball stud), and for a radio
+// receiver the receiver (the radio category icon is a transmitter).
+export const partIcon = (p: { category?: string; ball_type?: string; radio_unit?: string }) =>
+  p.category === 'ball-end' && (p.ball_type === 'through-hole' || p.ball_type === 'nut') ? `ball-end-${p.ball_type}`
+    : p.category === 'radio' && p.radio_unit === 'receiver' ? 'receiver' : p.category && categoryIcon(p.category);
 
 // The groups of the categories overview page (/rc/categories/), in page order; a category in no group is listed under Other.
 export const categoryGroups: [string, string[]][] = [

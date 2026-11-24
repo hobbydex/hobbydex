@@ -12,7 +12,7 @@ const { rows } = Astro.props;
   <table class="spectable">
     {rows.map((r) => <tr>
       <th scope="row">{r.label}</th>
-      <td>{r.cells.map((c, i) => <>{i > 0 && ', '}{c.part ? <a href={url.part(c.part)}>{c.text}</a> : c.spec ? <a href={url.spec(c.spec)}>{c.text}</a> : c.text}</>)}{r.source && <span class="muted src"> · <a href={r.source} rel="nofollow">{hostLabel(r.source)}</a></span>}</td>
+      <td>{r.cells.map((c, i) => <>{i > 0 && ', '}{c.part ? <a href={url.part(c.part)}>{c.text}</a> : c.spec ? <a href={url.spec(c.spec)}>{c.text}</a> : c.text}{c.note && <span class="muted"> ({c.note})</span>}</>)}{r.source && <span class="muted src"> · <a href={r.source} rel="nofollow">{hostLabel(r.source)}</a></span>}</td>
     </tr>)}
   </table>
 </>}
